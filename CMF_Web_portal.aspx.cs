@@ -4591,7 +4591,7 @@ LEFT JOIN " + designTable + @" AS d
     {
         string cpId = cpIdValue == null || cpIdValue == DBNull.Value ? string.Empty : cpIdValue.ToString();
         return string.Format(
-            "<button type=\"button\" class=\"pending-recommendation-btn pending-ai-rec-btn\" data-cmf-rec-id=\"{11}\" onclick='openCmfPendingRecommendationModal(\"{0}\", \"{1}\", \"{2}\", \"{3}\", \"{4}\", \"{5}\", \"{6}\", \"{7}\", \"{8}\", \"{9}\", \"{10}\")' title=\"Open AI CMF Assistant\" aria-label=\"Open AI CMF Assistant\"><i class=\"fas fa-wand-magic-sparkles\" aria-hidden=\"true\"></i><span class=\"pending-ai-rec-label\">AI CMF Assistant</span><span class=\"pending-ai-rec-confidence\">Open assessment</span></button>",
+            "<button type=\"button\" class=\"pending-recommendation-btn pending-ai-rec-btn\" data-cmf-rec-id=\"{11}\" onclick='openCmfPendingRecommendationModal(\"{0}\", \"{1}\", \"{2}\", \"{3}\", \"{4}\", \"{5}\", \"{6}\", \"{7}\", \"{8}\", \"{9}\", \"{10}\")' title=\"Open CMF Analysis\" aria-label=\"Open CMF Analysis\"><span class=\"pending-ai-rec-icon\" aria-hidden=\"true\">&#10024;</span><span class=\"pending-ai-rec-label\">CMF Analysis</span></button>",
             JsEncode(cpIdValue),
             JsEncode(titleValue),
             JsEncode(componentValue),
@@ -5711,7 +5711,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 Reproducibility = reproducibility,
                 CustomerDetail = customerDetail,
                 CustomerOwner = customerOwner,
-                Rules = CmfRecommendationService.GetActiveRulesText(),
+                Rules = CmfRecommendationService.GetDefaultRulesText(),
                 HsdContext = BuildPendingRecommendationContext(resolvedPlatform, cpId)
             };
 
@@ -5782,6 +5782,65 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
             {
                 Success = false,
                 Message = "Sighting quality assessment failed: " + ex.Message
+            };
+        }
+    }
+
+    [WebMethod(EnableSession = true)]
+    public static SightingQualityValidationTraceResponse GetSightingQualityValidationTrace(
+        string cpId,
+        string title,
+        string component,
+        string cmfRequest,
+        string impact,
+        string idst,
+        string reproOnRvp,
+        string reproducibility,
+        string customerDetail,
+        string customerOwner,
+        string platform)
+    {
+        try
+        {
+            string resolvedPlatform = platform;
+            if (string.IsNullOrWhiteSpace(resolvedPlatform) && HttpContext.Current != null && HttpContext.Current.Session != null)
+            {
+                resolvedPlatform = HttpContext.Current.Session[IssuePendingPlatformSessionKey] as string
+                    ?? HttpContext.Current.Session["selectedPlatform"] as string;
+            }
+
+            if (!string.IsNullOrWhiteSpace(resolvedPlatform) && !AllowedPlatformTables.Contains(resolvedPlatform))
+            {
+                return new SightingQualityValidationTraceResponse
+                {
+                    Success = false,
+                    Message = "Invalid platform input for sighting quality validation."
+                };
+            }
+
+            CmfRecommendationRequest request = new CmfRecommendationRequest
+            {
+                CpId = cpId,
+                Title = title,
+                Component = component,
+                CmfRequest = cmfRequest,
+                Impact = impact,
+                Idst = idst,
+                ReproOnRvp = reproOnRvp,
+                Reproducibility = reproducibility,
+                CustomerDetail = customerDetail,
+                CustomerOwner = customerOwner,
+                HsdContext = BuildPendingRecommendationContext(resolvedPlatform, cpId)
+            };
+
+            return CmfRecommendationService.GenerateSightingQualityValidationTrace(request);
+        }
+        catch (Exception ex)
+        {
+            return new SightingQualityValidationTraceResponse
+            {
+                Success = false,
+                Message = "Sighting quality validation trace failed: " + ex.Message
             };
         }
     }

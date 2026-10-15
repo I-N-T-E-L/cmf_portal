@@ -71,12 +71,55 @@ public class SightingQualityAssessmentResponse
     public string Tier { get; set; }
     public string Summary { get; set; }
     public List<SightingQualityFieldAssessment> Fields { get; set; }
+    public List<SightingQualityDimensionScore> DimensionScores { get; set; }
     public string Message { get; set; }
 
     public SightingQualityAssessmentResponse()
     {
         Fields = new List<SightingQualityFieldAssessment>();
+        DimensionScores = new List<SightingQualityDimensionScore>();
     }
+}
+
+public class SightingQualityDimensionScore
+{
+    public string Name { get; set; }
+    public int Score { get; set; }
+    public double Weight { get; set; }
+    public string Summary { get; set; }
+}
+
+public class SightingQualityValidationTraceResponse
+{
+    public bool Success { get; set; }
+    public string CpId { get; set; }
+    public string Message { get; set; }
+    public Dictionary<string, string> RequestEvidence { get; set; }
+    public Dictionary<string, string> HsdEvidence { get; set; }
+    public string HsdContextRaw { get; set; }
+    public SightingQualityAssessmentResponse DeterministicAssessment { get; set; }
+    public SightingQualityAssessmentResponse FinalAssessment { get; set; }
+    public List<SightingQualityValidationFieldTrace> FieldTraces { get; set; }
+
+    public SightingQualityValidationTraceResponse()
+    {
+        RequestEvidence = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        HsdEvidence = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        FieldTraces = new List<SightingQualityValidationFieldTrace>();
+    }
+}
+
+public class SightingQualityValidationFieldTrace
+{
+    public string FieldName { get; set; }
+    public string DeterministicStatus { get; set; }
+    public string DeterministicCharacteristic { get; set; }
+    public string DeterministicEvidence { get; set; }
+    public string FinalStatus { get; set; }
+    public string FinalCharacteristic { get; set; }
+    public string FinalEvidence { get; set; }
+    public bool StatusChangedAfterContextualReview { get; set; }
+    public bool FinalKeptDeterministicGap { get; set; }
 }
 
 public static class CmfRecommendationService
@@ -86,38 +129,37 @@ public static class CmfRecommendationService
     private static readonly Dictionary<string, SightingQualityAssessmentCacheEntry> SightingQualityCache = new Dictionary<string, SightingQualityAssessmentCacheEntry>(StringComparer.Ordinal);
     private static readonly string[] SightingQualityFieldNames = new[]
     {
-        "Issue Title / Subject",
-        "Problem Description / What Happened",
-        "Customer Impact",
+        "Title",
         "Reproducibility / Failure Rate",
-        "Reproduction Details / Trigger",
-        "Platform / Product Context",
-        "System Configuration",
-        "Debug Evidence / Attachments",
-        "Ownership / Routing",
-        "Status / Resolution Context"
+        "Processor",
+        "SoC Stepping",
+        "Impact",
+        "Steps to Reproduce",
+        "Exposure / Priority",
+        "ME SKU"
     };
     private static readonly HashSet<string> SightingQualityCoreFieldNames = new HashSet<string>(new[]
     {
-        "Issue Title / Subject",
-        "Problem Description / What Happened",
-        "Customer Impact",
+        "Title",
         "Reproducibility / Failure Rate",
-        "Reproduction Details / Trigger",
-        "Platform / Product Context",
-        "System Configuration",
-        "Debug Evidence / Attachments"
+        "Processor",
+        "SoC Stepping",
+        "Impact",
+        "Steps to Reproduce",
+        "Exposure / Priority",
+        "ME SKU"
     }, StringComparer.OrdinalIgnoreCase);
         private const string RulesRelativePath = "~/App_Data/cmf-recommendation-rules.txt";
         private const string DefaultRulesText = @"CMF Recommendation Scoring Policy
 
     Score only from available evidence. Do not infer absent facts. Missing decision-critical evidence routes to CMF_INCOMPLETE.
 
-    S | Severity | Weight 30 | 5=cannot power/boot, unrecoverable, damage, data loss/corruption, spec/cert failure; 4=BSOD, hang, black screen, shutdown/reboot, major feature/I/O/network loss, >150% spec; 3=specific function/driver lost, app hang, lag, <=150% spec; 2=warnings, event-log errors, wrong LED, limited unexpected behavior; 1=wrong status/description/typo, almost no customer impact.
-    O | Occurrence | Weight 20 | 5=>=1/10 cycles or hourly SW or >=0.34% HW; 4=frequent but below score 5; 3=<1/100 cycles or less than once per 8 hours SW or <0.255% HW; 2=<1/1000 cycles or less than once per 40 hours SW or <0.17% HW; 1=<1/5000 cycles SW or <0.085% HW.
-    D | Detection | Weight 15 | 5=normal use or idle, immediately visible; 4=daily core operation such as login, S0i3, AC attach/detach; 3=OOBE, AFT, S4/S5, restart, or specific customer feature; 2=non-frequent operation, stress, or corner case; 1=specific steps/settings/device, non-preloaded app, or unique MFG process.
-    R | Recovery | Weight 15 | 5=no acceptable workaround/recovery; 4=workaround blocks validation or severely impacts usability; 3=reboot, BIOS change, reconnect, reflash, or repeated intervention; 2=simple reliable user action with minor inconvenience; 1=fully effective workaround with negligible impact.
-    B | Business Impact | Weight 20 | 5=production/launch gate, executive escalation, financial impact, brand risk, competitive disadvantage; 4=customer milestone at risk, validation blocked, or multiple escalations likely; 3=customer dissatisfaction, support burden, returns, or warranty exposure possible; 2=limited exposure or single customer observation; 1=internal-only issue with no customer/business impact.
+    S | Severity | Weight 25 | 5=cannot power/boot, unrecoverable failure, permanent damage, data loss/corruption, certification failure; 4=BSOD, system hang, black screen, reboot/shutdown, major feature/I/O/network loss, severe performance degradation; 3=specific function/driver lost, application hang, intermittent malfunction, moderate performance degradation; 2=warning/event-log error, wrong LED, minor unexpected behavior with limited functional impact; 1=cosmetic issue, typo, wrong status/description, negligible functional impact.
+    O | Occurrence | Weight 15 | 5=>=1/10 cycles, hourly SW failure, >=0.34% HW unit rate, consistently reproducible; 4=frequent but <1/10 cycles, less than hourly SW, <0.34% HW, multiple systems/configurations; 3=recurring/occasional, <1/100 cycles, less than once per 8 hours SW, <0.255% HW; 2=rare, <1/1000 cycles, less than once per 40 hours SW, <0.17% HW; 1=almost never, <1/5000 cycles SW, <0.085% HW, cannot reliably reproduce.
+    D | Detection | Weight 20 | 5=normal use or idle state, immediately and easily visible to end user; 4=daily core workflow such as login/logout, S0ix, AC attach/detach, or another frequently used feature; 3=specific customer feature or workflow such as OOBE, AFT, S4/S5, restart, or optional feature use; 2=non-frequent operation, stress condition, or corner-case scenario; 1=special steps/settings/device, debug/lab-only setup, non-preloaded app, or unique manufacturing process.
+    R | Recovery | Weight 10 | 5=no acceptable workaround or recovery exists; 4=workaround significantly impacts usability or materially blocks validation; 3=recovery requires warm boot/reboot, BIOS change, reconnect, reflash, or repeated intervention; 2=simple reliable user action resolves the issue with minor inconvenience; 1=fully effective workaround with negligible usability or validation impact.
+    B | Business Impact | Weight 15 | 5=production/launch gate, executive escalation, financial impact, brand risk, competitive disadvantage; 4=customer milestone at risk, validation blocked, multiple escalations likely; 3=customer dissatisfaction, support burden, warranty/returns/service exposure possible; 2=limited business exposure or single-customer observation; 1=internal-only issue with no identified customer or business impact.
+    CX | Customer Experience | Weight 15 | 5=customer visible feature unusable, such as audio, camera, display, touch, or network unavailable; 4=significant visible feature degradation materially disrupts normal use; 3=intermittent visible degradation noticed by user but feature remains partially usable or recovers; 2=minor visible annoyance with no meaningful functional loss; 1=not visible to end user, debug-only symptom, status mismatch, or internal observation.
 
     Auto-CMF triggers: production halt, launch gate, validation block, Gerber/customer web-update gate, cannot power/boot, loss/corruption, damage risk, certification failure, active/expected escalation, financial impact, returns, warranty, brand or competitive risk.
 
@@ -163,14 +205,10 @@ public static class CmfRecommendationService
         string reproducibility = SafeText(request.Reproducibility);
         string customerDetail = SafeText(request.CustomerDetail);
         string customerOwner = SafeText(request.CustomerOwner);
-        string rules = SafeText(request.Rules);
-        if (string.IsNullOrWhiteSpace(rules))
-        {
-            rules = GetActiveRulesText();
-        }
+        string rules = DefaultRulesText;
 
         string hsdContext = SafeText(request.HsdContext);
-        string hash = ComputeHash("cmf-recommendation-live-context-v12|" + GetAiProviderCacheSignature() + "|" + cpId + "|" + title + "|" + component + "|" + cmfRequest + "|" + impact + "|" + idst + "|" + reproOnRvp + "|" + reproducibility + "|" + customerDetail + "|" + customerOwner + "|" + rules + "|" + hsdContext);
+        string hash = ComputeHash("cmf-recommendation-live-context-v25-explicit-cx|" + GetAiProviderCacheSignature() + "|" + cpId + "|" + title + "|" + component + "|" + cmfRequest + "|" + impact + "|" + idst + "|" + reproOnRvp + "|" + reproducibility + "|" + customerDetail + "|" + customerOwner + "|" + rules + "|" + hsdContext);
         string cacheKey = "cmf-recommendation:" + hash;
 
         CmfRecommendationResponse cached = TryGetCached(cacheKey);
@@ -182,7 +220,7 @@ public static class CmfRecommendationService
         string modelRecommendation;
         string modelError;
         string deterministicRecommendation = BuildFallbackRecommendation(cpId, title, component, cmfRequest, impact, idst, reproOnRvp, reproducibility, customerDetail, customerOwner, rules);
-        bool hasModelRecommendation = TryGenerateWithGitHubModel(cpId, title, component, cmfRequest, impact, idst, reproOnRvp, reproducibility, customerDetail, customerOwner, rules, deterministicRecommendation, out modelRecommendation, out modelError, BuildCmfRecommendationPrompt(cpId, title, component, cmfRequest, impact, idst, reproOnRvp, reproducibility, customerDetail, customerOwner, rules, deterministicRecommendation, hsdContext), "You are a senior CMF disposition reviewer. Use only the supplied issue data, HSD context, and admin scoring policy. Write fluent, grammatical English. Return only the requested structured fields. Do not invent evidence, owners, dates, customers, or impacts.");
+        bool hasModelRecommendation = TryGenerateWithGitHubModel(cpId, title, component, cmfRequest, impact, idst, reproOnRvp, reproducibility, customerDetail, customerOwner, rules, deterministicRecommendation, out modelRecommendation, out modelError, BuildCmfRecommendationPrompt(cpId, title, component, cmfRequest, impact, idst, reproOnRvp, reproducibility, customerDetail, customerOwner, rules, deterministicRecommendation, hsdContext), "You are a senior CMF disposition reviewer. Use only the supplied issue data, HSD context, and fixed six-metric CMF scoring matrix. Write fluent, grammatical English. Return only the requested structured fields. Do not invent evidence, owners, dates, customers, or impacts.");
 
         if (!hasModelRecommendation)
         {
@@ -193,21 +231,16 @@ public static class CmfRecommendationService
 
         // Parse structured response
         CmfRecommendationResponse result = ParseStructuredRecommendation(modelRecommendation);
+        result.RuleScores = BuildDeterministicRuleScores(title, component, cmfRequest, impact, idst, reproOnRvp, reproducibility, customerDetail, customerOwner, hsdContext);
         SanitizeRecommendationResponse(result);
         result.Success = true;
         result.CpId = cpId;
         result.Title = title;
-        if (result.OverallQualityScore <= 0)
-        {
-            result.OverallQualityScore = CalculateOverallQualityScore(result.RuleScores);
-        }
+        result.OverallQualityScore = CalculateOverallQualityScore(result.RuleScores);
         int parsedThresholdScore = GetThresholdScore(rules);
         result.ThresholdScore = parsedThresholdScore;
         result.Recommendation = ResolveCmfDisposition(result.Recommendation, result.OverallQualityScore, parsedThresholdScore, result.RuleScores);
-        if (string.IsNullOrWhiteSpace(result.Evidence))
-        {
-            result.Evidence = BuildReasoningFromScores(result.Recommendation, result.OverallQualityScore, parsedThresholdScore, result.RuleScores);
-        }
+        result.Evidence = BuildReasoningFromScores(result.Recommendation, result.OverallQualityScore, parsedThresholdScore, result.RuleScores);
         result.NextSteps = BuildNextSteps(result.Recommendation, result.RuleScores);
         result.Message = "AI recommendation generated.";
 
@@ -316,7 +349,7 @@ public static class CmfRecommendationService
         string customerDetail = SafeText(request.CustomerDetail);
         string customerOwner = SafeText(request.CustomerOwner);
         string hsdContext = SafeText(request.HsdContext);
-        string cacheKey = "sqa-gap-assessment:v5:" + ComputeHash(GetAiProviderCacheSignature() + "|" + cpId + "|" + title + "|" + component + "|" + impact + "|" + idst + "|" + reproOnRvp + "|" + reproducibility + "|" + customerDetail + "|" + customerOwner + "|" + hsdContext);
+        string cacheKey = "sqa-gap-assessment:v9:" + ComputeHash(GetAiProviderCacheSignature() + "|" + cpId + "|" + title + "|" + component + "|" + impact + "|" + idst + "|" + reproOnRvp + "|" + reproducibility + "|" + customerDetail + "|" + customerOwner + "|" + hsdContext);
 
         SightingQualityAssessmentResponse cached = TryGetCachedSightingQualityAssessment(cacheKey);
         if (cached != null)
@@ -366,6 +399,79 @@ public static class CmfRecommendationService
         SanitizeSightingQualityAssessment(parsed);
         SetCachedSightingQualityAssessment(cacheKey, parsed, DateTime.UtcNow.AddHours(2));
         return parsed;
+    }
+
+    public static SightingQualityValidationTraceResponse GenerateSightingQualityValidationTrace(CmfRecommendationRequest request)
+    {
+        if (request == null)
+        {
+            return new SightingQualityValidationTraceResponse { Success = false, Message = "Invalid sighting quality validation request." };
+        }
+
+        string cpId = SafeText(request.CpId);
+        string title = SafeText(request.Title);
+        string component = SafeText(request.Component);
+        string impact = SafeText(request.Impact);
+        string idst = SafeText(request.Idst);
+        string reproOnRvp = SafeText(request.ReproOnRvp);
+        string reproducibility = SafeText(request.Reproducibility);
+        string customerDetail = SafeText(request.CustomerDetail);
+        string customerOwner = SafeText(request.CustomerOwner);
+        string hsdContext = SafeText(request.HsdContext);
+
+        SightingQualityAssessmentResponse deterministicAssessment = BuildFallbackSightingQualityAssessment(cpId, title, component, impact, idst, reproOnRvp, reproducibility, customerDetail, customerOwner, hsdContext);
+        ApplySightingQualityScoreModel(deterministicAssessment);
+        ApplySightingQualityAssessmentSummary(deterministicAssessment);
+        SanitizeSightingQualityAssessment(deterministicAssessment);
+
+        SightingQualityAssessmentResponse finalAssessment = GenerateSightingQualityAssessment(request);
+        SightingQualityValidationTraceResponse trace = new SightingQualityValidationTraceResponse
+        {
+            Success = finalAssessment == null || finalAssessment.Success,
+            CpId = cpId,
+            Message = "Validation trace generated. Compare request/HSD evidence against deterministic and final statuses to isolate fetch, mapping, or classification issues.",
+            HsdContextRaw = hsdContext,
+            DeterministicAssessment = deterministicAssessment,
+            FinalAssessment = finalAssessment
+        };
+
+        trace.RequestEvidence["CpId"] = cpId;
+        trace.RequestEvidence["Title"] = title;
+        trace.RequestEvidence["Component"] = component;
+        trace.RequestEvidence["Impact"] = impact;
+        trace.RequestEvidence["Idst"] = idst;
+        trace.RequestEvidence["ReproOnRvp"] = reproOnRvp;
+        trace.RequestEvidence["Reproducibility"] = reproducibility;
+        trace.RequestEvidence["CustomerDetail"] = customerDetail;
+        trace.RequestEvidence["CustomerOwner"] = customerOwner;
+
+        Dictionary<string, string> hsdEvidence = ParseSimpleContextMap(hsdContext);
+        foreach (KeyValuePair<string, string> item in hsdEvidence)
+        {
+            trace.HsdEvidence[item.Key] = item.Value;
+        }
+
+        foreach (string fieldName in SightingQualityFieldNames)
+        {
+            SightingQualityFieldAssessment deterministicField = FindQualityField(deterministicAssessment, fieldName);
+            SightingQualityFieldAssessment finalField = FindQualityField(finalAssessment, fieldName);
+            string deterministicStatus = deterministicField == null ? string.Empty : NormalizeSightingQualityStatus(deterministicField.Status);
+            string finalStatus = finalField == null ? string.Empty : NormalizeSightingQualityStatus(finalField.Status);
+            trace.FieldTraces.Add(new SightingQualityValidationFieldTrace
+            {
+                FieldName = fieldName,
+                DeterministicStatus = deterministicStatus,
+                DeterministicCharacteristic = deterministicField == null ? string.Empty : deterministicField.Characteristic,
+                DeterministicEvidence = deterministicField == null ? string.Empty : deterministicField.Evidence,
+                FinalStatus = finalStatus,
+                FinalCharacteristic = finalField == null ? string.Empty : finalField.Characteristic,
+                FinalEvidence = finalField == null ? string.Empty : finalField.Evidence,
+                StatusChangedAfterContextualReview = !string.Equals(deterministicStatus, finalStatus, StringComparison.OrdinalIgnoreCase),
+                FinalKeptDeterministicGap = GetSightingQualityStatusRank(finalStatus) >= GetSightingQualityStatusRank(deterministicStatus)
+            });
+        }
+
+        return trace;
     }
 
     public static string GetDefaultRulesText()
@@ -903,11 +1009,12 @@ public static class CmfRecommendationService
     private static int GetRuleWeight(string ruleId)
     {
         string id = SafeText(ruleId).ToUpperInvariant();
-        if (id == "S") return 30;
-        if (id == "O") return 20;
-        if (id == "D") return 15;
-        if (id == "R") return 15;
-        if (id == "B") return 20;
+        if (id == "S") return 25;
+        if (id == "O") return 15;
+        if (id == "D") return 20;
+        if (id == "R") return 10;
+        if (id == "B") return 15;
+        if (id == "CX") return 15;
         return IsHighWeightRule(ruleId) ? 2 : 1;
     }
 
@@ -1002,43 +1109,41 @@ public static class CmfRecommendationService
 
     private static string BuildReasoningFromScores(string recommendation, int overallQualityScore, int thresholdScore, List<CmfRecommendationRuleScore> ruleScores)
     {
-        List<string> blockers = new List<string>();
-        List<string> strengths = new List<string>();
-        if (ruleScores != null)
-        {
-            foreach (CmfRecommendationRuleScore rule in ruleScores)
-            {
-                string evaluation = rule == null ? string.Empty : SafeText(rule.Evaluation);
-                string ruleId = rule == null ? string.Empty : SafeText(rule.RuleId);
-                if (evaluation.StartsWith("FAIL", StringComparison.OrdinalIgnoreCase) || evaluation.StartsWith("PARTIAL", StringComparison.OrdinalIgnoreCase))
-                {
-                    blockers.Add(BuildRecommendationReasonClause(ruleId, evaluation, false));
-                }
-                else if (evaluation.StartsWith("PASS", StringComparison.OrdinalIgnoreCase))
-                {
-                    strengths.Add(BuildRecommendationReasonClause(ruleId, evaluation, true));
-                }
-            }
-        }
+        string decision = SafeText(recommendation).ToUpperInvariant();
+        double score = Math.Round(overallQualityScore / 20.0, 2);
+        string scoreText = score.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture).Replace(".", " point ");
+        int severity = GetMetricScore(ruleScores, "S");
+        int occurrence = GetMetricScore(ruleScores, "O");
+        int detection = GetMetricScore(ruleScores, "D");
+        int recovery = GetMetricScore(ruleScores, "R");
+        int business = GetMetricScore(ruleScores, "B");
+        int customerExperience = GetMetricScore(ruleScores, "CX");
 
-        bool shouldTag = string.Equals(recommendation, "CMF_OK", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(recommendation, "Tag as CMF", StringComparison.OrdinalIgnoreCase);
-        StringBuilder reasoning = new StringBuilder();
-        if (shouldTag)
+        List<string> bullets = new List<string>();
+        if (decision == "CMF_INCOMPLETE")
         {
-            reasoning.Append("The issue meets the CMF tagging bar because the strongest signals support both severity and actionability. ");
-            reasoning.Append("The score is ").Append(overallQualityScore).Append("/100 against a ").Append(thresholdScore).Append("/100 threshold, and ");
-            reasoning.Append(strengths.Count > 0 ? JoinReadableList(TakeFirstReasons(strengths, 2)) : "the active rule checks do not show a blocking gap").Append(". ");
-            reasoning.Append("Based on those signals, tagging is justified while the owner continues normal validation tracking.");
+            bullets.Add("The tag is CMF_INCOMPLETE because one or more decision-critical metric inputs are missing from the available portal and HSD evidence.");
+        }
+        else if (decision == "CMF_REVIEW" && HasCustomerExperienceOverride(ruleScores))
+        {
+            bullets.Add("The tag is CMF_REVIEW because the customer-experience override is active, so reviewer judgment is required even if the weighted score would otherwise place the issue in a different band.");
+        }
+        else if (decision == "CMF_OK")
+        {
+            bullets.Add("The tag is CMF_OK because the weighted score is " + scoreText + " out of 5, which meets the score threshold of 4 or higher.");
+        }
+        else if (decision == "CMF_REVIEW")
+        {
+            bullets.Add("The tag is CMF_REVIEW because the weighted score is " + scoreText + " out of 5, which falls between 3 and below 4.");
         }
         else
         {
-            reasoning.Append("The issue should not be tagged yet because the evidence does not clear the CMF decision gates. ");
-            reasoning.Append("The score is ").Append(overallQualityScore).Append("/100 against a ").Append(thresholdScore).Append("/100 threshold, and ");
-            reasoning.Append(blockers.Count > 0 ? JoinReadableList(TakeFirstReasons(blockers, 2)) : "one or more required signals are still unclear").Append(". ");
-            reasoning.Append("Until those gaps are resolved, approving the CMF tag would be premature.");
+            bullets.Add("The tag is CMF_REJECT because the weighted score is " + scoreText + " out of 5, which is below 3 after the completeness and customer-experience checks.");
         }
-        return reasoning.ToString();
+
+        bullets.Add("The strongest metric signals are severity " + severity + "/5, occurrence " + occurrence + "/5, detection " + detection + "/5, recovery " + recovery + "/5, business impact " + business + "/5, and customer experience " + customerExperience + "/5.");
+        bullets.Add("Each metric score is matched to the fixed evaluation matrix using the displayed factor label and the cited evidence in the metric details, while the overall score is only the weighted formula result.");
+        return "- " + string.Join("\n- ", bullets.ToArray());
     }
 
     private static List<CmfRecommendationRuleScore> BuildDeterministicRuleScores(string title, string component, string cmfRequest, string impact, string idst, string reproOnRvp, string reproducibility, string customerDetail, string customerOwner, string hsdContext)
@@ -1046,9 +1151,9 @@ public static class CmfRecommendationService
         string combined = string.Join(" ", new string[] { title, component, cmfRequest, impact, idst, reproOnRvp, reproducibility, customerDetail, customerOwner, hsdContext });
         bool hasIssueContext = !string.IsNullOrWhiteSpace(title) || !string.IsNullOrWhiteSpace(component) || !string.IsNullOrWhiteSpace(impact);
         bool lowImpact = ContainsAny(combined, new string[] { "no impact", "non impact", "not customer visible", "not user visible", "cosmetic", "minor", "informational", "works as designed", "waived", "duplicate only" });
-        bool customerRequest = ContainsAny(combined, new string[] { "launch gating", "gating", "halts production", "halt production", "blocks customer validation", "customer validation", "gerber", "web update", "milestone", "launch readiness", "immediate engagement", "customer ask", "customer request", "cmf_ok", "customer_must_fix" });
+        bool customerRequest = ContainsAny(combined, new string[] { "launch gating", "launch gate", "gating", "halts production", "halt production", "blocks customer validation", "customer validation", "gerber", "web update", "milestone", "launch readiness", "immediate engagement", "customer ask", "customer request", "cmf_ok", "customer_must_fix" });
         bool productImpact = ContainsAny(combined, new string[] { "key customer functionality", "platform stability", "validation execution", "launch readiness", "feature loss", "feature degradation", "functional failure", "data loss", "data corruption", "hang", "reset", "crash", "performance degradation", "perf degradation", "permanent damage", "certification failure", "certification", "customer visible" });
-        bool likelihood = ContainsAny(combined, new string[] { "reproducible", "reproduced", "reproduces", "easily observable", "observable", "always", "consistent", "high repro", "failure rate", "sporadic", "multiple systems", "multiple configurations", "multiple users", "multiple customers" });
+        bool likelihood = ContainsAny(combined, new string[] { "reproducible", "reproduced", "reproduces", "easily observable", "observable", "always", "consistent", "high repro", "failure rate", "sporadic", "multiple systems", "multiple configurations", "multiple users", "multiple customers", "1/10", "1 in 10", "hourly" });
         bool partialLikelihood = !likelihood && (!string.IsNullOrWhiteSpace(reproducibility) || !string.IsNullOrWhiteSpace(reproOnRvp));
         bool recovery = ContainsAny(combined, new string[] { "no workaround", "no acceptable workaround", "no recovery", "restart", "reboot", "bios recovery", "os reinstall", "reinstallation", "reflash", "device reconnect", "repeated intervention", "user intervention", "workaround impacts", "workaround materially impacts", "validation efficiency", "customer experience" });
         bool partialRecovery = !recovery && ContainsAny(combined, new string[] { "workaround", "recovery", "recover" });
@@ -1056,18 +1161,227 @@ public static class CmfRecommendationService
         bool partialBusinessExposure = !businessExposure && !string.IsNullOrWhiteSpace(customerDetail);
 
         bool severeSymptom = productImpact || ContainsAny(combined, new string[] { "bsod", "black screen", "shutdown", "reboot", "crash", "hang", "data loss", "corruption", "cannot boot", "cannot power" });
-        bool customerVisible = ContainsAny(combined, new string[] { "normal use", "daily", "customer visible", "oobe", "s0", "s4", "s5", "restart", "idle" });
+        bool customerVisible = ContainsAny(combined, new string[] { "normal use", "daily", "customer visible", "oobe", "s0", "s0ix", "s4", "s5", "restart", "idle", "login", "attach", "detach" });
+        bool customerExperience = ContainsAny(combined, new string[] { "end user visible", "end-user visible", "visible to end user", "visible to user", "customer visible feature", "normal use disrupted", "feature unavailable", "feature unusable" });
 
         var ruleScores = new List<CmfRecommendationRuleScore>
         {
-            BuildRuleScore("S", "Severity", severeSymptom, hasIssueContext, lowImpact, "S4/S5 symptom severity is supported by the available failure description.", "Symptom exists, but customer severity is not fully clear.", "No symptom or customer severity evidence was found."),
-            BuildRuleScore("O", "Occurrence", likelihood, partialLikelihood, false, "O3/O4 occurrence is supported by repro, rate, or multi-system evidence.", "Some repro signal exists, but cycle rate or frequency is unclear.", "No occurrence, cycle rate, or reproducibility evidence was found."),
-            BuildRuleScore("D", "Detection", customerVisible, hasIssueContext, false, "D3/D4 detection is supported by customer-visible usage evidence.", "Usage context exists, but customer encounter likelihood is unclear.", "No usage trigger or customer detection evidence was found."),
-            BuildRuleScore("R", "Recovery", recovery, partialRecovery, false, "R3/R5 recovery impact is supported by workaround or intervention evidence.", "Recovery/workaround is mentioned but acceptability is unclear.", "No recovery or workaround impact evidence was found."),
-            BuildRuleScore("B", "Business Impact", customerRequest || businessExposure, partialBusinessExposure, lowImpact, "B4/B5 milestone, escalation, or business exposure evidence is clear.", "Customer context exists, but milestone/business exposure is not fully described.", "No milestone or business exposure evidence was found.")
+            ScoreSeverityMetric(combined, title, impact, hsdContext, hasIssueContext, lowImpact),
+            ScoreOccurrenceMetric(combined, reproducibility, reproOnRvp, likelihood, partialLikelihood),
+            ScoreDetectionMetric(combined, customerVisible, hasIssueContext),
+            ScoreRecoveryMetric(combined, recovery, partialRecovery),
+            ScoreBusinessMetric(combined, impact, cmfRequest, customerDetail, customerRequest || businessExposure, partialBusinessExposure, lowImpact),
+            ScoreCustomerExperienceMetric(combined, impact, customerDetail, customerExperience, lowImpact)
         };
 
         return ruleScores;
+    }
+
+    private static CmfRecommendationRuleScore ScoreSeverityMetric(string combined, string title, string impact, string hsdContext, bool hasIssueContext, bool lowImpact)
+    {
+        if (lowImpact) return BuildMetricScore("S", "Severity", 1, "Low/no-impact language", "Cosmetic, status, typo, or negligible functional impact evidence maps to S1.");
+        if (ContainsAny(combined, new string[] { "cannot power", "cannot boot", "unrecoverable", "permanent damage", "data loss", "data corruption", "certification failure", "cert failure" })) return BuildMetricScore("S", "Severity", 5, PickContributingFactor(title, impact, hsdContext), "Critical power, data, damage, or certification evidence maps to S5.");
+        if (ContainsAny(combined, new string[] { "bsod", "system hang", "black screen", "shutdown", "reboot", "major feature", "i/o loss", "network loss", "severe performance" })) return BuildMetricScore("S", "Severity", 4, PickContributingFactor(title, impact, hsdContext), "Major system, I/O, network, or severe performance degradation evidence maps to S4.");
+        if (ContainsAny(combined, new string[] { "driver lost", "function lost", "application hang", "app hang", "intermittent", "malfunction", "moderate performance", "performance degradation" })) return BuildMetricScore("S", "Severity", 3, PickContributingFactor(title, impact, hsdContext), "Specific function loss, intermittent malfunction, or moderate degradation evidence maps to S3.");
+        if (hasIssueContext) return BuildMetricScore("S", "Severity", 2, PickContributingFactor(impact, hsdContext, title), "Issue context exists, but only limited functional impact is visible from current evidence.");
+        return BuildMetricScore("S", "Severity", 1, "Missing symptom severity evidence", "No symptom or customer severity evidence was found.");
+    }
+
+    private static CmfRecommendationRuleScore ScoreOccurrenceMetric(string combined, string reproducibility, string reproOnRvp, bool likelihood, bool partialLikelihood)
+    {
+        string factor = PickContributingFactor(reproducibility, reproOnRvp);
+        double observedRatePercent;
+        string rateEvidence;
+        if (TryExtractObservedFailureRate(combined, out observedRatePercent, out rateEvidence))
+        {
+            string rateFactor = string.IsNullOrWhiteSpace(rateEvidence) ? factor : rateEvidence;
+            if (observedRatePercent >= 10) return BuildMetricScore("O", "Occurrence", 5, rateFactor, "Observed failure rate is " + observedRatePercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%, which meets the O5 >=1/10 reproducibility rule.");
+            if (observedRatePercent >= 1) return BuildMetricScore("O", "Occurrence", 4, rateFactor, "Observed failure rate is " + observedRatePercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%, which is frequent but below the O5 >=10% rule and maps to O4.");
+            if (observedRatePercent >= 0.1) return BuildMetricScore("O", "Occurrence", 3, rateFactor, "Observed failure rate is " + observedRatePercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%, which maps to the O3 recurring or occasional band.");
+            if (observedRatePercent > 0) return BuildMetricScore("O", "Occurrence", 2, rateFactor, "Observed failure rate is " + observedRatePercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%, which maps to the O2 rare band.");
+            return BuildMetricScore("O", "Occurrence", 1, rateFactor, "Observed failure rate is below 0.085%, which maps to O1.");
+        }
+        if (ContainsAny(combined, new string[] { "1/10", "1 in 10", ">=1/10", "hourly", ">=0.34", "consistently reproducible", "always repro" })) return BuildMetricScore("O", "Occurrence", 5, factor, "High cycle rate, hourly failure, or consistent reproduction evidence maps to O5.");
+        if (ContainsAny(combined, new string[] { "frequent", "multiple systems", "multiple configurations", "multiple configs", "multiple users" })) return BuildMetricScore("O", "Occurrence", 4, factor, "Frequent or multi-system/configuration evidence maps to O4.");
+        if (ContainsAny(combined, new string[] { "1/100", "1 in 100", "once per 8", "0.255", "recurring", "occasional", "sporadic" }) || likelihood) return BuildMetricScore("O", "Occurrence", 3, factor, "Recurring, occasional, sporadic, or comparable reproduction evidence maps to O3.");
+        if (ContainsAny(combined, new string[] { "1/1000", "1 in 1000", "once per 40", "0.17", "rare" }) || partialLikelihood) return BuildMetricScore("O", "Occurrence", 2, factor, "Rare or incomplete reproduction evidence maps to O2.");
+        return BuildMetricScore("O", "Occurrence", 1, "Missing occurrence or reproducibility evidence", "No cycle rate, frequency, or reliable reproduction evidence was found.");
+    }
+
+    private static CmfRecommendationRuleScore ScoreDetectionMetric(string combined, bool customerVisible, bool hasIssueContext)
+    {
+        if (ContainsAny(combined, new string[] { "normal use", "idle", "immediately visible", "easily visible" })) return BuildMetricScore("D", "Detection", 5, PickEvidenceNearKeywords(combined, "normal use", "idle", "immediately visible", "easily visible"), "Normal-use, idle-state, or immediately visible evidence maps to D5.");
+        if (ContainsAny(combined, new string[] { "daily", "login", "logout", "s0ix", "s0i", "ac attach", "ac detach", "attach/detach", "frequently used" })) return BuildMetricScore("D", "Detection", 4, PickEvidenceNearKeywords(combined, "daily", "login", "logout", "s0ix", "s0i", "ac attach", "ac detach", "attach/detach", "frequently used"), "Daily or frequently used workflow evidence maps to D4.");
+        if (ContainsAny(combined, new string[] { "oobe", "aft", "s4", "s5", "restart", "specific customer feature", "optional feature" }) || customerVisible) return BuildMetricScore("D", "Detection", 3, PickEvidenceNearKeywords(combined, "oobe", "aft", "s4", "s5", "restart", "customer visible", "normal use"), "Specific customer feature or workflow evidence maps to D3.");
+        if (ContainsAny(combined, new string[] { "stress", "corner case", "corner-case", "non-frequent" }) || hasIssueContext) return BuildMetricScore("D", "Detection", 2, PickEvidenceNearKeywords(combined, "stress", "corner case", "corner-case", "non-frequent"), "Non-frequent, stress, corner-case, or weak usage context evidence maps to D2.");
+        return BuildMetricScore("D", "Detection", 1, "Missing detection or usage-trigger evidence", "No usage trigger or customer encounter evidence was found.");
+    }
+
+    private static CmfRecommendationRuleScore ScoreRecoveryMetric(string combined, bool recovery, bool partialRecovery)
+    {
+        if (ContainsAny(combined, new string[] { "no acceptable workaround", "no workaround", "no recovery" })) return BuildMetricScore("R", "Recovery", 5, PickEvidenceNearKeywords(combined, "no acceptable workaround", "no workaround", "no recovery"), "No acceptable workaround or recovery evidence maps to R5.");
+        if (ContainsAny(combined, new string[] { "workaround significantly", "materially blocks", "blocks validation", "impacts usability", "validation blocked" })) return BuildMetricScore("R", "Recovery", 4, PickEvidenceNearKeywords(combined, "workaround significantly", "materially blocks", "blocks validation", "impacts usability", "validation blocked"), "Workaround blocks validation or significantly impacts usability, mapping to R4.");
+        if (ContainsAny(combined, new string[] { "warm boot", "reboot", "restart", "bios change", "reconnect", "reflash", "repeated intervention" }) || recovery) return BuildMetricScore("R", "Recovery", 3, PickEvidenceNearKeywords(combined, "rollback", "workaround", "uma", "bios change", "warm boot", "reboot", "restart", "reconnect", "reflash"), "Recovery requiring reboot, reconnect, reflash, or repeated intervention maps to R3.");
+        if (partialRecovery) return BuildMetricScore("R", "Recovery", 2, PickEvidenceNearKeywords(combined, "rollback", "workaround", "uma", "bios", "recovery", "driver"), "A workaround or recovery is mentioned, but its acceptability is not fully described.");
+        return BuildMetricScore("R", "Recovery", 1, "Missing workaround or recovery evidence", "No workaround or recovery impact evidence was found.");
+    }
+
+    private static CmfRecommendationRuleScore ScoreBusinessMetric(string combined, string impact, string cmfRequest, string customerDetail, bool businessSignal, bool partialBusinessExposure, bool lowImpact)
+    {
+        if (lowImpact) return BuildMetricScore("B", "Business Impact", 1, "Low/no-impact language", "Internal-only or no-business-impact evidence maps to B1.");
+        if (ContainsAny(combined, new string[] { "production gate", "launch gate", "executive escalation", "financial impact", "brand risk", "competitive disadvantage" })) return BuildMetricScore("B", "Business Impact", 5, PickContributingFactor(impact, cmfRequest, customerDetail), "Launch/production gate, executive, financial, brand, or competitive evidence maps to B5.");
+        if (ContainsAny(combined, new string[] { "customer milestone", "validation blocked", "milestone at risk", "multiple escalations" })) return BuildMetricScore("B", "Business Impact", 4, PickContributingFactor(impact, cmfRequest, customerDetail), "Customer milestone, validation block, or likely escalation evidence maps to B4.");
+        if (ContainsAny(combined, new string[] { "dissatisfaction", "support burden", "warranty", "returns", "service exposure", "rma" }) || businessSignal) return BuildMetricScore("B", "Business Impact", 3, PickContributingFactor(impact, cmfRequest, customerDetail), "Customer dissatisfaction, service, warranty, return, or comparable exposure evidence maps to B3.");
+        if (partialBusinessExposure) return BuildMetricScore("B", "Business Impact", 2, PickContributingFactor(customerDetail, impact), "Limited customer/business context maps to B2 until milestone or exposure evidence is added.");
+        return BuildMetricScore("B", "Business Impact", 1, "Missing milestone or business exposure evidence", "No milestone, launch, escalation, or business-impact evidence was found.");
+    }
+
+    private static CmfRecommendationRuleScore ScoreCustomerExperienceMetric(string combined, string impact, string customerDetail, bool customerExperience, bool lowImpact)
+    {
+        if (lowImpact) return BuildMetricScore("CX", "Customer Experience", 1, "Low/no-impact language", "Not-visible or negligible customer-experience evidence maps to CX1.");
+        if (ContainsAny(combined, new string[] { "feature unusable", "unusable", "audio unavailable", "camera unavailable", "display unavailable", "touch unavailable", "network unavailable", "no video", "cannot connect" })) return BuildMetricScore("CX", "Customer Experience", 5, PickContributingFactor(impact, customerDetail), "Customer-visible feature unavailable or unusable evidence maps to CX5.");
+        if (ContainsAny(combined, new string[] { "significant visible", "materially disrupts", "disrupts normal use", "feature degradation" })) return BuildMetricScore("CX", "Customer Experience", 4, PickContributingFactor(impact, customerDetail), "Significant visible degradation disrupting normal use maps to CX4.");
+        if (ContainsAny(combined, new string[] { "intermittent visible", "partially usable", "visible degradation", "recovers" }) || customerExperience) return BuildMetricScore("CX", "Customer Experience", 3, PickContributingFactor(impact, customerDetail), "Intermittent visible degradation or partially usable end-user feature evidence maps to CX3.");
+        if (ContainsAny(combined, new string[] { "minor visible annoyance", "visible annoyance", "no meaningful functional loss" })) return BuildMetricScore("CX", "Customer Experience", 2, PickContributingFactor(impact, customerDetail), "Minor visible annoyance with no meaningful functional loss maps to CX2.");
+        return BuildMetricScore("CX", "Customer Experience", 1, "Missing customer-experience evidence", "No end-user visibility or customer-experience evidence was found.");
+    }
+
+    private static CmfRecommendationRuleScore BuildMetricScore(string ruleId, string ruleName, int score, string factor, string rationale)
+    {
+        string cleanFactor = SafeDisplay(factor);
+        if (string.IsNullOrWhiteSpace(cleanFactor) || cleanFactor == "N/A") cleanFactor = "Missing evidence";
+        string matrixFactor = BuildMatrixFactorLabel(ruleId, Math.Max(1, Math.Min(5, score)));
+        return new CmfRecommendationRuleScore
+        {
+            RuleId = ruleId,
+            RuleName = ruleName,
+            Score = Math.Max(1, Math.Min(5, score)).ToString(),
+            Evaluation = "Contributing factor: " + matrixFactor + ". Evidence: " + cleanFactor + ". " + rationale
+        };
+    }
+
+    private static string BuildMatrixFactorLabel(string ruleId, int score)
+    {
+        int index = Math.Max(1, Math.Min(5, score)) - 1;
+        string id = SafeText(ruleId).ToUpperInvariant();
+        if (id == "S") return new[] { "Low - Negligible Functional Impact", "Medium - Minor Unexpected Behavior with Limited Functional Impact", "High - Specific Function Loss or Moderate Degradation", "Very High - Major Feature Loss or Severe Degradation", "Critical - Power, Data, Damage, or Certification Failure" }[index];
+        if (id == "O") return new[] { "Low - Almost Never or Cannot Reliably Reproduce", "Moderate - Rare Occurrence", "High - Recurring or Occasional", "Frequent - Frequent or Multi-System Occurrence", "Very Frequent - Consistently Reproducible or High Unit Rate" }[index];
+        if (id == "D") return new[] { "Low - Special Debug, Lab, or Manufacturing Setup", "Moderate - Stress, Corner-Case, or Non-Frequent Operation", "High - Specific Customer Feature or Workflow", "Very High - Daily or Frequently Used Workflow", "Critical - Normal Use or Idle State Visible to End User" }[index];
+        if (id == "R") return new[] { "Low - Fully Effective Workaround", "Moderate - Simple Reliable User Action", "High - Reboot, BIOS Change, Reconnect, Reflash, or Repeated Intervention", "Very High - Workaround Blocks Validation or Usability", "Critical - No Acceptable Workaround or Recovery" }[index];
+        if (id == "B") return new[] { "Low - Internal Only with No Business Impact", "Moderate - Limited Business Exposure", "High - Customer Dissatisfaction or Service Exposure Possible", "Very High - Customer Milestone or Validation Blocked", "Critical - Production, Launch, Financial, Brand, or Competitive Risk" }[index];
+        if (id == "CX") return new[] { "Low - Not Visible to End User", "Moderate - Minor Visible Annoyance", "High - Intermittent Visible Degradation", "Very High - Significant Visible Feature Degradation", "Critical - Customer Visible Feature Unusable" }[index];
+        return "Score " + Math.Max(1, Math.Min(5, score)).ToString(System.Globalization.CultureInfo.InvariantCulture) + " - Matched Matrix Rule";
+    }
+
+    private static bool TryExtractObservedFailureRate(string text, out double percent, out string evidence)
+    {
+        percent = 0;
+        evidence = string.Empty;
+        string source = SafeText(text);
+        if (string.IsNullOrWhiteSpace(source)) return false;
+        System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(source, @"\b(\d+)\s*/\s*(\d+)\s*(?:uut|uuts|unit|units|systems|cycles)?\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (!match.Success) return false;
+        double numerator;
+        double denominator;
+        if (!double.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out numerator)) return false;
+        if (!double.TryParse(match.Groups[2].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out denominator)) return false;
+        if (denominator <= 0 || numerator < 0 || numerator > denominator) return false;
+        percent = (numerator / denominator) * 100.0;
+        evidence = match.Value + " observed failure rate";
+        return true;
+    }
+
+    private static string PickContributingFactor(params string[] values)
+    {
+        if (values == null) return "Missing evidence";
+        foreach (string value in values)
+        {
+            string text = ExtractMetricEvidenceValue(value);
+            if (!string.IsNullOrWhiteSpace(text)) return TrimToCleanSentence(text, 180);
+        }
+        return "Missing evidence";
+    }
+
+    private static string PickEvidenceNearKeywords(string text, params string[] keywords)
+    {
+        string source = SafeText(text);
+        if (string.IsNullOrWhiteSpace(source)) return "Missing evidence";
+        string[] sentences = source.Replace("\r", " ").Replace("\n", ". ").Split(new[] { '.', ';' }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (string sentence in sentences)
+        {
+            string clean = CleanMetricEvidenceText(SafeText(sentence).Trim());
+            if (string.IsNullOrWhiteSpace(clean)) continue;
+            foreach (string keyword in keywords ?? new string[0])
+            {
+                if (!string.IsNullOrWhiteSpace(keyword) && clean.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    if (IsUsefulMetricEvidence(clean)) return TrimToCleanSentence(clean, 180);
+                }
+            }
+        }
+        return PickContributingFactor(source);
+    }
+
+    private static string ExtractMetricEvidenceValue(string value)
+    {
+        string text = SafeText(value);
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+
+        text = text.Replace("\r", "\n");
+        string[] lines = text.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (string rawLine in lines)
+        {
+            string line = CleanMetricEvidenceText(SafeText(rawLine).Trim(' ', '-', '*'));
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            int colon = line.IndexOf(':');
+            if (colon > 0 && colon < line.Length - 1)
+            {
+                string label = line.Substring(0, colon).Trim();
+                string detail = line.Substring(colon + 1).Trim();
+                if (IsUsefulMetricEvidence(detail)) return TrimToCleanSentence(label + ": " + detail, 180);
+            }
+            if (IsUsefulMetricEvidence(line)) return TrimToCleanSentence(line, 180);
+        }
+
+        string compact = CleanMetricEvidenceText(text.Replace("\n", " ").Trim());
+        return IsUsefulMetricEvidence(compact) ? TrimToCleanSentence(compact, 180) : string.Empty;
+    }
+
+    private static string CleanMetricEvidenceText(string value)
+    {
+        string text = StripLeadingBracketTags(SafeText(value));
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"<[^>]*>", string.Empty);
+        text = text.Replace("&nbsp;", " ").Replace("&amp;", "&").Replace("&lt;", "<").Replace("&gt;", ">").Replace("&quot;", "\"");
+        text = text.Trim(' ', '-', '*', ':', '>', '"');
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\b\d{6,}\b\s*", string.Empty);
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\[[^\]]+\]", string.Empty);
+        text = text.Replace("platform.Common.sw.win-driver", "driver");
+        text = text.Replace("platform.Common.sw.driver", "driver");
+        while (text.IndexOf("  ", StringComparison.Ordinal) >= 0) text = text.Replace("  ", " ");
+        return text.Trim(' ', '-', '*', ':');
+    }
+
+    private static string StripLeadingBracketTags(string value)
+    {
+        string text = SafeText(value);
+        while (text.StartsWith("[", StringComparison.Ordinal) && text.IndexOf(']') > 0)
+        {
+            int close = text.IndexOf(']');
+            text = text.Substring(close + 1).Trim();
+        }
+        return text;
+    }
+
+    private static bool IsUsefulMetricEvidence(string value)
+    {
+        string text = SafeText(value);
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        if (text.Equals("N/A", StringComparison.OrdinalIgnoreCase) || text.Equals("NA", StringComparison.OrdinalIgnoreCase)) return false;
+        if (System.Text.RegularExpressions.Regex.IsMatch(text, @":\s*(N/A|NA|None|Unknown)\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) return false;
+        if (text.Equals("None", StringComparison.OrdinalIgnoreCase) || text.Equals("Unknown", StringComparison.OrdinalIgnoreCase)) return false;
+        if (text.Equals("win-driver", StringComparison.OrdinalIgnoreCase) || text.Equals("driver", StringComparison.OrdinalIgnoreCase)) return false;
+        if (text.StartsWith("platform.", StringComparison.OrdinalIgnoreCase)) return false;
+        return true;
     }
 
     private static CmfRecommendationRuleScore BuildRuleScore(string ruleId, string ruleName, bool pass, bool partial, bool forceFail, string passText, string partialText, string failText)
@@ -1438,21 +1752,24 @@ public static class CmfRecommendationService
         StringBuilder prompt = new StringBuilder();
         prompt.AppendLine("### INSTRUCTIONS ###");
         prompt.AppendLine("Analyze this pending issue from a Customer Must Fix (CMF) reviewer point of view.");
-        prompt.AppendLine("Provide a precise recommendation using the admin-defined rules and the gathered issue context.");
+        prompt.AppendLine("Provide a precise recommendation using the fixed six-metric scoring matrix and the gathered issue context.");
         prompt.AppendLine();
         prompt.AppendLine("### RULES ###");
-        prompt.AppendLine("1. The admin scoring policy is the source of truth. Score S/O/D/R/B only from 1-5. Do not output 0-100 dimension scores.");
+        prompt.AppendLine("1. The fixed scoring policy below is the source of truth. Score S/O/D/R/B/CX only from 1-5. Do not output 0-100 dimension scores.");
         prompt.AppendLine("2. Never invent absent facts. If symptom, customer impact, occurrence/repro evidence, usage trigger, workaround/recovery, or milestone/business impact is missing and can change the disposition, recommend CMF_INCOMPLETE.");
         prompt.AppendLine("3. Replicable on RVP is a debug ownership indicator only; do not let it raise or lower CMF qualification.");
-        prompt.AppendLine("4. Calculate EVIDENCE QUALITY as the weighted CMF score on the 1-5 scale: (S*0.30)+(O*0.20)+(D*0.15)+(R*0.15)+(B*0.20). Use two decimals.");
+        prompt.AppendLine("4. Calculate EVIDENCE QUALITY as the weighted CMF score on the 1-5 scale: (S*0.25)+(O*0.15)+(D*0.20)+(R*0.10)+(B*0.15)+(CX*0.15). Use two decimals.");
         prompt.AppendLine("5. Use the classification bands from the admin policy: CMF_OK, CMF_REVIEW, CMF_REJECT, or CMF_INCOMPLETE.");
         prompt.AppendLine("6. Every score must cite either a short exact field excerpt or the phrase 'missing evidence'. Do not use vague phrases such as 'appears', 'likely', or 'may indicate' unless the input itself is ambiguous.");
         prompt.AppendLine("7. If evidence conflicts, name the conflict in plain English and recommend CMF_REVIEW.");
         prompt.AppendLine("8. Write for an iDST reviewer: concise, evidence-grounded, grammatical, and sequenced by issue facts, scoring, impact, and reviewer action.");
+        prompt.AppendLine("8a. REASONING must be plain English bullet points and may be 100-180 words total. Use evaluated scores to guide the decision language, but do not print raw score pairs or the score formula.");
+        prompt.AppendLine("8b. Do not copy request/deadline phrases such as 'request the fix by', 'fix by WW', or raw impact text into REASONING. Convert them into reviewer-facing business or customer impact language.");
+        prompt.AppendLine("8c. Each REASONING bullet must be a complete sentence. Do not join separate thoughts with semicolons; split them into separate bullets or sentences.");
         prompt.AppendLine("9. Do not mention this prompt, hidden policy, AI limitations, or generic CMF definitions. Do not repeat raw field labels as sentences.");
         prompt.AppendLine();
-        prompt.AppendLine("### ADMIN POLICY RULES ###");
-        prompt.AppendLine(string.IsNullOrWhiteSpace(rules) ? DefaultRulesText : rules);
+        prompt.AppendLine("### FIXED CMF SCORING MATRIX ###");
+        prompt.AppendLine(DefaultRulesText);
         prompt.AppendLine();
         prompt.AppendLine("### ISSUE DATA ###");
         prompt.AppendLine("CP ID: " + (string.IsNullOrWhiteSpace(cpId) ? "N/A" : cpId));
@@ -1478,21 +1795,21 @@ public static class CmfRecommendationService
         prompt.AppendLine("EVIDENCE QUALITY: [weighted score from 1.00 to 5.00]");
         prompt.AppendLine();
         prompt.AppendLine("REASONING:");
-        prompt.AppendLine("- [Sentence 1: state the strongest concrete issue fact from the title, component, impact, reproducibility, or HSD context.]");
-        prompt.AppendLine("- [Sentence 2: explain why the S/O/D/R/B scores support or block the disposition.]");
-        prompt.AppendLine("- [Sentence 3: state the missing or conflicting evidence, or say that no decision-critical gaps are visible.]");
-        prompt.AppendLine("- [Optional sentence 4: give the reviewer action needed next.]");
+        prompt.AppendLine("- [Bullet 1: decision-focused explanation of the technical/customer evidence without repeating sighting description fields.]");
+        prompt.AppendLine("- [Bullet 2: explain how evaluated severity, reproducibility, detection, recovery, business impact, and customer experience support or weaken the recommendation without listing score numbers.]");
+        prompt.AppendLine("- [Optional bullet 3 or 4: concise reviewer implication only when there is a real evidence gap. Total REASONING <= 180 words.]");
         prompt.AppendLine();
         prompt.AppendLine("ISSUE IMPACT:");
         prompt.AppendLine("[One complete sentence describing customer/user impact and urgency in normal words. If impact is not supplied, say exactly what impact evidence is missing.]");
         prompt.AppendLine();
         prompt.AppendLine("RULE SCORES:");
         prompt.AppendLine("Rule ID | Rule Name | Score | Evaluation");
-        prompt.AppendLine("S | Severity | [1-5 only] | [Complete sentence with S1-S5 rationale and exact excerpt or missing evidence.]");
-        prompt.AppendLine("O | Occurrence | [1-5 only] | [Complete sentence with O1-O5 rationale and exact excerpt or missing evidence.]");
-        prompt.AppendLine("D | Detection | [1-5 only] | [Complete sentence with D1-D5 rationale and exact excerpt or missing evidence.]");
-        prompt.AppendLine("R | Recovery | [1-5 only] | [Complete sentence with R1-R5 rationale and exact excerpt or missing evidence.]");
-        prompt.AppendLine("B | Business Impact | [1-5 only] | [Complete sentence with B1-B5 rationale and exact excerpt or missing evidence.]");
+        prompt.AppendLine("S | Severity | [1-5 only] | Contributing factor: [Low/Medium/High/Very High/Critical - matched severity rule]. Evidence: [exact HSD/portal excerpt or missing evidence]. [Complete S1-S5 rationale.]");
+        prompt.AppendLine("O | Occurrence | [1-5 only] | Contributing factor: [Low/Moderate/High/Frequent/Very Frequent - matched occurrence rule]. Evidence: [failure rate/reproducibility excerpt or missing evidence]. [Complete O1-O5 rationale.]");
+        prompt.AppendLine("D | Detection | [1-5 only] | Contributing factor: [Low/Moderate/High/Very High/Critical - matched detection rule]. Evidence: [usage trigger or workflow excerpt or missing evidence]. [Complete D1-D5 rationale.]");
+        prompt.AppendLine("R | Recovery | [1-5 only] | Contributing factor: [Low/Moderate/High/Very High/Critical - matched recovery rule]. Evidence: [workaround/recovery excerpt or missing evidence]. [Complete R1-R5 rationale.]");
+        prompt.AppendLine("B | Business Impact | [1-5 only] | Contributing factor: [Low/Moderate/High/Very High/Critical - matched business rule]. Evidence: [milestone/customer/business excerpt or missing evidence]. [Complete B1-B5 rationale.]");
+        prompt.AppendLine("CX | Customer Experience | [1-5 only] | Contributing factor: [Low/Moderate/High/Very High/Critical - matched CX rule]. Evidence: [end-user visibility excerpt or missing evidence]. [Complete CX1-CX5 rationale.]");
         prompt.AppendLine();
         prompt.AppendLine("### QUALITY BAR ###");
         prompt.AppendLine("Before returning, verify that each reasoning bullet is a complete grammatical sentence, each score is justified by supplied evidence, and the recommendation matches the weighted score plus any missing decision-critical evidence.");
@@ -1573,22 +1890,20 @@ public static class CmfRecommendationService
     private static string BuildSightingQualityAssessmentPrompt(string cpId, string title, string component, string impact, string idst, string reproOnRvp, string reproducibility, string customerDetail, string customerOwner, string hsdContext, SightingQualityAssessmentResponse deterministicAssessment)
     {
         StringBuilder prompt = new StringBuilder();
-        prompt.AppendLine("Assess general sighting information quality only. This is Sighting Quality Assessment (SQA), not CMF decision scoring and not a CMF recommendation.");
-        prompt.AppendLine("Use evidence-bucket contextual ranking: for each fixed SQA field, inspect every evidence line in that field's bucket, then decide whether the bucket is useful enough for a reviewer to understand that aspect of the sighting.");
-        prompt.AppendLine("Return exactly the 10 fields listed in the evidence packets, in the same order. Do not add, remove, rename, merge, or split fields.");
+        prompt.AppendLine("Assess sighting information quality only from the fixed SQA checklist requested by the review team. This is not CMF decision scoring and not a CMF recommendation.");
+        prompt.AppendLine("Use evidence-bucket contextual ranking: for each fixed SQA field, inspect every evidence line in that field's bucket, then decide whether the HSD/portal value is clearly called out and useful for reviewers.");
+        prompt.AppendLine("Return exactly the 8 fields listed in the evidence packets, in the same order. Do not add, remove, rename, merge, or split fields.");
         prompt.AppendLine("Allowed Status values only: Present, Missing, Partial, Conflicting.");
         prompt.AppendLine("Definitions to apply strictly:");
         prompt.AppendLine("- Missing = the field bucket has no usable evidence, or only empty/placeholder values such as N/A, NA, null, none, unknown, TBD, no, no iDST assigned, not attached, or equivalent negative placeholders.");
-        prompt.AppendLine("- Partial = some evidence exists, but it is not complete or not useful enough to understand that information area. Mark Partial for vague statements, incomplete steps, no root scenario, no actionable impact, only broad labels, row/HSD disagreement, or negative row evidence mixed with positive HSD evidence.");
-        prompt.AppendLine("- Present = the evidence is specific, actionable, and sufficient for a reviewer to understand that information area without guessing.");
+        prompt.AppendLine("- Partial = some evidence exists, but it is vague, not in the expected form, incomplete, or not useful enough for review. Mark Partial for generic titles, non-numeric repro values, processor family without model, stepping-like hints without a clear stepping value, vague impact, incomplete/out-of-order repro steps, priority without exposure severity, or ME SKU values that do not say Consumer or Corp.");
+        prompt.AppendLine("- Present = the evidence clearly provides the requested field value in a useful form. For Exposure / Priority, Showstopper or Critical is complete. For ME SKU, Consumer or Corp is complete.");
         prompt.AppendLine("- Conflicting = two or more sources materially disagree in a way that changes interpretation.");
         prompt.AppendLine("Do not mark a field Present just because related context exists. It must satisfy that field's purpose.");
         prompt.AppendLine("Do not mark a field Missing when real but weak evidence exists; use Partial instead.");
         prompt.AppendLine("Do not mark a field Partial only because the value is short. Aliases, status labels, board names, IDs, filenames, and yes/no attachment flags can be complete only when they satisfy that field's purpose.");
-        prompt.AppendLine("If Status is Partial, Characteristic must be specific. Do not use generic wording such as 'low detail or vague'. Use concrete phrases such as 'Missing numeric rate or sample size', 'Trigger/scenario not described', 'Impact effect not explained', 'No log or attachment reference', 'Configuration lacks OS/build/driver detail', or 'Title lacks observable symptom'.");
-        prompt.AppendLine("For Debug Evidence / Attachments, distinguish evidence attachment from debug routing. If DB iDST says no iDST assigned but HSD has a log or system-scope file, classify Partial because evidence exists but routing/readiness is incomplete.");
-        prompt.AppendLine("The first 8 fields are core SQA scoring fields. Ownership / Routing and Status / Resolution Context are additional context fields and should be assessed but do not drive the quality score unless they contain material conflicts.");
-        prompt.AppendLine("The portal calculates the final quality score from core Missing, Partial, and Conflicting counts; do not optimize status values to influence score.");
+        prompt.AppendLine("If Status is Partial, Characteristic must be specific. Do not use generic wording such as 'low detail or vague'. Use concrete phrases such as 'Title is generic', 'Missing numeric rate or sample size', 'Processor model unclear', 'SoC stepping not explicitly called out', 'Impact effect not explained', 'Repro steps incomplete or unordered', 'Priority/exposure severity not called out', or 'ME SKU does not say Consumer or Corp'.");
+        prompt.AppendLine("All 8 fields are core SQA scoring fields. The portal calculates the final quality score from these checklist fields only; do not optimize status values to influence score.");
         prompt.AppendLine("Return strict JSON only: {\"qualityScore\":75,\"baselineScore\":90,\"tier\":\"Orange\",\"summary\":\"one concise sentence\",\"fields\":[{\"fieldName\":\"Steps to Reproduce\",\"status\":\"Partial\",\"characteristic\":\"Trigger/scenario not described\",\"evidence\":\"specific cited value or reason\",\"recommendation\":\"specific update needed\",\"decisionUse\":\"why this field matters\"}]}");
         prompt.AppendLine();
         prompt.AppendLine("Sighting ID: " + SafeDisplay(cpId));
@@ -1600,7 +1915,6 @@ public static class CmfRecommendationService
         prompt.AppendLine("Issue Title: " + SafeDisplay(title));
         prompt.AppendLine("Component / Platform signal: " + SafeDisplay(component));
         prompt.AppendLine("Impact: " + SafeDisplay(impact));
-        prompt.AppendLine("Logs / iDST: " + SafeDisplay(idst));
         prompt.AppendLine("RVP Repro: " + SafeDisplay(reproOnRvp));
         prompt.AppendLine("Reproducibility: " + SafeDisplay(reproducibility));
         prompt.AppendLine("Customer Detail / Design: " + SafeDisplay(customerDetail));
@@ -1678,16 +1992,14 @@ public static class CmfRecommendationService
     {
         Dictionary<string, string> context = ParseSimpleContextMap(hsdContext);
         SightingQualityAssessmentResponse response = new SightingQualityAssessmentResponse { CpId = cpId };
-        AddQualityField(response, "Issue Title / Subject", BuildQualityEvidenceBucket(context, "DB Title", title, "HSD Title", FirstContextValue(context, "Title"), "HSD Subject", FirstContextValue(context, "Subject")), "Use a title/subject that captures symptom, trigger, platform, and occurrence if known.");
-        AddQualityField(response, "Problem Description / What Happened", BuildQualityEvidenceBucket(context, "What Happened", FirstContextValue(context, "What Happened"), "Description", FirstContextValue(context, "Description"), "Actual Behavior", FirstContextValue(context, "Actual Behavior"), "DB Impact", impact, "DB Title", title), "Add a clear problem description or what-happened statement with observed behavior and scope.");
-        AddQualityField(response, "Customer Impact", BuildQualityEvidenceBucket(context, "DB Impact", impact, "Customer Impact", FirstContextValue(context, "Customer Impact"), "Customer Summary", FirstContextValue(context, "Customer Summary"), "Customer Detail", FirstContextValue(context, "Customer Detail")), "Add customer/user effect, validation impact, or practical consequence.");
+        AddQualityField(response, "Title", BuildQualityEvidenceBucket(context, "DB Title", title, "HSD Title", FirstContextValue(context, "Title"), "HSD Subject", FirstContextValue(context, "Subject")), "Add a clear title that captures the issue symptom or affected area.");
         AddQualityField(response, "Reproducibility / Failure Rate", BuildQualityEvidenceBucket(context, "DB Reproducibility", reproducibility, "HSD Reproducibility", FirstContextValue(context, "Reproducibility"), "RVP Repro", FirstContextValue(context, "RVP Repro"), "DB RVP Repro", reproOnRvp, "Title occurrence signal", title), "State exact failure rate, cycle count, sample size, or reproducibility band.");
-        AddQualityField(response, "Reproduction Details / Trigger", BuildQualityEvidenceBucket(context, "Steps to Reproduce", FirstContextValue(context, "Steps to Reproduce"), "What Should Have Happened", FirstContextValue(context, "What Should Have Happened"), "DB RVP Repro", reproOnRvp, "DB Reproducibility", reproducibility, "Description", FirstContextValue(context, "Description")), "Add concrete reproduction details, trigger, cycle count, or scenario setup.");
-        AddQualityField(response, "Platform / Product Context", BuildQualityEvidenceBucket(context, "DB Component", component, "HSD Component", FirstContextValue(context, "Component"), "Family", FirstContextValue(context, "Family"), "Board", FirstContextValue(context, "Board"), "Customer Detail", customerDetail, "Platform", FirstContextValue(context, "Platform")), "Identify platform, product, design, board, family, or component.");
-        AddQualityField(response, "System Configuration", BuildQualityEvidenceBucket(context, "Customer Detail", customerDetail, "Operating System", FirstContextValue(context, "Operating System"), "Processor", FirstContextValue(context, "Processor"), "Board", FirstContextValue(context, "Board"), "Family", FirstContextValue(context, "Family"), "Component", FirstContextValue(context, "Component"), "System Scope Filename", FirstContextValue(context, "System Scope Filename"), "Description", FirstContextValue(context, "Description")), "Add relevant OS, BIOS, build, driver, processor, board, or system configuration.");
-        AddQualityField(response, "Debug Evidence / Attachments", BuildQualityEvidenceBucket(context, "DB iDST", idst, "Debug Log Attached", FirstContextValue(context, "Debug Log Attached"), "System Scope Filename", FirstContextValue(context, "System Scope Filename"), "Sysdebug Category", FirstContextValue(context, "Sysdebug Category"), "Sysdebug Forum", FirstContextValue(context, "Sysdebug Forum")), "Attach or reference logs, system scope, debug owner/status, or sysdebug routing evidence.");
-        AddQualityField(response, "Ownership / Routing", BuildQualityEvidenceBucket(context, "DB Customer Owner", customerOwner, "HSD Owner", FirstContextValue(context, "Owner"), "Submitter", FirstContextValue(context, "Submitter"), "Sysdebug Forum", FirstContextValue(context, "Sysdebug Forum")), "Identify owner, submitter, customer owner, or routing/debug forum.");
-        AddQualityField(response, "Status / Resolution Context", BuildQualityEvidenceBucket(context, "Status", FirstContextValue(context, "Status"), "Fix Description", FirstContextValue(context, "Fix Description"), "Closed Reason", FirstContextValue(context, "Closed Reason"), "Fixed Version", FirstContextValue(context, "Fixed Version"), "CMF Justification", FirstContextValue(context, "CMF Justification")), "Add current status, resolution, fix, closure, or CMF justification context where applicable.");
+        AddQualityField(response, "Processor", BuildQualityEvidenceBucket(context, "Processor", FirstContextValue(context, "Processor"), "HSD Processor", FirstContextValue(context, "HSD Processor"), "Customer Detail", customerDetail, "System Scope Filename", FirstContextValue(context, "System Scope Filename")), "Call out the exact processor or processor family used for this sighting.");
+        AddQualityField(response, "SoC Stepping", BuildQualityEvidenceBucket(context, "SoC Stepping", FirstContextValue(context, "SoC Stepping", "SOC Stepping"), "Stepping", FirstContextValue(context, "Stepping"), "Processor", FirstContextValue(context, "Processor"), "Customer Detail", customerDetail, "System Scope Filename", FirstContextValue(context, "System Scope Filename")), "Call out the SoC stepping, such as A0, B0, C0, ES, QS, or equivalent stepping value.");
+        AddQualityField(response, "Impact", BuildQualityEvidenceBucket(context, "DB Impact", impact, "Impact", FirstContextValue(context, "Impact"), "Customer Impact", FirstContextValue(context, "Customer Impact"), "Customer Summary", FirstContextValue(context, "Customer Summary"), "Customer Detail", FirstContextValue(context, "Customer Detail")), "State the practical impact or risk created by the sighting.");
+        AddQualityField(response, "Steps to Reproduce", BuildQualityEvidenceBucket(context, "Repro Steps", FirstContextValue(context, "Repro Steps"), "Steps to Reproduce", FirstContextValue(context, "Steps to Reproduce"), "What Happened", FirstContextValue(context, "What Happened"), "Problem Description", FirstContextValue(context, "Problem Description"), "DB RVP Repro", reproOnRvp), "Add clear ordered steps, trigger, setup, or scenario needed to reproduce the issue.");
+        AddQualityField(response, "Exposure / Priority", BuildQualityEvidenceBucket(context, "Priority", FirstContextValue(context, "Priority"), "Exposure", FirstContextValue(context, "Exposure"), "Customer Impact", FirstContextValue(context, "Customer Impact"), "DB Impact", impact, "Must Fix For", FirstContextValue(context, "Must Fix For"), "Drivers", FirstContextValue(context, "Drivers")), "Call out exposure and priority clearly, especially Showstopper or Critical severity.");
+        AddQualityField(response, "ME SKU", BuildQualityEvidenceBucket(context, "ME SKU", FirstContextValue(context, "ME SKU", "ME_SKU"), "ME_SKU", FirstContextValue(context, "ME_SKU"), "Customer Detail", customerDetail, "System Scope Filename", FirstContextValue(context, "System Scope Filename"), "Problem Description", FirstContextValue(context, "Problem Description")), "Call out whether the ME SKU is Consumer or Corp.");
         AddOccurrenceConflictIfFound(response, title, impact, reproducibility, hsdContext);
         return response;
     }
@@ -1731,8 +2043,11 @@ public static class CmfRecommendationService
             string fallbackStatus = NormalizeSightingQualityStatus(fallbackField.Status);
             bool modelWeakenedDeterministicGap = GetSightingQualityStatusRank(status) < GetSightingQualityStatusRank(fallbackStatus);
             bool deterministicConflict = string.Equals(fallbackStatus, "Conflicting", StringComparison.OrdinalIgnoreCase);
+            bool deterministicCompletenessShouldWin = IsDeterministicCompleteSightingQualityField(fieldName)
+                && string.Equals(fallbackStatus, "Present", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(status, "Partial", StringComparison.OrdinalIgnoreCase);
 
-            if (!modelWeakenedDeterministicGap && !deterministicConflict) continue;
+            if (!modelWeakenedDeterministicGap && !deterministicConflict && !deterministicCompletenessShouldWin) continue;
 
             field.Status = fallbackStatus;
             field.Characteristic = fallbackField.Characteristic;
@@ -1740,6 +2055,11 @@ public static class CmfRecommendationService
             field.Recommendation = fallbackField.Recommendation;
             field.DecisionUse = fallbackField.DecisionUse;
         }
+    }
+
+    private static bool IsDeterministicCompleteSightingQualityField(string fieldName)
+    {
+        return IsSightingQualityCoreField(fieldName);
     }
 
     private static int GetSightingQualityStatusRank(string status)
@@ -1766,27 +2086,145 @@ public static class CmfRecommendationService
     {
         if (response == null || response.Fields == null || response.Fields.Count == 0) return;
 
+        double baseScoreOutOfTen = 0.0;
         int missingCount = 0;
-        int partialCount = 0;
         int conflictingCount = 0;
+        double criticalPenalty = 0.0;
         foreach (SightingQualityFieldAssessment field in response.Fields)
         {
             if (field == null || !IsSightingQualityCoreField(field.FieldName)) continue;
-            string status = SafeText(field == null ? string.Empty : field.Status).ToLowerInvariant();
-            if (status.Contains("conflict")) conflictingCount++;
-            else if (status.Contains("missing")) missingCount++;
-            else if (status.Contains("partial") || status.Contains("review")) partialCount++;
+            string fieldName = SafeText(field.FieldName);
+            string status = NormalizeSightingQualityStatus(field.Status);
+            baseScoreOutOfTen += 10.0 * GetSightingQualityFieldWeight(fieldName) * GetSightingQualityStatusFactor(status);
+
+            bool isMissing = string.Equals(status, "Missing", StringComparison.OrdinalIgnoreCase);
+            bool isConflicting = string.Equals(status, "Conflicting", StringComparison.OrdinalIgnoreCase);
+            if (isMissing) missingCount++;
+            if (isConflicting) conflictingCount++;
         }
 
-        double scoreOutOfTen = ((8.0 - missingCount - (0.5 * partialCount) - (1.5 * conflictingCount)) / 8.0) * 10.0;
-        if (conflictingCount >= 2) scoreOutOfTen = Math.Min(scoreOutOfTen, 5.5);
-        else if (conflictingCount >= 1) scoreOutOfTen = Math.Min(scoreOutOfTen, 7.0);
+        if (conflictingCount > 0) criticalPenalty += 0.5 * conflictingCount;
+        double scoreOutOfTen = baseScoreOutOfTen - criticalPenalty;
         scoreOutOfTen = Math.Max(0.0, Math.Min(10.0, scoreOutOfTen));
 
-        response.BaselineScore = Math.Max(0, Math.Min(100, (int)Math.Round(((8.0 - missingCount) / 8.0) * 100.0, MidpointRounding.AwayFromZero)));
+        response.BaselineScore = Math.Max(0, Math.Min(100, (int)Math.Round(baseScoreOutOfTen * 10.0, MidpointRounding.AwayFromZero)));
         response.QualityScore = Math.Max(0, Math.Min(100, (int)Math.Round(scoreOutOfTen * 10.0, MidpointRounding.AwayFromZero)));
+        response.DimensionScores = BuildSightingQualityDimensionScores(response);
         response.Tier = response.QualityScore >= 80 ? "Green" : (response.QualityScore >= 50 ? "Orange" : "Red");
-        response.Summary = "Score is based on 8 core SQA fields: missing core fields reduce score by 1.0, partial core fields by 0.5, and conflicting core fields by 1.5 before normalization to /10; conflicts cap the maximum score. Ownership/routing and status/resolution are additional context fields.";
+        response.Summary = "Score uses the 8 requested SQA checklist fields with Present=1.0, Partial=0.5, Missing=0.0, and Conflicting=0.0. Each checklist field contributes equally; conflicts apply a small clarity penalty.";
+    }
+
+    private static List<SightingQualityDimensionScore> BuildSightingQualityDimensionScores(SightingQualityAssessmentResponse response)
+    {
+        List<SightingQualityDimensionScore> dimensions = new List<SightingQualityDimensionScore>();
+        dimensions.Add(BuildSightingQualityDimensionScore(response, "Identification", 0.25, "Are the sighting identity and environment fields called out?", new[]
+        {
+            "Title",
+            "Processor",
+            "SoC Stepping",
+            "ME SKU"
+        }));
+        dimensions.Add(BuildSightingQualityDimensionScore(response, "Reproducibility", 0.25, "Are failure rate and repro steps clear enough to check the sighting?", new[]
+        {
+            "Reproducibility / Failure Rate",
+            "Steps to Reproduce"
+        }));
+        dimensions.Add(BuildSightingQualityDimensionScore(response, "Risk Context", 0.25, "Are impact, exposure, and priority called out clearly?", new[]
+        {
+            "Impact",
+            "Exposure / Priority"
+        }));
+        dimensions.Add(BuildSightingQualityDimensionScore(response, "Overall Checklist", 0.25, "How complete is the requested SQA checklist overall?", new[]
+        {
+            "Title",
+            "Reproducibility / Failure Rate",
+            "Processor",
+            "SoC Stepping",
+            "Impact",
+            "Steps to Reproduce",
+            "Exposure / Priority",
+            "ME SKU"
+        }));
+        return dimensions;
+    }
+
+    private static SightingQualityDimensionScore BuildSightingQualityDimensionScore(SightingQualityAssessmentResponse response, string name, double weight, string summary, string[] fieldNames)
+    {
+        double score = 0.0;
+        int fieldCount = 0;
+        if (fieldNames != null)
+        {
+            foreach (string fieldName in fieldNames)
+            {
+                SightingQualityFieldAssessment field = FindQualityField(response, fieldName);
+                if (field == null) continue;
+                score += GetSightingQualityStatusFactor(field.Status);
+                fieldCount++;
+            }
+        }
+
+        double dimensionScore = fieldCount == 0 ? 0.0 : (score / fieldCount) * 100.0;
+        return new SightingQualityDimensionScore
+        {
+            Name = name,
+            Score = Math.Max(0, Math.Min(100, (int)Math.Round(dimensionScore, MidpointRounding.AwayFromZero))),
+            Weight = weight,
+            Summary = summary
+        };
+    }
+
+    private static double GetSightingQualityFieldWeight(string fieldName)
+    {
+        if (IsSightingQualityCoreField(fieldName)) return 0.125;
+        return 0.0;
+    }
+
+    private static double GetSightingQualityStatusFactor(string status)
+    {
+        string normalized = NormalizeSightingQualityStatus(status);
+        if (string.Equals(normalized, "Present", StringComparison.OrdinalIgnoreCase)) return 1.0;
+        if (string.Equals(normalized, "Partial", StringComparison.OrdinalIgnoreCase)) return 0.5;
+        return 0.0;
+    }
+
+    private static double GetSightingQualityCriticalPenalty(string fieldName, string status)
+    {
+        string normalized = NormalizeSightingQualityStatus(status);
+        if (!string.Equals(normalized, "Missing", StringComparison.OrdinalIgnoreCase) && !string.Equals(normalized, "Conflicting", StringComparison.OrdinalIgnoreCase)) return 0.0;
+
+        double missingPenalty = 0.0;
+        double conflictingPenalty = 0.0;
+        if (IsTierOneSightingQualityField(fieldName))
+        {
+            missingPenalty = 1.0;
+            conflictingPenalty = 1.5;
+        }
+        else if (IsTierTwoSightingQualityField(fieldName))
+        {
+            missingPenalty = 0.5;
+            conflictingPenalty = 0.75;
+        }
+        else
+        {
+            return 0.0;
+        }
+
+        return string.Equals(normalized, "Conflicting", StringComparison.OrdinalIgnoreCase) ? conflictingPenalty : missingPenalty;
+    }
+
+    private static bool IsTierOneSightingQualityField(string fieldName)
+    {
+        return string.Equals(fieldName, "Steps to Reproduce", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fieldName, "Impact", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fieldName, "Exposure / Priority", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsTierTwoSightingQualityField(string fieldName)
+    {
+        return string.Equals(fieldName, "Reproducibility / Failure Rate", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fieldName, "Processor", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fieldName, "SoC Stepping", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fieldName, "ME SKU", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void ApplySightingQualityAssessmentSummary(SightingQualityAssessmentResponse response)
@@ -1879,16 +2317,14 @@ public static class CmfRecommendationService
 
     private static string GetSightingQualityDecisionUse(string fieldName)
     {
-        if (string.Equals(fieldName, "Issue Title / Subject", StringComparison.OrdinalIgnoreCase)) return "Helps the reviewer quickly identify the symptom and affected area without opening every raw field.";
-        if (string.Equals(fieldName, "Problem Description / What Happened", StringComparison.OrdinalIgnoreCase)) return "Explains the actual observed behavior so the sighting can be understood without guessing from labels.";
-        if (string.Equals(fieldName, "Customer Impact", StringComparison.OrdinalIgnoreCase)) return "Shows why the issue matters to validation, customer readiness, user experience, or release risk.";
+        if (string.Equals(fieldName, "Title", StringComparison.OrdinalIgnoreCase)) return "Helps the reviewer quickly identify the sighting and issue area without opening every raw field.";
         if (string.Equals(fieldName, "Reproducibility / Failure Rate", StringComparison.OrdinalIgnoreCase)) return "Indicates how often the issue happens and whether the evidence represents a repeatable problem or an isolated observation.";
-        if (string.Equals(fieldName, "Reproduction Details / Trigger", StringComparison.OrdinalIgnoreCase)) return "Gives the scenario or trigger needed to reproduce, debug, or verify the sighting.";
-        if (string.Equals(fieldName, "Platform / Product Context", StringComparison.OrdinalIgnoreCase)) return "Identifies the affected product, platform, family, component, or design scope.";
-        if (string.Equals(fieldName, "System Configuration", StringComparison.OrdinalIgnoreCase)) return "Provides environment details such as OS, processor, board, build, driver, or system scope needed to compare sightings.";
-        if (string.Equals(fieldName, "Debug Evidence / Attachments", StringComparison.OrdinalIgnoreCase)) return "Confirms whether logs, system scope, traces, or debug references exist to support investigation.";
-        if (string.Equals(fieldName, "Ownership / Routing", StringComparison.OrdinalIgnoreCase)) return "Shows who owns or should route the sighting for follow-up.";
-        if (string.Equals(fieldName, "Status / Resolution Context", StringComparison.OrdinalIgnoreCase)) return "Shows whether the sighting is still open, already fixed, closed, rejected, or awaiting action.";
+        if (string.Equals(fieldName, "Processor", StringComparison.OrdinalIgnoreCase)) return "Identifies the processor target so reviewers know which hardware context the sighting applies to.";
+        if (string.Equals(fieldName, "SoC Stepping", StringComparison.OrdinalIgnoreCase)) return "Identifies the SoC stepping so reviewers can separate stepping-specific sightings from broader issues.";
+        if (string.Equals(fieldName, "Impact", StringComparison.OrdinalIgnoreCase)) return "Shows the practical effect or risk created by the sighting.";
+        if (string.Equals(fieldName, "Steps to Reproduce", StringComparison.OrdinalIgnoreCase)) return "Gives the ordered scenario needed to reproduce, debug, or verify the sighting.";
+        if (string.Equals(fieldName, "Exposure / Priority", StringComparison.OrdinalIgnoreCase)) return "Shows whether the sighting is high exposure, showstopper, critical, or otherwise priority-sensitive.";
+        if (string.Equals(fieldName, "ME SKU", StringComparison.OrdinalIgnoreCase)) return "Confirms whether the sighting applies to Consumer or Corp ME SKU.";
         return "Explains how this information helps a reviewer understand the sighting.";
     }
 
@@ -1898,24 +2334,6 @@ public static class CmfRecommendationService
         string text = SafeText(value);
         string lower = text.ToLowerInvariant();
 
-        if (string.Equals(fieldName, "Ownership / Routing", StringComparison.OrdinalIgnoreCase))
-        {
-            if (System.Text.RegularExpressions.Regex.IsMatch(text, @"^[a-z][a-z0-9_\.-]{2,30}$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
-                || System.Text.RegularExpressions.Regex.IsMatch(text, @":\s*[a-z][a-z0-9_\.-]{2,30}\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
-                || lower.Contains("@")
-                || lower.Contains("forum")
-                || lower.Contains("team")) return false;
-            characteristic = "Owner/routing value is not specific";
-            return true;
-        }
-
-        if (string.Equals(fieldName, "Status / Resolution Context", StringComparison.OrdinalIgnoreCase))
-        {
-            if (System.Text.RegularExpressions.Regex.IsMatch(lower, @"\b(open|implemented|verified|closed|rejected|complete|duplicate|root caused|debug|triage|await|fixed|wont fix|won't fix)\b")) return false;
-            characteristic = "Status/resolution state is unclear";
-            return true;
-        }
-
         if (string.Equals(fieldName, "Reproducibility / Failure Rate", StringComparison.OrdinalIgnoreCase))
         {
             if (System.Text.RegularExpressions.Regex.IsMatch(lower, @"\d+\s*/\s*\d+|\d+\s*%|\d+\s*(out of|of|in)\s*\d+|always|every\s+time|100%|reproducible|can\s+reproduce")) return false;
@@ -1923,51 +2341,30 @@ public static class CmfRecommendationService
             return true;
         }
 
-        if (string.Equals(fieldName, "Reproduction Details / Trigger", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fieldName, "Steps to Reproduce", StringComparison.OrdinalIgnoreCase))
         {
-            if (HasQualityEvidenceLabel(text, "Steps to Reproduce", "What Happened", "Description")
-                && System.Text.RegularExpressions.Regex.IsMatch(lower, @"\b(when|while|after|before|during|steps?|trigger|run|execute|boot|resume|replug|connect|disconnect|install|launch|test|workload|scenario)\b")) return false;
-            characteristic = "Trigger/scenario not described";
+            if (HasCompleteReproductionDetailsEvidence(text)) return false;
+            characteristic = "Repro steps incomplete or unordered";
             return true;
         }
 
-        if (string.Equals(fieldName, "Debug Evidence / Attachments", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fieldName, "Processor", StringComparison.OrdinalIgnoreCase))
         {
-            bool hasNegativeDebugSignal = System.Text.RegularExpressions.Regex.IsMatch(lower, @"\b(no\s+idst|db\s+idst\s*:\s*no|idst\s*:\s*no|no\s+log|not\s+attached|debug\s+log\s+attached\s*:\s*no|debug\s+log\s+attached\s*:\s*false)\b");
-            bool hasPositiveDebugSignal = System.Text.RegularExpressions.Regex.IsMatch(lower, @"\b(log|attach|attached|scope|zip|etl|dmp|dump|trace|link|http|sysdebug|forum|signature|yes|true)\b");
-            if (hasNegativeDebugSignal && hasPositiveDebugSignal)
-            {
-                characteristic = "Row evidence says debug routing/evidence is incomplete";
-                return true;
-            }
-            if (hasNegativeDebugSignal)
-            {
-                characteristic = "No log or attachment reference";
-                return true;
-            }
-            if (hasPositiveDebugSignal) return false;
-            characteristic = "No log or attachment reference";
+            if (System.Text.RegularExpressions.Regex.IsMatch(lower, @"\b(processor|cpu|core\s+ultra|intel|nvl|ptl|lnl|arl|meteor|lunar|panther|arrow|lake|xeon|i[3579]-?\d{3,5}|\d+[a-z]{1,3})\b")) return false;
+            characteristic = "Processor model unclear";
             return true;
         }
 
-        if (string.Equals(fieldName, "System Configuration", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fieldName, "SoC Stepping", StringComparison.OrdinalIgnoreCase))
         {
-            int configSignals = CountQualityEvidenceLabels(text, "Operating System", "Processor", "Board", "System Scope Filename", "Customer Detail", "Description");
-            if (configSignals >= 2 && System.Text.RegularExpressions.Regex.IsMatch(lower, @"\b(os|windows|win11|bios|bkc|driver|build|ifwi|cpu|processor|board|sku|version|stepping|memory|gfx|graphics|systemscope)\b|\d+\.\d+|\d{4,}")) return false;
-            characteristic = "Configuration lacks OS/build/driver detail";
+            if (System.Text.RegularExpressions.Regex.IsMatch(lower, @"\b([a-z]\d|es\d?|qs|pv|prq|a[-\s]?step|b[-\s]?step|c[-\s]?step|stepping\s*[:=]?\s*[a-z0-9]+)\b")) return false;
+            characteristic = "SoC stepping not explicitly called out";
             return true;
         }
 
-        if (string.Equals(fieldName, "Platform / Product Context", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fieldName, "Impact", StringComparison.OrdinalIgnoreCase))
         {
-            if (System.Text.RegularExpressions.Regex.IsMatch(lower, @"\b(nvl|ptl|lnl|arl|gnr|wcl|component|platform|board|family|design|lenovo|asus|dell|hp|lcfc|odm|oem)\b|[a-z]+[_-][a-z0-9]+")) return false;
-            characteristic = "Affected platform/product scope is unclear";
-            return true;
-        }
-
-        if (string.Equals(fieldName, "Customer Impact", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!HasQualityEvidenceLabel(text, "DB Impact", "Customer Impact", "Customer Summary") || IsGenericQualityPhrase(lower))
+            if (!HasQualityEvidenceLabel(text, "DB Impact", "Impact", "Customer Impact", "Customer Summary") || IsGenericQualityPhrase(lower))
             {
                 characteristic = "Impact effect not explained";
                 return true;
@@ -1975,27 +2372,53 @@ public static class CmfRecommendationService
             return false;
         }
 
-        if (string.Equals(fieldName, "Issue Title / Subject", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fieldName, "Exposure / Priority", StringComparison.OrdinalIgnoreCase))
+        {
+            if (System.Text.RegularExpressions.Regex.IsMatch(lower, @"\b(showstopper|critical|p0|p1|blocker|1-critical|p1-showstopper)\b")) return false;
+            characteristic = "Priority/exposure severity not called out";
+            return true;
+        }
+
+        if (string.Equals(fieldName, "ME SKU", StringComparison.OrdinalIgnoreCase))
+        {
+            if (System.Text.RegularExpressions.Regex.IsMatch(lower, @"\b(consumer|corp|corporate|commercial)\b")) return false;
+            characteristic = "ME SKU does not say Consumer or Corp";
+            return true;
+        }
+
+        if (string.Equals(fieldName, "Title", StringComparison.OrdinalIgnoreCase))
         {
             if (IsGenericQualityPhrase(lower))
             {
-                characteristic = "Title lacks observable symptom";
-                return true;
-            }
-            return false;
-        }
-
-        if (string.Equals(fieldName, "Problem Description / What Happened", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!HasQualityEvidenceLabel(text, "What Happened", "Description", "Actual Behavior") || IsGenericQualityPhrase(lower))
-            {
-                characteristic = "Observed behavior unclear";
+                characteristic = "Title is generic";
                 return true;
             }
             return false;
         }
 
         return false;
+    }
+
+    private static bool HasCompleteProblemDescriptionEvidence(string text)
+    {
+        string safeText = SafeText(text);
+        string lower = safeText.ToLowerInvariant();
+        if (!HasQualityEvidenceLabel(safeText, "Problem Description", "What Happened", "Description", "Actual Behavior")) return false;
+        if (IsGenericQualityPhrase(lower)) return false;
+        bool hasSymptom = System.Text.RegularExpressions.Regex.IsMatch(lower, @"\b(hang|hung|crash|bsod|fail|failure|error|black\s+screen|blank|no\s+display|no\s+video|not\s+display|disconnect|timeout|freeze|stuck|reboot|shutdown|blue\s+screen|cannot|unable)\b");
+        bool hasObservedBehavior = System.Text.RegularExpressions.Regex.IsMatch(lower, @"\b(occur|occurs|observed|seen|shows?|happens?|repro|reproduced|detected|encountered|when|while|after|during|upon|under)\b");
+        return hasSymptom && hasObservedBehavior;
+    }
+
+    private static bool HasCompleteReproductionDetailsEvidence(string text)
+    {
+        string safeText = SafeText(text);
+        string lower = safeText.ToLowerInvariant();
+        if (!HasQualityEvidenceLabel(safeText, "Repro Steps", "Steps to Reproduce", "What Happened", "Problem Description", "Description", "DB RVP Repro", "DB Reproducibility")) return false;
+        if (IsGenericQualityPhrase(lower)) return false;
+        bool hasTrigger = System.Text.RegularExpressions.Regex.IsMatch(lower, @"\b(when|while|after|before|during|upon|steps?|trigger|run|execute|boot|resume|replug|plug|connect|disconnect|install|launch|test|workload|scenario|stress|cycle|loop)\b");
+        bool hasActionOrCondition = System.Text.RegularExpressions.Regex.IsMatch(lower, @"\b(run|execute|boot|resume|replug|plug\s+out|plug\s+in|connect|disconnect|install|launch|start|stop|sleep|wake|stress\s+test|workload|cycle)\b");
+        return hasTrigger && hasActionOrCondition;
     }
 
     private static bool HasQualityEvidenceLabel(string text, params string[] labels)
@@ -2025,16 +2448,14 @@ public static class CmfRecommendationService
 
     private static string GetPresentSightingQualityCharacteristic(string fieldName)
     {
-        if (string.Equals(fieldName, "Ownership / Routing", StringComparison.OrdinalIgnoreCase)) return "Owner or routing value available";
-        if (string.Equals(fieldName, "Status / Resolution Context", StringComparison.OrdinalIgnoreCase)) return "Status/resolution state available";
         if (string.Equals(fieldName, "Reproducibility / Failure Rate", StringComparison.OrdinalIgnoreCase)) return "Repro/failure-rate signal available";
-        if (string.Equals(fieldName, "Reproduction Details / Trigger", StringComparison.OrdinalIgnoreCase)) return "Trigger or scenario evidence available";
-        if (string.Equals(fieldName, "Debug Evidence / Attachments", StringComparison.OrdinalIgnoreCase)) return "Debug evidence reference available";
-        if (string.Equals(fieldName, "System Configuration", StringComparison.OrdinalIgnoreCase)) return "Configuration context available";
-        if (string.Equals(fieldName, "Platform / Product Context", StringComparison.OrdinalIgnoreCase)) return "Platform/product context available";
-        if (string.Equals(fieldName, "Customer Impact", StringComparison.OrdinalIgnoreCase)) return "Impact statement available";
-        if (string.Equals(fieldName, "Issue Title / Subject", StringComparison.OrdinalIgnoreCase)) return "Title/subject available";
-        if (string.Equals(fieldName, "Problem Description / What Happened", StringComparison.OrdinalIgnoreCase)) return "Problem description available";
+        if (string.Equals(fieldName, "Steps to Reproduce", StringComparison.OrdinalIgnoreCase)) return "Repro steps available";
+        if (string.Equals(fieldName, "Processor", StringComparison.OrdinalIgnoreCase)) return "Processor called out";
+        if (string.Equals(fieldName, "SoC Stepping", StringComparison.OrdinalIgnoreCase)) return "SoC stepping called out";
+        if (string.Equals(fieldName, "Impact", StringComparison.OrdinalIgnoreCase)) return "Impact statement available";
+        if (string.Equals(fieldName, "Exposure / Priority", StringComparison.OrdinalIgnoreCase)) return "Exposure/priority called out";
+        if (string.Equals(fieldName, "ME SKU", StringComparison.OrdinalIgnoreCase)) return "ME SKU called out";
+        if (string.Equals(fieldName, "Title", StringComparison.OrdinalIgnoreCase)) return "Title available";
         return "Usable evidence available";
     }
 
@@ -2312,21 +2733,60 @@ public static class CmfRecommendationService
 
     private static string ResolveCmfDisposition(string modelRecommendation, int overallQualityScore, int thresholdScore, List<CmfRecommendationRuleScore> ruleScores)
     {
-        string normalized = SafeText(modelRecommendation).ToUpperInvariant();
-        if (normalized.Contains("CMF_REVIEW") || normalized.Contains("CONFLICT")) return "CMF_REVIEW";
-        if (overallQualityScore >= thresholdScore && !HasBlockingRuleFailure(ruleScores)) return "CMF_OK";
-        if (normalized.Contains("CMF_REJECT") && !HasAnyPartialRule(ruleScores) && overallQualityScore < 40) return "CMF_REJECT";
-        if (normalized.Contains("CMF_INCOMPLETE") || HasAnyPartialRule(ruleScores) || overallQualityScore >= 40) return "CMF_INCOMPLETE";
-        if (normalized.Contains("CMF_OK")) return "CMF_INCOMPLETE";
-        return "CMF_REJECT";
+        return ResolveCmfDisposition(overallQualityScore, thresholdScore, ruleScores);
     }
 
     private static string ResolveCmfDisposition(int overallQualityScore, int thresholdScore, List<CmfRecommendationRuleScore> ruleScores)
     {
-        if (overallQualityScore >= thresholdScore && !HasBlockingRuleFailure(ruleScores)) return "CMF_OK";
+        if (HasDecisionCriticalMissingEvidence(ruleScores)) return "CMF_INCOMPLETE";
+        if (HasCustomerExperienceOverride(ruleScores)) return "CMF_REVIEW";
+        if (overallQualityScore >= 80) return "CMF_OK";
         if (overallQualityScore >= 60) return "CMF_REVIEW";
-        if (HasAnyPartialRule(ruleScores) || overallQualityScore >= 40) return "CMF_INCOMPLETE";
         return "CMF_REJECT";
+    }
+
+    private static bool HasDecisionCriticalMissingEvidence(List<CmfRecommendationRuleScore> ruleScores)
+    {
+        if (ruleScores == null || ruleScores.Count == 0) return true;
+        string[] requiredMetrics = new[] { "S", "O", "D", "R", "B" };
+        foreach (string metric in requiredMetrics)
+        {
+            CmfRecommendationRuleScore rule = FindMetricRule(ruleScores, metric);
+            if (rule == null) return true;
+            string evaluation = SafeText(rule.Evaluation);
+            if (evaluation.IndexOf("Missing ", StringComparison.OrdinalIgnoreCase) >= 0 && evaluation.IndexOf("Evidence:", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool HasCustomerExperienceOverride(List<CmfRecommendationRuleScore> ruleScores)
+    {
+        return GetMetricScore(ruleScores, "CX") >= 3;
+    }
+
+    private static int GetMetricScore(List<CmfRecommendationRuleScore> ruleScores, string ruleId)
+    {
+        CmfRecommendationRuleScore rule = FindMetricRule(ruleScores, ruleId);
+        int score;
+        if (rule != null && int.TryParse(SafeText(rule.Score).Replace("%", string.Empty), out score))
+        {
+            if (score > 5) score = (int)Math.Round(score / 20.0);
+            return Math.Max(1, Math.Min(5, score));
+        }
+        return 1;
+    }
+
+    private static CmfRecommendationRuleScore FindMetricRule(List<CmfRecommendationRuleScore> ruleScores, string ruleId)
+    {
+        if (ruleScores == null) return null;
+        foreach (CmfRecommendationRuleScore rule in ruleScores)
+        {
+            if (rule != null && string.Equals(SafeText(rule.RuleId), ruleId, StringComparison.OrdinalIgnoreCase)) return rule;
+        }
+        return null;
     }
 
     private static bool HasAnyPartialRule(List<CmfRecommendationRuleScore> ruleScores)

@@ -32,6 +32,11 @@ public class HsdArticleData
     public string CustomerDetail { get; set; }
     public string CustomerSummary { get; set; }
     public string Board { get; set; }
+    public string Processor { get; set; }
+    public string SocStepping { get; set; }
+    public string Exposure { get; set; }
+    public string MeSku { get; set; }
+    public string MandatoryFields { get; set; }
     public List<string> Comments { get; set; }
     public bool FetchSuccess { get; set; }
     public string FetchError { get; set; }
@@ -144,25 +149,31 @@ public static class HsdPortalService
         var sb = new StringBuilder();
         sb.AppendLine("--- " + sectionLabel + " (HSD Portal) ---");
         AppendIfSet(sb, "HSD Fetch Source", data.FetchSource);
-        AppendIfSet(sb, "Description", Truncate(data.Description, DescriptionMaxChars));
+        AppendIfSet(sb, "Title", data.Title);
+        AppendIfSet(sb, "Problem Description", Truncate(data.Description, DescriptionMaxChars));
         AppendIfSet(sb, "Family", data.Family);
         AppendIfSet(sb, "Component", data.Component);
         AppendIfSet(sb, "Status", data.Status);
         AppendIfSet(sb, "Priority", data.Priority);
+        AppendIfSet(sb, "Exposure", data.Exposure);
         AppendIfSet(sb, "Customer Impact", Truncate(data.CustomerImpact, 1000));
         AppendIfSet(sb, "Reproducibility", data.Reproducibility);
         AppendIfSet(sb, "Sysdebug Category", data.Sysdebug);
         AppendIfSet(sb, "Sysdebug Forum", Truncate(data.SysdebugForum, 1000));
         AppendIfSet(sb, "Submitter", data.Submitter);
         AppendIfSet(sb, "Owner", data.Owner);
-        AppendIfSet(sb, "Steps to Reproduce", Truncate(data.StepsToReproduce, 800));
+        AppendIfSet(sb, "Repro Steps", Truncate(data.StepsToReproduce, 800));
         AppendIfSet(sb, "Expected Behavior", Truncate(data.ExpectedBehavior, 500));
         AppendIfSet(sb, "Actual Behavior", Truncate(data.ActualBehavior, 500));
         AppendIfSet(sb, "What Happened", Truncate(data.WhatHappened, 800));
         AppendIfSet(sb, "What Should Have Happened", Truncate(data.WhatShouldHaveHappened, 500));
         AppendIfSet(sb, "Customer Detail", Truncate(data.CustomerDetail, 500));
         AppendIfSet(sb, "Customer Summary", Truncate(data.CustomerSummary, 500));
+        AppendIfSet(sb, "Mandatory Fields", Truncate(data.MandatoryFields, 1200));
         AppendIfSet(sb, "Board", data.Board);
+        AppendIfSet(sb, "Processor", data.Processor);
+        AppendIfSet(sb, "SoC Stepping", data.SocStepping);
+        AppendIfSet(sb, "ME SKU", data.MeSku);
         AppendIfSet(sb, "Debug Log Attached", data.DebugLogAttached);
         AppendIfSet(sb, "System Scope Filename", data.SystemScopeFilename);
         AppendIfSet(sb, "CMF Justification", Truncate(data.CmfJustification, 1000));
@@ -386,7 +397,7 @@ public static class HsdPortalService
         StringBuilder builder = new StringBuilder();
         builder.AppendLine("Retrieve HSDES bug/article " + articleId + " using the available HSDES plugin/tool.");
         builder.AppendLine("Return only a JSON object with these keys when available:");
-        builder.AppendLine("fetch_success, fetch_error, article_id, title, description, family, component, status, sysdebug, sysdebug_forum, priority, submitter, owner, steps_to_reproduce, expected_behavior, actual_behavior, customer_impact, reproducibility, cmf_justification, fix_description, fixed_version, closed_reason, implemented_date, verified_date, closed_date, investigation_history, comments.");
+        builder.AppendLine("fetch_success, fetch_error, article_id, title, problem_description, description, family, component, status, sysdebug, sysdebug_forum, priority, exposure, submitter, owner, repro_steps, steps_to_reproduce, mandatory_fields, expected_behavior, actual_behavior, customer_summary, customer_impact, reproducibility, processor, soc_stepping, me_sku, cmf_justification, fix_description, fixed_version, closed_reason, implemented_date, verified_date, closed_date, investigation_history, comments.");
         builder.AppendLine("comments must be an array of concise recent discussion/update strings. investigation_history should include relevant engineering updates, debug findings, root-cause/fix/closure notes, and customer/external history when present.");
         builder.AppendLine("If the plugin/tool cannot retrieve this article, return fetch_success=false and a short fetch_error. Do not use prior knowledge or guess.");
         return builder.ToString();
@@ -839,7 +850,7 @@ public static class HsdPortalService
     private static void MapArticleFields(IDictionary fields, HsdArticleData result)
     {
         result.Title = FirstNonEmpty(Pick(fields, "title", "subject", "name"), result.Title);
-        result.Description = FirstNonEmpty(Pick(fields, "description", "sighting.description", "body", "text", "summary", "client_platf.bug.root_cause_description"), result.Description);
+        result.Description = FirstNonEmpty(Pick(fields, "problem_description", "problemDescription", "description", "sighting.description", "body", "text", "summary", "client_platf.bug.problem_description", "client_platf.bug.root_cause_description", "client_platf.bug.what_happened"), result.Description);
         result.Family = FirstNonEmpty(Pick(fields, "family", "product_family", "sighting.family", "cpu_family"), result.Family);
         result.Component = FirstNonEmpty(Pick(fields, "component", "sighting.component", "component_name"), result.Component);
         result.Status = FirstNonEmpty(Pick(fields, "status", "sighting.status", "state"), result.Status);
@@ -848,7 +859,7 @@ public static class HsdPortalService
         result.Priority = FirstNonEmpty(Pick(fields, "priority", "sighting.priority", "severity"), result.Priority);
         result.Submitter = FirstNonEmpty(Pick(fields, "submitter", "reporter", "created_by", "author"), result.Submitter);
         result.Owner = FirstNonEmpty(Pick(fields, "owner", "assigned_to", "assignee"), result.Owner);
-        result.StepsToReproduce = FirstNonEmpty(Pick(fields, "steps_to_reproduce", "repro_steps", "sighting.steps_to_reproduce", "repro", "to_reproduce", "bug.to_reproduce", "client_platf.bug.ext_cust_to_reproduce"), result.StepsToReproduce);
+        result.StepsToReproduce = FirstNonEmpty(Pick(fields, "repro_steps", "reproSteps", "steps_to_reproduce", "stepsToReproduce", "sighting.steps_to_reproduce", "sighting.repro_steps", "repro", "to_reproduce", "bug.to_reproduce", "client_platf.bug.repro_steps", "client_platf.bug.steps_to_reproduce", "client_platf.bug.ext_cust_to_reproduce"), result.StepsToReproduce);
         result.ExpectedBehavior = FirstNonEmpty(Pick(fields, "expected_behavior", "expected", "sighting.expected_behavior", "client_platf.bug.what_should_have_happened"), result.ExpectedBehavior);
         result.ActualBehavior = FirstNonEmpty(Pick(fields, "actual_behavior", "actual", "sighting.actual_behavior", "client_platf.bug.what_happened"), result.ActualBehavior);
         result.WhatHappened = FirstNonEmpty(Pick(fields, "what_happened", "client_platf.bug.what_happened"), result.WhatHappened);
@@ -856,8 +867,24 @@ public static class HsdPortalService
         result.DebugLogAttached = FirstNonEmpty(Pick(fields, "debug_log_attached", "client_platf.bug.debug_log_attached", "is_system_scope_log_attached", "client_platf.bug.is_system_scope_log_attached"), result.DebugLogAttached);
         result.SystemScopeFilename = FirstNonEmpty(Pick(fields, "system_scope_filename", "client_platf.bug.system_scope_filename"), result.SystemScopeFilename);
         result.CustomerDetail = FirstNonEmpty(Pick(fields, "customer_detail", "client_platf.bug.customer_detail"), result.CustomerDetail);
-        result.CustomerSummary = FirstNonEmpty(Pick(fields, "customer_summary", "client_platf.bug.customer_summary"), result.CustomerSummary);
+        result.CustomerSummary = FirstNonEmpty(Pick(fields, "customer_summary", "customerSummary", "client_platf.bug.customer_summary", "client_platf.bug.ext_cust_summary", "ext_cust_summary"), result.CustomerSummary);
+        result.MandatoryFields = FirstNonEmpty(
+            Pick(fields,
+                "mandatory_fields",
+                "mandatoryFields",
+                "required_fields",
+                "requiredFields",
+                "fields_marked_mandatory",
+                "starred_fields",
+                "client_platf.bug.mandatory_fields",
+                "client_platf.bug.required_fields"),
+            result.MandatoryFields,
+            BuildMandatoryFieldsSummary(fields));
         result.Board = FirstNonEmpty(Pick(fields, "board", "client_platf.bug.board", "customer_board", "client_platf.bug.customer_board"), result.Board);
+        result.Processor = FirstNonEmpty(Pick(fields, "processor", "sighting.processor", "cpu", "cpu_model", "processor_model", "client_platf.bug.processor", "client_platf.bug.cpu", "client_platf.bug.cpu_model"), result.Processor);
+        result.SocStepping = FirstNonEmpty(Pick(fields, "soc_stepping", "socstepping", "soc.stepping", "stepping", "silicon_stepping", "client_platf.bug.soc_stepping", "client_platf.bug.stepping", "client_platf.bug.silicon_stepping"), result.SocStepping);
+        result.Exposure = FirstNonEmpty(Pick(fields, "exposure", "customer_exposure", "business_exposure", "client_platf.bug.exposure", "client_platf.bug.customer_exposure"), result.Exposure);
+        result.MeSku = FirstNonEmpty(Pick(fields, "me_sku", "meSKU", "me.sku", "me_sku_type", "me_type", "client_platf.bug.me_sku", "client_platf.bug.me_sku_type", "client_platf.bug.me_type"), result.MeSku);
         result.FixDescription = FirstNonEmpty(Pick(
             fields,
             "fix_description",
@@ -1029,6 +1056,31 @@ public static class HsdPortalService
         }
 
         return string.Empty;
+    }
+
+    private static string BuildMandatoryFieldsSummary(IDictionary fields)
+    {
+        if (fields == null) return string.Empty;
+
+        StringBuilder builder = new StringBuilder();
+        AppendPickedMandatoryField(builder, fields, "Family", "family", "product_family", "sighting.family", "cpu_family");
+        AppendPickedMandatoryField(builder, fields, "Component", "component", "sighting.component", "component_name");
+        AppendPickedMandatoryField(builder, fields, "Priority", "priority", "sighting.priority", "severity");
+        AppendPickedMandatoryField(builder, fields, "Status", "status", "sighting.status", "state");
+        AppendPickedMandatoryField(builder, fields, "Owner", "owner", "assigned_to", "assignee");
+        AppendPickedMandatoryField(builder, fields, "Sysdebug", "sysdebug", "sighting.sysdebug", "debug_category", "sysdebug_category", "client_platf.bug.sysdebug");
+        AppendPickedMandatoryField(builder, fields, "Reproducibility", "reproducibility", "bug.reproducibility", "client_platf.bug.can_reproduce", "client_platf.bug.score_to_reproduce", "bugreproducibility", "repro");
+        AppendPickedMandatoryField(builder, fields, "Customer Impact", "customer_impact", "bug.customer_impact", "client_platf.bug.impact", "client_platf.bug.ext_cust_impact", "clientplatfbugimpact", "bugcustomerimpact", "customerimpact", "impact");
+
+        return builder.ToString().Trim().TrimEnd(';');
+    }
+
+    private static void AppendPickedMandatoryField(StringBuilder builder, IDictionary fields, string label, params string[] keys)
+    {
+        string value = Pick(fields, keys);
+        if (string.IsNullOrWhiteSpace(value)) return;
+        if (builder.Length > 0) builder.Append("; ");
+        builder.Append(label).Append(": ").Append(Truncate(value.Trim(), 220));
     }
 
     private static string Truncate(string value, int maxLen)

@@ -2169,7 +2169,7 @@ public static class AiSummaryService
         title = SafeText(title);
         contextDetails = SafeText(contextDetails);
 
-        string hash = ComputeHash("sighting-description-v10|" + GetAiProviderCacheSignature() + "|" + sightingId + "|" + title + "|" + contextDetails);
+        string hash = ComputeHash("sighting-description-v11|" + GetAiProviderCacheSignature() + "|" + sightingId + "|" + title + "|" + contextDetails);
         string cacheKey = "sighting-description:" + hash;
 
         AiSummaryResponse cached = TryGetCached(cacheKey);
@@ -2220,7 +2220,7 @@ public static class AiSummaryService
         impact = SafeText(impact);
         contextDetails = SafeText(contextDetails);
 
-        string hash = ComputeHash("sighting-impact-v8|" + GetAiProviderCacheSignature() + "|" + sightingId + "|" + title + "|" + impact + "|" + contextDetails);
+        string hash = ComputeHash("sighting-impact-v11|" + GetAiProviderCacheSignature() + "|" + sightingId + "|" + title + "|" + impact + "|" + contextDetails);
         string cacheKey = "sighting-impact:" + hash;
 
         AiSummaryResponse cached = TryGetCached(cacheKey);
@@ -2267,7 +2267,7 @@ public static class AiSummaryService
     private static string BuildSightingDescriptionPrompt(string sightingId, string title, string contextDetails)
     {
         StringBuilder builder = new StringBuilder();
-        builder.AppendLine("Create an issue description in exactly this shape: one concise lead sentence followed by exactly three bullet points. Each bullet must be on its own separate line and must start with '- '. Describe only the issue itself: the affected platform/device/tool, the observed failure, where/when it occurs, and the expected-vs-actual behavior. Do not summarize customer impact, business impact, schedule impact, CMF decision impact, support workload, or mitigation effort here; those belong in the impact summary. Each bullet must be a complete plain-English sentence about a distinct symptom, observed behavior, affected configuration, or comparison point. Do not write labels, headings, or field-name dumps such as 'Logs show', 'Evidence indicates', 'Component:', or 'Reproducibility:'. Do not force log details unless they are the clearest descriptive point. Do not mention the sighting ID. Use proper grammar, capitalization, commas, periods, and complete sentences so the description is reviewer-ready for users and iDST. Never end a sentence abruptly or with an unfinished parenthetical phrase.");
+        builder.AppendLine("Create an issue description as exactly three bullet-point lines, but return only the plain sentence text for each line. Do not type bullet markers such as '-', '*', '•', or numbers; the UI will add the bullet styling. Describe only the issue itself in your own words: the affected platform/device/tool, the observed failure, where/when it occurs, and the expected-vs-actual behavior. Do not summarize customer impact, business impact, schedule impact, CMF decision impact, support workload, or mitigation effort here; those belong in the impact summary. Each line must be a complete plain-English sentence about a distinct symptom, observed behavior, affected configuration, or comparison point. Do not write labels, headings, or field-name dumps such as 'Logs show', 'Evidence indicates', 'Component:', or 'Reproducibility:'. Do not force log details unless they are the clearest descriptive point. Do not mention the sighting ID. Use proper grammar, capitalization, commas, periods, and complete sentences so the description is reviewer-ready for users and iDST. Never end a sentence abruptly, with an unfinished phrase, or with an unfinished parenthetical phrase.");
         builder.AppendLine();
         builder.AppendLine("Issue Title: " + title);
         builder.AppendLine("Sighting ID: " + sightingId);
@@ -2278,20 +2278,19 @@ public static class AiSummaryService
             builder.AppendLine(contextDetails);
         }
         builder.AppendLine();
-        builder.AppendLine("Return only the description text in this shape. Do not include a heading:");
-        builder.AppendLine("<one concise lead sentence>.");
-        builder.AppendLine("- <bullet point 1>.");
-        builder.AppendLine("- <bullet point 2>.");
-        builder.AppendLine("- <bullet point 3>.");
-        builder.AppendLine("Do not put the bullets in the same paragraph as the lead sentence.");
+        builder.AppendLine("Return only three complete sentence lines in this shape. Do not include a heading, lead paragraph, hyphens, numbering, or markdown:");
+        builder.AppendLine("<bullet point 1 sentence>.");
+        builder.AppendLine("<bullet point 2 sentence>.");
+        builder.AppendLine("<bullet point 3 sentence>.");
+        builder.AppendLine("Do not put multiple points on the same line.");
         return builder.ToString();
     }
 
     private static string BuildSightingImpactPrompt(string sightingId, string title, string impact, string contextDetails)
     {
         StringBuilder builder = new StringBuilder();
-        builder.AppendLine("Explain the impact of this issue in clear, understandable English for a non-specialist reviewer. The issue has already happened; use the supplied details to infer what is disrupted or affected and how that affects the customer who raised the request and the end users who rely on the system. Write one concise paragraph, 65-110 words total. Do not merely restate the title, component, occurrence, or raw Impact field; synthesize the consequence in plain language. Use phrasing like 'causes', 'disrupts', 'affects', 'blocks', or 'can/could cause' when explaining likely stakeholder effects from the observed scenario. Include business/program impact only when supported by context. Do not add a second internal-debug paragraph, do not provide recommendations, do not invent facts, and do not mention the sighting ID. Use proper grammar, capitalization, commas, periods, and complete sentences so the summary is reviewer-ready for users and iDST. Never end a sentence abruptly.");
-        builder.AppendLine("Do not include requested fix timing in the paragraph. After the paragraph, add a separate final line exactly in this format when a requested timing exists in Must Fix For, Drivers, Impact, or related context: Fix requested by: <timing>. If no requested timing is present, omit this line.");
+        builder.AppendLine("Explain the impact of this issue in clear, understandable English for a non-specialist reviewer. The issue has already happened; use the supplied details to infer what is disrupted or affected and how that affects the customer who raised the request and the end users who rely on the system. Give strongest weight to HSD Problem Description, Repro Steps, Mandatory Fields, Comments, Customer Summary, Customer Impact, and CMF Impact when they are present. Return 3-4 concise bullet points, each on its own line and each starting with '- '. Do not merely restate the title, component, occurrence, or raw Impact field; synthesize the consequence in plain language. Include one bullet that starts with 'Recovery mechanism:' and write it from your reviewer perspective. This recovery bullet must interpret whether the observed failure seems manually recoverable, automatically recoverable, workaround-dependent, or not recoverable from the available evidence. Do not just copy a sentence found in the input; if no recovery path is stated, say that the available context does not identify a confirmed recovery path and explain why that matters for review. Use phrasing like 'causes', 'disrupts', 'affects', 'blocks', or 'can/could cause' when explaining likely stakeholder effects from the observed scenario. Include business/program impact only when supported by context. Do not add an internal-debug paragraph, do not provide recommendations, do not invent facts, and do not mention the sighting ID. Use proper grammar, capitalization, commas, periods, and complete sentences so the summary is reviewer-ready for users and iDST. Never end a sentence abruptly.");
+        builder.AppendLine("Do not include requested fix timing inside the bullets. After the bullets, add a separate final line exactly in this format when a requested timing exists in Must Fix For, Drivers, Impact, or related context: Fix By: <timing>. If no requested timing is present, omit this line.");
         builder.AppendLine();
         builder.AppendLine("Issue Title: " + title);
         builder.AppendLine("Sighting ID: " + sightingId);
@@ -2303,7 +2302,7 @@ public static class AiSummaryService
             builder.AppendLine(contextDetails);
         }
         builder.AppendLine();
-        builder.AppendLine("Return only the impact summary paragraph and optional Fix requested by line. Do not include headings, bullets, markdown, or field-name dumps.");
+        builder.AppendLine("Return only the impact summary bullet points and optional Fix By line. Do not include headings, markdown emphasis, or field-name dumps.");
         return builder.ToString();
     }
 
@@ -2318,8 +2317,8 @@ public static class AiSummaryService
         cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"\n{3,}", "\n").Trim();
 
         string[] lines = cleaned.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        string lead = string.Empty;
-        List<string> bullets = new List<string>();
+        List<string> markedPoints = new List<string>();
+        List<string> plainPoints = new List<string>();
         for (int i = 0; i < lines.Length; i++)
         {
             string rawLine = lines[i].Trim();
@@ -2327,39 +2326,64 @@ public static class AiSummaryService
             string line = System.Text.RegularExpressions.Regex.Replace(rawLine, @"^\s*(?:[-*•]|\d+[.)])\s+", string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(line)) continue;
 
-            if (string.IsNullOrWhiteSpace(lead) && !isBullet)
-            {
-                lead = CompleteSightingDescriptionLine(line, 38);
-                continue;
-            }
-
-            if (bullets.Count < 3)
-            {
-                bullets.Add(CompleteSightingDescriptionLine(line, 24));
-            }
+            if (isBullet) markedPoints.Add(line);
+            else plainPoints.Add(line);
         }
 
-        if (string.IsNullOrWhiteSpace(lead) && bullets.Count > 0)
+        List<string> bullets = new List<string>();
+        if (markedPoints.Count >= 2)
         {
-            lead = CompleteSightingDescriptionLine(bullets[0], 38);
-            bullets.RemoveAt(0);
+            AddDescriptionPoints(bullets, markedPoints, 3);
+        }
+        else if (plainPoints.Count >= 4)
+        {
+            for (int i = 1; i < plainPoints.Count && bullets.Count < 3; i++) bullets.Add(CompleteSightingDescriptionLine(plainPoints[i], 30));
+        }
+        else
+        {
+            AddDescriptionPoints(bullets, plainPoints, 3);
         }
 
-        if (string.IsNullOrWhiteSpace(lead)) return string.Empty;
+        if (bullets.Count < 3)
+        {
+            List<string> sentences = SplitSentences(System.Text.RegularExpressions.Regex.Replace(cleaned, @"^\s*(?:[-*•]|\d+[.)])\s+", string.Empty));
+            AddDescriptionPoints(bullets, sentences, 3);
+        }
 
         while (bullets.Count < 3)
         {
-            bullets.Add("Available evidence should be reviewed against the expected platform behavior.");
+            bullets.Add("Available evidence should be reviewed against the expected platform behavior for this sighting.");
         }
 
         StringBuilder output = new StringBuilder();
-        output.AppendLine(lead);
         for (int i = 0; i < bullets.Count && i < 3; i++)
         {
-            output.Append("- ").AppendLine(bullets[i]);
+            output.AppendLine(bullets[i]);
         }
 
         return output.ToString().Trim();
+    }
+
+    private static void AddDescriptionPoints(List<string> target, List<string> source, int maxCount)
+    {
+        if (target == null || source == null) return;
+        for (int i = 0; i < source.Count && target.Count < maxCount; i++)
+        {
+            string point = CompleteSightingDescriptionLine(source[i], 30);
+            if (string.IsNullOrWhiteSpace(point)) continue;
+
+            bool duplicate = false;
+            for (int j = 0; j < target.Count; j++)
+            {
+                if (string.Equals(target[j], point, StringComparison.OrdinalIgnoreCase))
+                {
+                    duplicate = true;
+                    break;
+                }
+            }
+
+            if (!duplicate) target.Add(point);
+        }
     }
 
     private static string NormalizeSightingDescriptionBulletBreaks(string text)
@@ -2445,11 +2469,156 @@ public static class AiSummaryService
         if (string.IsNullOrWhiteSpace(text)) return string.Empty;
 
         string cleaned = text.Replace("\r\n", "\n").Replace("\r", "\n");
-        cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"(?m)^\s*[-*•]\s*", string.Empty).Trim();
+        cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"(?im)^\s*(impact summary|summary)\s*:\s*", string.Empty).Trim();
+        cleaned = NormalizeImpactSummaryBulletBreaks(cleaned);
         cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"[ \t]+", " ").Trim();
-        cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"\n{3,}", "\n\n").Trim();
+        cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"\n{3,}", "\n").Trim();
 
-        return TrimImpactSummaryPreservingFixLine(cleaned, 120);
+        return BuildImpactBulletSummary(cleaned, 4);
+    }
+
+    private static string NormalizeImpactSummaryBulletBreaks(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+
+        string normalized = System.Text.RegularExpressions.Regex.Replace(text, @"\s+([-*•])\s+", "\n$1 ");
+        normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+(\d+[.)])\s+", "\n$1 ");
+        normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+((?:Fix\s*(?:requested\s*)?by|Must\s*fix\s*for|Requested\s*fix(?:\s*(?:timing|by))?|Needed\s*by)\s*:)\s*", "\n$1 ", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return normalized.Trim();
+    }
+
+    private static bool TryNormalizeImpactFixLine(string line, out string fixLine)
+    {
+        fixLine = string.Empty;
+        if (string.IsNullOrWhiteSpace(line)) return false;
+
+        System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(line.Trim(), @"^(?:Fix\s*(?:requested\s*)?by|Must\s*fix\s*for|Requested\s*fix(?:\s*(?:timing|by))?|Needed\s*by)\s*:\s*(.+)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (!match.Success) return false;
+
+        string timing = match.Groups[1].Value.Trim().TrimEnd('.', ';');
+        if (string.IsNullOrWhiteSpace(timing)) return false;
+
+        fixLine = "Fix By: " + RepairUnbalancedTerminalPairs(timing);
+        return true;
+    }
+
+    private static string ExtractImpactFixTiming(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+
+        System.Text.RegularExpressions.Match labeledMatch = System.Text.RegularExpressions.Regex.Match(text, @"\b(?:Fix\s*(?:requested\s*)?by|Must\s*fix\s*for|Requested\s*fix(?:\s*(?:timing|by))?|Needed\s*by)\s*[:=]\s*([^\r\n.;]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (labeledMatch.Success) return labeledMatch.Groups[1].Value.Trim();
+
+        System.Text.RegularExpressions.Match weekMatch = System.Text.RegularExpressions.Regex.Match(text, @"\b(?:requested|request|needed|need|fix(?:ed)?)\b[^.?!\r\n]*(?:by|before|for)\s+(WW\s*\d{1,2})\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return weekMatch.Success ? weekMatch.Groups[1].Value.Trim() : string.Empty;
+    }
+
+    private static string BuildImpactBulletSummary(string text, int maxBullets)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+
+        string[] lines = text.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        string fixLine = string.Empty;
+        List<string> bullets = new List<string>();
+        List<string> paragraphParts = new List<string>();
+
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i].Trim();
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            line = System.Text.RegularExpressions.Regex.Replace(line, @"^\s*(?:[-*•]|\d+[.)])\s+", string.Empty).Trim();
+            string normalizedFixLine;
+            if (TryNormalizeImpactFixLine(line, out normalizedFixLine))
+            {
+                fixLine = normalizedFixLine;
+                continue;
+            }
+
+            if (lines.Length > 1 && bullets.Count < maxBullets)
+            {
+                bullets.Add(CompleteSightingDescriptionLine(line, 42));
+            }
+            else
+            {
+                paragraphParts.Add(line);
+            }
+        }
+
+        if (bullets.Count == 0)
+        {
+            string paragraph = string.Join(" ", paragraphParts.ToArray()).Trim();
+            foreach (string sentence in SplitSentences(paragraph))
+            {
+                if (bullets.Count >= Math.Max(1, maxBullets - 1)) break;
+                bullets.Add(CompleteSightingDescriptionLine(sentence, 42));
+            }
+        }
+
+        List<string> sourceParts = new List<string>();
+        sourceParts.Add(text);
+        sourceParts.AddRange(paragraphParts);
+        string sourceText = string.Join(" ", sourceParts.ToArray());
+        string recoveryBullet = BuildRecoveryMechanismBullet(sourceText);
+        if (!HasRecoveryMechanismBullet(bullets))
+        {
+            if (bullets.Count >= maxBullets) bullets[bullets.Count - 1] = recoveryBullet;
+            else bullets.Add(recoveryBullet);
+        }
+
+        while (bullets.Count < 3)
+        {
+            bullets.Add("Available evidence should be reviewed to confirm the customer-facing impact and validation exposure.");
+        }
+
+        StringBuilder output = new StringBuilder();
+        for (int i = 0; i < bullets.Count && i < maxBullets; i++)
+        {
+            output.Append("- ").AppendLine(bullets[i]);
+        }
+
+        if (!string.IsNullOrWhiteSpace(fixLine)) output.AppendLine(fixLine);
+        return output.ToString().Trim();
+    }
+
+    private static List<string> SplitSentences(string text)
+    {
+        List<string> sentences = new List<string>();
+        if (string.IsNullOrWhiteSpace(text)) return sentences;
+
+        System.Text.RegularExpressions.MatchCollection matches = System.Text.RegularExpressions.Regex.Matches(text.Trim(), @"[^.!?]+[.!?]+(?:\s|$)");
+        foreach (System.Text.RegularExpressions.Match match in matches)
+        {
+            string sentence = match.Value.Trim();
+            if (!string.IsNullOrWhiteSpace(sentence)) sentences.Add(sentence);
+        }
+
+        if (sentences.Count == 0) sentences.Add(text.Trim());
+        return sentences;
+    }
+
+    private static bool HasRecoveryMechanismBullet(List<string> bullets)
+    {
+        if (bullets == null) return false;
+        for (int i = 0; i < bullets.Count; i++)
+        {
+            if (System.Text.RegularExpressions.Regex.IsMatch(bullets[i] ?? string.Empty, @"\b(recovery|recover|workaround|reboot|restart|reconnect|replug|retry|auto-recovery|mitigation)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) return true;
+        }
+
+        return false;
+    }
+
+    private static string BuildRecoveryMechanismBullet(string sourceText)
+    {
+        string source = sourceText ?? string.Empty;
+        System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(source, @"\b(?:no workaround[^.?!]*|workaround[^.?!]*|manual recovery[^.?!]*|auto-recovery[^.?!]*|recovery[^.?!]*|recover[^.?!]*|reboot[^.?!]*|restart[^.?!]*|reconnect[^.?!]*|replug[^.?!]*|retry[^.?!]*|mitigation[^.?!]*)[.?!]?", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (match.Success)
+        {
+            string detail = System.Text.RegularExpressions.Regex.Replace(match.Value.Trim(), @"^(?:recovery mechanism|recovery|workaround|mitigation)\s*:\s*", string.Empty, System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+            return CompleteSightingDescriptionLine("Recovery mechanism: " + detail, 34);
+        }
+
+        return "Recovery mechanism: From the available evidence, no confirmed recovery path is identified, so reviewers should treat recovery as uncertain until manual or automatic recovery behavior is clarified.";
     }
 
     private static string TrimImpactSummaryPreservingFixLine(string text, int maxWords)
@@ -2462,7 +2631,8 @@ public static class AiSummaryService
         for (int i = 0; i < lines.Length; i++)
         {
             string line = lines[i].Trim();
-            if (line.StartsWith("Fix requested by:", StringComparison.OrdinalIgnoreCase)) fixLine = line;
+            string normalizedFixLine;
+            if (TryNormalizeImpactFixLine(line, out normalizedFixLine)) fixLine = normalizedFixLine;
             else paragraphLines.Add(line);
         }
 
@@ -2515,31 +2685,39 @@ public static class AiSummaryService
         string reproducibility = FirstContextValue(contextMap, "Reproducibility");
         string platform = FirstContextValue(contextMap, "Context Platform Table", "Operating System", "Processor");
         string fixRequestedBy = FirstContextValue(contextMap, "Must Fix For", "Drivers");
+        if (string.IsNullOrWhiteSpace(fixRequestedBy)) fixRequestedBy = ExtractImpactFixTiming(impact + "\n" + contextDetails);
 
-        StringBuilder summary = new StringBuilder();
+        List<string> bullets = new List<string>();
         if (!string.IsNullOrWhiteSpace(impact))
         {
-            summary.Append(BuildImpactConsequenceSentence(RemoveFixTimingFromImpactText(impact.Trim()), customerImpact));
+            bullets.Add(BuildImpactConsequenceSentence(RemoveFixTimingFromImpactText(impact.Trim()), customerImpact));
         }
         else if (!string.IsNullOrWhiteSpace(customerImpact))
         {
-            summary.Append("This issue affects the customer and end-user experience by creating a ").Append(customerImpact.Trim()).Append(" disruption in the reported usage scenario.");
+            bullets.Add("This issue affects the customer and end-user experience by creating a " + customerImpact.Trim() + " disruption in the reported usage scenario.");
         }
         else
         {
-            summary.Append("This issue creates customer-facing disruption in the reported usage scenario, but the written impact details are limited.");
+            bullets.Add("This issue creates customer-facing disruption in the reported usage scenario, but the written impact details are limited.");
         }
-        if (!string.IsNullOrWhiteSpace(component)) summary.Append(" It places extra attention on the ").Append(component.Trim()).Append(" area for customer readiness.");
-        if (!string.IsNullOrWhiteSpace(platform)) summary.Append(" The platform context is ").Append(platform.Trim()).Append(".");
+        if (!string.IsNullOrWhiteSpace(component)) bullets.Add("It places extra attention on the " + component.Trim() + " area for customer readiness.");
+        if (!string.IsNullOrWhiteSpace(platform)) bullets.Add("The platform context is " + platform.Trim() + ".");
         if (!string.IsNullOrWhiteSpace(reproducibility))
         {
-            summary.Append(" Its reported ").Append(reproducibility.Trim()).Append(" occurrence increased validation and business attention.");
+            bullets.Add("Its reported " + reproducibility.Trim() + " occurrence increases validation and business attention.");
         }
 
-        if (!string.IsNullOrWhiteSpace(fixRequestedBy)) summary.Append("\nFix requested by: ").Append(fixRequestedBy.Trim());
+        bullets.Add(BuildRecoveryMechanismBullet(impact + " " + contextDetails));
+
+        StringBuilder summary = new StringBuilder();
+        for (int i = 0; i < bullets.Count && i < 4; i++)
+        {
+            summary.Append("- ").AppendLine(CompleteSightingDescriptionLine(bullets[i], 42));
+        }
+
+        if (!string.IsNullOrWhiteSpace(fixRequestedBy)) summary.Append("\nFix By: ").Append(fixRequestedBy.Trim());
 
         string result = summary.ToString().Trim();
-        if (!result.EndsWith(".") && !result.EndsWith("!") && !result.EndsWith("?")) result += ".";
         return CleanupSightingImpactSummary(result);
     }
 
