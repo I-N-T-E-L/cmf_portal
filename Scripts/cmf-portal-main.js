@@ -449,7 +449,7 @@ function formatTotalRow(gridView) {
         totalRow.style.fontWeight = "bold";
 
         // Update the first cell text
-        totalRow.cells[0].innerText = "Total (LOS) + Duplicates + Implemented";
+        totalRow.cells[0].innerText = "Total";
 
         // Merge the driver columns for total row
         for (var i = 0; i < drivers.length; i++) {
