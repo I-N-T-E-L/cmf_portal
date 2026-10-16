@@ -1,0 +1,1 @@
+﻿## Weekly CMF Report - {{platform}} - {{week}}`n1. Executive Summary`n2. Top risks`n3. Recommended actions
