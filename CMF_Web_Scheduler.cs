@@ -1,4 +1,4 @@
-﻿//using System;
+﻿﻿//using System;
 //using System.Collections.Generic;
 //using System.ComponentModel;
 //using System.Configuration;
@@ -21,18 +21,6 @@
 //{
 //    internal class Program
 //    {
-//        static Responses apiresponse_lnl;
-//        static Responses apiresponse_arl_s;
-//        static Responses apiresponse_arl_h;
-//        static Responses apiresponse_arl_u;
-//        static Responses apiresponse_arl_hx;
-//        static Responses apiresponse_ptl;
-//        static Responses apiresponse_gnr;
-//        static Responses apiresponse_wcl;
-//        static Responses apiresponse_arl_refresh;
-//        static Responses apiresponse_nvl_s;
-//        static Responses apiresponse_nvl_h;
-//        static Responses apiresponse_nvl_u;
 //        static DataTable dt4;
 //        static SqlCommand checkexists;
 //        static int ifexists;
@@ -573,30 +561,6 @@
 
 //        static void Main(string[] args)
 //        {
-//            string lnl_cmf_table = "";
-//            string arl_s_cmf_table = "";
-//            string arl_h_cmf_table = "";
-//            string arl_u_cmf_table = "";
-//            string arl_hx_cmf_table = "";
-//            string ptl_cmf_table = "";
-//            string gnr_cmf_table = "";
-//            string wcl_cmf_table = "";
-//            string arl_refresh_cmf_table = "";
-//            string nvl_s_cmf_table = "";
-//            string nvl_h_cmf_table = "";
-//            string nvl_u_cmf_table = "";
-//            lnl_cmf_table = "CMF_LNL_ALL_COMPONENTS_TABLE";
-//            arl_s_cmf_table = "CMF_ARL_S_ALL_COMPONENTS_TABLE";
-//            arl_h_cmf_table = "CMF_ARL_H_ALL_COMPONENTS_TABLE";
-//            arl_u_cmf_table = "CMF_ARL_U_ALL_COMPONENTS_TABLE";
-//            arl_hx_cmf_table = "CMF_ARL_HX_ALL_COMPONENTS_TABLE";
-//            ptl_cmf_table = "CMF_PTL_ALL_COMPONENTS_TABLE";
-//            gnr_cmf_table = "CMF_GNR_ALL_COMPONENTS_TABLE";
-//            wcl_cmf_table = "CMF_WCL_ALL_COMPONENTS_TABLE";
-//            arl_refresh_cmf_table = "CMF_ARL_Refresh_ALL_COMPONENTS_TABLE";
-//            nvl_s_cmf_table = "CMF_NVL_S_ALL_COMPONENTS_TABLE";
-//            nvl_h_cmf_table = "CMF_NVL_H_ALL_COMPONENTS_TABLE";
-//            nvl_u_cmf_table = "CMF_NVL_U_ALL_COMPONENTS_TABLE";
 
 //            string cs = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
 //            SqlConnection con1;
@@ -607,14 +571,12 @@
 //            TestBasicSystemAccess();
 //            Console.WriteLine("=== END OF TESTS ===\n");
 
-//            SqlCommand checkexists = new SqlCommand("select case when exists (( SELECT TABLE_NAME FROM INFORMATION_SCHEMA.tables WHERE TABLE_NAME =  '" + lnl_cmf_table + "')) then 1 else 0 end ");
 //            checkexists.CommandType = CommandType.Text;
 //            checkexists.Connection = con1;
 //            int ifexists = (int)checkexists.ExecuteScalar();
 
 //            if (ifexists == 0)
 //            {
-//                string createTable = "CREATE TABLE " + lnl_cmf_table + " (cp_id nvarchar(max), title nvarchar(max), status nvarchar(max), how_found_category nvarchar(max), family nvarchar(max), operating_system nvarchar(max), platform nvarchar(max),";
 //                createTable += "customer_company nvarchar(max), submitted_date datetime, implemented_date datetime,";
 //                createTable += "updated_date datetime, closed_date datetime, component nvarchar(max), release nvarchar(max),";
 //                createTable += "reason nvarchar(max), repro_on_rvp nvarchar(max), resolution_type nvarchar(max), cmf_request nvarchar(max), must_fix_for nvarchar(max),report_type nvarchar(max), closed_reason nvarchar(max),";
@@ -629,28 +591,24 @@
 //            }
 
 //            // Always check for the column and add it if it doesn't exist (regardless of whether table was just created or already existed)
-//            SqlCommand checkColumn = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + lnl_cmf_table + "' AND COLUMN_NAME = 'reproducibility'");
 //            checkColumn.CommandType = CommandType.Text;
 //            checkColumn.Connection = con1;
 //            int columnExists = (int)checkColumn.ExecuteScalar();
 
 //            if (columnExists == 0)
 //            {
-//                string alterTable = "ALTER TABLE " + lnl_cmf_table + " ADD reproducibility nvarchar(max)";
 //                SqlCommand alter = new SqlCommand(alterTable);
 //                alter.CommandType = CommandType.Text;
 //                alter.Connection = con1;
 //                alter.ExecuteNonQuery();
 //            }
 
-//            checkexists = new SqlCommand("select case when exists (( SELECT TABLE_NAME FROM INFORMATION_SCHEMA.tables WHERE TABLE_NAME =  '" + arl_s_cmf_table + "')) then 1 else 0 end ");
 //            checkexists.CommandType = CommandType.Text;
 //            checkexists.Connection = con1;
 //            ifexists = (int)checkexists.ExecuteScalar();
 
 //            if (ifexists == 0)
 //            {
-//                string createTable = "CREATE TABLE " + arl_s_cmf_table + " (cp_id nvarchar(max), title nvarchar(max), status nvarchar(max), how_found_category nvarchar(max), family nvarchar(max), operating_system nvarchar(max), platform nvarchar(max),";
 //                createTable += "customer_company nvarchar(max), submitted_date datetime, implemented_date datetime,";
 //                createTable += "updated_date datetime, closed_date datetime, component nvarchar(max), release nvarchar(max),";
 //                createTable += "reason nvarchar(max), repro_on_rvp nvarchar(max), resolution_type nvarchar(max), cmf_request nvarchar(max), must_fix_for nvarchar(max),report_type nvarchar(max), closed_reason nvarchar(max),";
@@ -664,28 +622,24 @@
 //            }
 
 //            // Always check for the column and add it if it doesn't exist (regardless of whether table was just created or already existed)
-//            checkColumn = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + arl_s_cmf_table + "' AND COLUMN_NAME = 'reproducibility'");
 //            checkColumn.CommandType = CommandType.Text;
 //            checkColumn.Connection = con1;
 //            columnExists = (int)checkColumn.ExecuteScalar();
 
 //            if (columnExists == 0)
 //            {
-//                string alterTable = "ALTER TABLE " + arl_s_cmf_table + " ADD reproducibility nvarchar(max)";
 //                SqlCommand alter = new SqlCommand(alterTable);
 //                alter.CommandType = CommandType.Text;
 //                alter.Connection = con1;
 //                alter.ExecuteNonQuery();
 //            }
 
-//            checkexists = new SqlCommand("select case when exists (( SELECT TABLE_NAME FROM INFORMATION_SCHEMA.tables WHERE TABLE_NAME =  '" + arl_h_cmf_table + "')) then 1 else 0 end ");
 //            checkexists.CommandType = CommandType.Text;
 //            checkexists.Connection = con1;
 //            ifexists = (int)checkexists.ExecuteScalar();
 
 //            if (ifexists == 0)
 //            {
-//                string createTable = "CREATE TABLE " + arl_h_cmf_table + " (cp_id nvarchar(max), title nvarchar(max), status nvarchar(max), how_found_category nvarchar(max), family nvarchar(max), operating_system nvarchar(max), platform nvarchar(max),";
 //                createTable += "customer_company nvarchar(max), submitted_date datetime, implemented_date datetime,";
 //                createTable += "updated_date datetime, closed_date datetime, component nvarchar(max), release nvarchar(max),";
 //                createTable += "reason nvarchar(max), repro_on_rvp nvarchar(max), resolution_type nvarchar(max), cmf_request nvarchar(max), must_fix_for nvarchar(max),report_type nvarchar(max), closed_reason nvarchar(max),";
@@ -699,28 +653,24 @@
 //            }
 
 //            // Always check for the column and add it if it doesn't exist (regardless of whether table was just created or already existed)
-//            checkColumn = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + arl_h_cmf_table + "' AND COLUMN_NAME = 'reproducibility'");
 //            checkColumn.CommandType = CommandType.Text;
 //            checkColumn.Connection = con1;
 //            columnExists = (int)checkColumn.ExecuteScalar();
 
 //            if (columnExists == 0)
 //            {
-//                string alterTable = "ALTER TABLE " + arl_h_cmf_table + " ADD reproducibility nvarchar(max)";
 //                SqlCommand alter = new SqlCommand(alterTable);
 //                alter.CommandType = CommandType.Text;
 //                alter.Connection = con1;
 //                alter.ExecuteNonQuery();
 //            }
 
-//            checkexists = new SqlCommand("select case when exists (( SELECT TABLE_NAME FROM INFORMATION_SCHEMA.tables WHERE TABLE_NAME =  '" + arl_u_cmf_table + "')) then 1 else 0 end ");
 //            checkexists.CommandType = CommandType.Text;
 //            checkexists.Connection = con1;
 //            ifexists = (int)checkexists.ExecuteScalar();
 
 //            if (ifexists == 0)
 //            {
-//                string createTable = "CREATE TABLE " + arl_u_cmf_table + " (cp_id nvarchar(max), title nvarchar(max), status nvarchar(max), how_found_category nvarchar(max), family nvarchar(max), operating_system nvarchar(max), platform nvarchar(max),";
 //                createTable += "customer_company nvarchar(max), submitted_date datetime, implemented_date datetime,";
 //                createTable += "updated_date datetime, closed_date datetime, component nvarchar(max), release nvarchar(max),";
 //                createTable += "reason nvarchar(max), repro_on_rvp nvarchar(max), resolution_type nvarchar(max), cmf_request nvarchar(max), must_fix_for nvarchar(max),report_type nvarchar(max), closed_reason nvarchar(max),";
@@ -734,28 +684,24 @@
 //            }
 
 //            // Always check for the column and add it if it doesn't exist (regardless of whether table was just created or already existed)
-//            checkColumn = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + arl_u_cmf_table + "' AND COLUMN_NAME = 'reproducibility'");
 //            checkColumn.CommandType = CommandType.Text;
 //            checkColumn.Connection = con1;
 //            columnExists = (int)checkColumn.ExecuteScalar();
 
 //            if (columnExists == 0)
 //            {
-//                string alterTable = "ALTER TABLE " + arl_u_cmf_table + " ADD reproducibility nvarchar(max)";
 //                SqlCommand alter = new SqlCommand(alterTable);
 //                alter.CommandType = CommandType.Text;
 //                alter.Connection = con1;
 //                alter.ExecuteNonQuery();
 //            }
 
-//            checkexists = new SqlCommand("select case when exists (( SELECT TABLE_NAME FROM INFORMATION_SCHEMA.tables WHERE TABLE_NAME =  '" + arl_hx_cmf_table + "')) then 1 else 0 end ");
 //            checkexists.CommandType = CommandType.Text;
 //            checkexists.Connection = con1;
 //            ifexists = (int)checkexists.ExecuteScalar();
 
 //            if (ifexists == 0)
 //            {
-//                string createTable = "CREATE TABLE " + arl_hx_cmf_table + " (cp_id nvarchar(max), title nvarchar(max), status nvarchar(max), how_found_category nvarchar(max), family nvarchar(max), operating_system nvarchar(max), platform nvarchar(max),";
 //                createTable += "customer_company nvarchar(max), submitted_date datetime, implemented_date datetime,";
 //                createTable += "updated_date datetime, closed_date datetime, component nvarchar(max), release nvarchar(max),";
 //                createTable += "reason nvarchar(max), repro_on_rvp nvarchar(max), resolution_type nvarchar(max), cmf_request nvarchar(max), must_fix_for nvarchar(max),report_type nvarchar(max), closed_reason nvarchar(max),";
@@ -769,21 +715,18 @@
 //            }
 
 //            // Always check for the column and add it if it doesn't exist (regardless of whether table was just created or already existed)
-//            checkColumn = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + arl_hx_cmf_table + "' AND COLUMN_NAME = 'reproducibility'");
 //            checkColumn.CommandType = CommandType.Text;
 //            checkColumn.Connection = con1;
 //            columnExists = (int)checkColumn.ExecuteScalar();
 
 //            if (columnExists == 0)
 //            {
-//                string alterTable = "ALTER TABLE " + arl_hx_cmf_table + " ADD reproducibility nvarchar(max)";
 //                SqlCommand alter = new SqlCommand(alterTable);
 //                alter.CommandType = CommandType.Text;
 //                alter.Connection = con1;
 //                alter.ExecuteNonQuery();
 //            }
 
-//            checkexists = new SqlCommand("select case when exists (( SELECT TABLE_NAME FROM INFORMATION_SCHEMA.tables WHERE TABLE_NAME =  '" + ptl_cmf_table + "')) then 1 else 0 end ");
 //            checkexists.CommandType = CommandType.Text;
 //            checkexists.Connection = con1;
 //            ifexists = (int)checkexists.ExecuteScalar();
@@ -791,7 +734,6 @@
 //            if (ifexists == 0)
 //            {
 //                // Table doesn't exist, create it with the new column
-//                string createTable = "CREATE TABLE " + ptl_cmf_table + " (cp_id nvarchar(max), title nvarchar(max), status nvarchar(max), how_found_category nvarchar(max), family nvarchar(max), operating_system nvarchar(max), platform nvarchar(max),";
 //                createTable += "customer_company nvarchar(max), submitted_date datetime, implemented_date datetime,";
 //                createTable += "updated_date datetime, closed_date datetime, component nvarchar(max), release nvarchar(max),";
 //                createTable += "reason nvarchar(max), repro_on_rvp nvarchar(max), resolution_type nvarchar(max), cmf_request nvarchar(max), must_fix_for nvarchar(max),report_type nvarchar(max), closed_reason nvarchar(max),";
@@ -805,28 +747,24 @@
 //            }
 
 //            // Always check for the column and add it if it doesn't exist (regardless of whether table was just created or already existed)
-//            checkColumn = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + ptl_cmf_table + "' AND COLUMN_NAME = 'reproducibility'");
 //            checkColumn.CommandType = CommandType.Text;
 //            checkColumn.Connection = con1;
 //            columnExists = (int)checkColumn.ExecuteScalar();
 
 //            if (columnExists == 0)
 //            {
-//                string alterTable = "ALTER TABLE " + ptl_cmf_table + " ADD reproducibility nvarchar(max)";
 //                SqlCommand alter = new SqlCommand(alterTable);
 //                alter.CommandType = CommandType.Text;
 //                alter.Connection = con1;
 //                alter.ExecuteNonQuery();
 //            }
 
-//            checkexists = new SqlCommand("select case when exists (( SELECT TABLE_NAME FROM INFORMATION_SCHEMA.tables WHERE TABLE_NAME =  '" + gnr_cmf_table + "')) then 1 else 0 end ");
 //            checkexists.CommandType = CommandType.Text;
 //            checkexists.Connection = con1;
 //            ifexists = (int)checkexists.ExecuteScalar();
 
 //            if (ifexists == 0)
 //            {
-//                string createTable = "CREATE TABLE " + gnr_cmf_table + " (cp_id nvarchar(max), title nvarchar(max), status nvarchar(max), how_found_category nvarchar(max), family nvarchar(max), operating_system nvarchar(max), platform nvarchar(max),";
 //                createTable += "customer_company nvarchar(max), submitted_date datetime, implemented_date datetime,";
 //                createTable += "updated_date datetime, closed_date datetime, component nvarchar(max), release nvarchar(max),";
 //                createTable += "reason nvarchar(max), repro_on_rvp nvarchar(max), resolution_type nvarchar(max), cmf_request nvarchar(max), must_fix_for nvarchar(max),report_type nvarchar(max), closed_reason nvarchar(max),";
@@ -840,28 +778,24 @@
 //            }
 
 //            // Always check for the column and add it if it doesn't exist (regardless of whether table was just created or already existed)
-//            checkColumn = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + gnr_cmf_table + "' AND COLUMN_NAME = 'reproducibility'");
 //            checkColumn.CommandType = CommandType.Text;
 //            checkColumn.Connection = con1;
 //            columnExists = (int)checkColumn.ExecuteScalar();
 
 //            if (columnExists == 0)
 //            {
-//                string alterTable = "ALTER TABLE " + gnr_cmf_table + " ADD reproducibility nvarchar(max)";
 //                SqlCommand alter = new SqlCommand(alterTable);
 //                alter.CommandType = CommandType.Text;
 //                alter.Connection = con1;
 //                alter.ExecuteNonQuery();
 //            }
 
-//            checkexists = new SqlCommand("select case when exists (( SELECT TABLE_NAME FROM INFORMATION_SCHEMA.tables WHERE TABLE_NAME =  '" + wcl_cmf_table + "')) then 1 else 0 end ");
 //            checkexists.CommandType = CommandType.Text;
 //            checkexists.Connection = con1;
 //            ifexists = (int)checkexists.ExecuteScalar();
 
 //            if (ifexists == 0)
 //            {
-//                string createTable = "CREATE TABLE " + wcl_cmf_table + " (cp_id nvarchar(max), title nvarchar(max), status nvarchar(max), how_found_category nvarchar(max), family nvarchar(max), operating_system nvarchar(max), platform nvarchar(max),";
 //                createTable += "customer_company nvarchar(max), submitted_date datetime, implemented_date datetime,";
 //                createTable += "updated_date datetime, closed_date datetime, component nvarchar(max), release nvarchar(max),";
 //                createTable += "reason nvarchar(max), repro_on_rvp nvarchar(max), resolution_type nvarchar(max), cmf_request nvarchar(max), must_fix_for nvarchar(max),report_type nvarchar(max), closed_reason nvarchar(max),";
@@ -875,28 +809,24 @@
 //            }
 
 //            // Always check for the column and add it if it doesn't exist (regardless of whether table was just created or already existed)
-//            checkColumn = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + wcl_cmf_table + "' AND COLUMN_NAME = 'reproducibility'");
 //            checkColumn.CommandType = CommandType.Text;
 //            checkColumn.Connection = con1;
 //            columnExists = (int)checkColumn.ExecuteScalar();
 
 //            if (columnExists == 0)
 //            {
-//                string alterTable = "ALTER TABLE " + wcl_cmf_table + " ADD reproducibility nvarchar(max)";
 //                SqlCommand alter = new SqlCommand(alterTable);
 //                alter.CommandType = CommandType.Text;
 //                alter.Connection = con1;
 //                alter.ExecuteNonQuery();
 //            }
 
-//            checkexists = new SqlCommand("select case when exists (( SELECT TABLE_NAME FROM INFORMATION_SCHEMA.tables WHERE TABLE_NAME =  '" + arl_refresh_cmf_table + "')) then 1 else 0 end ");
 //            checkexists.CommandType = CommandType.Text;
 //            checkexists.Connection = con1;
 //            ifexists = (int)checkexists.ExecuteScalar();
 
 //            if (ifexists == 0)
 //            {
-//                string createTable = "CREATE TABLE " + arl_refresh_cmf_table + " (cp_id nvarchar(max), title nvarchar(max), status nvarchar(max), how_found_category nvarchar(max), family nvarchar(max), operating_system nvarchar(max), platform nvarchar(max),";
 //                createTable += "customer_company nvarchar(max), submitted_date datetime, implemented_date datetime,";
 //                createTable += "updated_date datetime, closed_date datetime, component nvarchar(max), release nvarchar(max),";
 //                createTable += "reason nvarchar(max), repro_on_rvp nvarchar(max), resolution_type nvarchar(max), cmf_request nvarchar(max), must_fix_for nvarchar(max),report_type nvarchar(max), closed_reason nvarchar(max),";
@@ -910,28 +840,24 @@
 //            }
 
 //            // Always check for the column and add it if it doesn't exist (regardless of whether table was just created or already existed)
-//            checkColumn = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + arl_refresh_cmf_table + "' AND COLUMN_NAME = 'reproducibility'");
 //            checkColumn.CommandType = CommandType.Text;
 //            checkColumn.Connection = con1;
 //            columnExists = (int)checkColumn.ExecuteScalar();
 
 //            if (columnExists == 0)
 //            {
-//                string alterTable = "ALTER TABLE " + arl_refresh_cmf_table + " ADD reproducibility nvarchar(max)";
 //                SqlCommand alter = new SqlCommand(alterTable);
 //                alter.CommandType = CommandType.Text;
 //                alter.Connection = con1;
 //                alter.ExecuteNonQuery();
 //            }
 
-//            checkexists = new SqlCommand("select case when exists (( SELECT TABLE_NAME FROM INFORMATION_SCHEMA.tables WHERE TABLE_NAME =  '" + nvl_s_cmf_table + "')) then 1 else 0 end ");
 //            checkexists.CommandType = CommandType.Text;
 //            checkexists.Connection = con1;
 //            ifexists = (int)checkexists.ExecuteScalar();
 
 //            if (ifexists == 0)
 //            {
-//                string createTable = "CREATE TABLE " + nvl_s_cmf_table + " (cp_id nvarchar(max), title nvarchar(max), status nvarchar(max), how_found_category nvarchar(max), family nvarchar(max), operating_system nvarchar(max), platform nvarchar(max),";
 //                createTable += "customer_company nvarchar(max), submitted_date datetime, implemented_date datetime,";
 //                createTable += "updated_date datetime, closed_date datetime, component nvarchar(max), release nvarchar(max),";
 //                createTable += "reason nvarchar(max), repro_on_rvp nvarchar(max), resolution_type nvarchar(max), cmf_request nvarchar(max), must_fix_for nvarchar(max),report_type nvarchar(max), closed_reason nvarchar(max),";
@@ -945,28 +871,24 @@
 //            }
 
 //            // Always check for the column and add it if it doesn't exist (regardless of whether table was just created or already existed)
-//            checkColumn = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + nvl_s_cmf_table + "' AND COLUMN_NAME = 'reproducibility'");
 //            checkColumn.CommandType = CommandType.Text;
 //            checkColumn.Connection = con1;
 //            columnExists = (int)checkColumn.ExecuteScalar();
 
 //            if (columnExists == 0)
 //            {
-//                string alterTable = "ALTER TABLE " + nvl_s_cmf_table + " ADD reproducibility nvarchar(max)";
 //                SqlCommand alter = new SqlCommand(alterTable);
 //                alter.CommandType = CommandType.Text;
 //                alter.Connection = con1;
 //                alter.ExecuteNonQuery();
 //            }
 
-//            checkexists = new SqlCommand("select case when exists (( SELECT TABLE_NAME FROM INFORMATION_SCHEMA.tables WHERE TABLE_NAME =  '" + nvl_h_cmf_table + "')) then 1 else 0 end ");
 //            checkexists.CommandType = CommandType.Text;
 //            checkexists.Connection = con1;
 //            ifexists = (int)checkexists.ExecuteScalar();
 
 //            if (ifexists == 0)
 //            {
-//                string createTable = "CREATE TABLE " + nvl_h_cmf_table + " (cp_id nvarchar(max), title nvarchar(max), status nvarchar(max), how_found_category nvarchar(max), family nvarchar(max), operating_system nvarchar(max), platform nvarchar(max),";
 //                createTable += "customer_company nvarchar(max), submitted_date datetime, implemented_date datetime,";
 //                createTable += "updated_date datetime, closed_date datetime, component nvarchar(max), release nvarchar(max),";
 //                createTable += "reason nvarchar(max), repro_on_rvp nvarchar(max), resolution_type nvarchar(max), cmf_request nvarchar(max), must_fix_for nvarchar(max),report_type nvarchar(max), closed_reason nvarchar(max),";
@@ -980,14 +902,12 @@
 //            }
 
 //            // Always check for the column and add it if it doesn't exist (regardless of whether table was just created or already existed)
-//            checkColumn = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + nvl_h_cmf_table + "' AND COLUMN_NAME = 'owners_name'");
 //            checkColumn.CommandType = CommandType.Text;
 //            checkColumn.Connection = con1;
 //            columnExists = (int)checkColumn.ExecuteScalar();
 
 //            if (columnExists == 0)
 //            {
-//                string alterTable = "ALTER TABLE " + nvl_h_cmf_table + " ADD owners_name nvarchar(max)";
 //                SqlCommand alter = new SqlCommand(alterTable);
 //                alter.CommandType = CommandType.Text;
 //                alter.Connection = con1;
@@ -995,28 +915,24 @@
 //            }
 
 //            // Always check for the column and add it if it doesn't exist (regardless of whether table was just created or already existed)
-//            checkColumn = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + nvl_h_cmf_table + "' AND COLUMN_NAME = 'original_progress'");
 //            checkColumn.CommandType = CommandType.Text;
 //            checkColumn.Connection = con1;
 //            columnExists = (int)checkColumn.ExecuteScalar();
 
 //            if (columnExists == 0)
 //            {
-//                string alterTable = "ALTER TABLE " + nvl_h_cmf_table + " ADD original_progress nvarchar(max)";
 //                SqlCommand alter = new SqlCommand(alterTable);
 //                alter.CommandType = CommandType.Text;
 //                alter.Connection = con1;
 //                alter.ExecuteNonQuery();
 //            }
 
-//            checkexists = new SqlCommand("select case when exists (( SELECT TABLE_NAME FROM INFORMATION_SCHEMA.tables WHERE TABLE_NAME =  '" + nvl_u_cmf_table + "')) then 1 else 0 end ");
 //            checkexists.CommandType = CommandType.Text;
 //            checkexists.Connection = con1;
 //            ifexists = (int)checkexists.ExecuteScalar();
 
 //            if (ifexists == 0)
 //            {
-//                string createTable = "CREATE TABLE " + nvl_u_cmf_table + " (cp_id nvarchar(max), title nvarchar(max), status nvarchar(max), how_found_category nvarchar(max), family nvarchar(max), operating_system nvarchar(max), platform nvarchar(max),";
 //                createTable += "customer_company nvarchar(max), submitted_date datetime, implemented_date datetime,";
 //                createTable += "updated_date datetime, closed_date datetime, component nvarchar(max), release nvarchar(max),";
 //                createTable += "reason nvarchar(max), repro_on_rvp nvarchar(max), resolution_type nvarchar(max), cmf_request nvarchar(max), must_fix_for nvarchar(max),report_type nvarchar(max), closed_reason nvarchar(max),";
@@ -1030,14 +946,12 @@
 //            }
 
 //            // Always check for the column and add it if it doesn't exist (regardless of whether table was just created or already existed)
-//            checkColumn = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + nvl_u_cmf_table + "' AND COLUMN_NAME = 'owners_name'");
 //            checkColumn.CommandType = CommandType.Text;
 //            checkColumn.Connection = con1;
 //            columnExists = (int)checkColumn.ExecuteScalar();
 
 //            if (columnExists == 0)
 //            {
-//                string alterTable = "ALTER TABLE " + nvl_u_cmf_table + " ADD owners_name nvarchar(max)";
 //                SqlCommand alter = new SqlCommand(alterTable);
 //                alter.CommandType = CommandType.Text;
 //                alter.Connection = con1;
@@ -1045,14 +959,12 @@
 //            }
 
 //            // Always check for the column and add it if it doesn't exist (regardless of whether table was just created or already existed)
-//            checkColumn = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + nvl_u_cmf_table + "' AND COLUMN_NAME = 'original_progress'");
 //            checkColumn.CommandType = CommandType.Text;
 //            checkColumn.Connection = con1;
 //            columnExists = (int)checkColumn.ExecuteScalar();
 
 //            if (columnExists == 0)
 //            {
-//                string alterTable = "ALTER TABLE " + nvl_u_cmf_table + " ADD original_progress nvarchar(max)";
 //                SqlCommand alter = new SqlCommand(alterTable);
 //                alter.CommandType = CommandType.Text;
 //                alter.Connection = con1;
@@ -1064,31 +976,12 @@
 
 
 
-//            Responses apiresponse_lnl;
-//            Responses apiresponse_arl_s;
-//            Responses apiresponse_arl_h;
-//            Responses apiresponse_arl_u;
-//            Responses apiresponse_arl_hx;
-//            Responses apiresponse_ptl;
-//            Responses apiresponse_gnr;
-//            Responses apiresponse_wcl;
-//            Responses apiresponse_arl_refresh;
-//            Responses apiresponse_nvl_s;
-//            Responses apiresponse_nvl_h;
-//            Responses apiresponse_nvl_u;
 
-//            string lnl_query = "select client_platf.bug.promoted_id as 'promoted_id', client_platf.bug.reproducibility as 'reproducibility', client_platf.bug.promoted_status as 'promoted_status', client_platf.bug.customer_company as 'customer_company',client_platf.bug.family as 'family', client_platf.bug.how_found_category as 'how_found_category', client_platf.bug.report_type AS 'report_type', client_platf.bug.closed_reason AS 'closed_reason', client_platf.bug.release AS 'release', client_platf.bug.component AS 'component', client_platf.bug.submitter_org AS 'submitter_org', client_platf.bug.platform AS 'platform', client_platf.bug.resolution_type AS 'resolution_type',bug.operating_system,client_platf.bug.customer_detail as 'customer_detail',client_platf.bug.status as 'status',client_platf.bug.regression as 'regression', client_platf.bug.submitted_date as 'submitted_date',client_platf.bug.implemented_date as 'implemented_date',client_platf.bug.updated_date as 'updated_date',client_platf.bug.closed_date as 'closed_date',client_platf.bug.reason as 'reason',client_platf.bug.repro_on_rvp as 'repro_on_rvp', client_platf.bug.cmf_request as 'cmf_request', client_platf.bug.must_fix_for as 'must_fix_for',client_platf.bug.title as 'title' ,client_platf.bug.customer_affected as 'customer_affected', client_platf.bug.processor as 'processor', client_platf.bug.customer_impact as 'customer_impact', client_platf.bug.priority as 'priority',client_platf.bug.location as 'location',client_platf.bug.id as 'id',client_platf.bug.date_debug as 'date_debug',client_platf.bug.3rd_party_classification AS '3rd_party_classification',client_platf.bug.odm as 'odm',client_platf.bug.owner as 'owner',client_platf.bug.family_affected as 'family_affected', client_platf.bug.merge_id as 'merge_id', client_platf.bug.progress as 'progress' , client_platf.bug.date_cmf_ask as 'date_cmf_ask', client_platf.bug.date_cmf_decided as 'date_cmf_decided', client_platf.bug.impact as 'impact', client_platf.bug.fixed_in_version as 'fixed_in_version', client_platf.bug.me_sku as 'me_sku', client_platf.bug.sysdebug as 'sysdebug', client_platf.bug.sysdebug_forum as 'sysdebug_forum' where " +
-//            "(client_platf.bug.family_affected contains('Lunar Lake Platforms') AND (client_platf.bug.tag contains ('cmf_ask') OR (client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) OR client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) AND (client_platf.bug.submitter_org contains ('ccg_cce') OR client_platf.bug.submitter_org contains ('windows_platform_validation')))";
 
-//            string arls_query = "select client_platf.bug.promoted_id as 'promoted_id', client_platf.bug.reproducibility as 'reproducibility', client_platf.bug.promoted_status as 'promoted_status', client_platf.bug.customer_company as 'customer_company',client_platf.bug.family as 'family', client_platf.bug.how_found_category as 'how_found_category', client_platf.bug.report_type AS 'report_type', client_platf.bug.closed_reason AS 'closed_reason', client_platf.bug.release AS 'release', client_platf.bug.component AS 'component', client_platf.bug.submitter_org AS 'submitter_org', client_platf.bug.platform AS 'platform', client_platf.bug.resolution_type AS 'resolution_type',bug.operating_system,client_platf.bug.customer_detail as 'customer_detail',client_platf.bug.status as 'status',client_platf.bug.regression as 'regression', client_platf.bug.submitted_date as 'submitted_date',client_platf.bug.implemented_date as 'implemented_date',client_platf.bug.updated_date as 'updated_date',client_platf.bug.closed_date as 'closed_date',client_platf.bug.reason as 'reason',client_platf.bug.repro_on_rvp as 'repro_on_rvp', client_platf.bug.cmf_request as 'cmf_request', client_platf.bug.must_fix_for as 'must_fix_for',client_platf.bug.title as 'title' ,client_platf.bug.customer_affected as 'customer_affected', client_platf.bug.processor as 'processor', client_platf.bug.customer_impact as 'customer_impact', client_platf.bug.priority as 'priority',client_platf.bug.location as 'location',client_platf.bug.id as 'id',client_platf.bug.date_debug as 'date_debug',client_platf.bug.3rd_party_classification AS '3rd_party_classification',client_platf.bug.odm as 'odm',client_platf.bug.owner as 'owner',client_platf.bug.family_affected as 'family_affected', client_platf.bug.merge_id as 'merge_id', client_platf.bug.progress as 'progress' , client_platf.bug.date_cmf_ask as 'date_cmf_ask', client_platf.bug.date_cmf_decided as 'date_cmf_decided' , client_platf.bug.impact as 'impact', client_platf.bug.fixed_in_version as 'fixed_in_version', client_platf.bug.me_sku as 'me_sku', client_platf.bug.sysdebug as 'sysdebug', client_platf.bug.sysdebug_forum as 'sysdebug_forum' where " + "(client_platf.bug.family contains('Arrow Lake Platforms') AND (client_platf.bug.tag contains ('cmf_ask') OR (client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) OR client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) AND (client_platf.bug.submitter_org contains ('ccg_cce') OR client_platf.bug.submitter_org contains ('windows_platform_validation') OR client_platf.bug.submitter_org contains ('wsiv_pnp') OR client_platf.bug.submitter_org contains ('bios_dev_val_or')) AND client_platf.bug.family_affected not in ('Alchemist Refresh [ACM-R] Visual Compute Platform','DG2 Platform Grouping') AND client_platf.bug.processor contains ('arrowlake_s'))";
 
-//            string arlu_query = "select client_platf.bug.promoted_id as 'promoted_id', client_platf.bug.reproducibility as 'reproducibility', client_platf.bug.promoted_status as 'promoted_status', client_platf.bug.customer_company as 'customer_company',client_platf.bug.family as 'family', client_platf.bug.how_found_category as 'how_found_category', client_platf.bug.report_type AS 'report_type', client_platf.bug.closed_reason AS 'closed_reason', client_platf.bug.release AS 'release', client_platf.bug.component AS 'component', client_platf.bug.submitter_org AS 'submitter_org', client_platf.bug.platform AS 'platform', client_platf.bug.resolution_type AS 'resolution_type',bug.operating_system,client_platf.bug.customer_detail as 'customer_detail',client_platf.bug.status as 'status',client_platf.bug.regression as 'regression', client_platf.bug.submitted_date as 'submitted_date',client_platf.bug.implemented_date as 'implemented_date',client_platf.bug.updated_date as 'updated_date',client_platf.bug.closed_date as 'closed_date',client_platf.bug.reason as 'reason',client_platf.bug.repro_on_rvp as 'repro_on_rvp', client_platf.bug.cmf_request as 'cmf_request', client_platf.bug.must_fix_for as 'must_fix_for',client_platf.bug.title as 'title' ,client_platf.bug.customer_affected as 'customer_affected', client_platf.bug.processor as 'processor', client_platf.bug.customer_impact as 'customer_impact', client_platf.bug.priority as 'priority',client_platf.bug.location as 'location',client_platf.bug.id as 'id',client_platf.bug.date_debug as 'date_debug',client_platf.bug.3rd_party_classification AS '3rd_party_classification',client_platf.bug.odm as 'odm',client_platf.bug.owner as 'owner',client_platf.bug.family_affected as 'family_affected', client_platf.bug.merge_id as 'merge_id', client_platf.bug.progress as 'progress' , client_platf.bug.date_cmf_ask as 'date_cmf_ask', client_platf.bug.date_cmf_decided as 'date_cmf_decided' , client_platf.bug.impact as 'impact', client_platf.bug.fixed_in_version as 'fixed_in_version', client_platf.bug.me_sku as 'me_sku', client_platf.bug.sysdebug as 'sysdebug', client_platf.bug.sysdebug_forum as 'sysdebug_forum' where " + "(client_platf.bug.family contains('Arrow Lake Platforms') AND (client_platf.bug.tag contains ('cmf_ask') OR (client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject') ) OR client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) AND (client_platf.bug.submitter_org contains ('ccg_cce') OR client_platf.bug.submitter_org contains ('windows_platform_validation') OR client_platf.bug.submitter_org contains ('wsiv_pnp') OR client_platf.bug.submitter_org contains ('bios_dev_val_or')) AND client_platf.bug.family_affected not in ('Alchemist Refresh [ACM-R] Visual Compute Platform','DG2 Platform Grouping') AND client_platf.bug.processor contains ('arrowlake_u'))";
 
-//            string arlh_query = "select client_platf.bug.promoted_id as 'promoted_id', client_platf.bug.reproducibility as 'reproducibility', client_platf.bug.promoted_status as 'promoted_status', client_platf.bug.customer_company as 'customer_company',client_platf.bug.family as 'family', client_platf.bug.how_found_category as 'how_found_category', client_platf.bug.report_type AS 'report_type', client_platf.bug.closed_reason AS 'closed_reason', client_platf.bug.release AS 'release', client_platf.bug.component AS 'component', client_platf.bug.submitter_org AS 'submitter_org', client_platf.bug.platform AS 'platform', client_platf.bug.resolution_type AS 'resolution_type',bug.operating_system,client_platf.bug.customer_detail as 'customer_detail',client_platf.bug.status as 'status',client_platf.bug.regression as 'regression', client_platf.bug.submitted_date as 'submitted_date',client_platf.bug.implemented_date as 'implemented_date',client_platf.bug.updated_date as 'updated_date',client_platf.bug.closed_date as 'closed_date',client_platf.bug.reason as 'reason',client_platf.bug.repro_on_rvp as 'repro_on_rvp', client_platf.bug.cmf_request as 'cmf_request', client_platf.bug.must_fix_for as 'must_fix_for',client_platf.bug.title as 'title' ,client_platf.bug.customer_affected as 'customer_affected', client_platf.bug.processor as 'processor', client_platf.bug.customer_impact as 'customer_impact', client_platf.bug.priority as 'priority',client_platf.bug.location as 'location',client_platf.bug.id as 'id',client_platf.bug.date_debug as 'date_debug',client_platf.bug.3rd_party_classification AS '3rd_party_classification',client_platf.bug.odm as 'odm',client_platf.bug.owner as 'owner',client_platf.bug.family_affected as 'family_affected', client_platf.bug.merge_id as 'merge_id', client_platf.bug.progress as 'progress' , client_platf.bug.date_cmf_ask as 'date_cmf_ask', client_platf.bug.date_cmf_decided as 'date_cmf_decided' , client_platf.bug.impact as 'impact', client_platf.bug.fixed_in_version as 'fixed_in_version', client_platf.bug.me_sku as 'me_sku', client_platf.bug.sysdebug as 'sysdebug', client_platf.bug.sysdebug_forum as 'sysdebug_forum' where " + "(client_platf.bug.family contains('Arrow Lake Platforms') AND (client_platf.bug.tag contains ('cmf_ask') OR (client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject') ) OR client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) AND (client_platf.bug.submitter_org contains ('ccg_cce') OR client_platf.bug.submitter_org contains ('windows_platform_validation') OR client_platf.bug.submitter_org contains ('wsiv_pnp') OR client_platf.bug.submitter_org contains ('bios_dev_val_or')) AND client_platf.bug.family_affected not in ('Alchemist Refresh [ACM-R] Visual Compute Platform','DG2 Platform Grouping') AND client_platf.bug.processor contains ('arrowlake_h') AND client_platf.bug.processor NOT in ('arrowlake_hx'))";
 
-//            string arlhx_query = "select client_platf.bug.promoted_id as 'promoted_id',client_platf.bug.reproducibility as 'reproducibility', client_platf.bug.promoted_status as 'promoted_status', client_platf.bug.customer_company as 'customer_company',client_platf.bug.family as 'family', client_platf.bug.how_found_category as 'how_found_category', client_platf.bug.report_type AS 'report_type', client_platf.bug.closed_reason AS 'closed_reason', client_platf.bug.release AS 'release', client_platf.bug.component AS 'component', client_platf.bug.submitter_org AS 'submitter_org', client_platf.bug.platform AS 'platform', client_platf.bug.resolution_type AS 'resolution_type', bug.operating_system,client_platf.bug.customer_detail as 'customer_detail',client_platf.bug.status as 'status',client_platf.bug.regression as 'regression', client_platf.bug.submitted_date as 'submitted_date',client_platf.bug.implemented_date as 'implemented_date',client_platf.bug.updated_date as 'updated_date',client_platf.bug.closed_date as 'closed_date',client_platf.bug.reason as 'reason',client_platf.bug.repro_on_rvp as 'repro_on_rvp', client_platf.bug.cmf_request as 'cmf_request', client_platf.bug.must_fix_for as 'must_fix_for',client_platf.bug.title as 'title' ,client_platf.bug.customer_affected as 'customer_affected', client_platf.bug.processor as 'processor', client_platf.bug.customer_impact as 'customer_impact', client_platf.bug.priority as 'priority',client_platf.bug.location as 'location',client_platf.bug.id as 'id',client_platf.bug.date_debug as 'date_debug',client_platf.bug.3rd_party_classification AS '3rd_party_classification',client_platf.bug.odm as 'odm',client_platf.bug.owner as 'owner',client_platf.bug.family_affected as 'family_affected', client_platf.bug.merge_id as 'merge_id', client_platf.bug.progress as 'progress' , client_platf.bug.date_cmf_ask as 'date_cmf_ask', client_platf.bug.date_cmf_decided as 'date_cmf_decided' , client_platf.bug.impact as 'impact', client_platf.bug.fixed_in_version as 'fixed_in_version', client_platf.bug.me_sku as 'me_sku', client_platf.bug.sysdebug as 'sysdebug', client_platf.bug.sysdebug_forum as 'sysdebug_forum' where " + "(client_platf.bug.family contains('Arrow Lake Platforms') AND (client_platf.bug.tag contains ('cmf_ask') OR (client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject') ) OR client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) AND (client_platf.bug.submitter_org contains ('ccg_cce') OR client_platf.bug.submitter_org contains ('windows_platform_validation') OR client_platf.bug.submitter_org contains ('wsiv_pnp') OR client_platf.bug.submitter_org contains ('bios_dev_val_or')) AND client_platf.bug.family_affected not in ('Alchemist Refresh [ACM-R] Visual Compute Platform','DG2 Platform Grouping') AND client_platf.bug.processor contains ('arrowlake_hx'))";
 
-//            //            string ptl_query = @"select 
 //            //    client_platf.bug.promoted_id as 'promoted_id', 
 //            //    client_platf.bug.promoted_status as 'promoted_status', 
 //            //    client_platf.bug.customer_company as 'customer_company',
@@ -1145,43 +1038,27 @@
 //            //        else null 
 //            //    end as 'owner_name' 
 //            //from client_platf.bug
-//            //where (client_platf.bug.family contains('Panther Lake Platforms') 
 //            //    AND (client_platf.bug.tag contains ('cmf_ask') 
 //            //        OR (client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) 
 //            //        OR client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) 
 //            //    AND (client_platf.bug.submitter_org contains ('ccg_cce') 
 //            //        OR client_platf.bug.submitter_org contains ('windows_platform_validation')))";
 
-//            string ptl_query = "select client_platf.bug.promoted_id as 'promoted_id', client_platf.bug.reproducibility as 'reproducibility', client_platf.bug.promoted_status as 'promoted_status', client_platf.bug.customer_company as 'customer_company',client_platf.bug.family as 'family', client_platf.bug.how_found_category as 'how_found_category', client_platf.bug.report_type AS 'report_type', client_platf.bug.closed_reason AS 'closed_reason', client_platf.bug.release AS 'release', client_platf.bug.component AS 'component', client_platf.bug.submitter_org AS 'submitter_org', client_platf.bug.platform AS 'platform', client_platf.bug.resolution_type AS 'resolution_type',bug.operating_system,client_platf.bug.customer_detail as 'customer_detail',client_platf.bug.status as 'status',client_platf.bug.regression as 'regression', client_platf.bug.submitted_date as 'submitted_date',client_platf.bug.implemented_date as 'implemented_date',client_platf.bug.updated_date as 'updated_date',client_platf.bug.closed_date as 'closed_date',client_platf.bug.reason as 'reason',client_platf.bug.repro_on_rvp as 'repro_on_rvp', client_platf.bug.cmf_request as 'cmf_request', client_platf.bug.must_fix_for as 'must_fix_for',client_platf.bug.title as 'title' ,client_platf.bug.customer_affected as 'customer_affected', client_platf.bug.processor as 'processor', client_platf.bug.customer_impact as 'customer_impact', client_platf.bug.priority as 'priority',client_platf.bug.location as 'location',client_platf.bug.id as 'id',client_platf.bug.date_debug as 'date_debug',client_platf.bug.3rd_party_classification AS '3rd_party_classification',client_platf.bug.odm as 'odm',client_platf.bug.owner as 'owner',client_platf.bug.family_affected as 'family_affected', client_platf.bug.merge_id as 'merge_id', client_platf.bug.progress as 'progress' , client_platf.bug.date_cmf_ask as 'date_cmf_ask', client_platf.bug.date_cmf_decided as 'date_cmf_decided' , client_platf.bug.impact as 'impact', client_platf.bug.fixed_in_version as 'fixed_in_version', client_platf.bug.me_sku as 'me_sku', client_platf.bug.sysdebug as 'sysdebug', client_platf.bug.sysdebug_forum as 'sysdebug_forum' where " +
-//            "(client_platf.bug.family contains('Panther Lake Platforms') AND (client_platf.bug.tag contains ('cmf_ask') OR (client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) OR client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) AND (client_platf.bug.submitter_org contains ('ccg_cce') OR client_platf.bug.submitter_org contains ('windows_platform_validation')))";
 
 
-//            string gnr_query = " select client_platf.bug.promoted_id as 'promoted_id', client_platf.bug.reproducibility as 'reproducibility', client_platf.bug.promoted_status as 'promoted_status', client_platf.bug.customer_company as 'customer_company', client_platf.bug.family as 'family', client_platf.bug.how_found_category as 'how_found_category', client_platf.bug.report_type AS 'report_type', client_platf.bug.closed_reason AS 'closed_reason', client_platf.bug.release AS 'release', client_platf.bug.component AS 'component', client_platf.bug.submitter_org AS 'submitter_org', client_platf.bug.platform AS 'platform', client_platf.bug.resolution_type AS 'resolution_type', client_platf.bug.operating_system as 'operating_system', client_platf.bug.customer_detail as 'customer_detail', client_platf.bug.status as 'status', client_platf.bug.regression as 'regression', client_platf.bug.submitted_date as 'submitted_date', client_platf.bug.implemented_date as 'implemented_date', client_platf.bug.updated_date as 'updated_date', client_platf.bug.closed_date as 'closed_date', client_platf.bug.reason as 'reason', client_platf.bug.repro_on_rvp as 'repro_on_rvp', client_platf.bug.cmf_request as 'cmf_request', client_platf.bug.must_fix_for as 'must_fix_for', client_platf.bug.title as 'title' , client_platf.bug.customer_affected as 'customer_affected', client_platf.bug.processor as 'processor', client_platf.bug.customer_impact as 'customer_impact', client_platf.bug.priority as 'priority', client_platf.bug.location as 'location', client_platf.bug.id as 'id', client_platf.bug.date_debug as 'date_debug', client_platf.bug.3rd_party_classification AS '3rd_party_classification', client_platf.bug.odm as 'odm', client_platf.bug.owner as 'owner', client_platf.bug.family_affected as 'family_affected', client_platf.bug.merge_id as 'merge_id', client_platf.bug.progress as 'progress' , client_platf.bug.date_cmf_ask as 'date_cmf_ask', client_platf.bug.date_cmf_decided as 'date_cmf_decided' , client_platf.bug.impact as 'impact', client_platf.bug.fixed_in_version as 'fixed_in_version', client_platf.bug.me_sku as 'me_sku', client_platf.bug.sysdebug as 'sysdebug', client_platf.bug.sysdebug_forum as 'sysdebug_forum' where " + "client_platf.bug.id > 0 AND client_platf.bug.family in ('Granite Rapids WS Platforms') AND (client_platf.bug.tag contains('CMF_ASK') OR (client_platf.bug.cmf_request in ('cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_ok', 'cmf_reject', 'cmf_duplicate') AND client_platf.bug.sysdebug in ('customer_must_fix')) OR client_platf.bug.cmf_request in ('cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_ok', 'cmf_reject', 'cmf_duplicate')) AND (client_platf.bug.submitter_org contains('ccg_cce') OR client_platf.bug.submitter_org in ('windows_platform_validation', 'ccg_cce_wed', 'cce', 'ccg_cce_tce', 'ccg_cce_ccv', 'bios_dev_val_or', 'windows_system_integration', 'wsiv_pnp')) AND client_platf.bug.family_affected not in ('Alchemist [ACM] Board Ingredient Grouping') AND client_platf.bug.family_affected not in ('DG2 Platform Grouping')";
 
-//            string wcl_query = "select client_platf.bug.promoted_id as 'promoted_id', client_platf.bug.reproducibility as 'reproducibility', client_platf.bug.promoted_status as 'promoted_status', client_platf.bug.customer_company as 'customer_company',client_platf.bug.family as 'family', client_platf.bug.how_found_category as 'how_found_category', client_platf.bug.report_type AS 'report_type', client_platf.bug.closed_reason AS 'closed_reason', client_platf.bug.release AS 'release', client_platf.bug.component AS 'component', client_platf.bug.submitter_org AS 'submitter_org', client_platf.bug.platform AS 'platform', client_platf.bug.resolution_type AS 'resolution_type',bug.operating_system,client_platf.bug.customer_detail as 'customer_detail',client_platf.bug.status as 'status',client_platf.bug.regression as 'regression', client_platf.bug.submitted_date as 'submitted_date',client_platf.bug.implemented_date as 'implemented_date',client_platf.bug.updated_date as 'updated_date',client_platf.bug.closed_date as 'closed_date',client_platf.bug.reason as 'reason',client_platf.bug.repro_on_rvp as 'repro_on_rvp', client_platf.bug.cmf_request as 'cmf_request', client_platf.bug.must_fix_for as 'must_fix_for',client_platf.bug.title as 'title' ,client_platf.bug.customer_affected as 'customer_affected',client_platf.bug.processor as 'processor', client_platf.bug.customer_impact as 'customer_impact', client_platf.bug.priority as 'priority',client_platf.bug.location as 'location',client_platf.bug.id as 'id',client_platf.bug.date_debug as 'date_debug',client_platf.bug.3rd_party_classification AS '3rd_party_classification',client_platf.bug.odm as 'odm',client_platf.bug.owner as 'owner',client_platf.bug.family_affected as 'family_affected', client_platf.bug.merge_id as 'merge_id', client_platf.bug.progress as 'progress' , client_platf.bug.date_cmf_ask as 'date_cmf_ask', client_platf.bug.date_cmf_decided as 'date_cmf_decided' , client_platf.bug.impact as 'impact', client_platf.bug.fixed_in_version as 'fixed_in_version', client_platf.bug.me_sku as 'me_sku', client_platf.bug.sysdebug as 'sysdebug', client_platf.bug.sysdebug_forum as 'sysdebug_forum' where " +
-//            "(client_platf.bug.family contains('Wildcat Lake Platforms') AND (client_platf.bug.tag contains ('cmf_ask') OR (client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) OR client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) AND (client_platf.bug.submitter_org contains ('ccg_cce') OR client_platf.bug.submitter_org contains ('windows_platform_validation')))";
 
-//            string arl_refresh_query = "select client_platf.bug.promoted_id as 'promoted_id',client_platf.bug.reproducibility as 'reproducibility', client_platf.bug.promoted_status as 'promoted_status', client_platf.bug.customer_company as 'customer_company', client_platf.bug.family as 'family', client_platf.bug.how_found_category as 'how_found_category', client_platf.bug.report_type AS 'report_type', client_platf.bug.closed_reason AS 'closed_reason', client_platf.bug.release AS 'release', client_platf.bug.component AS 'component', client_platf.bug.submitter_org AS 'submitter_org', client_platf.bug.platform AS 'platform', client_platf.bug.resolution_type AS 'resolution_type', client_platf.bug.operating_system, client_platf.bug.customer_detail as 'customer_detail', client_platf.bug.status as 'status', client_platf.bug.regression as 'regression', client_platf.bug.submitted_date as 'submitted_date', client_platf.bug.implemented_date as 'implemented_date', client_platf.bug.updated_date as 'updated_date', client_platf.bug.closed_date as 'closed_date', client_platf.bug.reason as 'reason', client_platf.bug.repro_on_rvp as 'repro_on_rvp', client_platf.bug.cmf_request as 'cmf_request', client_platf.bug.must_fix_for as 'must_fix_for', client_platf.bug.title as 'title', client_platf.bug.customer_affected as 'customer_affected', client_platf.bug.processor as 'processor', client_platf.bug.customer_impact as 'customer_impact', client_platf.bug.priority as 'priority', client_platf.bug.location as 'location', client_platf.bug.id as 'id', client_platf.bug.date_debug as 'date_debug', client_platf.bug.3rd_party_classification AS '3rd_party_classification', client_platf.bug.odm as 'odm', client_platf.bug.owner as 'owner', client_platf.bug.family_affected as 'family_affected', client_platf.bug.merge_id as 'merge_id', client_platf.bug.progress as 'progress', client_platf.bug.date_cmf_ask as 'date_cmf_ask', client_platf.bug.date_cmf_decided as 'date_cmf_decided', client_platf.bug.impact as 'impact', client_platf.bug.fixed_in_version as 'fixed_in_version', client_platf.bug.me_sku as 'me_sku', client_platf.bug.sysdebug as 'sysdebug', client_platf.bug.sysdebug_forum as 'sysdebug_forum' where (client_platf.bug.family contains('Arrow Lake Platforms') AND client_platf.bug.release in ('Arrow Lake HX Premium Notebook Refresh','Arrow Lake S Enthusiast Desktop Refresh') AND (client_platf.bug.tag contains ('cmf_ask') OR client_platf.bug.cmf_request in ('cmf_ok','cmf_duplicate','cmf_ask','cmf_ack','cmf_incomplete','cmf_reject')) AND (client_platf.bug.submitter_org contains ('ccg_cce') OR client_platf.bug.submitter_org contains ('windows_platform_validation') OR client_platf.bug.submitter_org contains ('wsiv_pnp') OR client_platf.bug.submitter_org contains ('bios_dev_val_or')) AND client_platf.bug.family_affected not in ('Alchemist Refresh [ACM-R] Visual Compute Platform','DG2 Platform Grouping'))";
 
-//            string nvl_s_query = "select client_platf.bug.promoted_id as 'promoted_id', client_platf.bug.reproducibility as 'reproducibility', client_platf.bug.promoted_status as 'promoted_status', client_platf.bug.customer_company as 'customer_company',client_platf.bug.family as 'family', client_platf.bug.how_found_category as 'how_found_category', client_platf.bug.report_type AS 'report_type', client_platf.bug.closed_reason AS 'closed_reason', client_platf.bug.release AS 'release', client_platf.bug.component AS 'component', client_platf.bug.submitter_org AS 'submitter_org', client_platf.bug.platform AS 'platform', client_platf.bug.resolution_type AS 'resolution_type',bug.operating_system,client_platf.bug.customer_detail as 'customer_detail',client_platf.bug.status as 'status',client_platf.bug.regression as 'regression', client_platf.bug.submitted_date as 'submitted_date',client_platf.bug.implemented_date as 'implemented_date',client_platf.bug.updated_date as 'updated_date',client_platf.bug.closed_date as 'closed_date',client_platf.bug.reason as 'reason',client_platf.bug.repro_on_rvp as 'repro_on_rvp', client_platf.bug.cmf_request as 'cmf_request', client_platf.bug.must_fix_for as 'must_fix_for',client_platf.bug.title as 'title' ,client_platf.bug.customer_affected as 'customer_affected', client_platf.bug.processor as 'processor', client_platf.bug.customer_impact as 'customer_impact', client_platf.bug.priority as 'priority',client_platf.bug.location as 'location',client_platf.bug.id as 'id',client_platf.bug.date_debug as 'date_debug',client_platf.bug.3rd_party_classification AS '3rd_party_classification',client_platf.bug.odm as 'odm',client_platf.bug.owner as 'owner',client_platf.bug.family_affected as 'family_affected', client_platf.bug.merge_id as 'merge_id', client_platf.bug.progress as 'progress' , client_platf.bug.date_cmf_ask as 'date_cmf_ask', client_platf.bug.date_cmf_decided as 'date_cmf_decided' , client_platf.bug.impact as 'impact', client_platf.bug.fixed_in_version as 'fixed_in_version', client_platf.bug.me_sku as 'me_sku', client_platf.bug.sysdebug as 'sysdebug', client_platf.bug.sysdebug_forum as 'sysdebug_forum' where " +
-//            "(client_platf.bug.family contains('Nova Lake Platforms') AND (client_platf.bug.processor contains ('novalake_s')) AND (client_platf.bug.tag contains ('cmf_ask') OR (client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) OR client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) AND (client_platf.bug.submitter_org contains ('ccg_cce') OR client_platf.bug.submitter_org contains ('windows_platform_validation')))";
 
-//            string nvl_h_query = "select client_platf.bug.promoted_id as 'promoted_id', client_platf.bug.reproducibility as 'reproducibility', client_platf.bug.promoted_status as 'promoted_status', client_platf.bug.customer_company as 'customer_company',client_platf.bug.family as 'family', client_platf.bug.how_found_category as 'how_found_category', client_platf.bug.report_type AS 'report_type', client_platf.bug.closed_reason AS 'closed_reason', client_platf.bug.release AS 'release', client_platf.bug.component AS 'component', client_platf.bug.submitter_org AS 'submitter_org', client_platf.bug.platform AS 'platform', client_platf.bug.resolution_type AS 'resolution_type',bug.operating_system,client_platf.bug.customer_detail as 'customer_detail',client_platf.bug.status as 'status',client_platf.bug.regression as 'regression', client_platf.bug.submitted_date as 'submitted_date',client_platf.bug.implemented_date as 'implemented_date',client_platf.bug.updated_date as 'updated_date',client_platf.bug.closed_date as 'closed_date',client_platf.bug.reason as 'reason',client_platf.bug.repro_on_rvp as 'repro_on_rvp', client_platf.bug.cmf_request as 'cmf_request', client_platf.bug.must_fix_for as 'must_fix_for',client_platf.bug.title as 'title' ,client_platf.bug.customer_affected as 'customer_affected', client_platf.bug.processor as 'processor', client_platf.bug.customer_impact as 'customer_impact', client_platf.bug.priority as 'priority',client_platf.bug.location as 'location',client_platf.bug.id as 'id',client_platf.bug.date_debug as 'date_debug',client_platf.bug.3rd_party_classification AS '3rd_party_classification',client_platf.bug.odm as 'odm',client_platf.bug.owner as 'owner',client_platf.bug.family_affected as 'family_affected', client_platf.bug.merge_id as 'merge_id', client_platf.bug.progress as 'progress' , client_platf.bug.date_cmf_ask as 'date_cmf_ask', client_platf.bug.date_cmf_decided as 'date_cmf_decided' , client_platf.bug.impact as 'impact', client_platf.bug.fixed_in_version as 'fixed_in_version', client_platf.bug.me_sku as 'me_sku', client_platf.bug.sysdebug as 'sysdebug', client_platf.bug.sysdebug_forum as 'sysdebug_forum' where " +
-//            "(client_platf.bug.family contains('Nova Lake Platforms') AND (client_platf.bug.processor contains ('novalake_h')) AND (client_platf.bug.tag contains ('cmf_ask') OR (client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) OR client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) AND (client_platf.bug.submitter_org contains ('ccg_cce') OR client_platf.bug.submitter_org contains ('windows_platform_validation')))";
 
-//            string nvl_u_query = "select client_platf.bug.promoted_id as 'promoted_id', client_platf.bug.reproducibility as 'reproducibility', client_platf.bug.promoted_status as 'promoted_status', client_platf.bug.customer_company as 'customer_company',client_platf.bug.family as 'family', client_platf.bug.how_found_category as 'how_found_category', client_platf.bug.report_type AS 'report_type', client_platf.bug.closed_reason AS 'closed_reason', client_platf.bug.release AS 'release', client_platf.bug.component AS 'component', client_platf.bug.submitter_org AS 'submitter_org', client_platf.bug.platform AS 'platform', client_platf.bug.resolution_type AS 'resolution_type',bug.operating_system,client_platf.bug.customer_detail as 'customer_detail',client_platf.bug.status as 'status',client_platf.bug.regression as 'regression', client_platf.bug.submitted_date as 'submitted_date',client_platf.bug.implemented_date as 'implemented_date',client_platf.bug.updated_date as 'updated_date',client_platf.bug.closed_date as 'closed_date',client_platf.bug.reason as 'reason',client_platf.bug.repro_on_rvp as 'repro_on_rvp', client_platf.bug.cmf_request as 'cmf_request', client_platf.bug.must_fix_for as 'must_fix_for',client_platf.bug.title as 'title' ,client_platf.bug.customer_affected as 'customer_affected', client_platf.bug.processor as 'processor', client_platf.bug.customer_impact as 'customer_impact', client_platf.bug.priority as 'priority',client_platf.bug.location as 'location',client_platf.bug.id as 'id',client_platf.bug.date_debug as 'date_debug',client_platf.bug.3rd_party_classification AS '3rd_party_classification',client_platf.bug.odm as 'odm',client_platf.bug.owner as 'owner',client_platf.bug.family_affected as 'family_affected', client_platf.bug.merge_id as 'merge_id', client_platf.bug.progress as 'progress' , client_platf.bug.date_cmf_ask as 'date_cmf_ask', client_platf.bug.date_cmf_decided as 'date_cmf_decided' , client_platf.bug.impact as 'impact', client_platf.bug.fixed_in_version as 'fixed_in_version', client_platf.bug.me_sku as 'me_sku', client_platf.bug.sysdebug as 'sysdebug', client_platf.bug.sysdebug_forum as 'sysdebug_forum' where " +
-//            "(client_platf.bug.family contains('Nova Lake Platforms') AND (client_platf.bug.processor contains ('novalake_u')) AND (client_platf.bug.tag contains ('cmf_ask') OR (client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) OR client_platf.bug.cmf_request in ('cmf_ok', 'cmf_duplicate', 'cmf_ask', 'cmf_ack', 'cmf_incomplete', 'cmf_reject')) AND (client_platf.bug.submitter_org contains ('ccg_cce') OR client_platf.bug.submitter_org contains ('windows_platform_validation')))";
 
 //            string strconnstring = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
 
-//            apiresponse_lnl = SubmitRequest(CreateQueryRequest(lnl_query));
 //            //apiresponse_rpl = SubmitRequest(CreateQueryRequest(query2));
 
 
 //            DataTable dt4 = new DataTable();
-//            if (apiresponse_lnl.responses[0].status.ToLower() == "success")
 //            {
-//                IList<Result> webresults_cp = apiresponse_lnl.responses[0].result_table;
 //                dt4 = GetDatatableFromJson(webresults_cp);
 //            }
 
@@ -1194,7 +1071,6 @@
 //                    // Check if the record already exists
 //                    string cp_id = dt4.Rows[i]["ip_sw_id"].ToString();
 
-//                    string checkQuery = "SELECT COUNT(*) FROM " + lnl_cmf_table + " WHERE cp_id = @cp_id";
 
 
 //                    using (SqlConnection con = new SqlConnection(strconnstring))
@@ -1207,7 +1083,6 @@
 
 //                            if (count > 0)
 //                            {
-//                                string checkProgress = "SELECT progress FROM " + lnl_cmf_table + " WHERE cp_id = " + cp_id + "";
 
 //                                SqlDataAdapter adapt;
 //                                DataTable dt_temp = new DataTable();
@@ -1216,8 +1091,6 @@
 
 //                                string progress = dt_temp.Rows[0][0].ToString();
 
-//                                string updateQuery = "UPDATE " + lnl_cmf_table + " SET title = @title, reproducibility=@reproducibility, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name, original_progress=@original_progress WHERE cp_id = @cp_id";
-//                                //string updateQuery = "UPDATE " + lnl_cmf_table + " SET title = @title, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name WHERE cp_id = @cp_id";
 
 //                                using (SqlCommand updateCmd = new SqlCommand(updateQuery))
 //                                {
@@ -1348,8 +1221,6 @@
 //                                    updateCmd.Parameters.AddWithValue("@impact", dt4.Rows[i]["impact"].ToString());
 
 //                                    dt_temp.Clear();
-//                                    lnl_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(lnl_query, con);
 //                                    adapt.Fill(dt_temp);
 
 //                                    string component = dt4.Rows[i]["found_in_component"].ToString();
@@ -1360,7 +1231,6 @@
 //                                        comp_group = dt_temp.Rows[0]["CRTT_value"].ToString();
 //                                        updateCmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
 //                                    }
-//                                    else if (component == "platform.Panther Lake.sw.win-driver.PMT Driver")
 //                                    {
 //                                        comp_group = "PMT";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -1370,42 +1240,34 @@
 //                                        comp_group = "OS";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.hw.board.motherboard")
 //                                    {
 //                                        comp_group = "HW";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.hw.graphics.iGfx")
 //                                    {
 //                                        comp_group = "iGFX";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.sw.firmware.ISSE")
 //                                    {
 //                                        comp_group = "no iDST assigned";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.sw.firmware.PMC")
 //                                    {
 //                                        comp_group = "HW";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.sw.firmware.TXT ACM")
 //                                    {
 //                                        comp_group = "security";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.sw.firmware.uCode")
 //                                    {
 //                                        comp_group = "HW";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.sw.win-driver.AONVision")
 //                                    {
 //                                        comp_group = "camera";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.sw.win-driver.PMT Driver")
 //                                    {
 //                                        comp_group = "Modern Standby";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -1722,8 +1584,6 @@
 //                            }
 //                            else
 //                            {
-//                                string insert = "INSERT into " + lnl_cmf_table + " (cp_id,title,reproducibility,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name, original_progress) VALUES (@cp_id,@title,@reproducibility,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor,@customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name, @original_progress)";
-//                                //string insert = "INSERT into " + lnl_cmf_table + " (cp_id,title,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name) VALUES (@cp_id,@title,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor,@customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name)";
 //                                using (SqlCommand cmd = new SqlCommand(insert))
 //                                {
 //                                    cmd.Connection = con;
@@ -1833,8 +1693,6 @@
 
 
 //                                    DataTable dt_temp = new DataTable();
-//                                    lnl_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(lnl_query, con);
 //                                    adapt.Fill(dt_temp);
 
 //                                    string component = dt4.Rows[i]["found_in_component"].ToString();
@@ -1845,7 +1703,6 @@
 //                                        comp_group = dt_temp.Rows[0]["CRTT_value"].ToString();
 //                                        cmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
 //                                    }
-//                                    else if (component == "platform.Panther Lake.sw.win-driver.PMT Driver")
 //                                    {
 //                                        comp_group = "PMT";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -1855,42 +1712,34 @@
 //                                        comp_group = "OS";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.hw.board.motherboard")
 //                                    {
 //                                        comp_group = "HW";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.hw.graphics.iGfx")
 //                                    {
 //                                        comp_group = "iGFX";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.sw.firmware.ISSE")
 //                                    {
 //                                        comp_group = "no iDST assigned";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.sw.firmware.PMC")
 //                                    {
 //                                        comp_group = "HW";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.sw.firmware.TXT ACM")
 //                                    {
 //                                        comp_group = "security";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.sw.firmware.uCode")
 //                                    {
 //                                        comp_group = "HW";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.sw.win-driver.AONVision")
 //                                    {
 //                                        comp_group = "camera";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Lunar Lake.sw.win-driver.PMT Driver")
 //                                    {
 //                                        comp_group = "Modern Standby";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -2197,7 +2046,6 @@
 //            // Step 2: Build and execute DELETE query (only if there are IDs to keep)
 //            if (!string.IsNullOrEmpty(idsToKeep))
 //            {
-//                string deleteQuery = $"DELETE FROM {lnl_cmf_table} WHERE cp_id NOT IN ({idsToKeep})";
 
 //                using (SqlConnection con = new SqlConnection(strconnstring))
 //                {
@@ -2212,7 +2060,6 @@
 //            using (SqlConnection con = new SqlConnection(strconnstring))
 //            {
 //                con.Open();
-//                string update_cp = "delete from " + lnl_cmf_table + " where ext_additional_info like ('%design review%') or ext_additional_info like ('%question%') or ext_additional_info like ('%feature request%')";
 
 //                SqlCommand cmd = new SqlCommand(update_cp);
 //                cmd.Connection = con;
@@ -2224,12 +2071,9 @@
 //            /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //            ///
 
-//            apiresponse_nvl_h = SubmitRequest(CreateQueryRequest(nvl_h_query));
 
 //            dt4 = new DataTable();
-//            if (apiresponse_nvl_h.responses[0].status.ToLower() == "success")
 //            {
-//                IList<Result> webresults_cp = apiresponse_nvl_h.responses[0].result_table;
 //                dt4 = GetDatatableFromJson(webresults_cp);
 //            }
 
@@ -2242,7 +2086,6 @@
 //                    // Check if the record already exists
 //                    string cp_id = dt4.Rows[i]["ip_sw_id"].ToString();
 
-//                    string checkQuery = "SELECT COUNT(*) FROM " + nvl_h_cmf_table + " WHERE cp_id = @cp_id";
 
 
 //                    using (SqlConnection con = new SqlConnection(strconnstring))
@@ -2255,7 +2098,6 @@
 
 //                            if (count > 0)
 //                            {
-//                                string checkProgress = "SELECT progress FROM " + nvl_h_cmf_table + " WHERE cp_id = " + cp_id + "";
 
 //                                SqlDataAdapter adapt;
 //                                DataTable dt_temp = new DataTable();
@@ -2264,8 +2106,6 @@
 
 //                                string progress = dt_temp.Rows[0][0].ToString();
 
-//                                string updateQuery = "UPDATE " + nvl_h_cmf_table + " SET title = @title, reproducibility=@reproducibility, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name, original_progress=@original_progress WHERE cp_id = @cp_id";
-//                                //string updateQuery = "UPDATE " + ptl_cmf_table + " SET title = @title, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name WHERE cp_id = @cp_id";
 //                                using (SqlCommand updateCmd = new SqlCommand(updateQuery))
 //                                {
 //                                    updateCmd.Connection = con;
@@ -2379,8 +2219,6 @@
 //                                    updateCmd.Parameters.AddWithValue("@impact", dt4.Rows[i]["impact"].ToString());
 
 //                                    dt_temp.Clear();
-//                                    nvl_h_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(nvl_h_query, con);
 //                                    adapt.Fill(dt_temp);
 //                                    string component = dt4.Rows[i]["found_in_component"].ToString();
 //                                    string comp_group;
@@ -2390,7 +2228,6 @@
 //                                        comp_group = dt_temp.Rows[0]["CRTT_value"].ToString();
 //                                        updateCmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
 //                                    }
-//                                    else if (component == "platform.Panther Lake.sw.win-driver.PMT Driver")
 //                                    {
 //                                        comp_group = "PMT";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -2400,7 +2237,6 @@
 //                                        comp_group = "Security";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Panther Lake.hw.pch.XHCI")
 //                                    {
 //                                        comp_group = "HW";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -2410,7 +2246,6 @@
 //                                        comp_group = "HW";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Nova Lake.sw.Client IO Margining Tool (IOMT)#")
 //                                    {
 //                                        comp_group = "IOMT";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -2747,8 +2582,6 @@
 
 //                            else
 //                            {
-//                                string insert = "INSERT into " + nvl_h_cmf_table + " (cp_id,title,reproducibility,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name, original_progress) VALUES (@cp_id,@title,@reproducibility,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor,@customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name, @original_progress)";
-//                                //string insert = "INSERT into " + ptl_cmf_table + " (cp_id,title,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected,processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name) VALUES (@cp_id,@title,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor, @customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name)"; 
 //                                using (SqlCommand cmd = new SqlCommand(insert))
 //                                {
 //                                    cmd.Connection = con;
@@ -2838,8 +2671,6 @@
 
 
 //                                    DataTable dt_temp = new DataTable();
-//                                    nvl_h_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(nvl_h_query, con);
 //                                    adapt.Fill(dt_temp);
 
 
@@ -2874,7 +2705,6 @@
 //                                        comp_group = dt_temp.Rows[0]["CRTT_value"].ToString();
 //                                        cmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
 //                                    }
-//                                    else if (component == "platform.Panther Lake.sw.win-driver.PMT Driver")
 //                                    {
 //                                        comp_group = "PMT";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -2884,12 +2714,10 @@
 //                                        comp_group = "Security";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Nova Lake.sw.Client IO Margining Tool (IOMT)#")
 //                                    {
 //                                        comp_group = "IOMT";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Panther Lake.hw.pch.XHCI")
 //                                    {
 //                                        comp_group = "HW";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -3193,7 +3021,6 @@
 //            // Step 2: Build and execute DELETE query (only if there are IDs to keep)
 //            if (!string.IsNullOrEmpty(idsToKeep))
 //            {
-//                deleteQuery = $"DELETE FROM {nvl_h_cmf_table} WHERE cp_id NOT IN ({idsToKeep})";
 
 //                using (SqlConnection con = new SqlConnection(strconnstring))
 //                {
@@ -3208,7 +3035,6 @@
 //            using (SqlConnection con = new SqlConnection(strconnstring))
 //            {
 //                con.Open();
-//                string update_cp = "delete from " + nvl_h_cmf_table + " where ext_additional_info like ('%design review%') or ext_additional_info like ('%question%') or ext_additional_info like ('%feature request%')";
 
 //                SqlCommand cmd = new SqlCommand(update_cp);
 //                cmd.Connection = con;
@@ -3219,12 +3045,9 @@
 
 
 //            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//            apiresponse_nvl_u = SubmitRequest(CreateQueryRequest(nvl_u_query));
 
 //            dt4 = new DataTable();
-//            if (apiresponse_nvl_u.responses[0].status.ToLower() == "success")
 //            {
-//                IList<Result> webresults_cp = apiresponse_nvl_u.responses[0].result_table;
 //                dt4 = GetDatatableFromJson(webresults_cp);
 //            }
 
@@ -3237,7 +3060,6 @@
 //                    // Check if the record already exists
 //                    string cp_id = dt4.Rows[i]["ip_sw_id"].ToString();
 
-//                    string checkQuery = "SELECT COUNT(*) FROM " + nvl_u_cmf_table + " WHERE cp_id = @cp_id";
 
 
 //                    using (SqlConnection con = new SqlConnection(strconnstring))
@@ -3250,7 +3072,6 @@
 
 //                            if (count > 0)
 //                            {
-//                                string checkProgress = "SELECT progress FROM " + nvl_u_cmf_table + " WHERE cp_id = " + cp_id + "";
 
 //                                SqlDataAdapter adapt;
 //                                DataTable dt_temp = new DataTable();
@@ -3259,8 +3080,6 @@
 
 //                                string progress = dt_temp.Rows[0][0].ToString();
 
-//                                string updateQuery = "UPDATE " + nvl_u_cmf_table + " SET title = @title, reproducibility=@reproducibility, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name, original_progress=@original_progress WHERE cp_id = @cp_id";
-//                                //string updateQuery = "UPDATE " + ptl_cmf_table + " SET title = @title, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name WHERE cp_id = @cp_id";
 //                                using (SqlCommand updateCmd = new SqlCommand(updateQuery))
 //                                {
 //                                    updateCmd.Connection = con;
@@ -3374,8 +3193,6 @@
 //                                    updateCmd.Parameters.AddWithValue("@impact", dt4.Rows[i]["impact"].ToString());
 
 //                                    dt_temp.Clear();
-//                                    nvl_u_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(nvl_u_query, con);
 //                                    adapt.Fill(dt_temp);
 //                                    string component = dt4.Rows[i]["found_in_component"].ToString();
 //                                    string comp_group;
@@ -3385,7 +3202,6 @@
 //                                        comp_group = dt_temp.Rows[0]["CRTT_value"].ToString();
 //                                        updateCmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
 //                                    }
-//                                    else if (component == "platform.Panther Lake.sw.win-driver.PMT Driver")
 //                                    {
 //                                        comp_group = "PMT";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -3395,7 +3211,6 @@
 //                                        comp_group = "Security";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Panther Lake.hw.pch.XHCI")
 //                                    {
 //                                        comp_group = "HW";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -3405,7 +3220,6 @@
 //                                        comp_group = "HW";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Nova Lake.sw.Client IO Margining Tool (IOMT)#")
 //                                    {
 //                                        comp_group = "IOMT";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -3742,8 +3556,6 @@
 
 //                            else
 //                            {
-//                                string insert = "INSERT into " + nvl_u_cmf_table + " (cp_id,title,reproducibility,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name, original_progress) VALUES (@cp_id,@title,@reproducibility,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor,@customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name, @original_progress)";
-//                                //string insert = "INSERT into " + ptl_cmf_table + " (cp_id,title,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected,processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name) VALUES (@cp_id,@title,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor, @customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name)"; 
 //                                using (SqlCommand cmd = new SqlCommand(insert))
 //                                {
 //                                    cmd.Connection = con;
@@ -3833,8 +3645,6 @@
 
 
 //                                    DataTable dt_temp = new DataTable();
-//                                    nvl_u_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(nvl_u_query, con);
 //                                    adapt.Fill(dt_temp);
 
 
@@ -3869,7 +3679,6 @@
 //                                        comp_group = dt_temp.Rows[0]["CRTT_value"].ToString();
 //                                        cmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
 //                                    }
-//                                    else if (component == "platform.Panther Lake.sw.win-driver.PMT Driver")
 //                                    {
 //                                        comp_group = "PMT";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -3879,12 +3688,10 @@
 //                                        comp_group = "Security";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Nova Lake.sw.Client IO Margining Tool (IOMT)#")
 //                                    {
 //                                        comp_group = "IOMT";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Panther Lake.hw.pch.XHCI")
 //                                    {
 //                                        comp_group = "HW";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -4188,7 +3995,6 @@
 //            // Step 2: Build and execute DELETE query (only if there are IDs to keep)
 //            if (!string.IsNullOrEmpty(idsToKeep))
 //            {
-//                deleteQuery = $"DELETE FROM {nvl_u_cmf_table} WHERE cp_id NOT IN ({idsToKeep})";
 
 //                using (SqlConnection con = new SqlConnection(strconnstring))
 //                {
@@ -4203,7 +4009,6 @@
 //            using (SqlConnection con = new SqlConnection(strconnstring))
 //            {
 //                con.Open();
-//                string update_cp = "delete from " + nvl_u_cmf_table + " where ext_additional_info like ('%design review%') or ext_additional_info like ('%question%') or ext_additional_info like ('%feature request%')";
 
 //                SqlCommand cmd = new SqlCommand(update_cp);
 //                cmd.Connection = con;
@@ -4215,12 +4020,9 @@
 //            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-//            apiresponse_arl_s = SubmitRequest(CreateQueryRequest(arls_query));
 
 //            dt4 = new DataTable();
-//            if (apiresponse_arl_s.responses[0].status.ToLower() == "success")
 //            {
-//                IList<Result> webresults_cp = apiresponse_arl_s.responses[0].result_table;
 //                dt4 = GetDatatableFromJson(webresults_cp);
 //            }
 
@@ -4233,7 +4035,6 @@
 //                    // Check if the record already exists
 //                    string cp_id = dt4.Rows[i]["ip_sw_id"].ToString();
 
-//                    string checkQuery = "SELECT COUNT(*) FROM " + arl_s_cmf_table + " WHERE cp_id = @cp_id";
 
 
 //                    using (SqlConnection con = new SqlConnection(strconnstring))
@@ -4246,7 +4047,6 @@
 
 //                            if (count > 0)
 //                            {
-//                                string checkProgress = "SELECT progress FROM " + arl_s_cmf_table + " WHERE cp_id = " + cp_id + "";
 
 //                                SqlDataAdapter adapt;
 //                                DataTable dt_temp = new DataTable();
@@ -4255,8 +4055,6 @@
 
 //                                string progress = dt_temp.Rows[0][0].ToString();
 
-//                                //string updateQuery = "UPDATE " + arl_s_cmf_table + " SET title = @title, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name WHERE cp_id = @cp_id";
-//                                string updateQuery = "UPDATE " + arl_s_cmf_table + " SET title = @title, reproducibility=@reproducibility, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name, original_progress=@original_progress WHERE cp_id = @cp_id";
 
 //                                using (SqlCommand updateCmd = new SqlCommand(updateQuery))
 //                                {
@@ -4388,8 +4186,6 @@
 //                                    updateCmd.Parameters.AddWithValue("@impact", dt4.Rows[i]["impact"].ToString());
 
 //                                    dt_temp.Clear();
-//                                    arls_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(arls_query, con);
 //                                    adapt.Fill(dt_temp);
 
 
@@ -4713,8 +4509,6 @@
 
 //                            else
 //                            {
-//                                string insert = "INSERT into " + arl_s_cmf_table + " (cp_id,title,reproducibility,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name, original_progress) VALUES (@cp_id,@title,@reproducibility,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor,@customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name, @original_progress)";
-//                                //string insert = "INSERT into " + arl_s_cmf_table + " (cp_id,title,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name) VALUES (@cp_id,@title,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected,@processor, @customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name)";
 //                                using (SqlCommand cmd = new SqlCommand(insert))
 //                                {
 //                                    cmd.Connection = con;
@@ -4808,8 +4602,6 @@
 
 
 //                                    DataTable dt_temp = new DataTable();
-//                                    arls_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(arls_query, con);
 //                                    adapt.Fill(dt_temp);
 
 
@@ -5083,7 +4875,6 @@
 //            // Step 2: Build and execute DELETE query (only if there are IDs to keep)
 //            if (!string.IsNullOrEmpty(idsToKeep))
 //            {
-//                deleteQuery = $"DELETE FROM {arl_s_cmf_table} WHERE cp_id NOT IN ({idsToKeep})";
 
 //                using (SqlConnection con = new SqlConnection(strconnstring))
 //                {
@@ -5098,7 +4889,6 @@
 //            using (SqlConnection con = new SqlConnection(strconnstring))
 //            {
 //                con.Open();
-//                string update_cp = "delete from " + arl_s_cmf_table + " where ext_additional_info like ('%design review%') or ext_additional_info like ('%question%') or ext_additional_info like ('%feature request%')";
 
 //                SqlCommand cmd = new SqlCommand(update_cp);
 //                cmd.Connection = con;
@@ -5108,12 +4898,9 @@
 //            }
 
 
-//            apiresponse_arl_h = SubmitRequest(CreateQueryRequest(arlh_query));
 
 //            dt4 = new DataTable();
-//            if (apiresponse_arl_h.responses[0].status.ToLower() == "success")
 //            {
-//                IList<Result> webresults_cp = apiresponse_arl_h.responses[0].result_table;
 //                dt4 = GetDatatableFromJson(webresults_cp);
 //            }
 
@@ -5126,7 +4913,6 @@
 //                    // Check if the record already exists
 //                    string cp_id = dt4.Rows[i]["ip_sw_id"].ToString();
 
-//                    string checkQuery = "SELECT COUNT(*) FROM " + arl_h_cmf_table + " WHERE cp_id = @cp_id";
 
 
 //                    using (SqlConnection con = new SqlConnection(strconnstring))
@@ -5139,7 +4925,6 @@
 
 //                            if (count > 0)
 //                            {
-//                                string checkProgress = "SELECT progress FROM " + arl_h_cmf_table + " WHERE cp_id = " + cp_id + "";
 
 //                                SqlDataAdapter adapt;
 //                                DataTable dt_temp = new DataTable();
@@ -5148,8 +4933,6 @@
 
 //                                string progress = dt_temp.Rows[0][0].ToString();
 
-//                                string updateQuery = "UPDATE " + arl_h_cmf_table + " SET title = @title, reproducibility=@reproducibility, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name, original_progress=@original_progress WHERE cp_id = @cp_id";
-//                                //string updateQuery = "UPDATE " + arl_h_cmf_table + " SET title = @title, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name WHERE cp_id = @cp_id";
 
 //                                using (SqlCommand updateCmd = new SqlCommand(updateQuery))
 //                                {
@@ -5262,8 +5045,6 @@
 //                                    updateCmd.Parameters.AddWithValue("@impact", dt4.Rows[i]["impact"].ToString());
 
 //                                    dt_temp.Clear();
-//                                    arlh_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(arlh_query, con);
 //                                    adapt.Fill(dt_temp);
 //                                    if (dt_temp.Rows.Count > 0)
 //                                        updateCmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
@@ -5583,8 +5364,6 @@
 
 //                            else
 //                            {
-//                                string insert = "INSERT into " + arl_h_cmf_table + " (cp_id,title,reproducibility,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name, original_progress) VALUES (@cp_id,@title,@reproducibility,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor,@customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name, @original_progress)";
-//                                //string insert = "INSERT into " + arl_h_cmf_table + " (cp_id,title,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected,processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name) VALUES (@cp_id,@title,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor, @customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name)";
 //                                using (SqlCommand cmd = new SqlCommand(insert))
 //                                {
 //                                    cmd.Connection = con;
@@ -5673,8 +5452,6 @@
 
 
 //                                    DataTable dt_temp = new DataTable();
-//                                    arlh_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(arlh_query, con);
 //                                    adapt.Fill(dt_temp);
 //                                    if (dt_temp.Rows.Count > 0)
 //                                        cmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
@@ -5983,7 +5760,6 @@
 //            // Step 2: Build and execute DELETE query (only if there are IDs to keep)
 //            if (!string.IsNullOrEmpty(idsToKeep))
 //            {
-//                deleteQuery = $"DELETE FROM {arl_h_cmf_table} WHERE cp_id NOT IN ({idsToKeep})";
 
 //                using (SqlConnection con = new SqlConnection(strconnstring))
 //                {
@@ -5998,7 +5774,6 @@
 //            using (SqlConnection con = new SqlConnection(strconnstring))
 //            {
 //                con.Open();
-//                string update_cp = "delete from " + arl_h_cmf_table + " where ext_additional_info like ('%design review%') or ext_additional_info like ('%question%') or ext_additional_info like ('%feature request%')";
 
 //                SqlCommand cmd = new SqlCommand(update_cp);
 //                cmd.Connection = con;
@@ -6008,12 +5783,9 @@
 //            }
 
 
-//            apiresponse_arl_u = SubmitRequest(CreateQueryRequest(arlu_query));
 
 //            dt4 = new DataTable();
-//            if (apiresponse_arl_u.responses[0].status.ToLower() == "success")
 //            {
-//                IList<Result> webresults_cp = apiresponse_arl_u.responses[0].result_table;
 //                dt4 = GetDatatableFromJson(webresults_cp);
 //            }
 
@@ -6026,7 +5798,6 @@
 //                    // Check if the record already exists
 //                    string cp_id = dt4.Rows[i]["ip_sw_id"].ToString();
 
-//                    string checkQuery = "SELECT COUNT(*) FROM " + arl_u_cmf_table + " WHERE cp_id = @cp_id";
 
 
 //                    using (SqlConnection con = new SqlConnection(strconnstring))
@@ -6039,7 +5810,6 @@
 
 //                            if (count > 0)
 //                            {
-//                                string checkProgress = "SELECT progress FROM " + arl_u_cmf_table + " WHERE cp_id = " + cp_id + "";
 
 //                                SqlDataAdapter adapt;
 //                                DataTable dt_temp = new DataTable();
@@ -6048,8 +5818,6 @@
 
 //                                string progress = dt_temp.Rows[0][0].ToString();
 
-//                                string updateQuery = "UPDATE " + arl_u_cmf_table + " SET title = @title, reproducibility=@reproducibility, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name, original_progress=@original_progress WHERE cp_id = @cp_id";
-//                                //string updateQuery = "UPDATE " + arl_u_cmf_table + " SET title = @title, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name WHERE cp_id = @cp_id";
 
 //                                using (SqlCommand updateCmd = new SqlCommand(updateQuery))
 //                                {
@@ -6163,8 +5931,6 @@
 //                                    updateCmd.Parameters.AddWithValue("@impact", dt4.Rows[i]["impact"].ToString());
 
 //                                    dt_temp.Clear();
-//                                    arlu_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(arlu_query, con);
 //                                    adapt.Fill(dt_temp);
 //                                    if (dt_temp.Rows.Count > 0)
 //                                        updateCmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
@@ -6485,8 +6251,6 @@
 
 //                            else
 //                            {
-//                                string insert = "INSERT into " + arl_u_cmf_table + " (cp_id,title,reproducibility,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name, original_progress) VALUES (@cp_id,@title,@reproducibility,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor,@customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name, @original_progress)";
-//                                //string insert = "INSERT into " + arl_u_cmf_table + " (cp_id,title,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name) VALUES (@cp_id,@title,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected,@processor, @customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name)";
 //                                using (SqlCommand cmd = new SqlCommand(insert))
 //                                {
 //                                    cmd.Connection = con;
@@ -6574,8 +6338,6 @@
 
 
 //                                    DataTable dt_temp = new DataTable();
-//                                    arlu_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(arlu_query, con);
 //                                    adapt.Fill(dt_temp);
 //                                    if (dt_temp.Rows.Count > 0)
 //                                        cmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
@@ -6884,7 +6646,6 @@
 //            // Step 2: Build and execute DELETE query (only if there are IDs to keep)
 //            if (!string.IsNullOrEmpty(idsToKeep))
 //            {
-//                deleteQuery = $"DELETE FROM {arl_u_cmf_table} WHERE cp_id NOT IN ({idsToKeep})";
 
 //                using (SqlConnection con = new SqlConnection(strconnstring))
 //                {
@@ -6899,7 +6660,6 @@
 //            using (SqlConnection con = new SqlConnection(strconnstring))
 //            {
 //                con.Open();
-//                string update_cp = "delete from " + arl_u_cmf_table + " where ext_additional_info like ('%design review%') or ext_additional_info like ('%question%') or ext_additional_info like ('%feature request%')";
 
 //                SqlCommand cmd = new SqlCommand(update_cp);
 //                cmd.Connection = con;
@@ -6911,12 +6671,9 @@
 
 
 
-//            apiresponse_arl_hx = SubmitRequest(CreateQueryRequest(arlhx_query));
 
 //            dt4 = new DataTable();
-//            if (apiresponse_arl_hx.responses[0].status.ToLower() == "success")
 //            {
-//                IList<Result> webresults_cp = apiresponse_arl_hx.responses[0].result_table;
 //                dt4 = GetDatatableFromJson(webresults_cp);
 //            }
 
@@ -6929,7 +6686,6 @@
 //                    // Check if the record already exists
 //                    string cp_id = dt4.Rows[i]["ip_sw_id"].ToString();
 
-//                    string checkQuery = "SELECT COUNT(*) FROM " + arl_hx_cmf_table + " WHERE cp_id = @cp_id";
 
 
 //                    using (SqlConnection con = new SqlConnection(strconnstring))
@@ -6942,7 +6698,6 @@
 
 //                            if (count > 0)
 //                            {
-//                                string checkProgress = "SELECT progress FROM " + arl_hx_cmf_table + " WHERE cp_id = " + cp_id + "";
 
 //                                SqlDataAdapter adapt;
 //                                DataTable dt_temp = new DataTable();
@@ -6951,8 +6706,6 @@
 
 //                                string progress = dt_temp.Rows[0][0].ToString();
 
-//                                string updateQuery = "UPDATE " + arl_hx_cmf_table + " SET title = @title, reproducibility=@reproducibility, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name, original_progress=@original_progress WHERE cp_id = @cp_id";
-//                                //string updateQuery = "UPDATE " + arl_hx_cmf_table + " SET title = @title, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name WHERE cp_id = @cp_id";
 
 //                                using (SqlCommand updateCmd = new SqlCommand(updateQuery))
 //                                {
@@ -7079,8 +6832,6 @@
 //                                    updateCmd.Parameters.AddWithValue("@impact", dt4.Rows[i]["impact"].ToString());
 
 //                                    dt_temp.Clear();
-//                                    arlhx_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(arlhx_query, con);
 //                                    adapt.Fill(dt_temp);
 //                                    if (dt_temp.Rows.Count > 0)
 //                                        updateCmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
@@ -7402,8 +7153,6 @@
 
 //                            else
 //                            {
-//                                string insert = "INSERT into " + arl_hx_cmf_table + " (cp_id,title,reproducibility,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name, original_progress) VALUES (@cp_id,@title,@reproducibility,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor,@customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name, @original_progress)";
-//                                //string insert = "INSERT into " + arl_hx_cmf_table + " (cp_id,title,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name) VALUES (@cp_id,@title,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected,@processor, @customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name)";
 //                                using (SqlCommand cmd = new SqlCommand(insert))
 //                                {
 //                                    cmd.Connection = con;
@@ -7491,8 +7240,6 @@
 
 
 //                                    DataTable dt_temp = new DataTable();
-//                                    arlhx_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(arlhx_query, con);
 //                                    adapt.Fill(dt_temp);
 //                                    if (dt_temp.Rows.Count > 0)
 //                                        cmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
@@ -7801,7 +7548,6 @@
 //            // Step 2: Build and execute DELETE query (only if there are IDs to keep)
 //            if (!string.IsNullOrEmpty(idsToKeep))
 //            {
-//                deleteQuery = $"DELETE FROM {arl_hx_cmf_table} WHERE cp_id NOT IN ({idsToKeep})";
 
 //                using (SqlConnection con = new SqlConnection(strconnstring))
 //                {
@@ -7816,7 +7562,6 @@
 //            using (SqlConnection con = new SqlConnection(strconnstring))
 //            {
 //                con.Open();
-//                string update_cp = "delete from " + arl_hx_cmf_table + " where ext_additional_info like ('%design review%') or ext_additional_info like ('%question%') or ext_additional_info like ('%feature request%')";
 
 //                SqlCommand cmd = new SqlCommand(update_cp);
 //                cmd.Connection = con;
@@ -7826,12 +7571,9 @@
 //            }
 
 
-//            apiresponse_ptl = SubmitRequest(CreateQueryRequest(ptl_query));
 
 //            dt4 = new DataTable();
-//            if (apiresponse_ptl.responses[0].status.ToLower() == "success")
 //            {
-//                IList<Result> webresults_cp = apiresponse_ptl.responses[0].result_table;
 //                dt4 = GetDatatableFromJson(webresults_cp);
 //            }
 
@@ -7844,7 +7586,6 @@
 //                    // Check if the record already exists
 //                    string cp_id = dt4.Rows[i]["ip_sw_id"].ToString();
 
-//                    string checkQuery = "SELECT COUNT(*) FROM " + ptl_cmf_table + " WHERE cp_id = @cp_id";
 
 
 //                    using (SqlConnection con = new SqlConnection(strconnstring))
@@ -7857,7 +7598,6 @@
 
 //                            if (count > 0)
 //                            {
-//                                string checkProgress = "SELECT progress FROM " + ptl_cmf_table + " WHERE cp_id = " + cp_id + "";
 
 //                                SqlDataAdapter adapt;
 //                                DataTable dt_temp = new DataTable();
@@ -7866,8 +7606,6 @@
 
 //                                string progress = dt_temp.Rows[0][0].ToString();
 
-//                                string updateQuery = "UPDATE " + ptl_cmf_table + " SET title = @title, reproducibility=@reproducibility, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name, original_progress=@original_progress WHERE cp_id = @cp_id";
-//                                //string updateQuery = "UPDATE " + ptl_cmf_table + " SET title = @title, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name WHERE cp_id = @cp_id";
 //                                using (SqlCommand updateCmd = new SqlCommand(updateQuery))
 //                                {
 //                                    updateCmd.Connection = con;
@@ -7981,8 +7719,6 @@
 //                                    updateCmd.Parameters.AddWithValue("@impact", dt4.Rows[i]["impact"].ToString());
 
 //                                    dt_temp.Clear();
-//                                    ptl_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(ptl_query, con);
 //                                    adapt.Fill(dt_temp);
 //                                    string component = dt4.Rows[i]["found_in_component"].ToString();
 //                                    string comp_group;
@@ -7992,7 +7728,6 @@
 //                                        comp_group = dt_temp.Rows[0]["CRTT_value"].ToString();
 //                                        updateCmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
 //                                    }
-//                                    else if (component == "platform.Panther Lake.sw.win-driver.PMT Driver")
 //                                    {
 //                                        comp_group = "PMT";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -8002,7 +7737,6 @@
 //                                        comp_group = "Security";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Panther Lake.hw.pch.XHCI")
 //                                    {
 //                                        comp_group = "HW";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -8338,8 +8072,6 @@
 
 //                            else
 //                            {
-//                                string insert = "INSERT into " + ptl_cmf_table + " (cp_id,title,reproducibility,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name, original_progress) VALUES (@cp_id,@title,@reproducibility,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor,@customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name, @original_progress)";
-//                                //string insert = "INSERT into " + ptl_cmf_table + " (cp_id,title,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected,processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name) VALUES (@cp_id,@title,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor, @customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name)"; 
 //                                using (SqlCommand cmd = new SqlCommand(insert))
 //                                {
 //                                    cmd.Connection = con;
@@ -8429,8 +8161,6 @@
 
 
 //                                    DataTable dt_temp = new DataTable();
-//                                    ptl_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(ptl_query, con);
 //                                    adapt.Fill(dt_temp);
 
 
@@ -8465,7 +8195,6 @@
 //                                        comp_group = dt_temp.Rows[0]["CRTT_value"].ToString();
 //                                        cmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
 //                                    }
-//                                    else if (component == "platform.Panther Lake.sw.win-driver.PMT Driver")
 //                                    {
 //                                        comp_group = "PMT";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -8475,7 +8204,6 @@
 //                                        comp_group = "Security";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Panther Lake.hw.pch.XHCI")
 //                                    {
 //                                        comp_group = "HW";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -8772,7 +8500,6 @@
 //            // Step 2: Build and execute DELETE query (only if there are IDs to keep)
 //            if (!string.IsNullOrEmpty(idsToKeep))
 //            {
-//                deleteQuery = $"DELETE FROM {ptl_cmf_table} WHERE cp_id NOT IN ({idsToKeep})";
 
 //                using (SqlConnection con = new SqlConnection(strconnstring))
 //                {
@@ -8787,7 +8514,6 @@
 //            using (SqlConnection con = new SqlConnection(strconnstring))
 //            {
 //                con.Open();
-//                string update_cp = "delete from " + ptl_cmf_table + " where ext_additional_info like ('%design review%') or ext_additional_info like ('%question%') or ext_additional_info like ('%feature request%')";
 
 //                SqlCommand cmd = new SqlCommand(update_cp);
 //                cmd.Connection = con;
@@ -8796,12 +8522,9 @@
 //                cmd.ExecuteScalar();
 //            }
 
-//            apiresponse_gnr = SubmitRequest(CreateQueryRequest(gnr_query));
 
 //            dt4 = new DataTable();
-//            if (apiresponse_gnr.responses[0].status.ToLower() == "success")
 //            {
-//                IList<Result> webresults_cp = apiresponse_gnr.responses[0].result_table;
 //                dt4 = GetDatatableFromJson(webresults_cp);
 //            }
 
@@ -8814,7 +8537,6 @@
 //                    // Check if the record already exists
 //                    string cp_id = dt4.Rows[i]["ip_sw_id"].ToString();
 
-//                    string checkQuery = "SELECT COUNT(*) FROM " + gnr_cmf_table + " WHERE cp_id = @cp_id";
 
 
 //                    using (SqlConnection con = new SqlConnection(strconnstring))
@@ -8827,7 +8549,6 @@
 
 //                            if (count > 0)
 //                            {
-//                                string checkProgress = "SELECT progress FROM " + gnr_cmf_table + " WHERE cp_id = " + cp_id + "";
 
 //                                SqlDataAdapter adapt;
 //                                DataTable dt_temp = new DataTable();
@@ -8835,8 +8556,6 @@
 //                                adapt.Fill(dt_temp);
 
 //                                string progress = dt_temp.Rows[0][0].ToString();
-//                                //string updateQuery = "UPDATE " + gnr_cmf_table + " SET title = @title, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name WHERE cp_id = @cp_id";
-//                                string updateQuery = "UPDATE " + gnr_cmf_table + " SET title = @title, reproducibility=@reproducibility, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name, original_progress=@original_progress WHERE cp_id = @cp_id";
 
 //                                using (SqlCommand updateCmd = new SqlCommand(updateQuery))
 //                                {
@@ -8958,8 +8677,6 @@
 
 
 //                                    dt_temp = new DataTable();
-//                                    gnr_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(gnr_query, con);
 //                                    adapt.Fill(dt_temp);
 //                                    string component = dt4.Rows[i]["found_in_component"].ToString();
 //                                    string comp_group;
@@ -8969,7 +8686,6 @@
 //                                        comp_group = dt_temp.Rows[0]["CRTT_value"].ToString();
 //                                        updateCmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
 //                                    }
-//                                    //else if (component == "platform.Panther Lake.hw.pch.XHCI")
 //                                    //{
 //                                    //    comp_group = "HW";
 //                                    //    updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -9472,8 +9188,6 @@
 
 //                            else
 //                            {
-//                                string insert = "INSERT into " + gnr_cmf_table + " (cp_id,title,reproducibility,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name, original_progress) VALUES (@cp_id,@title,@reproducibility,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor,@customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name, @original_progress)";
-//                                //string insert = "INSERT into " + gnr_cmf_table + " (cp_id,title,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name) VALUES (@cp_id,@title,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected,@processor, @customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name)";
 //                                using (SqlCommand cmd = new SqlCommand(insert))
 //                                {
 //                                    cmd.Connection = con;
@@ -9565,8 +9279,6 @@
 
 
 //                                    DataTable dt_temp = new DataTable();
-//                                    gnr_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(gnr_query, con);
 //                                    adapt.Fill(dt_temp);
 
 
@@ -9601,7 +9313,6 @@
 //                                        comp_group = dt_temp.Rows[0]["CRTT_value"].ToString();
 //                                        cmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
 //                                    }
-//                                    //                                    else if (component == "platform.Panther Lake.hw.pch.XHCI")
 //                                    //                                    {
 //                                    //                                        comp_group = "HW";
 //                                    //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -9893,7 +9604,6 @@
 //            // Step 2: Build and execute DELETE query (only if there are IDs to keep)
 //            if (!string.IsNullOrEmpty(idsToKeep))
 //            {
-//                deleteQuery = $"DELETE FROM {gnr_cmf_table} WHERE cp_id NOT IN ({idsToKeep})";
 
 //                using (SqlConnection con = new SqlConnection(strconnstring))
 //                {
@@ -9908,7 +9618,6 @@
 //            using (SqlConnection con = new SqlConnection(strconnstring))
 //            {
 //                con.Open();
-//                string update_cp = "delete from " + gnr_cmf_table + " where ext_additional_info like ('%design review%') or ext_additional_info like ('%question%') or ext_additional_info like ('%feature request%')";
 
 //                SqlCommand cmd = new SqlCommand(update_cp);
 //                cmd.Connection = con;
@@ -9917,12 +9626,9 @@
 //                cmd.ExecuteScalar();
 //            }
 
-//            apiresponse_wcl = SubmitRequest(CreateQueryRequest(wcl_query));
 
 //            dt4 = new DataTable();
-//            if (apiresponse_wcl.responses[0].status.ToLower() == "success")
 //            {
-//                IList<Result> webresults_cp = apiresponse_wcl.responses[0].result_table;
 //                dt4 = GetDatatableFromJson(webresults_cp);
 //            }
 
@@ -9935,7 +9641,6 @@
 //                    // Check if the record already exists
 //                    string cp_id = dt4.Rows[i]["ip_sw_id"].ToString();
 
-//                    string checkQuery = "SELECT COUNT(*) FROM " + wcl_cmf_table + " WHERE cp_id = @cp_id";
 
 
 //                    using (SqlConnection con = new SqlConnection(strconnstring))
@@ -9948,7 +9653,6 @@
 
 //                            if (count > 0)
 //                            {
-//                                string checkProgress = "SELECT progress FROM " + wcl_cmf_table + " WHERE cp_id = " + cp_id + "";
 
 //                                SqlDataAdapter adapt;
 //                                DataTable dt_temp = new DataTable();
@@ -9957,8 +9661,6 @@
 
 //                                string progress = dt_temp.Rows[0][0].ToString();
 
-//                                string updateQuery = "UPDATE " + wcl_cmf_table + " SET title = @title, reproducibility=@reproducibility, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name, original_progress=@original_progress WHERE cp_id = @cp_id";
-//                                //string updateQuery = "UPDATE " + wcl_cmf_table + " SET title = @title, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name WHERE cp_id = @cp_id";
 
 //                                using (SqlCommand updateCmd = new SqlCommand(updateQuery))
 //                                {
@@ -10086,8 +9788,6 @@
 //                                    updateCmd.Parameters.AddWithValue("@impact", dt4.Rows[i]["impact"].ToString());
 
 //                                    dt_temp.Clear();
-//                                    wcl_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(wcl_query, con);
 //                                    adapt.Fill(dt_temp);
 //                                    string component = dt4.Rows[i]["found_in_component"].ToString();
 //                                    string comp_group;
@@ -10408,8 +10108,6 @@
 
 //                            else
 //                            {
-//                                string insert = "INSERT into " + wcl_cmf_table + " (cp_id,title,reproducibility,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name, original_progress) VALUES (@cp_id,@title,@reproducibility,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor,@customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name, @original_progress)";
-//                                //string insert = "INSERT into " + wcl_cmf_table + " (cp_id,title,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected,processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name) VALUES (@cp_id,@title,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor, @customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name)";
 //                                using (SqlCommand cmd = new SqlCommand(insert))
 //                                {
 //                                    cmd.Connection = con;
@@ -10497,8 +10195,6 @@
 
 
 //                                    DataTable dt_temp = new DataTable();
-//                                    wcl_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(wcl_query, con);
 //                                    adapt.Fill(dt_temp);
 
 
@@ -10810,7 +10506,6 @@
 //            // Step 2: Build and execute DELETE query (only if there are IDs to keep)
 //            if (!string.IsNullOrEmpty(idsToKeep))
 //            {
-//                deleteQuery = $"DELETE FROM {wcl_cmf_table} WHERE cp_id NOT IN ({idsToKeep})";
 
 //                using (SqlConnection con = new SqlConnection(strconnstring))
 //                {
@@ -10825,7 +10520,6 @@
 //            using (SqlConnection con = new SqlConnection(strconnstring))
 //            {
 //                con.Open();
-//                string update_cp = "delete from " + wcl_cmf_table + " where ext_additional_info like ('%design review%') or ext_additional_info like ('%question%') or ext_additional_info like ('%feature request%')";
 
 //                SqlCommand cmd = new SqlCommand(update_cp);
 //                cmd.Connection = con;
@@ -10834,12 +10528,9 @@
 //                cmd.ExecuteScalar();
 //            }
 
-//            apiresponse_arl_refresh = SubmitRequest(CreateQueryRequest(arl_refresh_query));
 
 //            dt4 = new DataTable();
-//            if (apiresponse_arl_refresh.responses[0].status.ToLower() == "success")
 //            {
-//                IList<Result> webresults_cp = apiresponse_arl_refresh.responses[0].result_table;
 //                dt4 = GetDatatableFromJson(webresults_cp);
 //            }
 
@@ -10852,7 +10543,6 @@
 //                    // Check if the record already exists
 //                    string cp_id = dt4.Rows[i]["ip_sw_id"].ToString();
 
-//                    string checkQuery = "SELECT COUNT(*) FROM " + arl_refresh_cmf_table + " WHERE cp_id = @cp_id";
 
 
 //                    using (SqlConnection con = new SqlConnection(strconnstring))
@@ -10865,7 +10555,6 @@
 
 //                            if (count > 0)
 //                            {
-//                                string checkProgress = "SELECT progress FROM " + arl_refresh_cmf_table + " WHERE cp_id = " + cp_id + "";
 
 //                                SqlDataAdapter adapt;
 //                                DataTable dt_temp = new DataTable();
@@ -10874,8 +10563,6 @@
 
 //                                string progress = dt_temp.Rows[0][0].ToString();
 
-//                                string updateQuery = "UPDATE " + arl_refresh_cmf_table + " SET title = @title, reproducibility=@reproducibility, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name, original_progress=@original_progress WHERE cp_id = @cp_id";
-//                                //string updateQuery = "UPDATE " + arl_refresh_cmf_table + " SET title = @title, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name WHERE cp_id = @cp_id";
 
 //                                using (SqlCommand updateCmd = new SqlCommand(updateQuery))
 //                                {
@@ -11007,8 +10694,6 @@
 //                                    updateCmd.Parameters.AddWithValue("@impact", dt4.Rows[i]["impact"].ToString());
 
 //                                    dt_temp.Clear();
-//                                    arl_refresh_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(arl_refresh_query, con);
 //                                    adapt.Fill(dt_temp);
 
 
@@ -11332,8 +11017,6 @@
 
 //                            else
 //                            {
-//                                string insert = "INSERT into " + arl_refresh_cmf_table + " (cp_id,title,reproducibility,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name, original_progress) VALUES (@cp_id,@title,@reproducibility,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor,@customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name, @original_progress)";
-//                                //string insert = "INSERT into " + arl_refresh_cmf_table + " (cp_id,title,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name) VALUES (@cp_id,@title,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected,@processor, @customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name)";
 //                                using (SqlCommand cmd = new SqlCommand(insert))
 //                                {
 //                                    cmd.Connection = con;
@@ -11427,8 +11110,6 @@
 
 
 //                                    DataTable dt_temp = new DataTable();
-//                                    arl_refresh_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(arl_refresh_query, con);
 //                                    adapt.Fill(dt_temp);
 
 
@@ -11702,7 +11383,6 @@
 //            // Step 2: Build and execute DELETE query (only if there are IDs to keep)
 //            if (!string.IsNullOrEmpty(idsToKeep))
 //            {
-//                deleteQuery = $"DELETE FROM {arl_refresh_cmf_table} WHERE cp_id NOT IN ({idsToKeep})";
 
 //                using (SqlConnection con = new SqlConnection(strconnstring))
 //                {
@@ -11717,7 +11397,6 @@
 //            using (SqlConnection con = new SqlConnection(strconnstring))
 //            {
 //                con.Open();
-//                string update_cp = "delete from " + arl_refresh_cmf_table + " where ext_additional_info like ('%design review%') or ext_additional_info like ('%question%') or ext_additional_info like ('%feature request%')";
 
 //                SqlCommand cmd = new SqlCommand(update_cp);
 //                cmd.Connection = con;
@@ -11726,12 +11405,9 @@
 //                cmd.ExecuteScalar();
 //            }
 
-//            apiresponse_nvl_s = SubmitRequest(CreateQueryRequest(nvl_s_query));
 
 //            dt4 = new DataTable();
-//            if (apiresponse_nvl_s.responses[0].status.ToLower() == "success")
 //            {
-//                IList<Result> webresults_cp = apiresponse_nvl_s.responses[0].result_table;
 //                dt4 = GetDatatableFromJson(webresults_cp);
 //            }
 
@@ -11744,7 +11420,6 @@
 //                    // Check if the record already exists
 //                    string cp_id = dt4.Rows[i]["ip_sw_id"].ToString();
 
-//                    string checkQuery = "SELECT COUNT(*) FROM " + nvl_s_cmf_table + " WHERE cp_id = @cp_id";
 
 
 //                    using (SqlConnection con = new SqlConnection(strconnstring))
@@ -11757,7 +11432,6 @@
 
 //                            if (count > 0)
 //                            {
-//                                string checkProgress = "SELECT progress FROM " + nvl_s_cmf_table + " WHERE cp_id = " + cp_id + "";
 
 //                                SqlDataAdapter adapt;
 //                                DataTable dt_temp = new DataTable();
@@ -11766,8 +11440,6 @@
 
 //                                string progress = dt_temp.Rows[0][0].ToString();
 
-//                                string updateQuery = "UPDATE " + nvl_s_cmf_table + " SET title = @title, reproducibility=@reproducibility, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name, original_progress=@original_progress WHERE cp_id = @cp_id";
-//                                //string updateQuery = "UPDATE " + ptl_cmf_table + " SET title = @title, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name WHERE cp_id = @cp_id";
 //                                using (SqlCommand updateCmd = new SqlCommand(updateQuery))
 //                                {
 //                                    updateCmd.Connection = con;
@@ -11881,8 +11553,6 @@
 //                                    updateCmd.Parameters.AddWithValue("@impact", dt4.Rows[i]["impact"].ToString());
 
 //                                    dt_temp.Clear();
-//                                    nvl_s_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(nvl_s_query, con);
 //                                    adapt.Fill(dt_temp);
 //                                    string component = dt4.Rows[i]["found_in_component"].ToString();
 //                                    string comp_group;
@@ -11892,7 +11562,6 @@
 //                                        comp_group = dt_temp.Rows[0]["CRTT_value"].ToString();
 //                                        updateCmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
 //                                    }
-//                                    else if (component == "platform.Panther Lake.sw.win-driver.PMT Driver")
 //                                    {
 //                                        comp_group = "PMT";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -11902,7 +11571,6 @@
 //                                        comp_group = "Security";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Panther Lake.hw.pch.XHCI")
 //                                    {
 //                                        comp_group = "HW";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -11912,7 +11580,6 @@
 //                                        comp_group = "HW";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Nova Lake.sw.Client IO Margining Tool (IOMT)#")
 //                                    {
 //                                        comp_group = "IOMT";
 //                                        updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -12249,8 +11916,6 @@
 
 //                            else
 //                            {
-//                                string insert = "INSERT into " + nvl_s_cmf_table + " (cp_id,title,reproducibility,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name, original_progress) VALUES (@cp_id,@title,@reproducibility,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor,@customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name, @original_progress)";
-//                                //string insert = "INSERT into " + ptl_cmf_table + " (cp_id,title,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected,processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name) VALUES (@cp_id,@title,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor, @customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name)"; 
 //                                using (SqlCommand cmd = new SqlCommand(insert))
 //                                {
 //                                    cmd.Connection = con;
@@ -12340,8 +12005,6 @@
 
 
 //                                    DataTable dt_temp = new DataTable();
-//                                    nvl_s_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//                                    adapt = new SqlDataAdapter(nvl_s_query, con);
 //                                    adapt.Fill(dt_temp);
 
 
@@ -12376,7 +12039,6 @@
 //                                        comp_group = dt_temp.Rows[0]["CRTT_value"].ToString();
 //                                        cmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
 //                                    }
-//                                    else if (component == "platform.Panther Lake.sw.win-driver.PMT Driver")
 //                                    {
 //                                        comp_group = "PMT";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -12386,12 +12048,10 @@
 //                                        comp_group = "Security";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Nova Lake.sw.Client IO Margining Tool (IOMT)#")
 //                                    {
 //                                        comp_group = "IOMT";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
 //                                    }
-//                                    else if (component == "platform.Panther Lake.hw.pch.XHCI")
 //                                    {
 //                                        comp_group = "HW";
 //                                        cmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -12695,7 +12355,6 @@
 //            // Step 2: Build and execute DELETE query (only if there are IDs to keep)
 //            if (!string.IsNullOrEmpty(idsToKeep))
 //            {
-//                deleteQuery = $"DELETE FROM {nvl_s_cmf_table} WHERE cp_id NOT IN ({idsToKeep})";
 
 //                using (SqlConnection con = new SqlConnection(strconnstring))
 //                {
@@ -12710,7 +12369,6 @@
 //            using (SqlConnection con = new SqlConnection(strconnstring))
 //            {
 //                con.Open();
-//                string update_cp = "delete from " + nvl_s_cmf_table + " where ext_additional_info like ('%design review%') or ext_additional_info like ('%question%') or ext_additional_info like ('%feature request%')";
 
 //                SqlCommand cmd = new SqlCommand(update_cp);
 //                cmd.Connection = con;
@@ -12722,12 +12380,9 @@
 //            //////////////////////////////////////////////////////////////////////////
 //            ///
 
-//            //apiresponse_nvl_h = SubmitRequest(CreateQueryRequest(nvl_h_query));
 
 //            //dt4 = new DataTable();
-//            //if (apiresponse_nvl_h.responses[0].status.ToLower() == "success")
 //            //{
-//            //    IList<Result> webresults_cp = apiresponse_nvl_h.responses[0].result_table;
 //            //    dt4 = GetDatatableFromJson(webresults_cp);
 //            //}
 
@@ -12740,7 +12395,6 @@
 //            //        // Check if the record already exists
 //            //        string cp_id = dt4.Rows[i]["ip_sw_id"].ToString();
 
-//            //        string checkQuery = "SELECT COUNT(*) FROM " + nvl_h_cmf_table + " WHERE cp_id = @cp_id";
 
 
 //            //        using (SqlConnection con = new SqlConnection(strconnstring))
@@ -12753,7 +12407,6 @@
 
 //            //                if (count > 0)
 //            //                {
-//            //                    string checkProgress = "SELECT progress FROM " + nvl_h_cmf_table + " WHERE cp_id = " + cp_id + "";
 
 //            //                    SqlDataAdapter adapt;
 //            //                    DataTable dt_temp = new DataTable();
@@ -12762,8 +12415,6 @@
 
 //            //                    string progress = dt_temp.Rows[0][0].ToString();
 
-//            //                    string updateQuery = "UPDATE " + nvl_h_cmf_table + " SET title = @title, reproducibility=@reproducibility, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name, original_progress=@original_progress WHERE cp_id = @cp_id";
-//            //                    //string updateQuery = "UPDATE " + ptl_cmf_table + " SET title = @title, status = @status, how_found_category = @how_found_category, family = @family, operating_system = @operating_system, platform = @platform, customer_company = @customer_company, submitted_date = @submitted_date, implemented_date = @implemented_date, updated_date = @updated_date, closed_date = @closed_date, component = @component, release = @release, reason = @reason, repro_on_rvp = @repro_on_rvp, resolution_type = @resolution_type, cmf_request = @cmf_request, must_fix_for = @must_fix_for, report_type = @report_type,closed_reason = @closed_reason, ext_additional_info = @ext_additional_info, customer_detail = @customer_detail, customer_owner = @customer_owner, submitter_org = @submitter_org, days_open = @days_open, ww_submitted = @ww_submitted, submitted_by = @submitted_by, regression = @regression, customer_affected = @customer_affected, processor = @processor, customer_impact = @customer_impact, priority = @priority, location = @location, date_debug = @date_debug, third_party_classification = @3rd_party_classification, family_affected = @family_affected, promoted_status = @promoted_status, promoted_id = @promoted_id, days_active = @days_active, merge_id = @merge_id, date_cmf_ask = @date_cmf_ask, date_cmf_decided = @date_cmf_decided, progress = @progress, drivers=@drivers, fixed_in_version=@fixed_in_version, me_sku = @me_sku, sysdebug=@sysdebug, cmf_status=@cmf_status, component_group = @component_group, idst=@idst, impact=@impact, owners_name=@owners_name WHERE cp_id = @cp_id";
 //            //                    using (SqlCommand updateCmd = new SqlCommand(updateQuery))
 //            //                    {
 //            //                        updateCmd.Connection = con;
@@ -12877,8 +12528,6 @@
 //            //                        updateCmd.Parameters.AddWithValue("@impact", dt4.Rows[i]["impact"].ToString());
 
 //            //                        dt_temp.Clear();
-//            //                        nvl_h_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//            //                        adapt = new SqlDataAdapter(nvl_h_query, con);
 //            //                        adapt.Fill(dt_temp);
 //            //                        string component = dt4.Rows[i]["found_in_component"].ToString();
 //            //                        string comp_group;
@@ -12888,7 +12537,6 @@
 //            //                            comp_group = dt_temp.Rows[0]["CRTT_value"].ToString();
 //            //                            updateCmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
 //            //                        }
-//            //                        else if (component == "platform.Panther Lake.sw.win-driver.PMT Driver")
 //            //                        {
 //            //                            comp_group = "PMT";
 //            //                            updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -12898,7 +12546,6 @@
 //            //                            comp_group = "Security";
 //            //                            updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //            //                        }
-//            //                        else if (component == "platform.Panther Lake.hw.pch.XHCI")
 //            //                        {
 //            //                            comp_group = "HW";
 //            //                            updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -12908,7 +12555,6 @@
 //            //                            comp_group = "HW";
 //            //                            updateCmd.Parameters.AddWithValue("@component_group", comp_group);
 //            //                        }
-//            //                        else if (component == "platform.Nova Lake.sw.Client IO Margining Tool (IOMT)#")
 //            //                        {
 //            //                            comp_group = "IOMT";
 //            //                            updateCmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -13245,8 +12891,6 @@
 
 //            //                else
 //            //                {
-//            //                    string insert = "INSERT into " + nvl_h_cmf_table + " (cp_id,title,reproducibility,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected, processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name, original_progress) VALUES (@cp_id,@title,@reproducibility,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor,@customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name, @original_progress)";
-//            //                    //string insert = "INSERT into " + ptl_cmf_table + " (cp_id,title,status,how_found_category,family,operating_system,platform,customer_company,submitted_date,implemented_date,updated_date,closed_date,component,release,reason,repro_on_rvp,resolution_type,cmf_request,must_fix_for,report_type,closed_reason,ext_additional_info,customer_detail,customer_owner,submitter_org,days_open,ww_submitted,submitted_by,regression,customer_affected,processor, customer_impact,priority,location,date_debug,third_party_classification,family_affected, promoted_status, promoted_id, component_group, days_active, progress, cmf_status, status_updated_by, status_updated_on, idst, los, drivers, merge_id, date_cmf_ask , date_cmf_decided, impact, fixed_in_version, me_sku, sysdebug, owners_name) VALUES (@cp_id,@title,@status,@how_found_category,@family,@operating_system,@platform,@customer_company,@submitted_date,@implemented_date,@updated_date,@closed_date,@component,@release,@reason,@repro_on_rvp,@resolution_type,@cmf_request,@must_fix_for,@report_type,@closed_reason,@ext_additional_info,@customer_detail,@customer_owner,@submitter_org,@days_open,@ww_submitted,@submitted_by,@regression,@customer_affected, @processor, @customer_impact,@priority,@location,@date_debug,@3rd_party_classification,@family_affected,@promoted_status,@promoted_id, @component_group, @days_active, @progress, @cmf_status, @status_updated_by, @status_updated_on, @idst, @los, @drivers, @merge_id, @date_cmf_ask , @date_cmf_decided, @impact, @fixed_in_version, @me_sku, @sysdebug, @owners_name)"; 
 //            //                    using (SqlCommand cmd = new SqlCommand(insert))
 //            //                    {
 //            //                        cmd.Connection = con;
@@ -13336,8 +12980,6 @@
 
 
 //            //                        DataTable dt_temp = new DataTable();
-//            //                        nvl_h_query = "select CRTT_value from [gfxitt_db].[dbo].[CRTT_COMPONENT_TABLE] where component_name in ('" + dt4.Rows[i]["found_in_component"].ToString() + "')";
-//            //                        adapt = new SqlDataAdapter(nvl_h_query, con);
 //            //                        adapt.Fill(dt_temp);
 
 
@@ -13372,7 +13014,6 @@
 //            //                            comp_group = dt_temp.Rows[0]["CRTT_value"].ToString();
 //            //                            cmd.Parameters.AddWithValue("@component_group", dt_temp.Rows[0]["CRTT_value"].ToString());
 //            //                        }
-//            //                        else if (component == "platform.Panther Lake.sw.win-driver.PMT Driver")
 //            //                        {
 //            //                            comp_group = "PMT";
 //            //                            cmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -13382,12 +13023,10 @@
 //            //                            comp_group = "Security";
 //            //                            cmd.Parameters.AddWithValue("@component_group", comp_group);
 //            //                        }
-//            //                        else if (component == "platform.Nova Lake.sw.Client IO Margining Tool (IOMT)#")
 //            //                        {
 //            //                            comp_group = "IOMT";
 //            //                            cmd.Parameters.AddWithValue("@component_group", comp_group);
 //            //                        }
-//            //                        else if (component == "platform.Panther Lake.hw.pch.XHCI")
 //            //                        {
 //            //                            comp_group = "HW";
 //            //                            cmd.Parameters.AddWithValue("@component_group", comp_group);
@@ -13691,7 +13330,6 @@
 //            //// Step 2: Build and execute DELETE query (only if there are IDs to keep)
 //            //if (!string.IsNullOrEmpty(idsToKeep))
 //            //{
-//            //    deleteQuery = $"DELETE FROM {nvl_h_cmf_table} WHERE cp_id NOT IN ({idsToKeep})";
 
 //            //    using (SqlConnection con = new SqlConnection(strconnstring))
 //            //    {
@@ -13706,7 +13344,6 @@
 //            //using (SqlConnection con = new SqlConnection(strconnstring))
 //            //{
 //            //    con.Open();
-//            //    string update_cp = "delete from " + nvl_h_cmf_table + " where ext_additional_info like ('%design review%') or ext_additional_info like ('%question%') or ext_additional_info like ('%feature request%')";
 
 //            //    SqlCommand cmd = new SqlCommand(update_cp);
 //            //    cmd.Connection = con;

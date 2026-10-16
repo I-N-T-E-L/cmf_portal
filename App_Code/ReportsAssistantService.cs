@@ -28,66 +28,9 @@ public static class ReportsAssistantService
     private const string ReportsContextSessionKey = "ReportsAssistantContextByPlatform";
     private const string AllCmfDataContextKey = "ALL_CMF_DATA";
     private const int MaxHsdRowsForReports = 40;
-    private static readonly Dictionary<string, string> PlatformPromptMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-    {
-        { "ptl", "CMF_PTL_ALL_COMPONENTS_TABLE" },
-        { "panther lake", "CMF_PTL_ALL_COMPONENTS_TABLE" },
-        { "pantherlake", "CMF_PTL_ALL_COMPONENTS_TABLE" },
-        { "lnl", "CMF_LNL_ALL_COMPONENTS_TABLE" },
-        { "lunar lake", "CMF_LNL_ALL_COMPONENTS_TABLE" },
-        { "lunarlake", "CMF_LNL_ALL_COMPONENTS_TABLE" },
-        { "arl-s", "CMF_ARL_S_ALL_COMPONENTS_TABLE" },
-        { "arl s", "CMF_ARL_S_ALL_COMPONENTS_TABLE" },
-        { "arl_s", "CMF_ARL_S_ALL_COMPONENTS_TABLE" },
-        { "arl-h", "CMF_ARL_H_ALL_COMPONENTS_TABLE" },
-        { "arl h", "CMF_ARL_H_ALL_COMPONENTS_TABLE" },
-        { "arl_h", "CMF_ARL_H_ALL_COMPONENTS_TABLE" },
-        { "arl-u", "CMF_ARL_U_ALL_COMPONENTS_TABLE" },
-        { "arl u", "CMF_ARL_U_ALL_COMPONENTS_TABLE" },
-        { "arl_u", "CMF_ARL_U_ALL_COMPONENTS_TABLE" },
-        { "arl-hx", "CMF_ARL_HX_ALL_COMPONENTS_TABLE" },
-        { "arl hx", "CMF_ARL_HX_ALL_COMPONENTS_TABLE" },
-        { "arl_hx", "CMF_ARL_HX_ALL_COMPONENTS_TABLE" },
-        { "arl-refresh", "CMF_ARL_Refresh_ALL_COMPONENTS_TABLE" },
-        { "arl refresh", "CMF_ARL_Refresh_ALL_COMPONENTS_TABLE" },
-        { "arl_refresh", "CMF_ARL_Refresh_ALL_COMPONENTS_TABLE" },
-        { "gnr", "CMF_GNR_ALL_COMPONENTS_TABLE" },
-        { "wcl", "CMF_WCL_ALL_COMPONENTS_TABLE" },
-        { "wildcat lake", "CMF_WCL_ALL_COMPONENTS_TABLE" },
-        { "wildcatlake", "CMF_WCL_ALL_COMPONENTS_TABLE" },
-        { "nvl-s", "CMF_NVL_S_ALL_COMPONENTS_TABLE" },
-        { "nvl s", "CMF_NVL_S_ALL_COMPONENTS_TABLE" },
-        { "nvl_s", "CMF_NVL_S_ALL_COMPONENTS_TABLE" },
-        { "nvl-h", "CMF_NVL_H_ALL_COMPONENTS_TABLE" },
-        { "nvl h", "CMF_NVL_H_ALL_COMPONENTS_TABLE" },
-        { "nvl_h", "CMF_NVL_H_ALL_COMPONENTS_TABLE" },
-        { "nvl-u", "CMF_NVL_U_ALL_COMPONENTS_TABLE" },
-        { "nvl u", "CMF_NVL_U_ALL_COMPONENTS_TABLE" },
-        { "nvl_u", "CMF_NVL_U_ALL_COMPONENTS_TABLE" }
-    };
-
-    private static readonly string[] NovaLakePlatformTables = new string[]
-    {
-        "CMF_NVL_S_ALL_COMPONENTS_TABLE",
-        "CMF_NVL_H_ALL_COMPONENTS_TABLE",
-        "CMF_NVL_U_ALL_COMPONENTS_TABLE"
-    };
-
-    private static readonly HashSet<string> AllowedPlatformTables = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
-        "CMF_PTL_ALL_COMPONENTS_TABLE",
-        "CMF_LNL_ALL_COMPONENTS_TABLE",
-        "CMF_ARL_S_ALL_COMPONENTS_TABLE",
-        "CMF_ARL_H_ALL_COMPONENTS_TABLE",
-        "CMF_ARL_U_ALL_COMPONENTS_TABLE",
-        "CMF_ARL_HX_ALL_COMPONENTS_TABLE",
-        "CMF_GNR_ALL_COMPONENTS_TABLE",
-        "CMF_WCL_ALL_COMPONENTS_TABLE",
-        "CMF_ARL_Refresh_ALL_COMPONENTS_TABLE",
-        "CMF_NVL_S_ALL_COMPONENTS_TABLE",
-        "CMF_NVL_H_ALL_COMPONENTS_TABLE",
-        "CMF_NVL_U_ALL_COMPONENTS_TABLE"
-    };
+    private static readonly Dictionary<string, string> PlatformPromptMap = CmfPlatformCatalog.GetPromptAliasToTableMap();
+    private static readonly Dictionary<string, string[]> PlatformGroupAliasMap = CmfPlatformCatalog.GetGroupAliasToTablesMap();
+    private static readonly HashSet<string> AllowedPlatformTables = CmfPlatformCatalog.GetAllowedPlatformTables();
 
     public static ReportsAssistantResponse ProcessPrompt(string prompt, string platform)
     {
@@ -238,6 +181,7 @@ public static class ReportsAssistantService
         psi.EnvironmentVariables["CMF_GITHUB_MODEL"] = githubModel ?? string.Empty;
         psi.EnvironmentVariables["CMF_GITHUB_API_KEY"] = githubApiKey ?? string.Empty;
         psi.EnvironmentVariables["CMF_GITHUB_PROXY"] = githubProxy ?? string.Empty;
+        psi.EnvironmentVariables["CMF_PLATFORM_ALIAS_MAP_JSON"] = BuildPlatformAliasPayloadJson();
 
         string stdout;
         string stderr;
@@ -428,6 +372,7 @@ public static class ReportsAssistantService
         psi.EnvironmentVariables["CMF_GITHUB_MODEL"] = githubModel ?? string.Empty;
         psi.EnvironmentVariables["CMF_GITHUB_API_KEY"] = githubApiKey ?? string.Empty;
         psi.EnvironmentVariables["CMF_GITHUB_PROXY"] = githubProxy ?? string.Empty;
+        psi.EnvironmentVariables["CMF_PLATFORM_ALIAS_MAP_JSON"] = BuildPlatformAliasPayloadJson();
 
         string stdout;
         string stderr;
@@ -495,7 +440,7 @@ public static class ReportsAssistantService
     private static string ResolvePlatform(string platform)
     {
         string selected = string.IsNullOrWhiteSpace(platform)
-            ? "CMF_PTL_ALL_COMPONENTS_TABLE"
+            ? CmfPlatformCatalog.GetDefaultPlatformTableName()
             : platform.Trim();
 
         return AllowedPlatformTables.Contains(selected) ? selected : string.Empty;
@@ -513,27 +458,13 @@ public static class ReportsAssistantService
 
     private static List<string> GetAllPlatformTables()
     {
-        return new List<string>(new string[]
-        {
-            "CMF_PTL_ALL_COMPONENTS_TABLE",
-            "CMF_LNL_ALL_COMPONENTS_TABLE",
-            "CMF_ARL_S_ALL_COMPONENTS_TABLE",
-            "CMF_ARL_H_ALL_COMPONENTS_TABLE",
-            "CMF_ARL_U_ALL_COMPONENTS_TABLE",
-            "CMF_ARL_HX_ALL_COMPONENTS_TABLE",
-            "CMF_GNR_ALL_COMPONENTS_TABLE",
-            "CMF_WCL_ALL_COMPONENTS_TABLE",
-            "CMF_ARL_Refresh_ALL_COMPONENTS_TABLE",
-            "CMF_NVL_S_ALL_COMPONENTS_TABLE",
-            "CMF_NVL_H_ALL_COMPONENTS_TABLE",
-            "CMF_NVL_U_ALL_COMPONENTS_TABLE"
-        });
+        return new List<string>(CmfPlatformCatalog.GetAllPlatformTables());
     }
 
     private static string BuildReportScopeKey(List<string> platformTables)
     {
         if (platformTables == null || platformTables.Count == 0) return AllCmfDataContextKey;
-        if (platformTables.Count == AllowedPlatformTables.Count) return AllCmfDataContextKey;
+        if (platformTables.Count == CmfPlatformCatalog.GetPlatformCount()) return AllCmfDataContextKey;
         return BuildCombinedPlatformCode(platformTables);
     }
 
@@ -659,6 +590,53 @@ public static class ReportsAssistantService
         return string.Join("+", codes.ToArray());
     }
 
+    private static string BuildPlatformAliasPayloadJson()
+    {
+        Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object> aliasToCodes = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object> groupAliasToCodes = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (KeyValuePair<string, string> entry in PlatformPromptMap)
+        {
+            string code = ResolvePlatformCode(entry.Value);
+            if (!string.IsNullOrWhiteSpace(code) && !string.Equals(code, "UNKNOWN", StringComparison.OrdinalIgnoreCase))
+            {
+                aliasToCodes[entry.Key] = code.ToLowerInvariant();
+            }
+        }
+
+        foreach (KeyValuePair<string, string[]> entry in PlatformGroupAliasMap)
+        {
+            List<string> codes = new List<string>();
+            string[] tableNames = entry.Value ?? new string[0];
+            for (int index = 0; index < tableNames.Length; index++)
+            {
+                string code = ResolvePlatformCode(tableNames[index]);
+                if (string.IsNullOrWhiteSpace(code) || string.Equals(code, "UNKNOWN", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                code = code.ToLowerInvariant();
+                if (!codes.Contains(code))
+                {
+                    codes.Add(code);
+                }
+            }
+
+            if (codes.Count > 0)
+            {
+                groupAliasToCodes[entry.Key] = codes;
+            }
+        }
+
+        payload["alias_to_codes"] = aliasToCodes;
+        payload["group_alias_to_codes"] = groupAliasToCodes;
+
+        JavaScriptSerializer serializer = new JavaScriptSerializer();
+        return serializer.Serialize(payload);
+    }
+
     private static string ResolvePlatformFromPrompt(string prompt)
     {
         string lowered = (prompt ?? string.Empty).ToLowerInvariant();
@@ -669,8 +647,7 @@ public static class ReportsAssistantService
 
         foreach (KeyValuePair<string, string> entry in PlatformPromptMap)
         {
-            string token = entry.Key;
-            if (lowered.Contains(token))
+            if (ContainsWholePlatformAlias(lowered, entry.Key))
             {
                 return AllowedPlatformTables.Contains(entry.Value) ? entry.Value : string.Empty;
             }
@@ -688,13 +665,19 @@ public static class ReportsAssistantService
             return platforms;
         }
 
-        if (ContainsWholePlatformAlias(lowered, "nvl") || ContainsWholePlatformAlias(lowered, "nova lake") || ContainsWholePlatformAlias(lowered, "novalake"))
+        foreach (KeyValuePair<string, string[]> entry in PlatformGroupAliasMap)
         {
-            for (int index = 0; index < NovaLakePlatformTables.Length; index++)
+            if (!ContainsWholePlatformAlias(lowered, entry.Key) || entry.Value == null)
             {
-                if (!platforms.Contains(NovaLakePlatformTables[index]))
+                continue;
+            }
+
+            for (int index = 0; index < entry.Value.Length; index++)
+            {
+                string tableName = entry.Value[index];
+                if (AllowedPlatformTables.Contains(tableName) && !platforms.Contains(tableName))
                 {
-                    platforms.Add(NovaLakePlatformTables[index]);
+                    platforms.Add(tableName);
                 }
             }
         }
@@ -1174,25 +1157,7 @@ public static class ReportsAssistantService
 
     private static string ResolvePlatformCode(string platformTable)
     {
-        if (string.IsNullOrWhiteSpace(platformTable))
-        {
-            return "UNKNOWN";
-        }
-
-        string value = platformTable.Trim();
-        if (value.StartsWith("CMF_", StringComparison.OrdinalIgnoreCase))
-        {
-            value = value.Substring(4);
-        }
-
-        const string suffix = "_ALL_COMPONENTS_TABLE";
-        int suffixIndex = value.IndexOf(suffix, StringComparison.OrdinalIgnoreCase);
-        if (suffixIndex >= 0)
-        {
-            value = value.Substring(0, suffixIndex);
-        }
-
-        return string.IsNullOrWhiteSpace(value) ? "UNKNOWN" : value;
+        return CmfPlatformCatalog.ResolvePlatformCode(platformTable);
     }
 
     private static string ReadConversationContext(string platform)
@@ -1387,17 +1352,42 @@ public static class ReportsAssistantService
             }
         }
 
-        // Portal-relevant keywords that should be present
-        string[] portalKeywords = new[]
+        // Portal-relevant keywords that should be present.
+        List<string> portalKeywords = new List<string>
         {
             "issue", "bug", "problem", "sighting", "cmf", "defect", "status", "owner",
             "component", "driver", "platform", "milestone", "customer", "resolved",
             "implemented", "verified", "closed", "open", "pending", "chart", "report",
             "analytics", "data", "trend", "analysis", "summary", "stale", "days",
-            "ptl", "lnl", "arl", "gnr", "wcl", "nvl",  // Platform codes
             "distribution", "count", "number of", "how many", "what",
             "show", "list", "find", "get", "which", "top", "highest", "lowest"
         };
+
+        foreach (string alias in PlatformPromptMap.Keys)
+        {
+            if (!portalKeywords.Contains(alias))
+            {
+                portalKeywords.Add(alias);
+            }
+        }
+
+        foreach (string alias in PlatformGroupAliasMap.Keys)
+        {
+            if (!portalKeywords.Contains(alias))
+            {
+                portalKeywords.Add(alias);
+            }
+        }
+
+        string[] allTables = CmfPlatformCatalog.GetAllPlatformTables();
+        for (int tableIndex = 0; tableIndex < allTables.Length; tableIndex++)
+        {
+            string platformCode = ResolvePlatformCode(allTables[tableIndex]).ToLowerInvariant();
+            if (!string.IsNullOrWhiteSpace(platformCode) && !portalKeywords.Contains(platformCode))
+            {
+                portalKeywords.Add(platformCode);
+            }
+        }
 
         // Non-portal generic keywords that should be rejected
         string[] genericKeywords = new[]

@@ -35,6 +35,8 @@ Scripts/                   JavaScript and Python analytics scripts
 bin/                       Runtime assemblies required by the Web Forms app
 ```
 
+The runtime entry point is `CMF_Web_portal.aspx`.
+
 ## First-Time Setup
 
 1. Clone or extract the project to a local folder.
@@ -169,7 +171,7 @@ Reports & Analytics
 Config/CMF Rules, visible in admin mode only
 ```
 
-The portal defaults to the NVL-H platform when opened fresh.
+The portal resolves platform options dynamically from the shared platform catalog.
 
 ## Configuration Notes
 
@@ -177,21 +179,7 @@ The portal defaults to the NVL-H platform when opened fresh.
 
 The app reads database settings from the `gfxitt` connection string in `Web.config`.
 
-The dashboard and issue views depend on platform tables such as:
-
-```text
-CMF_NVL_H_ALL_COMPONENTS_TABLE
-CMF_NVL_S_ALL_COMPONENTS_TABLE
-CMF_PTL_ALL_COMPONENTS_TABLE
-CMF_LNL_ALL_COMPONENTS_TABLE
-CMF_ARL_S_ALL_COMPONENTS_TABLE
-CMF_ARL_H_ALL_COMPONENTS_TABLE
-CMF_ARL_U_ALL_COMPONENTS_TABLE
-CMF_ARL_HX_ALL_COMPONENTS_TABLE
-CMF_ARL_Refresh_ALL_COMPONENTS_TABLE
-CMF_GNR_ALL_COMPONENTS_TABLE
-CMF_WCL_ALL_COMPONENTS_TABLE
-```
+The dashboard and issue views resolve platform tables from the single source in `App_Code/CmfPlatformCatalog.cs`, and runtime UI lists are generated from that source.
 
 ### AI
 
@@ -359,7 +347,7 @@ HTTP/1.1 200 OK
 Then manually verify the main flows in the browser:
 
 ```text
-Dashboard loads for NVL-H
+Dashboard loads for the selected/default platform context
 Platform chips switch platform data
 Issue List loads and filters work
 Issue AI Summary opens
