@@ -75,6 +75,85 @@
         }
 
         /* Markdown content styles */
+        @keyframes shimmer {
+            0% { background-position: -468px 0; }
+            100% { background-position: 468px 0; }
+        }
+        .ai-skeleton-loader {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 10px 0;
+            width: 100%;
+        }
+        .ai-skeleton-line {
+            height: 16px;
+            background: #f6f7f8;
+            background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
+            background-repeat: no-repeat;
+            background-size: 800px 100%;
+            animation-duration: 1.5s;
+            animation-fill-mode: forwards;
+            animation-iteration-count: infinite;
+            animation-name: shimmer;
+            animation-timing-function: linear;
+            border-radius: 4px;
+        }
+        .ai-skeleton-title { width: 40%; height: 20px; }
+        .ai-skeleton-label { width: 25%; }
+        .ai-skeleton-value { width: 85%; }
+
+        .ai-sk-block {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 0;
+        }
+        .ai-sk-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .ai-semantic-badge {
+            display: inline-flex;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+        .badge-green { background: #E6F4EA; color: #1e5a2f; border: 1px solid #B7DEc5; }
+        .badge-amber { background: #FFF4CE; color: #8F6200; border: 1px solid #FDE08B; }
+        .badge-red { background: #FDE8E9; color: #9A242B; border: 1px solid #F9C3C6; }
+        .badge-neutral { background: #f0f2f5; color: #444; border: 1px solid #e0e2e5; }
+
+        .issue-details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .issue-details-grid-full {
+            grid-column: 1 / -1;
+        }
+        .idg-label {
+            font-size: 11px;
+            color: #5c7087;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .idg-val {
+            font-size: 13px;
+            color: #19324a;
+            min-width: 0;
+            max-width: 100%;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+        }
         .markdown-content {
             word-wrap: break-word;
             overflow-wrap: break-word;
@@ -172,6 +251,18 @@
             border-top: 1px solid var(--portal-border);
             margin: 12px 0;
         }
+
+            .cmf-rec-reason-list {
+                margin: 6px 0 8px;
+                padding-left: 18px;
+                display: grid;
+                gap: 5px;
+            }
+
+            .cmf-rec-reason-list li {
+                color: #24364a;
+                line-height: 1.45;
+            }
 
         header {
             z-index: 100;
@@ -2030,7 +2121,7 @@
 
 .cmf-rec-impact-list {
     display: grid;
-    gap: 10px;
+    gap: 8px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -2069,6 +2160,23 @@
 .cmf-rec-impact-item:nth-child(3)::before { background: #f59e0b; }
 .cmf-rec-impact-item:nth-child(4)::before { background: #dc2626; }
 
+.cmf-rec-reasoning-card {
+    display: grid;
+    gap: 8px;
+    padding: 12px 14px;
+    border: 1px solid #dbeafe;
+    border-radius: 12px;
+    background: #f8fbff;
+    color: #24364a;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.cmf-rec-reasoning-card strong {
+    color: #143f6b;
+    font-weight: 800;
+}
+
 .cmf-rec-section .ai-summary-body {
     width: 100%;
     box-sizing: border-box;
@@ -2102,6 +2210,212 @@
 
 .cmf-rec-hidden {
     display: none !important;
+}
+
+#cmfRecDrawer {
+    width: min(980px, 50vw) !important;
+    height: 100% !important;
+    max-height: 100vh !important;
+    top: 0 !important;
+    right: 0 !important;
+    border: 0 !important;
+    border-left: 1px solid rgba(172, 199, 231, 0.92) !important;
+    border-radius: 0 !important;
+    overflow-y: auto !important;
+    padding: 18px 20px 20px !important;
+    background:
+        radial-gradient(circle at 12% 0%, rgba(40, 118, 240, 0.14), transparent 28%),
+        linear-gradient(180deg, #ffffff 0%, #f4f9ff 100%) !important;
+    background-color: #f7fbff !important;
+    box-shadow: -18px 0 42px rgba(8, 25, 49, 0.24) !important;
+    transform: translateX(100%) !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+#cmfRecDrawer.show {
+    transform: translateX(0) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+#cmfRecDrawer .ai-summary-drawer-title {
+    margin-bottom: 7px;
+    padding-right: 42px;
+    color: #09204a;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: 1.3;
+}
+
+.cmf-assistant-title-icon {
+    display: inline;
+    margin-right: 8px;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    font-size: 16px;
+    vertical-align: middle;
+}
+
+.cmf-assistant-context {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    border: 1px solid #d8e7f5;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 6px 16px rgba(30, 84, 144, 0.05);
+}
+
+.cmf-assistant-context span {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0.03em;
+}
+
+.cmf-assistant-context strong {
+    min-width: 0;
+    color: #102f55;
+    font-size: 11px;
+    font-weight: 400;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+}
+
+.cmf-assistant-context-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    color: #111827;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.cmf-assistant-hsd-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: 1px solid #b9d8ff;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #0f5ea8;
+    font-size: 11px;
+    text-decoration: none;
+    box-shadow: 0 4px 10px rgba(15, 94, 168, 0.08);
+}
+
+.cmf-assistant-hsd-link:hover,
+.cmf-assistant-hsd-link:focus {
+    background: #edf5ff;
+    color: #0b4d8b;
+    outline: none;
+}
+
+.cmf-assistant-context-title-line {
+    grid-column: 1 / -1;
+}
+
+.cmf-assistant-context-line strong {
+    color: #111827;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.cmf-assistant-context-title {
+    align-self: start;
+}
+
+#cmfAssistantRecTag {
+    margin-left: 8px;
+    align-self: center;
+    justify-self: end;
+    color: #1f2937;
+    font-size: 11px;
+    line-height: 1;
+}
+
+.cmf-assistant-heading-id {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: #edf5ff;
+    border: 1px solid #c9ddfb;
+    color: #17457c;
+    font-size: 12px;
+    font-weight: 850;
+}
+
+.cmf-assistant-heading-id span:first-child {
+    color: #5f789b;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.cmf-assistant-heading-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.cmf-assistant-heading-meta-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    max-width: 210px;
+    padding: 4px 8px;
+    border: 1px solid rgba(92, 137, 190, 0.20);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.70);
+    color: #17395f;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.cmf-assistant-heading-meta-item span {
+    color: #64748b;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.cmf-assistant-heading-meta-item strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #102f55;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.cmf-rec-heading-sighting {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 12px;
+    color: #5d7289;
+    font-size: 13px;
+    font-weight: 750;
+    vertical-align: middle;
 }
 
 .cmf-decision-details-shell {
@@ -2279,9 +2593,11 @@
     transform: translateX(100%);
     transition: transform 0.28s ease;
     z-index: 1061;
-    overflow-y: auto;
+    overflow: hidden;
     padding: 24px;
     border-left: 1px solid rgba(205, 217, 229, 0.9);
+    display: flex;
+    flex-direction: column;
 }
 
 .ai-summary-drawer.show {
@@ -2290,26 +2606,37 @@
 
 .ai-summary-chat {
     border-top: 1px solid rgba(205,217,229,0.8);
-    margin-top: 12px;
-    padding-top: 12px;
+    background: #fff;
+    padding: 12px 24px;
+    margin: 0 -24px -24px -24px;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 .ai-chat-messages {
     /* make the chat area take most of the drawer height to feel like a chatbot */
-    max-height: calc(100vh - 300px);
+    flex: 1 1 auto;
+    min-height: calc(100vh - 330px);
+    max-height: none;
     overflow-y: auto;
     padding: 8px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-bottom: 8px;
+    margin-bottom: 24px;
 }
-.ai-chat-message { display:block; }
-.ai-chat-message.ai-chat-assistant .ai-chat-message-body { background:#f1f5f9; color:#0b1720; padding:10px 12px; border-radius:10px; max-width:100%; }
-.ai-chat-message.ai-chat-user { align-self:flex-end; }
-.ai-chat-message.ai-chat-user .ai-chat-message-body { background:#2b6cb0; color:#fff; padding:10px 12px; border-radius:10px; max-width:100%; }
-.ai-chat-input { display:flex; gap:8px; align-items:center; }
-.ai-chat-input-box { flex:1; min-height:40px; max-height:120px; padding:8px 10px; border-radius:8px; border:1px solid #cfd8e3; resize:vertical; }
-.ai-chat-send { background:#2563eb; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; }
+.ai-chat-message { display:flex; flex-direction:column; margin-bottom:12px; font-size:14px; line-height:1.5; }
+.ai-chat-message.ai-chat-assistant .ai-chat-message-body { background:#f1f5f9; color:#1a202c; padding:14px 16px; border-radius:12px; max-width:96%; border-left: 4px solid #005A9E; box-shadow: 0 4px 6px rgba(0,0,0,0.05); align-self: flex-start; }
+.ai-chat-message.ai-chat-user { align-self:flex-end; max-width: 90%; }
+.ai-chat-message.ai-chat-user .ai-chat-message-body { background:#005A9E; color:#fff; padding:12px 14px; border-radius:12px; max-width:100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.ai-chat-input { display:flex; gap:10px; align-items:flex-end; margin-top:10px; }
+.ai-chat-input-box { flex:1; min-height:45px; max-height:140px; padding:10px 14px; border-radius:12px; border:1px solid #cbd5e0; resize:vertical; font-size: 14px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); transition: border-color 0.2s; }
+.ai-chat-input-box:focus { border-color: #005A9E; outline: none; }
+.ai-chat-send { background:transparent; border:none; padding:10px 10px; border-radius:50%; cursor:pointer; min-height: 45px; transition: transform 0.1s ease, color 0.2s; color: #0071c5; display: flex; align-items: center; justify-content: center; }
+.ai-chat-send:active { transform: scale(0.95); }
+.ai-chat-send:hover { color: #005A9E; background: rgba(0, 113, 197, 0.1); }
+.ai-chat-send:disabled { color: #a0aec0; cursor: not-allowed; background: transparent; box-shadow: none; }
 
 .ai-summary-drawer-close {
     position: absolute;
@@ -5483,6 +5810,34 @@ body {
     }
 }
 
+@media (max-width: 1180px) {
+    .ccip-dashboard-overview,
+    .ccip-dashboard-tables-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ccip-dashboard-tables-grid .ccip-col-center {
+        display: flex;
+    }
+
+    .ccip-ai-health-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ccip-health-score,
+    .ccip-health-risk-compact,
+    .ccip-health-weekly,
+    .ccip-health-blockers,
+    .ccip-ai-health-grid .ccip-ai-health-summary {
+        grid-column: auto;
+        grid-row: auto;
+    }
+
+    .ccip-dashboard-overview {
+        min-height: 0;
+    }
+}
+
 @media (max-width: 900px) {
     .ccip-main-grid {
         grid-template-columns: 1fr;
@@ -5779,15 +6134,22 @@ form,
 /* Issue List + CMF Pending interactive modernization */
 .issue-tab-shell,
 .pending-tab-shell {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 290px;
-    gap: 12px;
-    align-items: start;
+    width: 100% !important;
+    max-width: none !important;
+}
+
+#issueTabShell[style*="display:none"],
+#issueTabShell[style*="display: none"],
+#pendingTabShell[style*="display:none"],
+#pendingTabShell[style*="display: none"] {
+    display: none !important;
 }
 
 .issue-tab-main,
 .pending-tab-main {
     min-width: 0;
+    width: 100% !important;
+    max-width: none !important;
 }
 
 .issue-tab-shell.side-hidden,
@@ -5938,6 +6300,8 @@ form,
     padding: 8px;
     background: #ffffff;
     box-shadow: 0 10px 24px rgba(16, 24, 40, 0.05);
+    width: 100% !important;
+    max-width: none !important;
 }
 
 .issue-grid-inner #overall_request_details {
@@ -6946,7 +7310,11 @@ td:nth-child(odd), th:nth-child(odd) {
 
     /* Force table layout to recalculate when columns are hidden */
     #overall_request_details {
-        table-layout: auto !important;
+        border-collapse: separate !important;
+        border-spacing: 0 10px !important;
+        border: 0 !important;
+        background: transparent !important;
+        overflow: visible !important;
     }
 
     #overall_request_details table {
@@ -6955,11 +7323,94 @@ td:nth-child(odd), th:nth-child(odd) {
     }
 
     /* Responsive design */
+    #<%= overall_request_details.ClientID %> .field-sno.hidden,
+    #<%= overall_request_details.ClientID %> .field-progress.hidden,
+    #<%= overall_request_details.ClientID %> .field-sightingid.hidden,
+    #<%= overall_request_details.ClientID %> .field-issue_details.hidden,
+    #<%= overall_request_details.ClientID %> .field-promotedid.hidden,
+    #<%= overall_request_details.ClientID %> .field-title.hidden,
+    #<%= overall_request_details.ClientID %> .field-component.hidden,
+    #<%= overall_request_details.ClientID %> .field-owner.hidden,
+    #<%= overall_request_details.ClientID %> .field-promoted_owner.hidden,
+    #<%= overall_request_details.ClientID %> .field-rvp_repro.hidden,
+    #<%= overall_request_details.ClientID %> .field-processor.hidden,
+    #<%= overall_request_details.ClientID %> .field-status.hidden,
+    #<%= overall_request_details.ClientID %> .field-idst.hidden,
+    #<%= overall_request_details.ClientID %> .field-los.hidden,
+    #<%= overall_request_details.ClientID %> .field-customer_company.hidden,
+    #<%= overall_request_details.ClientID %> .field-customer_detail.hidden,
+    #<%= overall_request_details.ClientID %> .field-imagefreeze.hidden,
+    #<%= overall_request_details.ClientID %> .field-component_group.hidden,
+    #<%= overall_request_details.ClientID %> .field-duplicatedetails.hidden,
+    #<%= overall_request_details.ClientID %> .field-impact.hidden,
+    #<%= overall_request_details.ClientID %> .field-impact_processor.hidden,
+    #<%= overall_request_details.ClientID %> .field-milestone.hidden,
+    #<%= overall_request_details.ClientID %> .field-days_open.hidden,
+    #<%= overall_request_details.ClientID %> .field-cmf_request.hidden,
+    #<%= overall_request_details.ClientID %> .field-cmf_status.hidden,
+    #<%= overall_request_details.ClientID %> .field-closed_reason.hidden,
+    #<%= overall_request_details.ClientID %> .field-edit_column.hidden {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        border-width: 0 !important;
+        overflow: hidden !important;
+    }
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-sno.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-progress.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-sightingid.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-issue_details.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-promotedid.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-title.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-component.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-owner.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-promoted_owner.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-rvp_repro.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-processor.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-status.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-idst.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-los.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-customer_company.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-customer_detail.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-duplicatedetails.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-component_group.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-imagefreeze.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-impact.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-impact_processor.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-milestone.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-days_open.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-cmf_request.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-closed_reason.hidden,
+    #<%= overall_request_details.ClientID %> .empty-data-container .field-edit_column.hidden {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        border-width: 0 !important;
+        overflow: hidden !important;
+    }
+    #<%= overall_request_details.ClientID %> {
+        table-layout: auto !important;
+    }
+
+    #<%= overall_request_details.ClientID %> table {
+        table-layout: auto !important;
+        width: 100% !important;
+    }
     @media (max-width: 768px) {
         .checkbox-grid {
             grid-template-columns: 1fr;
         }
-        
+
         .panel-actions {
             justify-content: center;
         }
@@ -7681,12 +8132,12 @@ td:nth-child(odd), th:nth-child(odd) {
     }
 
     .pending-ai-rec-btn {
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
         justify-content: center;
-        gap: 2px;
-        min-width: 118px;
-        min-height: 46px;
+        gap: 6px;
+        min-width: 112px;
+        min-height: 34px;
         border-radius: 10px;
         background: #f0fdf4;
         border-color: #bbf7d0;
@@ -7694,8 +8145,13 @@ td:nth-child(odd), th:nth-child(odd) {
         text-align: center;
     }
 
-    .pending-ai-rec-label {
+    .pending-ai-rec-icon {
         font-size: 13px;
+        line-height: 1;
+    }
+
+    .pending-ai-rec-label {
+        font-size: 11px;
         font-weight: 900;
         line-height: 1.1;
     }
@@ -8106,7 +8562,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
     /* Customer Detail combined cell */
     .issue-details-cell {
-        max-width: 100%;
+        max-width: 100%; /* This line is now correctly placed */
         display: flex;
         flex-direction: column;
         gap: 12px;
@@ -8119,6 +8575,7 @@ td:nth-child(odd), th:nth-child(odd) {
         max-width: 100%;
         line-height: 1.35;
         overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .cmf-pending-grid-wrap #GridView_cmf_pending td *,
@@ -8638,12 +9095,29 @@ td:nth-child(odd), th:nth-child(odd) {
     }
 
     /* Final visual layer: keep Issue List/Pending away from flat Excel styling. */
+
     #overall_request_details {
+        width: 100% !important;
+
+        min-width: 1050px !important;
+
+        margin: 0 !important;
+
         border-collapse: separate !important;
-        border-spacing: 0 10px !important;
-        border: 0 !important;
-        background: transparent !important;
-        overflow: visible !important;
+
+        border-spacing: 0 !important;
+
+        table-layout: auto !important;
+
+        background: #ffffff !important;
+
+        border: none !important;
+
+        border-radius: 12px !important;
+
+        box-shadow: none !important;
+
+        font-size: 12px !important;
     }
 
     #overall_request_details th {
@@ -8769,6 +9243,1658 @@ td:nth-child(odd), th:nth-child(odd) {
         padding: 0 8px;
         font-size: 12px;
     }
+    .sighting-details-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        padding: 8px 0;
+        min-width: 0;
+    }
+
+    .sighting-id-section {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .sighting-id-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #475569;
+        white-space: nowrap;
+    }
+
+    .sighting-id-value {
+        font-size: 12px;
+        font-weight: 600;
+        color: #0f5ea8;
+        word-break: break-word;
+        text-decoration: none;
+    }
+
+    .sighting-id-value:hover {
+        text-decoration: underline;
+    }
+
+    .sighting-description-section {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .sighting-description-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #475569;
+    }
+
+    .sighting-description-content {
+        font-size: 12px;
+        line-height: 1.4;
+        color: #333;
+        min-height: 24px;
+        word-wrap: break-word;
+        white-space: normal;
+        padding: 4px;
+        border-radius: 4px;
+        background: #f8fafc;
+    }
+
+    .sighting-description-loading {
+        font-size: 11px;
+        color: #999;
+        font-style: italic;
+    }
+
+    .sighting-description-error {
+        font-size: 11px;
+        color: #dc2626;
+        font-style: italic;
+    }
+
+    .sighting-data-container {
+        display: none;
+    }
+
+    .cmf-assistant-sighting-card {
+        border: 0;
+        border-radius: 12px;
+        background: transparent;
+        padding: 0;
+        margin: 4px 0 0;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .cmf-assistant-sighting-head {
+        display: none;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        grid-column: 1 / -1;
+        padding: 10px 12px;
+        border: 1px solid rgba(194, 213, 239, 0.75);
+        border-radius: 10px;
+        background: linear-gradient(90deg, rgba(229, 241, 255, 0.88), rgba(236, 253, 245, 0.55));
+    }
+
+    .cmf-assistant-sighting-head i {
+        color: #1d67c1;
+        font-size: 18px;
+        margin-top: 2px;
+    }
+
+    .cmf-assistant-eyebrow {
+        font-size: 10px;
+        font-weight: 900;
+        color: #5d7290;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .cmf-assistant-sighting-id {
+        margin-top: 2px;
+        font-size: 13px;
+        font-weight: 900;
+        color: #315f93;
+    }
+
+    .cmf-assistant-description {
+        color: #28425c;
+        font-size: 11px;
+        line-height: 1.35;
+        background: #ffffff;
+        border: 1px solid #e1edf7;
+        border-radius: 8px;
+        padding: 6px 8px;
+        min-height: 0;
+        text-align: left;
+    }
+
+    .cmf-assistant-description p {
+        margin: 0;
+    }
+
+    .cmf-assistant-description ul {
+        margin: 6px 0 0;
+        padding-left: 18px;
+    }
+
+    .cmf-assistant-description li {
+        margin: 3px 0;
+        padding-left: 2px;
+        text-align: left;
+    }
+
+    .cmf-assistant-text-section {
+        border: 1px solid #d8e7f5;
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 8px 9px;
+        box-shadow: 0 6px 16px rgba(30, 84, 144, 0.05);
+    }
+
+    .cmf-assistant-description-section {
+        border-color: #b9d8ff;
+        background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
+    }
+
+    .cmf-assistant-impact-section {
+        border-color: #fed7aa;
+        background: #ffffff;
+    }
+
+    .cmf-assistant-text-section h3 {
+        margin: 0 0 5px;
+        color: #102a43;
+        font-size: 11px;
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .cmf-assistant-text-section h3::before {
+        content: '\f0eb';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        width: 18px;
+        height: 18px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #edf5ff;
+        color: #246bfe;
+        font-size: 9px;
+        box-shadow: none;
+    }
+
+    .cmf-assistant-impact-section h3::before {
+        content: '\f071';
+        background: #fff3e0;
+        color: #f97316;
+    }
+
+    .cmf-assistant-metrics-section h3::before {
+        content: '\f201';
+        background: #ecfdf5;
+        color: #16a34a;
+    }
+
+    .cmf-assistant-text-section .cmf-assistant-description,
+    .cmf-assistant-text-section .cmf-assistant-impact-block {
+        border: 0;
+        border-radius: 0;
+        padding: 0;
+        min-height: 0;
+        background: transparent;
+    }
+
+    .cmf-assistant-recommendation-section {
+        border-color: #c7d2fe;
+        background: #ffffff;
+    }
+
+    .cmf-assistant-recommendation-section h3::before {
+        content: '\f0ae';
+        background: #eef2ff;
+        color: #4f46e5;
+    }
+
+    .cmf-assistant-rec-shell {
+        display: grid;
+        gap: 8px;
+    }
+
+    .cmf-assistant-rec-top {
+        display: grid;
+        grid-template-columns: minmax(132px, 0.32fr) minmax(0, 1fr);
+        gap: 8px;
+        align-items: stretch;
+    }
+
+    .cmf-assistant-overall-score {
+        border: 1px solid #d8e2ee;
+        border-radius: 8px;
+        padding: 10px 8px;
+        background: linear-gradient(180deg, #f8fbff, #ffffff);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 112px;
+        overflow: hidden;
+    }
+
+    .cmf-assistant-score-ring {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: conic-gradient(#0f7cc2 calc(var(--score-percent, 0) * 1%), #e8eef6 0);
+        box-shadow: inset 0 0 0 1px #d6e2ef;
+    }
+
+    .cmf-assistant-score-ring::before {
+        content: '';
+        position: absolute;
+    }
+
+    .cmf-assistant-score-ring-value {
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        background: #fff;
+        display: grid;
+        place-items: center;
+        color: #12385f;
+        font-size: 16px;
+        font-weight: 950;
+        line-height: 1;
+    }
+
+    .cmf-assistant-overall-score span,
+    .cmf-assistant-metric-label {
+        color: #64748b;
+        font-size: 9px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0;
+    }
+
+    .cmf-assistant-overall-score strong {
+        color: #12385f;
+        font-size: 13px;
+        font-weight: 950;
+        line-height: 1;
+    }
+
+    .cmf-assistant-overall-score small {
+        color: #66788d;
+        font-size: 10px;
+        font-weight: 750;
+        line-height: 1.25;
+    }
+
+    .cmf-assistant-metric-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+    }
+
+    .cmf-assistant-metric-chip {
+        border: 1px solid #d8e2ee;
+        border-radius: 8px;
+        padding: 7px 8px;
+        background: #ffffff;
+        min-width: 0;
+    }
+
+    .cmf-assistant-metric-chip.is-high {
+        border-color: #d8e2ee;
+        background: #ffffff;
+    }
+
+    .cmf-assistant-metric-chip.is-medium {
+        border-color: #d8e2ee;
+        background: #ffffff;
+    }
+
+    .cmf-assistant-metric-chip.is-low {
+        border-color: #d8e2ee;
+        background: #ffffff;
+    }
+
+    .cmf-assistant-metric-chip.is-empty {
+        border-color: #d8e2ee;
+        background: #ffffff;
+    }
+
+    .cmf-assistant-metric-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 6px;
+        margin-bottom: 3px;
+    }
+
+    .cmf-assistant-metric-name {
+        color: #172033;
+        font-size: 11px;
+        font-weight: 900;
+        min-width: 0;
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        line-height: 1.2;
+    }
+
+    .cmf-assistant-metric-value {
+        color: #0f355c;
+        font-size: 12px;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .cmf-assistant-metric-factor {
+        color: #52677f;
+        font-size: 10.5px;
+        font-weight: 650;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+
+    .cmf-assistant-reasoning-box {
+        border: 1px solid #d8e2ee;
+        border-radius: 8px;
+        padding: 9px 10px;
+        background: #fbfdff;
+    }
+
+    .cmf-assistant-reasoning-box h4 {
+        margin: 0 0 5px;
+        color: #172033;
+        font-size: 11px;
+        font-weight: 900;
+    }
+
+    .cmf-assistant-reasoning-box ul {
+        margin: 0;
+        padding-left: 16px;
+        color: #40566e;
+        font-size: 11px;
+        line-height: 1.35;
+    }
+
+    .cmf-assistant-reasoning-copy ul {
+        margin: 0;
+        padding-left: 16px;
+        color: #40566e;
+        font-size: 11px;
+        line-height: 1.4;
+        text-align: left;
+    }
+
+    .cmf-assistant-reasoning-copy li {
+        margin: 0 0 5px;
+        color: #40566e;
+        font-size: 11px;
+        line-height: 1.4;
+    }
+
+    .cmf-assistant-reasoning-copy li:last-child {
+        margin-bottom: 0;
+    }
+
+    .cmf-assistant-rec-tag {
+        margin-left: 8px;
+        padding: 5px 10px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        color: #1f2937;
+        font-size: 11px;
+        font-weight: 950;
+        letter-spacing: 0;
+        white-space: nowrap;
+    }
+
+    .cmf-assistant-rec-tag.is-ok {
+        border-color: #86efac;
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .cmf-assistant-rec-tag.is-review {
+        border-color: #fde68a;
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .cmf-assistant-rec-tag.is-incomplete {
+        border-color: #bfdbfe;
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .cmf-assistant-rec-tag.is-reject {
+        border-color: #fecaca;
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .cmf-assistant-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .cmf-assistant-meta-grid div {
+        border: 1px solid #d8e7f5;
+        background: linear-gradient(135deg, #ffffff, #f5fbff);
+        border-radius: 9px;
+        padding: 7px 10px;
+        min-width: 0;
+        box-shadow: 0 8px 20px rgba(30, 84, 144, 0.05);
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+
+    .cmf-assistant-meta-grid span {
+        display: inline-block;
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .cmf-assistant-meta-grid strong {
+        display: inline-block;
+        color: #132f4c;
+        font-size: 12px;
+        margin-top: 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        min-width: 0;
+    }
+
+    .cmf-assistant-impact-block {
+        border: 1px solid #d8e7f5;
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 10px 12px;
+    }
+
+    .cmf-assistant-impact-block span {
+        display: block;
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .cmf-assistant-impact-block strong {
+        display: inline;
+        color: #28425c;
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.45;
+        white-space: normal;
+    }
+
+    .cmf-assistant-impact-summary {
+        color: #2f3640;
+        font-size: 11px;
+        font-weight: 400;
+        line-height: 1.35;
+        margin-top: 0;
+        white-space: normal;
+        text-align: justify;
+    }
+
+    .cmf-assistant-impact-summary ul {
+        margin: 0;
+        padding-left: 18px;
+    }
+
+    .cmf-assistant-impact-summary li {
+        margin: 0 0 7px;
+        text-align: justify;
+    }
+
+    .cmf-assistant-fix-line {
+        margin-top: 8px;
+        text-align: justify;
+    }
+
+    .cmf-assistant-description em,
+    .cmf-assistant-impact-summary em {
+        font-style: italic;
+    }
+
+    .cmf-assistant-description u,
+    .cmf-assistant-impact-summary u {
+        text-decoration-thickness: 1.5px;
+        text-underline-offset: 2px;
+    }
+
+    .cmf-impact-skeleton {
+        gap: 9px;
+        padding: 2px 0;
+    }
+
+    @media (max-width: 700px) {
+        #cmfRecDrawer {
+            top: 10px !important;
+            right: 10px !important;
+            width: calc(100vw - 20px) !important;
+            max-height: calc(100vh - 20px) !important;
+        }
+
+        .cmf-assistant-sighting-card {
+            grid-template-columns: 1fr;
+        }
+
+        .cmf-assistant-meta-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .cmf-assistant-rec-top,
+        .cmf-assistant-metric-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .cmf-assistant-feature-card {
+        border: 1px solid #d8e7f5;
+        border-radius: 12px;
+        background: #fff;
+        padding: 14px 16px;
+        margin-bottom: 14px;
+    }
+
+    .cmf-assistant-quality-slot .cmf-assistant-feature-card {
+        margin-top: 12px;
+    }
+
+    .cmf-quality-assessment-card {
+        border: 1px solid #b9d8ff;
+        border-radius: 8px;
+        padding: 8px 9px;
+        margin-bottom: 12px;
+        box-shadow: 0 6px 16px rgba(30, 84, 144, 0.05);
+        background: #ffffff;
+    }
+
+    .cmf-quality-assessment-card.is-quality-high {
+        border-color: #bbf7d0;
+    }
+
+    .cmf-quality-assessment-card.is-quality-medium {
+        border-color: #fed7aa;
+    }
+
+    .cmf-quality-assessment-card.is-quality-low {
+        border-color: #fecaca;
+    }
+
+    .cmf-quality-assessment-card .cmf-assistant-feature-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+    }
+
+    .cmf-quality-assessment-card .cmf-assistant-feature-head h3 {
+        margin: 0;
+        font-size: 11px;
+        line-height: 1.25;
+        letter-spacing: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .cmf-quality-assessment-card .cmf-assistant-feature-head h3::before {
+        content: '\f46c';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        width: 18px;
+        height: 18px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #edf5ff;
+        color: #246bfe;
+        font-size: 9px;
+    }
+
+    .cmf-sqa-category-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .cmf-sqa-score-pill {
+        border: 2px solid #19324a;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #102a43;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .cmf-sqa-score-pill.is-quality-high { border-color: #16a34a; color: #166534; }
+    .cmf-sqa-score-pill.is-quality-medium { border-color: #f59e0b; color: #92400e; }
+    .cmf-sqa-score-pill.is-quality-low { border-color: #dc2626; color: #991b1b; }
+
+    .cmf-sqa-category-card {
+        border: 2px solid #d8e7f5;
+        border-radius: 14px;
+        background: #ffffff;
+        min-height: 116px;
+        padding: 10px 11px;
+        min-width: 0;
+    }
+
+    .cmf-sqa-category-card.missing { border-color: #fecaca; }
+    .cmf-sqa-category-card.partial { border-color: #fed7aa; }
+    .cmf-sqa-category-card.conflicting { border-color: #bfdbfe; }
+
+    .cmf-sqa-category-title {
+        margin-bottom: 8px;
+        color: #102a43;
+        font-size: 12px;
+        font-weight: 900;
+    }
+
+    .cmf-sqa-category-list {
+        display: grid;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .cmf-sqa-category-list li {
+        color: #304761;
+        font-size: 11px;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .cmf-sqa-category-list li strong,
+    .cmf-sqa-category-list li span,
+    .cmf-sqa-category-list li small {
+        display: block;
+    }
+
+    .cmf-sqa-category-list li strong {
+        color: #102a43;
+        font-size: 11px;
+        font-weight: 950;
+        margin-bottom: 2px;
+    }
+
+    .cmf-sqa-category-list li span {
+        color: #304761;
+        font-weight: 800;
+    }
+
+    .cmf-sqa-category-list li small {
+        color: #64748b;
+        font-size: 10px;
+        line-height: 1.35;
+        margin-top: 2px;
+    }
+
+    .cmf-sqa-category-list li.is-empty {
+        color: #64748b;
+        font-style: italic;
+    }
+
+    .cmf-sqa-skeleton {
+        border: 1px solid #d8e7f5;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 10px 11px;
+        margin: 12px 0;
+    }
+
+    .cmf-sqa-skeleton-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .cmf-sqa-skeleton-box {
+        border: 1px solid #e1edf7;
+        border-radius: 8px;
+        padding: 10px;
+        min-height: 72px;
+    }
+
+    .cmf-quality-score-panel,
+    .cmf-quality-fields-panel {
+        border: 1px solid #e1edf7;
+        border-radius: 8px;
+        background: #f8fbff;
+        padding: 9px 10px;
+        min-width: 0;
+    }
+
+    .cmf-quality-score-panel.is-quality-high {
+        border-color: #bbf7d0;
+        background: #f0fdf4;
+    }
+
+    .cmf-quality-score-panel.is-quality-medium {
+        border-color: #fed7aa;
+        background: #fff7ed;
+    }
+
+    .cmf-quality-score-panel.is-quality-low {
+        border-color: #fecaca;
+        background: #fff1f2;
+    }
+
+    .cmf-quality-score-value {
+        color: #0f4f83;
+        font-size: 26px;
+        line-height: 1;
+        font-weight: 950;
+    }
+
+    .cmf-quality-score-panel.is-quality-high .cmf-quality-score-value { color: #166534; }
+    .cmf-quality-score-panel.is-quality-medium .cmf-quality-score-value { color: #b45309; }
+    .cmf-quality-score-panel.is-quality-low .cmf-quality-score-value { color: #b91c1c; }
+
+    .cmf-quality-score-value span {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 850;
+    }
+
+    .cmf-quality-panel-label {
+        margin-bottom: 6px;
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .cmf-quality-field-list {
+        display: grid;
+        gap: 5px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .cmf-quality-field-list li {
+        color: #304761;
+        font-size: 11px;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .cmf-quality-action-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 8px;
+    }
+
+    .cmf-quality-details-btn,
+    .cmf-quality-back-btn,
+    .cmf-quality-refresh-btn {
+        border: 1px solid #b9d8ff;
+        border-radius: 7px;
+        background: #ffffff;
+        color: #0f5ea8;
+        font-size: 11px;
+        font-weight: 900;
+        padding: 6px 10px;
+        cursor: pointer;
+    }
+
+    .cmf-quality-details-btn:hover,
+    .cmf-quality-back-btn:hover,
+    .cmf-quality-refresh-btn:hover {
+        background: #edf5ff;
+    }
+
+    .cmf-quality-refresh-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-color: #246bfe;
+        background: #246bfe;
+        color: #ffffff;
+        box-shadow: 0 8px 18px rgba(36, 107, 254, 0.18);
+        white-space: nowrap;
+    }
+
+    .cmf-quality-refresh-btn:hover {
+        background: #1857d7;
+        color: #ffffff;
+    }
+
+    .cmf-quality-detail-shell {
+        display: grid;
+        gap: 12px;
+    }
+
+    .cmf-quality-detail-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .cmf-quality-detail-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .cmf-quality-detail-header h3 {
+        margin: 0;
+        color: #102a43;
+        font-size: 16px;
+        font-weight: 900;
+    }
+
+    .cmf-quality-detail-card {
+        border: 1px solid #d8e7f5;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 11px 12px;
+    }
+
+    .cmf-quality-detail-card h4 {
+        margin: 0 0 8px;
+        color: #19324a;
+        font-size: 12px;
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .cmf-sqa-card-icon,
+    .cmf-sqa-sparkle {
+        width: 22px;
+        height: 22px;
+        border-radius: 7px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #eaf3ff;
+        color: #246bfe;
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        font-size: 11px;
+        flex: 0 0 auto;
+    }
+
+    .cmf-sqa-sparkle {
+        font-family: inherit;
+        background: #fff7d6;
+        color: #d97706;
+        font-size: 14px;
+    }
+
+    .cmf-sqa-info-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        border: 1px solid #e1edf7;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #f8fbff;
+    }
+
+    .cmf-sqa-info-cell {
+        display: grid;
+        gap: 4px;
+        padding: 9px 10px;
+        border-right: 1px solid #e1edf7;
+        border-bottom: 1px solid #e1edf7;
+        min-width: 0;
+    }
+
+    .cmf-sqa-info-cell.is-wide {
+        grid-column: span 2;
+    }
+
+    .cmf-sqa-info-cell span {
+        color: #4b6077;
+        font-size: 10px;
+        font-weight: 900;
+    }
+
+    .cmf-sqa-info-cell strong {
+        color: #102a43;
+        font-size: 12px;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .cmf-sqa-overview-template {
+        display: grid;
+        gap: 10px;
+    }
+
+    .cmf-sqa-overview-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(190px, .75fr);
+        gap: 16px;
+        align-items: center;
+    }
+
+    .cmf-sqa-score-block {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        min-width: 0;
+    }
+
+    .cmf-sqa-score-message {
+        display: grid;
+        gap: 5px;
+        border-radius: 8px;
+        padding: 14px 16px;
+        background: #ecfdf5;
+        color: #14532d;
+        max-width: 230px;
+    }
+
+    .cmf-sqa-score-message.is-quality-medium { background: #fff7ed; color: #92400e; }
+    .cmf-sqa-score-message.is-quality-low { background: #fff1f2; color: #991b1b; }
+
+    .cmf-sqa-score-message strong {
+        font-size: 16px;
+        font-weight: 950;
+    }
+
+    .cmf-sqa-score-message span {
+        font-size: 12px;
+        line-height: 1.4;
+        font-weight: 750;
+    }
+
+    .cmf-sqa-status-summary {
+        display: grid;
+        gap: 8px;
+    }
+
+    .cmf-sqa-status-summary-row {
+        display: grid;
+        grid-template-columns: 20px 1fr auto;
+        align-items: center;
+        gap: 8px;
+        color: #304761;
+        font-size: 12px;
+        font-weight: 900;
+    }
+
+    .cmf-sqa-status-summary-row strong {
+        color: #102a43;
+        font-weight: 950;
+    }
+
+    .cmf-sqa-status-dot {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: inline-flex;
+        background: #22c55e;
+    }
+
+    .cmf-sqa-status-summary-row.partial .cmf-sqa-status-dot { background: #f59e0b; }
+    .cmf-sqa-status-summary-row.missing .cmf-sqa-status-dot { background: #ef4444; }
+    .cmf-sqa-status-summary-row.conflicting .cmf-sqa-status-dot { background: #8b5cf6; }
+
+    .cmf-sqa-evidence-table {
+        display: grid;
+        border: 1px solid #e1edf7;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .cmf-sqa-evidence-row {
+        display: grid;
+        grid-template-columns: 44px minmax(145px, .9fr) minmax(210px, 1.4fr) minmax(112px, .55fr);
+        align-items: center;
+        min-width: 0;
+        border-bottom: 1px solid #edf2f7;
+        background: #ffffff;
+    }
+
+    .cmf-sqa-evidence-row > div {
+        padding: 9px 10px;
+        color: #24364a;
+        font-size: 11px;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+        min-width: 0;
+    }
+
+    .cmf-sqa-evidence-row.is-header {
+        background: #edf5ff;
+    }
+
+    .cmf-sqa-evidence-row.is-header > div {
+        color: #183b66;
+        font-size: 10px;
+        font-weight: 950;
+        text-transform: uppercase;
+    }
+
+    .cmf-sqa-evidence-row:last-child {
+        border-bottom: 0;
+    }
+
+    .cmf-sqa-assessment-summary p {
+        margin: 0;
+        color: #304761;
+        font-size: 12px;
+        line-height: 1.55;
+    }
+
+    .cmf-quality-overview-card {
+        display: grid;
+        gap: 14px;
+    }
+
+    .cmf-quality-score-topline {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+    }
+
+    .cmf-quality-score-chart-wrap {
+        display: grid;
+        gap: 8px;
+        justify-items: center;
+        grid-column: 2;
+    }
+
+    .cmf-quality-score-topline .cmf-quality-refresh-btn {
+        justify-self: end;
+        grid-column: 3;
+    }
+
+    .cmf-quality-donut {
+        width: 132px;
+        height: 132px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: conic-gradient(#22a65a 0 calc(var(--score) * 1%), #e8eef5 calc(var(--score) * 1%) 100%);
+        position: relative;
+        box-shadow: inset 0 0 0 1px rgba(16, 42, 67, 0.08);
+    }
+
+    .cmf-quality-donut::after {
+        content: '';
+        position: absolute;
+        width: 76px;
+        height: 76px;
+        border-radius: 50%;
+        background: #ffffff;
+    }
+
+    .cmf-quality-donut-value {
+        position: relative;
+        z-index: 1;
+        color: #102a43;
+        font-size: 24px;
+        font-weight: 950;
+    }
+
+    .cmf-quality-score-list {
+        display: grid;
+        gap: 9px;
+    }
+
+    .cmf-quality-score-row {
+        display: grid;
+        grid-template-columns: minmax(220px, 1.4fr) minmax(90px, 0.45fr) minmax(130px, 0.65fr);
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid #edf2f7;
+        min-width: 0;
+    }
+
+    .cmf-quality-score-row.is-header {
+        padding-top: 0;
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 950;
+        letter-spacing: 0;
+        text-transform: uppercase;
+    }
+
+    .cmf-quality-score-row:last-child {
+        border-bottom: 0;
+    }
+
+    .cmf-quality-score-name {
+        color: #24364a;
+        font-size: 12px;
+        font-weight: 900;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .cmf-quality-score-status {
+        color: #4b6077;
+        font-size: 12px;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .cmf-quality-score-field-score {
+        color: #102a43;
+        font-size: 12px;
+        font-weight: 950;
+        line-height: 1.3;
+    }
+
+    @media (max-width: 640px) {
+        .cmf-quality-score-topline {
+            align-items: flex-start;
+            grid-template-columns: 1fr auto;
+        }
+
+        .cmf-quality-score-chart-wrap {
+            grid-column: 1 / -1;
+            justify-self: center;
+        }
+
+        .cmf-quality-score-topline .cmf-quality-refresh-btn {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        .cmf-quality-score-row {
+            grid-template-columns: minmax(130px, 1fr) minmax(64px, auto) minmax(92px, auto);
+            gap: 4px;
+        }
+
+        .cmf-quality-score-status,
+        .cmf-quality-score-name {
+            font-size: 11px;
+        }
+    }
+
+    .cmf-quality-suggestions {
+        margin: 0;
+        padding-left: 18px;
+        color: #304761;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    .cmf-quality-score-notes {
+        display: grid;
+        gap: 7px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .cmf-quality-score-notes li {
+        color: #304761;
+        font-size: 12px;
+        line-height: 1.42;
+    }
+
+    .cmf-quality-detail-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .cmf-quality-section-subtitle {
+        margin: -2px 0 9px;
+        color: #5b6f84;
+        font-size: 11px;
+        line-height: 1.4;
+    }
+
+    .cmf-quality-field-card {
+        border: 1px solid #e1edf7;
+        border-radius: 8px;
+        background: #f8fbff;
+        padding: 10px 11px;
+    }
+
+    .cmf-quality-field-card.present { border-color: #bbf7d0; background: #f0fdf4; }
+    .cmf-quality-field-card.partial { border-color: #fed7aa; background: #fff7ed; }
+    .cmf-quality-field-card.missing { border-color: #fecaca; background: #fff1f2; }
+    .cmf-quality-field-card.conflicting { border-color: #fecaca; background: #fff1f2; }
+
+    .cmf-quality-field-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 7px;
+    }
+
+    .cmf-quality-field-card-title {
+        color: #102a43;
+        font-size: 12px;
+        font-weight: 900;
+        line-height: 1.35;
+    }
+
+    .cmf-quality-field-card p {
+        margin: 5px 0 0;
+        color: #304761;
+        font-size: 11px;
+        line-height: 1.45;
+        text-align: justify;
+    }
+
+    .cmf-quality-field-card strong {
+        color: #143f6b;
+        font-weight: 900;
+    }
+
+    .cmf-assistant-feature-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+
+    .cmf-assistant-feature-head h3 {
+        margin: 3px 0 0;
+        color: #102a43;
+        font-size: 16px;
+        font-weight: 900;
+    }
+
+    .cmf-quality-tier {
+        border-radius: 999px;
+        padding: 7px 10px;
+        font-size: 12px;
+        font-weight: 900;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .cmf-quality-tier.high { background: #dcfce7; color: #166534; }
+    .cmf-quality-tier.medium { background: #fef3c7; color: #92400e; }
+    .cmf-quality-tier.low { background: #fee2e2; color: #991b1b; }
+
+    .cmf-quality-tier span {
+        opacity: 0.85;
+        font-weight: 800;
+    }
+
+    .cmf-quality-meter {
+        height: 8px;
+        border-radius: 999px;
+        background: #e5edf5;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+
+    .cmf-quality-meter span {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #16a34a 0%, #0f72c4 100%);
+    }
+
+    .cmf-quality-meter.is-quality-high span { background: #16a34a; }
+    .cmf-quality-meter.is-quality-medium span { background: #f59e0b; }
+    .cmf-quality-meter.is-quality-low span { background: #dc2626; }
+
+    .cmf-quality-status-badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 3px 8px;
+        font-size: 10px;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .cmf-quality-status-badge.present { background: #dcfce7; color: #166534; }
+    .cmf-quality-status-badge.partial { background: #fef3c7; color: #92400e; }
+    .cmf-quality-status-badge.missing { background: #fee2e2; color: #991b1b; }
+
+    .cmf-quality-two-col {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .cmf-quality-two-col > div {
+        border: 1px solid #e1edf7;
+        border-radius: 8px;
+        background: #f8fbff;
+        padding: 10px;
+    }
+
+    .cmf-quality-two-col h4 {
+        margin: 0 0 8px;
+        font-size: 12px;
+        font-weight: 900;
+        color: #19324a;
+    }
+
+    .cmf-quality-note {
+        margin-top: 10px;
+        color: #5d7088;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    @media (max-width: 700px) {
+        .cmf-quality-two-col {
+            grid-template-columns: 1fr;
+        }
+
+        .cmf-sqa-category-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .cmf-rec-assessment-shell {
+        display: grid;
+        gap: 14px;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+    }
+
+    .cmf-rec-summary-band {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 14px 16px;
+        border: 1px solid #d8e7f5;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #f8fbff 0%, #eef8ff 100%);
+        min-width: 0;
+    }
+
+    .cmf-rec-summary-title {
+        color: #102a43;
+        font-size: 13px;
+        font-weight: 900;
+        margin-bottom: 4px;
+    }
+
+    .cmf-rec-summary-copy {
+        color: #52677f;
+        font-size: 12px;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+
+    .cmf-rec-score-panel {
+        min-width: 230px;
+        padding: 12px 14px;
+        border: 1px solid rgba(37, 99, 235, 0.18);
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .cmf-rec-score-top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+    }
+
+    .cmf-rec-score-label {
+        color: #52677c;
+        font-size: 11px;
+        font-weight: 850;
+        text-transform: uppercase;
+        letter-spacing: 0;
+    }
+
+    .cmf-rec-score-value {
+        color: #143f6b;
+        font-size: 18px;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .cmf-rec-score-track {
+        position: relative;
+        height: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e7edf5;
+    }
+
+    .cmf-rec-score-fill {
+        width: var(--score-percent, 0%);
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #0ea5e9, #2563eb 55%, #16a34a);
+    }
+
+    .cmf-rec-score-caption {
+        margin-top: 7px;
+        color: #60758a;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .cmf-rec-stage-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .cmf-rec-stage-card,
+    .cmf-rec-dimension-card {
+        min-width: 0;
+        border: 1px solid #e0e8f2;
+        border-radius: 10px;
+        background: #ffffff;
+        padding: 10px 12px;
+        box-shadow: 0 8px 18px rgba(15, 35, 55, 0.04);
+    }
+
+    .cmf-rec-stage-card h4,
+    .cmf-rec-dimension-card h4 {
+        margin: 0 0 6px;
+        color: #172033;
+        font-size: 12px;
+        font-weight: 900;
+    }
+
+    .cmf-rec-stage-card ul,
+    .cmf-rec-dimension-card ul {
+        margin: 0;
+        padding-left: 17px;
+        color: #4b5f75;
+        font-size: 11px;
+        line-height: 1.38;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .cmf-rec-stage-card li {
+        margin-bottom: 4px;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .cmf-rec-dimension-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 8px;
+    }
+
+    .cmf-rec-dimension-card {
+        padding: 10px;
+    }
+
+    .cmf-rec-dimension-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 6px;
+    }
+
+    .cmf-rec-dimension-name {
+        color: #172033;
+        font-size: 11px;
+        font-weight: 900;
+    }
+
+    .cmf-rec-dimension-score {
+        color: #075ea8;
+        font-size: 12px;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .cmf-rec-dimension-eval {
+        color: #5c7087;
+        font-size: 11px;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .cmf-rec-metric-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        border: 1px solid #dce6f1;
+        border-radius: 8px;
+    }
+
+    .cmf-rec-metric-table {
+        width: 100%;
+        min-width: 560px;
+        border-collapse: collapse;
+        background: #ffffff;
+        font-size: 11px;
+        line-height: 1.35;
+    }
+
+    .cmf-rec-metric-table th,
+    .cmf-rec-metric-table td {
+        padding: 8px 10px;
+        border-bottom: 1px solid #e7eef6;
+        color: #40566e;
+        text-align: left;
+        vertical-align: top;
+    }
+
+    .cmf-rec-metric-table th {
+        background: #f5f8fc;
+        color: #172033;
+        font-size: 10px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0;
+    }
+
+    .cmf-rec-metric-table tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .cmf-rec-metric-score {
+        display: inline-flex;
+        min-width: 38px;
+        justify-content: center;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: #eaf4ff;
+        color: #075ea8;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .cmf-rec-missing-list li.is-empty {
+        color: #0f8f61;
+        font-weight: 800;
+    }
+
+    @media (max-width: 900px) {
+        #updateinfo {
+            display: none;
+        }
+
+        .button-container.button-container-focus {
+            margin-top: 8px;
+        }
+
+        .content-wrapper {
+            margin: 10px;
+            padding: 10px;
+        }
+
+        .issue-kpi-row {
+            grid-template-columns: repeat(2, minmax(120px, 1fr));
+        }
+
+        .portal-layout-shell {
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .portal-left-nav {
+            width: 100%;
+            flex: 1 1 auto;
+            position: static;
+            max-height: none;
+            min-height: 0;
+        }
+
+        .issue-page-hd-top {
+            align-items: flex-start;
+        }
+        .cmf-rec-stage-grid,
+        .cmf-rec-dimension-grid,
+        .cmf-rec-summary-band {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Final override: enforce horizontal scrolling for Issue List columns */
 
     @media (max-width: 900px) {
         #updateinfo {
@@ -8805,8 +10931,6 @@ td:nth-child(odd), th:nth-child(odd) {
             align-items: flex-start;
         }
     }
-
-    /* Final override: enforce horizontal scrolling for Issue List columns */
     .issue-grid-scroll {
         overflow: hidden !important;
         width: 100%;
@@ -8860,6 +10984,17 @@ td:nth-child(odd), th:nth-child(odd) {
     }
 
     .issue-grid-inner #overall_request_details,
+    .issue-grid-inner > table,
+    .issue-grid-inner > .table-primary,
+    .issue-grid-inner .table-primary {
+        table-layout: fixed !important;
+        width: 100% !important;
+        min-width: 1560px !important;
+        max-width: none !important;
+        display: table !important;
+    }
+
+    .issue-grid-inner #<%= overall_request_details.ClientID %>,
     .issue-grid-inner > table,
     .issue-grid-inner > .table-primary,
     .issue-grid-inner .table-primary {
@@ -9031,6 +11166,18 @@ td:nth-child(odd), th:nth-child(odd) {
         width: 100% !important;
         max-width: 100% !important;
         min-width: 0 !important;
+    }
+
+    .issue-grid-inner #overall_request_details td.field-status .status-one-line {
+        max-height: 64px !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+    }
+
+    .issue-grid-inner #overall_request_details td.field-impact_processor .impact-text {
+        max-height: 76px !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
     }
 
     .issue-grid-inner .empty-data-container,
@@ -10576,30 +12723,53 @@ td:nth-child(odd), th:nth-child(odd) {
     }
 
     .issue-top-filter-panel {
+        display: flex !important;
+        align-items: flex-end !important;
+        gap: 8px !important;
         margin: 0 0 10px !important;
-        padding: 0 !important;
-        border: none !important;
-        background: transparent !important;
-        box-shadow: none !important;
+        padding: 10px !important;
+        border: 1px solid #e3e9f2 !important;
+        border-radius: 12px !important;
+        background: #ffffff !important;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04) !important;
     }
 
     .issue-filter-section-header {
+        display: flex !important;
+        order: 2 !important;
+        align-items: flex-end !important;
+        justify-content: flex-end !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+    }
+
+    .issue-filter-title {
         display: none !important;
     }
 
     #issueTopFilterBody {
-        padding: 10px !important;
-        margin-bottom: 10px !important;
-        background: #ffffff !important;
-        border: 1px solid #e3e9f2 !important;
-        border-radius: 12px !important;
-        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04) !important;
+        display: flex !important;
+        order: 1 !important;
+        flex: 1 1 auto !important;
+        align-items: flex-end !important;
+        gap: 8px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+    }
+
+    #issueTopFilterBody.is-collapsed {
+        display: none !important;
     }
 
     .issue-top-filter-grid {
         display: flex !important;
         align-items: end !important;
         gap: 8px !important;
+        flex: 1 1 auto !important;
         overflow-x: auto !important;
         padding-bottom: 2px !important;
     }
@@ -10622,11 +12792,12 @@ td:nth-child(odd), th:nth-child(odd) {
     }
 
     .issue-top-filter-buttons {
-        margin-top: 8px !important;
+        flex: 0 0 auto !important;
+        margin: 0 !important;
     }
 
     .issue-user-toolbar {
-        margin-bottom: 9px !important;
+        display: none !important;
     }
 
     .issue-view-note {
@@ -10714,6 +12885,26 @@ td:nth-child(odd), th:nth-child(odd) {
 
     .pending-tab-shell {
         grid-template-columns: minmax(0, 1fr) 250px !important;
+    }
+
+    #issueTabShell.issue-tab-shell,
+    #pendingTabShell.pending-tab-shell,
+    #issueTabShell.issue-tab-shell.side-hidden,
+    #pendingTabShell.pending-tab-shell.side-hidden {
+        grid-template-columns: minmax(0, 1fr) !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    #issueTabShell .issue-tab-main,
+    #pendingTabShell .pending-tab-main {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    #issueTabShell .issue-side-panel,
+    #pendingTabShell .pending-side-panel {
+        display: none !important;
     }
 
     .pending-tab-main .issue-top-filter-panel,
@@ -10962,6 +13153,263 @@ td:nth-child(odd), th:nth-child(odd) {
         position: sticky !important;
         top: 0 !important;
         z-index: 20 !important;
+    }
+    #pendingTabShell.pending-tab-shell,
+    #pendingTabShell.pending-tab-shell.side-hidden {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    #pendingTabShell.pending-tab-shell.portal-view-hidden,
+    #issueTabShell.issue-tab-shell.portal-view-hidden {
+        display: none !important;
+    }
+
+    #pendingTabShell .cmf-pending-page-hd {
+        margin-bottom: 16px !important;
+    }
+
+    .cmf-pending-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        color: #2563eb;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .cmf-pending-breadcrumb span {
+        color: #94a3b8;
+    }
+
+    .cmf-pending-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .cmf-pending-action-btn,
+    .cmf-pending-filter-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 34px;
+        padding: 0 14px;
+        border-radius: 7px;
+        border: 1px solid #b9d2ff;
+        background: #ffffff;
+        color: #0b5bd3;
+        font-size: 12px;
+        font-weight: 850;
+        cursor: pointer;
+        box-shadow: 0 5px 14px rgba(15, 63, 130, 0.08);
+    }
+
+    .cmf-pending-action-btn.primary,
+    .cmf-pending-filter-btn.primary {
+        background: #0054d1;
+        border-color: #0054d1;
+        color: #ffffff;
+    }
+
+    #pendingTabShell .template-kpi-row {
+        display: none !important;
+
+        grid-template-columns: repeat(4, minmax(160px, 1fr)) !important;
+        gap: 14px !important;
+        margin: 0 0 16px !important;
+    }
+
+    #pendingTabShell .template-kpi-card {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 12px;
+        align-items: center;
+        min-height: 94px !important;
+        padding: 16px !important;
+        border: 1px solid #e5eaf2 !important;
+        border-radius: 8px !important;
+        background: #ffffff !important;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.055) !important;
+    }
+
+    #pendingTabShell .template-kpi-card::before {
+        display: none !important;
+    }
+
+    .template-kpi-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        background: #eef5ff;
+        color: #1262dc;
+    }
+
+    .template-kpi-card.kpi-amber .template-kpi-icon { background: #fff4e5; color: #f28c18; }
+    .template-kpi-card.kpi-violet .template-kpi-icon { background: #f3ecff; color: #7c3aed; }
+    .template-kpi-card.kpi-green .template-kpi-icon { background: #e9f9f0; color: #059669; }
+
+    #pendingTabShell .cmf-pending-kpi-label {
+        margin: 0 0 2px !important;
+        color: #1f2a44 !important;
+        font-size: 12px !important;
+        font-weight: 850 !important;
+    }
+
+    #pendingTabShell .cmf-pending-kpi-value {
+        margin: 0 !important;
+        color: #0f172a !important;
+        font-size: 25px !important;
+        line-height: 1 !important;
+    }
+
+    #pendingTabShell .template-kpi-card.kpi-amber .cmf-pending-kpi-value { color: #f28c18 !important; }
+    #pendingTabShell .template-kpi-card.kpi-violet .cmf-pending-kpi-value { color: #5b21d5 !important; }
+    #pendingTabShell .template-kpi-card.kpi-green .cmf-pending-kpi-value { color: #059669 !important; }
+
+    #pendingTabShell .cmf-pending-kpi-sub {
+        margin: 5px 0 0 !important;
+        color: #64748b !important;
+        font-size: 10px !important;
+        font-weight: 750 !important;
+    }
+
+    .cmf-pending-filter-card {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) repeat(4, minmax(130px, 0.55fr)) auto auto;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 0;
+        padding: 14px;
+        border: 1px solid #e2e8f0;
+        border-bottom: 0;
+        border-radius: 10px 10px 0 0;
+        background: #ffffff;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
+    }
+
+    .cmf-pending-filter-select {
+        width: 100%;
+        min-width: 0;
+        height: 36px;
+        border: 1px solid #d7dfeb;
+        border-radius: 7px;
+        background: #ffffff;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 750;
+        padding: 0 10px;
+    }
+
+    .cmf-pending-searchbox {
+        position: relative;
+        display: flex;
+        align-items: center;
+        color: #64748b;
+    }
+
+    .cmf-pending-searchbox i {
+        position: absolute;
+        left: 12px;
+        font-size: 12px;
+        pointer-events: none;
+    }
+
+    .cmf-pending-searchbox input {
+        width: 100%;
+        height: 34px;
+        padding: 0 12px 0 34px;
+        border: 1px solid #dbe3ee;
+        border-radius: 7px;
+        background: #ffffff;
+        color: #172033;
+        font-size: 12px;
+        font-weight: 650;
+        outline: none;
+    }
+
+    .cmf-pending-searchbox input:focus {
+        border-color: #6a9df8;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    #pendingTabShell .cmf-pending-grid-wrap {
+        max-height: min(64vh, 650px) !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 0 0 10px 10px !important;
+        background: #ffffff !important;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.055) !important;
+    }
+
+    #pendingTabShell #GridView_cmf_pending {
+        min-width: 1090px !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        table-layout: fixed !important;
+    }
+
+    #pendingTabShell #GridView_cmf_pending th {
+        height: 42px !important;
+        padding: 10px 14px !important;
+        background: #f8fafc !important;
+        color: #1f2a44 !important;
+        font-size: 11px !important;
+        font-weight: 900 !important;
+        border-bottom: 1px solid #e5edf6 !important;
+    }
+
+    #pendingTabShell #GridView_cmf_pending td {
+        padding: 12px 14px !important;
+        color: #26364a !important;
+        font-size: 11px !important;
+        line-height: 1.38 !important;
+        vertical-align: middle !important;
+        border-bottom: 1px solid #eef2f7 !important;
+    }
+
+    #pendingTabShell #GridView_cmf_pending tr:hover td {
+        background: #f6faff !important;
+    }
+
+    #pendingTabShell .pending-title-text {
+        color: #162033 !important;
+        font-size: 11px !important;
+        font-weight: 800 !important;
+    }
+
+    #pendingTabShell .pending-chip {
+        min-height: 21px !important;
+        padding: 3px 8px !important;
+        border-radius: 7px !important;
+        background: #eef4ff !important;
+        color: #2556a3 !important;
+    }
+
+    #pendingTabShell .pending-ai-rec-btn {
+        min-width: 126px !important;
+        min-height: 38px !important;
+        border-radius: 7px !important;
+        background: #ecfdf3 !important;
+        color: #087647 !important;
+        border-color: #bcf0d0 !important;
+    }
+
+    @media (max-width: 980px) {
+        #pendingTabShell .template-kpi-row {
+            grid-template-columns: repeat(2, minmax(150px, 1fr)) !important;
+        }
+
+        .cmf-pending-filter-card {
+            grid-template-columns: 1fr;
+        }
     }
 
     </style>
@@ -11348,7 +13796,7 @@ td:nth-child(odd), th:nth-child(odd) {
             try {
                 var htmlContent = marked.parse(text);
                 var cleanHtml = DOMPurify.sanitize(htmlContent, {
-                    ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'strong', 'b', 'em', 'i', 
+                    ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'strong', 'b', 'em', 'i',
                                    'ul', 'ol', 'li', 'code', 'pre', 'blockquote', 'a', 'hr', 'span', 'div'],
                     ALLOWED_ATTR: ['href', 'target', 'class']
                 });
@@ -11412,6 +13860,19 @@ td:nth-child(odd), th:nth-child(odd) {
             source = source.replace(/^\s*Reproducibility\s*:\s*.*$/gim, '');
             source = source.replace(/^\s*Logs\(sysdebug(?:\/debug details)?\)\s*:\s*.*$/gim, '');
             source = source.replace(/^\s*RVP platform debug details\s*:\s*.*$/gim, '');
+
+            // For the new prompt format with headings ### Debug Summary and ### Next Steps
+            var debugSummaryMatch = source.match(/(?:###\s*)?Debug Summary(?:\*\*)?\s*:?([\s\S]*?)(?=(?:###\s*)?Next Steps(?:\*\*)?\s*:?|$)/i);
+            var nextStepsMatch = source.match(/(?:###\s*)?Next Steps(?:\*\*)?\s*:?([\s\S]*)$/i);
+
+            if (debugSummaryMatch || nextStepsMatch) {
+                 return {
+                     summary: debugSummaryMatch && debugSummaryMatch[1] ? debugSummaryMatch[1].trim() : '',
+                     followUp: nextStepsMatch && nextStepsMatch[1] ? nextStepsMatch[1].trim() : '- No further action identified from available details.',
+                     hasDecisionSections: false
+                 }
+            }
+
             var decisionMatch = source.match(/(?:\*\*)?Issue Summary(?:\*\*)?\s*:?([\s\S]*)$/i);
             if (decisionMatch && decisionMatch[1]) {
                 return {
@@ -11423,8 +13884,8 @@ td:nth-child(odd), th:nth-child(odd) {
             var summaryMatch = source.match(/(?:\*\*)?(?:Summary|Key points)(?:\*\*)?\s*:?([\s\S]*?)(?=(?:\*\*)?(?:Follow up|Next action)(?:\*\*)?\s*:?|$)/i);
             var followMatch = source.match(/(?:\*\*)?(?:Follow up|Next action)(?:\*\*)?\s*:?([\s\S]*)$/i);
             return {
-                summary: compactAiBulletText(summaryMatch && summaryMatch[1] ? summaryMatch[1] : source, 3, 0),
-                followUp: compactAiBulletText(followMatch && followMatch[1] ? followMatch[1] : '', 1, 0),
+                summary: compactAiBulletText(summaryMatch && summaryMatch[1] ? summaryMatch[1] : source, 10, 0), // Allow up to 10 bullets instead of 3
+                followUp: compactAiBulletText(followMatch && followMatch[1] ? followMatch[1] : '', 5, 0),
                 hasDecisionSections: false
             };
         }
@@ -11473,7 +13934,9 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function openAiSummaryModal(issueId, title, submittedDate, status, sysdebug, mode) {
-            mode = mode === 'details' ? 'details' : 'summary';
+            var currentMode = mode || 'AI Summary';
+            var isDetails = currentMode === 'AI issue details';
+
             var headingNode = document.getElementById('aiSummaryHeadingText');
             var badgesNode = document.getElementById('aiSummaryTitleBadges');
             var metaNode = document.getElementById('aiSummaryMeta');
@@ -11493,11 +13956,24 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
-            if (headingNode) headingNode.textContent = mode === 'details' ? 'Issue Details ✦' : 'AI Summary';
-            if (badgesNode) badgesNode.style.display = mode === 'details' ? 'none' : '';
-            if (metaNode) metaNode.style.display = mode === 'details' ? 'none' : '';
+            if (headingNode) {
+                if (isDetails) {
+                    // Inject sighting ID directly into the heading as requested, and reset original issueId node to not replicate it
+                    headingNode.innerHTML = 'Issue Details <span style="font-size: 14px; font-weight: 500; color: #5c7087; margin-left: 20px;">Sighting ID: ' + (issueId || 'N/A') + '</span>';
+                } else if (currentMode === 'AI Debug Summary') {
+                    headingNode.textContent = 'AI Debug Summary';
+                } else {
+                    headingNode.textContent = currentMode;
+                }
+            }
+            if (badgesNode) badgesNode.style.display = isDetails ? 'none' : '';
+            if (metaNode) metaNode.style.display = isDetails ? 'none' : '';
             if (factsNode) factsNode.style.display = 'none';
-            issueIdNode.textContent = issueId || 'N/A';
+            // Clear or format the meta string depending on mode
+            issueIdNode.textContent = isDetails ? '' : (issueId || 'N/A');
+
+            // Revert stylize override since it's now in the header itself
+            issueIdNode.style.cssText = '';
             if (titleNode) titleNode.textContent = '';
             if (titleRow) titleRow.style.display = 'none';
             dateNode.textContent = submittedDate || 'N/A';
@@ -11506,9 +13982,32 @@ td:nth-child(odd), th:nth-child(odd) {
                 statusBadgeNode.textContent = 'Status: --';
                 statusBadgeNode.className = 'ai-summary-status-value';
             }
-            bodyNode.textContent = mode === 'details' ? 'Building a plain-language issue brief...' : 'Generating debug-focused AI summary...';
-            bodyNode.className = mode === 'details' ? 'ai-summary-body markdown-content issue-details-brief' : 'ai-summary-body markdown-content';
-            if (actionsNode) actionsNode.style.display = 'none';
+            bodyNode.className = isDetails ? 'ai-summary-body issue-details-brief' : 'ai-summary-body markdown-content';
+
+            if (isDetails || currentMode === 'AI Summary') {
+                bodyNode.innerHTML = `
+                    <div class="ai-skeleton-loader">
+                        <div style="font-size: 13px; font-weight: 600; color: #5c7087; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                            &#10024; Generating ` + (isDetails ? 'AI issue details' : 'Debug Summary') + `...
+                        </div>
+                        <div class="ai-skeleton-line ai-skeleton-title" style="width: 50%;"></div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                            <div class="ai-sk-block"><div class="ai-skeleton-line ai-skeleton-label"></div><div class="ai-skeleton-line ai-skeleton-value"></div></div>
+                            <div class="ai-sk-block"><div class="ai-skeleton-line ai-skeleton-label"></div><div class="ai-skeleton-line ai-skeleton-value"></div></div>
+                            <div class="ai-sk-block"><div class="ai-skeleton-line ai-skeleton-label"></div><div class="ai-skeleton-line ai-skeleton-value"></div></div>
+                            <div class="ai-sk-block"><div class="ai-skeleton-line ai-skeleton-label"></div><div class="ai-skeleton-line ai-skeleton-value"></div></div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div class="ai-skeleton-line ai-skeleton-title" style="width: 30%; height: 16px;"></div>
+                            <div class="ai-skeleton-line" style="margin-top: 10px; width: 100%;"></div>
+                            <div class="ai-skeleton-line" style="margin-top: 8px; width: 95%;"></div>
+                            <div class="ai-skeleton-line" style="margin-top: 8px; width: 90%;"></div>
+                        </div>
+                    </div>`;
+            } else {
+                bodyNode.textContent = 'Generating AI summary...';
+            }
+            if (actionsNode) actionsNode.style.cssText = 'display: none !important;';
 
             drawerBg.classList.add('show');
             drawer.classList.add('show');
@@ -11520,7 +14019,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 status: status || '',
                 sysdebug: sysdebug || '',
                 platform: getIssuePendingPlatformValue(),
-                mode: mode
+                mode: currentMode
             };
 
             // Store for regenerate / copy
@@ -11543,6 +14042,35 @@ td:nth-child(odd), th:nth-child(odd) {
             if (!bodyNode) bodyNode = document.getElementById('aiSummaryBody');
             if (!actionsNode) actionsNode = document.getElementById('aiSummaryActions');
 
+            bodyNode.className = 'ai-summary-body';
+
+            // Only inject the banner if it's the chat/summary mode; details mode already injected a shimmer.
+            if (payload.mode !== 'AI issue details' || bodyNode.innerHTML.indexOf('ai-skeleton-loader') === -1) {
+                if (payload.mode === 'AI issue details' || payload.mode === 'AI Summary') {
+                    bodyNode.innerHTML = `
+                        <div class="ai-skeleton-loader">
+                            <div style="font-size: 13px; font-weight: 600; color: #5c7087; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                                &#10024; Generating ` + (payload.mode === 'AI issue details' ? 'AI issue details' : 'Debug Summary') + `...
+                            </div>
+                            <div class="ai-skeleton-line ai-skeleton-title" style="width: 50%;"></div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                                <div class="ai-sk-block"><div class="ai-skeleton-line ai-skeleton-label"></div><div class="ai-skeleton-line ai-skeleton-value"></div></div>
+                                <div class="ai-sk-block"><div class="ai-skeleton-line ai-skeleton-label"></div><div class="ai-skeleton-line ai-skeleton-value"></div></div>
+                                <div class="ai-sk-block"><div class="ai-skeleton-line ai-skeleton-label"></div><div class="ai-skeleton-line ai-skeleton-value"></div></div>
+                                <div class="ai-sk-block"><div class="ai-skeleton-line ai-skeleton-label"></div><div class="ai-skeleton-line ai-skeleton-value"></div></div>
+                            </div>
+                            <div style="margin-top: 20px;">
+                                <div class="ai-skeleton-line ai-skeleton-title" style="width: 30%; height: 16px;"></div>
+                                <div class="ai-skeleton-line" style="margin-top: 10px; width: 100%;"></div>
+                                <div class="ai-skeleton-line" style="margin-top: 8px; width: 95%;"></div>
+                                <div class="ai-skeleton-line" style="margin-top: 8px; width: 90%;"></div>
+                            </div>
+                        </div>`;
+                } else {
+                    bodyNode.innerHTML = '<div class="ai-loading-banner">&#10024; Generating AI summary, please wait...</div>';
+                }
+            }
+
             fetch('CMF_Web_portal.aspx/GetIssueAiSummary', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json; charset=utf-8' },
@@ -11552,7 +14080,8 @@ td:nth-child(odd), th:nth-child(odd) {
             .then(function (data) {
                 var result = data && data.d ? data.d : data;
                 if (!result || result.Success !== true) {
-                    bodyNode.textContent = (result && result.Message) ? result.Message : 'Unable to generate summary at this time.';
+                    var errorMsg = (result && result.Message) ? result.Message : 'Unable to generate summary at this time.';
+                    bodyNode.innerHTML = escapeHtml(errorMsg) + ' <a href="#" onclick="regenerateAiSummary(); return false;" style="color:var(--portal-primary); text-decoration:underline;">↻ Retry</a>';
                     bodyNode.className = 'ai-summary-body';
                     return;
                 }
@@ -11574,20 +14103,24 @@ td:nth-child(odd), th:nth-child(odd) {
                 updateIssueListConfidenceBadge(payload.issueId, preparedSummary.confidence);
                 // Build the assistant message that represents the summary (chat-first layout)
                 var assistantSummary = '';
-                if (payload.mode === 'details') {
+                if (payload.mode === 'AI issue details') {
                     assistantSummary = prepareIssueDetailsForDrawer(summary);
                 } else if (preparedSummary.hasDecisionSections) {
                     assistantSummary = preparedSummary.body;
                 } else {
-                    assistantSummary = 'Summary\n\n' + preparedSummary.body + '\n\nFollow up\n' + (preparedSummary.followUp || '- No further action identified from available details.');
+                    assistantSummary = '### Debug Summary\n\n' + preparedSummary.body + '\n\n### Next Steps\n' + (preparedSummary.followUp || '- No further action identified from available details.');
                 }
 
-                window._aiSummaryLastText = payload.mode === 'details' ? summary : assistantSummary;
-                if (actionsNode) actionsNode.style.display = '';
+                window._aiSummaryLastText = payload.mode === 'AI issue details' ? summary : assistantSummary;
+
+                // Hide heavy fixed copy/regen buttons permanently when in chat
+                if (actionsNode) {
+                    actionsNode.style.cssText = 'display: none !important;';
+                }
 
                 // Chat-first UI: hide the standalone body and render the summary as the first assistant message
                 if (!window._aiChatStore) window._aiChatStore = {}; // issueId => [{role,text}, ...]
-                window._aiCurrentIssueId = payload.issueId || '';
+                window._aiCurrentIssueId = (payload.issueId || '') + '_' + (payload.mode || 'AI Summary');
 
                 var chat = document.getElementById('aiSummaryChat');
                 var messages = document.getElementById('aiSummaryChatMessages');
@@ -11607,7 +14140,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     } else {
                         // seed with assistant summary message
                         window._aiChatStore[window._aiCurrentIssueId] = [{ role: 'assistant', text: assistantSummary }];
-                        appendAiChatMessage('assistant', assistantSummary, /*store*/ false);
+                        appendAiChatMessage('assistant', assistantSummary, /*store*/ false, /*autoScroll*/ false);
                     }
 
                     var inputBox = document.getElementById('aiSummaryChatInput');
@@ -11622,7 +14155,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 }
             })
             .catch(function () {
-                bodyNode.textContent = 'Error while calling summary service.';
+                bodyNode.innerHTML = 'Error while calling summary service. <a href="#" onclick="regenerateAiSummary(); return false;" style="color:var(--portal-primary); text-decoration:underline;">↻ Retry</a>';
                 bodyNode.className = 'ai-summary-body';
             });
         }
@@ -11638,11 +14171,67 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function prepareIssueDetailsForDrawer(summary) {
-            var text = String(summary || '').replace(/\r/g, '\n');
-            text = text.replace(/^\s*\*\*\s*Issue Details(?:\s*\(\s*Confidence\s*:\s*[0-9]{1,3}%?\s*\))?\s*\*\*\s*\n?/im, '');
-            text = text.replace(/^\s*Issue Details(?:\s*\(\s*Confidence\s*:\s*[0-9]{1,3}%?\s*\))?\s*:?\s*\n?/im, '');
-            text = text.replace(/^\s*\*\*\s*Linked HSD \/ CMF Data\s*\*\*\s*$/gim, '## Linked HSD / CMF Data');
-            return text.trim();
+            var text = String(summary || '').replace(/\r/g, '\n').replace(/\*\*/g, '');
+            var getField = function(label) {
+                var m = text.match(new RegExp('^(?:-\\s*)?' + label + '\\s*[:\\-]\\s*(.*)$', 'im'));
+                return m ? escapeHtml(m[1].trim()) : 'N/A';
+            };
+
+            var html = '<div class="issue-details-grid">';
+
+            // Build badges based on values to colorize them semantically
+            var colorBadge = function(val, type) {
+                var v = String(val).toLowerCase();
+                if (v === 'n/a' || v === 'none' || v === 'no' || v === 'unknown' || v === '' || v === 'tbd') return `<span class="ai-semantic-badge badge-neutral">${val}</span>`;
+                if (v.includes('not actioned') || v.includes('no promoted ticket yet')) return `<span class="ai-semantic-badge badge-neutral">${val}</span>`;
+                if (v.includes('must fix') || v.includes('must_fix') || v.includes('blocker') || v.includes('critical')) return `<span class="ai-semantic-badge badge-red">${val}</span>`;
+
+                if (type === 'repro') {
+                    if (v.includes('100%') || v.includes('always')) return `<span class="ai-semantic-badge badge-red">${val}</span>`;
+                    return `<span class="ai-semantic-badge badge-amber">${val}</span>`;
+                }
+                if (type === 'state') {
+                    if (v.includes('rejected') || v.includes('won\'t fix')) return `<span class="ai-semantic-badge badge-neutral">${val}</span>`;
+                    if (v.includes('approved') || v.includes('fixed')) return `<span class="ai-semantic-badge badge-green">${val}</span>`;
+                }
+                if (type === 'workaround') return `<span class="ai-semantic-badge badge-green">${val}</span>`;
+                return val;
+            };
+
+            html += `<div class="ai-sk-block"><div class="idg-label">Problem / Issue</div><div class="idg-val">${colorBadge(getField('(?:Problem|Issue).*?'), 'problem')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Current State</div><div class="idg-val">${colorBadge(getField('Current State'), 'state')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Scenario / Trigger</div><div class="idg-val">${getField('Scenario.*?')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Reproduction</div><div class="idg-val">${colorBadge(getField('Reproduction'), 'repro')}</div></div>`;
+
+            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Affected Platform / System</div><div class="idg-val">${getField('Affected Platform.*?')}</div></div>`;
+            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Environment</div><div class="idg-val">${getField('Environment.*?')}</div></div>`;
+            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Current Investigation</div><div class="idg-val">${getField('Current Investigation')}</div></div>`;
+
+            html += `<div class="ai-sk-block"><div class="idg-label">Suspected Root Cause</div><div class="idg-val">${getField('Suspected Root Cause')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Workaround</div><div class="idg-val">${colorBadge(getField('Workaround'), 'workaround')}</div></div>`;
+            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Evidence / Logs</div><div class="idg-val">${getField('Evidence.*?')}</div></div>`;
+
+            html +=`</div>`; // end grid
+
+            // Check for promoted ticket presence before blindly yielding N/A
+            var promotedId = getField('Promoted ID');
+            var isPromoted = promotedId !== 'N/A' && promotedId.toLowerCase() !== 'missing' && promotedId.toLowerCase() !== 'none' && promotedId !== '';
+
+            var owner = isPromoted ? getField('Owner') : 'No promoted ticket yet';
+            var fixedVer = isPromoted ? getField('(?:Fixed Version|Closure).*?') : 'No promoted ticket yet';
+            var lastAct = isPromoted ? getField('Latest Activity') : 'No promoted ticket yet';
+            if (!isPromoted) promotedId = 'No promoted ticket yet';
+
+            html += `<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e2e5;">`;
+            html += `<h4 style="font-size:12px; margin-bottom: 10px; color:#5c7087;">LINKED HSD / CMF DATA</h4>`;
+            html += `<div class="issue-details-grid">`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Promoted ID</div><div class="idg-val">${promotedId}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Owner</div><div class="idg-val">${owner}</div></div>`;
+            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Fixed Version / Closure</div><div class="idg-val">${fixedVer}</div></div>`;
+            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Latest Activity</div><div class="idg-val">${lastAct}</div></div>`;
+            html += `</div></div>`;
+
+            return html;
         }
 
         function cssEscapeValue(value) {
@@ -11703,7 +14292,7 @@ td:nth-child(odd), th:nth-child(odd) {
             fetchAiSummary(window._aiSummaryLastPayload, bodyNode, actionsNode);
         }
 
-        function appendAiChatMessage(role, text, storeMessage) {
+        function appendAiChatMessage(role, text, storeMessage, autoScroll = true) {
             if (typeof storeMessage === 'undefined') storeMessage = true;
             var container = document.getElementById('aiSummaryChatMessages');
             if (!container) return;
@@ -11711,10 +14300,78 @@ td:nth-child(odd), th:nth-child(odd) {
             msg.className = 'ai-chat-message ai-chat-' + (role === 'user' ? 'user' : 'assistant');
             var inner = document.createElement('div');
             inner.className = 'ai-chat-message-body';
-            inner.innerHTML = renderMarkdown(escapeHtml(text).replace(/\n/g, '\n'));
+
+            // Check if text already contains our injected structured HTML wrappers (e.g. from prepareIssueDetailsForDrawer)
+            if (text.indexOf('class="issue-details-grid"') > -1) {
+                inner.innerHTML = text; // Inject raw HTML
+            } else {
+                inner.innerHTML = renderMarkdown(escapeHtml(text).replace(/\n/g, '\n'));
+            }
+
+            if (role === 'assistant' && window._aiSummaryLastPayload) {
+                var isAI_IssueDetails = window._aiSummaryLastPayload.mode === 'AI issue details';
+                var isAI_Summary = window._aiSummaryLastPayload.mode === 'AI Summary';
+
+                if (isAI_IssueDetails || isAI_Summary) {
+                    var actionRibbon = document.createElement('div');
+                    actionRibbon.className = 'ai-chat-msg-actions';
+                    actionRibbon.style.cssText = 'display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; align-items: center; color: #5c7087; font-size: 13px;';
+
+                    var retryLink = document.createElement('a');
+                    retryLink.href = '#';
+                    retryLink.onclick = function(e) {
+                         e.preventDefault();
+                         if (storeMessage === false && window._aiSummaryLastText === text) {
+                            regenerateAiSummary();
+                         } else {
+                             // Just regenerating follow-up if applicable, or fallback to main
+                             regenerateAiSummary();
+                         }
+                    };
+                    retryLink.textContent = '↻ Regenerate';
+                    retryLink.style.cssText = 'color: #0071c5; text-decoration: none; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.1s;';
+                    retryLink.title = 'Regenerate this response';
+                    retryLink.onmouseover = function() { this.style.color = '#005A9E'; };
+                    retryLink.onmouseout = function() { this.style.color = '#0071c5'; };
+
+                    var copyIcon = document.createElement('a');
+                    copyIcon.href = '#';
+                    copyIcon.onclick = function(e) {
+                        e.preventDefault();
+                        if (!navigator.clipboard) return;
+                        // strip html tags for clean copy
+                        var tmp = document.createElement('div');
+                        tmp.innerHTML = inner.innerHTML;
+                        // Remove action ribbon text itself during copy
+                        var ribbonCopy = tmp.querySelector('.ai-chat-msg-actions');
+                        if(ribbonCopy) tmp.removeChild(ribbonCopy);
+
+                        navigator.clipboard.writeText(tmp.textContent || tmp.innerText).then(function() {
+                            var o = copyIcon.innerHTML;
+                            copyIcon.innerHTML = '&#10003;';
+                            setTimeout(function(){ copyIcon.innerHTML = o; }, 2000);
+                        });
+                    };
+                    copyIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+                    copyIcon.style.cssText = 'color: #5c7087; margin-left: 5px; text-decoration: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.1s;';
+                    copyIcon.title = 'Copy response text';
+                    copyIcon.onmouseover = function() { this.style.color = '#0071c5'; };
+                    copyIcon.onmouseout = function() { this.style.color = '#5c7087'; };
+
+                    actionRibbon.appendChild(retryLink);
+                    actionRibbon.appendChild(copyIcon);
+                    inner.appendChild(actionRibbon);
+                }
+            }
+
             msg.appendChild(inner);
             container.appendChild(msg);
-            container.scrollTop = container.scrollHeight;
+
+            if (autoScroll) {
+                container.scrollTop = container.scrollHeight;
+            } else {
+                container.scrollTop = 0;
+            }
 
             // store in per-issue conversation if requested
             try {
@@ -11746,6 +14403,17 @@ td:nth-child(odd), th:nth-child(odd) {
             var payload = window._aiSummaryLastPayload || {};
             payload.question = question.trim();
 
+            var loadingId = 'loading-' + new Date().getTime();
+            var container = document.getElementById('aiSummaryChatMessages');
+            if (container) {
+                var loadMsg = document.createElement('div');
+                loadMsg.id = loadingId;
+                loadMsg.className = 'ai-chat-message ai-chat-assistant';
+                loadMsg.innerHTML = '<div class="ai-chat-message-body" style="font-style: italic;">Thinking...</div>';
+                container.appendChild(loadMsg);
+                container.scrollTop = container.scrollHeight;
+            }
+
             fetch('CMF_Web_portal.aspx/AskIssueAiFollowUp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json; charset=utf-8' },
@@ -11753,6 +14421,9 @@ td:nth-child(odd), th:nth-child(odd) {
             })
             .then(function (response) { return response.json(); })
             .then(function (data) {
+                var loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.parentNode.removeChild(loadingEl);
+
                 var result = data && data.d ? data.d : data;
                 if (!result || result.Success !== true) {
                     appendAiChatMessage('assistant', (result && result.Message) ? result.Message : 'Unable to answer follow-up at this time.', true);
@@ -11835,10 +14506,19 @@ td:nth-child(odd), th:nth-child(odd) {
                 .replace(/'/g, '&#39;');
         }
 
-        function openCmfPendingRecommendationModal(cpId, title, component, cmfRequest, impact, idst, reproOnRvp, reproducibility, customerDetail, customerOwner) {
+        function openCmfPendingRecommendationModal(cpId, title, component, componentGroup, cmfRequest, impact, idst, reproOnRvp, reproducibility, customerDetail, customerOwner) {
             var cpIdNode = document.getElementById('cmfRecCpId');
             var titleNode = document.getElementById('cmfRecTitle');
             var componentNode = document.getElementById('cmfRecComponent');
+            var sightingIdNode = document.getElementById('cmfAssistantSightingId');
+            var sightingHsdLinkNode = document.getElementById('cmfAssistantHsdLink');
+            var sightingDescriptionNode = document.getElementById('cmfAssistantSightingDescription');
+            var platformNode = document.getElementById('cmfAssistantPlatform');
+            var visibleComponentNode = document.getElementById('cmfAssistantComponent');
+            var impactSummaryNode = document.getElementById('cmfAssistantImpactSummary');
+            var qualityAssessmentNode = document.getElementById('cmfAssistantQualityAssessment');
+            var recommendationNode = document.getElementById('cmfAssistantRecommendationBody');
+            var recTagNode = document.getElementById('cmfAssistantRecTag');
             var bodyNode = document.getElementById('cmfRecBody');
             var drawerBg = document.getElementById('cmfRecDrawerBg');
             var drawer = document.getElementById('cmfRecDrawer');
@@ -11848,20 +14528,51 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
+            var summaryDrawer = document.getElementById('aiSummaryDrawer');
+            var summaryDrawerBg = document.getElementById('aiSummaryDrawerBg');
+            if (summaryDrawer || summaryDrawerBg) {
+                closeAiSummaryDrawer();
+            }
+
             cpIdNode.textContent = cpId || 'N/A';
             titleNode.textContent = title || 'N/A';
             componentNode.textContent = component || 'N/A';
-            
+            if (sightingDescriptionNode) sightingDescriptionNode.innerHTML = renderIssueDescriptionSkeleton();
+            if (impactSummaryNode) impactSummaryNode.innerHTML = renderImpactSummarySkeleton();
+            if (recommendationNode) recommendationNode.innerHTML = renderCmfRecommendationSkeleton();
+            if (recTagNode) {
+                recTagNode.textContent = 'CMF_Tag';
+                recTagNode.className = 'cmf-assistant-rec-tag';
+            }
+
             var recNode = document.getElementById('cmfRecRecommendation');
             var evidenceNode = document.getElementById('cmfRecEvidence');
             var qualityNode = document.getElementById('cmfRecQuality');
             setCmfDrawerMode('recommendation');
             var headingNode = document.getElementById('cmfRecHeading');
-            if (headingNode) headingNode.textContent = 'AI Recommendation';
-            
-            if (recNode) recNode.textContent = 'Generating AI recommendation...';
-            if (evidenceNode) evidenceNode.textContent = '-';
-            if (qualityNode) qualityNode.textContent = 'Quality: --';
+            if (headingNode) headingNode.innerHTML = '<span class="cmf-assistant-title-icon" aria-hidden="true">✨</span>AI CMF Assistant';
+            sightingIdNode = document.getElementById('cmfAssistantSightingId');
+            sightingHsdLinkNode = document.getElementById('cmfAssistantHsdLink');
+            platformNode = document.getElementById('cmfAssistantPlatform');
+            visibleComponentNode = document.getElementById('cmfAssistantComponent');
+            if (sightingIdNode) sightingIdNode.textContent = cpId || 'N/A';
+            if (sightingHsdLinkNode) {
+                if (cpId) {
+                    sightingHsdLinkNode.href = 'https://hsdes.intel.com/appstore/article/#/' + encodeURIComponent(cpId);
+                    sightingHsdLinkNode.style.display = 'inline-flex';
+                    sightingHsdLinkNode.setAttribute('aria-label', 'Open sighting ' + cpId + ' in HSD');
+                    sightingHsdLinkNode.setAttribute('title', 'Open sighting ' + cpId + ' in HSD');
+                } else {
+                    sightingHsdLinkNode.removeAttribute('href');
+                    sightingHsdLinkNode.style.display = 'none';
+                }
+            }
+            if (platformNode) platformNode.textContent = getPlatformDisplayLabel(getIssuePendingPlatformValue());
+            if (visibleComponentNode) visibleComponentNode.textContent = component || 'N/A';
+
+            if (recNode) recNode.style.display = 'none';
+            if (evidenceNode) evidenceNode.innerHTML = '';
+            if (qualityNode) qualityNode.textContent = 'Evidence Quality: --';
 
             drawerBg.classList.add('show');
             drawer.classList.add('show');
@@ -11870,6 +14581,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 cpId: cpId || '',
                 title: title || '',
                 component: component || '',
+                componentGroup: componentGroup || '',
                 cmfRequest: cmfRequest || '',
                 impact: impact || '',
                 idst: idst || '',
@@ -11880,48 +14592,93 @@ td:nth-child(odd), th:nth-child(odd) {
                 platform: getIssuePendingPlatformValue()
             };
 
-            fetch('CMF_Web_portal.aspx/GetCmfPendingRecommendation', {
+            if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentSkeleton();
+
+            fetch('CMF_Web_portal.aspx/GetSightingDescription', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json; charset=utf-8'
-                },
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({ cpId: payload.cpId, title: payload.title, platform: payload.platform })
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                var result = data && data.d ? data.d : data;
+                if (!sightingDescriptionNode) return;
+                if (!result || result.Success !== true) {
+                    sightingDescriptionNode.innerHTML = '<span class="sighting-description-error">Description unavailable.</span>';
+                    return;
+                }
+                sightingDescriptionNode.innerHTML = renderIssueDescriptionText(result.Summary || 'No description available.');
+            })
+            .catch(function () {
+                if (sightingDescriptionNode) sightingDescriptionNode.innerHTML = '<span class="sighting-description-error">Description unavailable.</span>';
+            });
+
+            fetch('CMF_Web_portal.aspx/GetSightingImpactSummary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({ cpId: payload.cpId, title: payload.title, impact: payload.impact, platform: payload.platform })
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                var result = data && data.d ? data.d : data;
+                if (!impactSummaryNode) return;
+                if (!result || result.Success !== true) {
+                    impactSummaryNode.innerHTML = '<span class="sighting-description-error">Impact summary unavailable.</span>';
+                    return;
+                }
+                impactSummaryNode.innerHTML = renderImpactSummaryText(result.Summary || 'No impact summary available.');
+            })
+            .catch(function () {
+                if (impactSummaryNode) impactSummaryNode.innerHTML = '<span class="sighting-description-error">Impact summary unavailable.</span>';
+            });
+
+            fetch('CMF_Web_portal.aspx/GetSightingQualityAssessment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
                 body: JSON.stringify(payload)
             })
-            .then(function (response) {
-                return response.json();
-            })
+            .then(function (response) { return response.json(); })
             .then(function (data) {
                 var result = data && data.d ? data.d : data;
                 if (!result || result.Success !== true) {
-                    if (recNode) {
-                        recNode.textContent = (result && result.Message) ? result.Message : 'Unable to generate recommendation at this time.';
-                    }
+                    if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentUnavailable();
                     return;
                 }
-
-                // Display recommendation
-                if (recNode) {
-                    recNode.textContent = result.Recommendation || 'No recommendation returned.';
-                    recNode.className = 'cmf-rec-decision-badge';
-                }
-                updatePendingRecommendationBadge(cpId, result.Recommendation, result.OverallQualityScore);
-                if (qualityNode) {
-                    var scoreText = result.OverallQualityScore ? result.OverallQualityScore + '%' : '--';
-                    qualityNode.textContent = 'Evidence quality: ' + scoreText;
-                }
-                
-                // Display AI reasoning
-                if (evidenceNode) {
-                    var reasoningText = result.Evidence || 'No AI reasoning provided.';
-                    evidenceNode.innerHTML = renderCmfRecommendationHighlights(reasoningText);
-                }
-
+                if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessment(result, payload);
             })
             .catch(function () {
-                if (recNode) {
-                    recNode.textContent = 'Error while calling recommendation service.';
-                }
+                if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentUnavailable();
             });
+
+            if (evidenceNode) {
+                evidenceNode.innerHTML = '<div class="ai-skeleton-loader"><div style="font-size:13px;font-weight:600;color:#5c7087;">&#10024; Assessing sighting quality and CMF readiness...</div><div class="ai-skeleton-line ai-skeleton-title" style="width:55%;"></div><div class="ai-skeleton-line" style="width:95%;"></div><div class="ai-skeleton-line" style="width:88%;"></div></div>';
+            }
+
+            fetch('CMF_Web_portal.aspx/GetCmfPendingRecommendation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify(payload)
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                var result = data && data.d ? data.d : data;
+                if (!result || result.Success !== true) {
+                    if (evidenceNode) evidenceNode.textContent = (result && result.Message) ? result.Message : 'Unable to generate CMF recommendation.';
+                    if (recommendationNode) recommendationNode.innerHTML = '<span class="sighting-description-error">CMF recommendation unavailable.</span>';
+                    return;
+                }
+                if (qualityNode) qualityNode.textContent = 'Sighting quality and CMF readiness';
+                updatePendingRecommendationBadge(payload.cpId, result.Recommendation, result.OverallQualityScore);
+                updateCmfAssistantTag(result.Recommendation);
+                if (recommendationNode) recommendationNode.innerHTML = renderCmfAssistantRecommendation(result, payload);
+                if (evidenceNode) evidenceNode.innerHTML = renderMergedCmfRecommendation(result, payload);
+            })
+            .catch(function () {
+                if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = '<span class="sighting-description-error">Sighting quality assessment unavailable.</span>';
+                if (recommendationNode) recommendationNode.innerHTML = '<span class="sighting-description-error">CMF recommendation unavailable.</span>';
+                if (evidenceNode) evidenceNode.textContent = 'Error while calling CMF recommendation service.';
+            });
+
         }
 
         function openCmfPendingDetailsModal(cpId, title, component, cmfRequest, impact, idst, reproOnRvp, reproducibility, customerDetail, customerOwner) {
@@ -11942,13 +14699,31 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             setCmfDrawerMode('details');
-            if (headingNode) headingNode.textContent = 'AI CMF Decision Details';
+            if (headingNode) headingNode.innerHTML = 'CMF Decision Details <span class="cmf-rec-heading-sighting">Sighting ID: ' + escapeHtml(cpId || 'N/A') + '</span>';
             cpIdNode.textContent = cpId || 'N/A';
             if (titleNode) titleNode.textContent = title || 'N/A';
             componentNode.textContent = component || 'N/A';
-            if (recNode) recNode.textContent = 'Review details';
+            if (recNode) recNode.style.display = 'none';
             if (qualityNode) qualityNode.textContent = 'CMF-focused issue brief';
-            if (detailsBodyNode) detailsBodyNode.innerHTML = renderCmfDecisionDetailsLoading(cpId);
+            if (detailsBodyNode) detailsBodyNode.innerHTML = `
+                <div class="ai-skeleton-loader">
+                    <div style="font-size: 13px; font-weight: 600; color: #5c7087; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                        &#10024; Generating CMF Decision Details...
+                    </div>
+                    <div class="ai-skeleton-line ai-skeleton-title" style="width: 50%;"></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                        <div class="ai-sk-block"><div class="ai-skeleton-line ai-skeleton-label"></div><div class="ai-skeleton-line ai-skeleton-value"></div></div>
+                        <div class="ai-sk-block"><div class="ai-skeleton-line ai-skeleton-label"></div><div class="ai-skeleton-line ai-skeleton-value"></div></div>
+                        <div class="ai-sk-block"><div class="ai-skeleton-line ai-skeleton-label"></div><div class="ai-skeleton-line ai-skeleton-value"></div></div>
+                        <div class="ai-sk-block"><div class="ai-skeleton-line ai-skeleton-label"></div><div class="ai-skeleton-line ai-skeleton-value"></div></div>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <div class="ai-skeleton-line ai-skeleton-title" style="width: 30%; height: 16px;"></div>
+                        <div class="ai-skeleton-line" style="margin-top: 10px; width: 100%;"></div>
+                        <div class="ai-skeleton-line" style="margin-top: 8px; width: 95%;"></div>
+                        <div class="ai-skeleton-line" style="margin-top: 8px; width: 90%;"></div>
+                    </div>
+                </div>`;
 
             drawerBg.classList.add('show');
             drawer.classList.add('show');
@@ -11994,7 +14769,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var drawer = document.getElementById('cmfRecDrawer');
             var headingNode = document.getElementById('cmfRecHeading');
             var recNode = document.getElementById('cmfRecRecommendation');
-            var evidenceNode = document.getElementById('cmfRecEvidence');
+            var evidenceNode = document.getElementById('cmfDecisionDetailsBody');
             var qualityNode = document.getElementById('cmfRecQuality');
             var actionsNode = document.getElementById('cmfRecActions');
 
@@ -12003,7 +14778,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
-            setCmfDrawerMode('recommendation');
+            setCmfDrawerMode('details');
             if (headingNode) headingNode.textContent = 'AI Impact Details';
             cpIdNode.textContent = cpId || 'N/A';
             titleNode.textContent = title || 'N/A';
@@ -12051,19 +14826,32 @@ td:nth-child(odd), th:nth-child(odd) {
 
         function setCmfDrawerMode(mode) {
             var isDetails = mode === 'details';
+            var isInsights = mode === 'insights';
             var titleRow = document.getElementById('cmfRecTitleRow');
             var sightingRow = document.getElementById('cmfRecSightingRow');
+            var assistantSightingDetails = document.getElementById('cmfAssistantSightingDetails');
+            var assistantQualityAssessment = document.getElementById('cmfAssistantQualityAssessment');
+            var assistantRecommendation = document.getElementById('cmfAssistantRecommendationSection');
+            var assistantImpact = document.getElementById('cmfAssistantImpactSection');
             var qualityNode = document.getElementById('cmfRecQuality');
             var reasoningSection = document.getElementById('cmfRecReasoningSection');
             var actionsNode = document.getElementById('cmfRecActions');
             var detailsBody = document.getElementById('cmfDecisionDetailsBody');
-            if (titleRow) titleRow.classList.toggle('cmf-rec-hidden', isDetails);
-            if (sightingRow) sightingRow.classList.toggle('cmf-rec-hidden', isDetails);
-            if (qualityNode) qualityNode.classList.toggle('cmf-rec-hidden', isDetails);
+            if (titleRow) titleRow.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
+            if (sightingRow) sightingRow.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
+            if (assistantSightingDetails) assistantSightingDetails.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
+            if (assistantQualityAssessment) assistantQualityAssessment.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
+            if (assistantRecommendation) assistantRecommendation.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
+            if (assistantImpact) assistantImpact.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
+            if (qualityNode) qualityNode.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
             if (reasoningSection) reasoningSection.classList.toggle('cmf-rec-hidden', isDetails);
-            if (actionsNode) actionsNode.classList.toggle('cmf-rec-hidden', isDetails);
-            if (detailsBody) detailsBody.classList.toggle('cmf-rec-hidden', !isDetails);
-            if (!isDetails && detailsBody) detailsBody.innerHTML = '';
+            if (actionsNode) actionsNode.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
+            if (detailsBody) detailsBody.classList.toggle('cmf-rec-hidden', !isDetails && !isInsights);
+            if (!isDetails && !isInsights && detailsBody) detailsBody.innerHTML = '';
+            if (!isDetails && !isInsights) {
+                var headingNode = document.getElementById('cmfRecHeading');
+                if (headingNode) headingNode.textContent = 'AI CMF Assistant';
+            }
         }
 
         function normalizeCmfRecommendationLabel(value) {
@@ -12079,34 +14867,47 @@ td:nth-child(odd), th:nth-child(odd) {
             if (!cpId) return;
             var selector = '.pending-ai-rec-btn[data-cmf-rec-id="' + cssEscapeValue(cpId) + '"]';
             var nodes = document.querySelectorAll(selector);
-            var label = normalizeCmfRecommendationLabel(recommendation);
-            var scoreText = score ? score + '% Confidence' : 'AI generated';
+            var rec = normalizeCmfRecommendationLabel(recommendation || 'CMF_REVIEW');
             for (var i = 0; i < nodes.length; i++) {
                 var labelNode = nodes[i].querySelector('.pending-ai-rec-label');
+                if (labelNode) labelNode.textContent = rec;
                 var confidenceNode = nodes[i].querySelector('.pending-ai-rec-confidence');
-                if (labelNode) labelNode.textContent = label;
-                if (confidenceNode) confidenceNode.textContent = scoreText;
+                if (confidenceNode) {
+                    confidenceNode.textContent = '';
+                    confidenceNode.style.display = 'none';
+                }
                 nodes[i].classList.add('pending-ai-rec-ready');
+                nodes[i].setAttribute('aria-label', 'Open CMF Analysis: ' + rec);
+                nodes[i].setAttribute('title', 'Open CMF Analysis: ' + rec);
             }
         }
 
-        function renderCmfRecommendationHighlights(reasoningText) {
-            var text = String(reasoningText || '').replace(/\r/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-            if (!text) return '<ul class="cmf-rec-impact-list"><li class="cmf-rec-impact-item">No AI reasoning provided.</li></ul>';
-            var sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
-            var highlights = [];
-            for (var i = 0; i < sentences.length && highlights.length < 4; i++) {
-                var sentence = sentences[i].trim();
-                if (!sentence) continue;
-                if (sentence.length > 260) sentence = trimToCompleteSentence(sentence, 260);
-                if (!sentence) continue;
-                highlights.push(sentence);
+        function renderCmfRecommendationHighlights(reasoningText, ruleScores) {
+            var text = String(reasoningText || '').trim();
+            if (!text) return '<div class="cmf-rec-reasoning-card">No AI reasoning provided.</div>';
+
+            var normalized = text.replace(/\r/g, '\n').replace(/\n{2,}/g, '\n').trim();
+            var impactMatch = normalized.match(/(?:^|\n)\s*(?:ISSUE\s+IMPACT|DECISION\s+IMPACT)\s*:\s*([\s\S]*)$/i);
+            var impactText = impactMatch ? impactMatch[1].replace(/^[-*]\s*/gm, '').trim() : '';
+            var reasonText = impactMatch ? normalized.substring(0, impactMatch.index).trim() : normalized;
+            reasonText = reasonText.replace(/^\s*(?:REASONING|AI\s+REASONING)\s*:\s*/i, '').replace(/^[-*]\s*/gm, '').trim();
+
+            var bullets = reasonText.split(/\n+|(?:^|\s)[-•]\s+/).map(function (item) {
+                return item.replace(/^\d+[\.)]\s*/, '').trim();
+            }).filter(function (item) { return item.length > 0; }).slice(0, 4);
+            if (bullets.length === 0 && reasonText) bullets = [firstCompleteSentence(reasonText, 420)];
+            var firstImpact = firstCompleteSentence(impactText, 260);
+
+            var html = '<div class="cmf-rec-reasoning-card">';
+            html += '<div><strong>Reason:</strong></div>';
+            html += '<ul class="cmf-rec-reason-list">';
+            for (var i = 0; i < bullets.length; i++) {
+                html += '<li>' + escapeHtml(trimToCompleteSentence(bullets[i], 240)) + '</li>';
             }
-            var html = '<ul class="cmf-rec-impact-list">';
-            for (var j = 0; j < highlights.length; j++) {
-                html += '<li class="cmf-rec-impact-item">' + escapeHtml(highlights[j]) + '</li>';
-            }
-            return html + '</ul>';
+            html += '</ul>';
+            if (firstImpact) html += '<div><strong>Impact:</strong> ' + escapeHtml(firstImpact) + '</div>';
+            html += renderCmfCriterionScores(ruleScores || []);
+            return html + '</div>';
         }
 
         function trimToCompleteSentence(text, maxLength) {
@@ -12119,7 +14920,7 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function renderCmfDecisionDetailsLoading(cpId) {
-            return '<div class="cmf-decision-details-shell"><div class="cmf-decision-header"><span class="cmf-decision-sighting">' + escapeHtml(cpId || 'N/A') + '</span></div><div class="cmf-decision-card"><h4>Context</h4><p>Generating CMF decision details...</p></div></div>';
+            return '<div class="cmf-decision-details-shell"><div class="cmf-decision-card"><h4>Context</h4><div class="ai-loading-banner">&#10024; Generating CMF decision details, please wait...</div></div></div>';
         }
 
         function renderCmfDecisionDetails(rawText, cpId) {
@@ -12127,7 +14928,6 @@ td:nth-child(odd), th:nth-child(odd) {
             var score = parsed.score;
             var scoreText = typeof score === 'number' ? score + '%' : '--';
             return '<div class="cmf-decision-details-shell">' +
-                '<div class="cmf-decision-header"><span class="cmf-decision-sighting">' + escapeHtml(cpId || 'N/A') + '</span></div>' +
                 '<section class="cmf-decision-card"><h4>Context</h4>' + renderCmfBriefList(parsed.context) + '</section>' +
                 '<section class="cmf-decision-card"><h4>HSD Information Quality</h4>' +
                     '<div class="cmf-quality-meter-row"><div class="cmf-quality-score-ring" style="--score:' + escapeHtml(typeof score === 'number' ? score : 0) + '"><span>' + escapeHtml(scoreText) + '</span></div><div class="cmf-quality-caption">Quality score reflects how complete the HSD and row details are for a CMF decision.</div></div>' +
@@ -12209,7 +15009,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var list = items && items.length ? items : ['No detail available.'];
             var html = '<ul>';
             for (var i = 0; i < list.length && i < 4; i++) {
-                html += '<li>' + escapeHtml(list[i]) + '</li>';
+                html += '<li>' + escapeHtml(sanitizeCmfDisplaySentence(list[i], 320)) + '</li>';
             }
             return html + '</ul>';
         }
@@ -12547,8 +15347,8 @@ td:nth-child(odd), th:nth-child(odd) {
                 issueFilters: {
                     bodyId: 'issueTopFilterBody',
                     buttonId: 'issueFiltersToggleBtn',
-                    storageKey: 'cmf.collapsible.issueFilters',
-                    defaultCollapsed: true
+                    storageKey: 'cmf.collapsible.issueFilters.inline',
+                    defaultCollapsed: false
                 }
             };
         }
@@ -12603,6 +15403,12 @@ td:nth-child(odd), th:nth-child(odd) {
 
             if (reopenButton) {
                 reopenButton.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            }
+
+            if (sectionName === 'mainMenu' && window.CMF_PORTAL && window.CMF_PORTAL.homeTrendChart) {
+                setTimeout(function () {
+                    try { window.CMF_PORTAL.homeTrendChart.resize(); } catch (ignore) { }
+                }, 220);
             }
 
             if (persistState) {
@@ -16081,9 +18887,12 @@ td:nth-child(odd), th:nth-child(odd) {
             } else if (activeTab === 'issue' || activeText.indexOf('issue') >= 0) {
                 issueActive = true;
                 pendingActive = false;
+            } else if (activeTab && activeTab !== 'pending' && activeTab !== 'issue') {
+                issueActive = false;
+                pendingActive = false;
             }
 
-            if (!issueActive && !pendingActive) {
+            if (!issueActive && !pendingActive && (!activeTab || activeTab === 'pending' || activeTab === 'issue')) {
                 var issueWasVisible = !!(issueShell && issueShell.style.display === 'grid');
                 var pendingWasVisible = !!(pendingShell && pendingShell.style.display === 'grid');
                 if (pendingWasVisible) {
@@ -16134,6 +18943,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 pendingGridWrap.classList.toggle('portal-view-hidden', !pendingActive);
             }
 
+            populateCmfPendingFilterOptions();
             filterPortalVisibleTables();
         }
 
@@ -16434,12 +19244,2067 @@ td:nth-child(odd), th:nth-child(odd) {
             Sys.Application.add_load(function () {
                 applyTableOnlyScroll();
                 syncGlobalSearchVisibility();
+                populateCmfPendingFilterOptions();
                 syncIssueHorizontalScroll(0);
                 scheduleInitColumnHideButtons(0);
             });
         }
         // ────────────────────────────────────────────────────────────────────
-    </script>
+
+        function getPlatformDisplayLabel(platformValue) {
+            var value = String(platformValue || '').trim();
+            if (!value) return 'Current platform';
+
+            var aliases = window.CMF_PORTAL && window.CMF_PORTAL.platformAliasMap ? window.CMF_PORTAL.platformAliasMap : {};
+            for (var label in aliases) {
+                if (Object.prototype.hasOwnProperty.call(aliases, label) && aliases[label] === value) {
+                    return label.replace(/-/g, '_').toUpperCase();
+                }
+            }
+
+            return value
+                .replace(/^CMF_/i, '')
+                .replace(/_ALL_COMPONENTS_TABLE$/i, '')
+                .replace(/-/g, '_')
+                .toUpperCase();
+        }
+
+        function renderImpactSummarySkeleton() {
+            return '<div class="ai-skeleton-loader cmf-impact-skeleton" aria-label="Generating impact summary">' +
+                '<div class="ai-skeleton-line" style="width: 94%;"></div>' +
+                '<div class="ai-skeleton-line" style="width: 88%;"></div>' +
+                '<div class="ai-skeleton-line" style="width: 72%;"></div>' +
+                '<div class="ai-skeleton-line" style="width: 90%; margin-top: 8px;"></div>' +
+                '<div class="ai-skeleton-line" style="width: 84%;"></div>' +
+                '<div class="ai-skeleton-line" style="width: 66%;"></div>' +
+                '</div>';
+        }
+
+        function renderIssueDescriptionSkeleton() {
+                return '<div class="ai-skeleton-loader cmf-impact-skeleton" aria-label="Generating issue description">' +
+                '<div class="ai-skeleton-line" style="width: 92%;"></div>' +
+                '<div class="ai-skeleton-line" style="width: 76%; margin-top: 8px;"></div>' +
+                '</div>';
+            }
+
+        function renderIssueDescriptionText(text) {
+            var source = normalizeIssueDescriptionBullets(text || '');
+            var lines = source.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+                .split('\n')
+                .map(function (line) { return line.trim(); })
+                .filter(Boolean);
+            if (!lines.length) return 'No description available.';
+
+            var parsedLines = lines.map(function (line) {
+                var isBullet = /^\s*(?:[-*•]|\d+[.)])\s+/.test(line);
+                return {
+                    isBullet: isBullet,
+                    text: line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '').trim()
+                };
+            }).filter(function (item) { return item.text; });
+
+            var bullets = [];
+            var markedBullets = parsedLines.filter(function (item) { return item.isBullet; });
+            if (markedBullets.length >= 2) {
+                bullets = markedBullets.map(function (item) { return item.text; }).slice(0, 3);
+            } else if (parsedLines.length >= 4) {
+                bullets = parsedLines.slice(1, 4).map(function (item) { return item.text; });
+            } else {
+                bullets = parsedLines.map(function (item) { return item.text; }).slice(0, 3);
+            }
+
+            if (bullets.length < 3) {
+                var sentenceParts = parsedLines.map(function (item) { return item.text; }).join(' ').match(/[^.!?]+[.!?]+/g) || [];
+                for (var i = 0; i < sentenceParts.length && bullets.length < 3; i++) {
+                    var sentence = sentenceParts[i].trim();
+                    if (sentence && bullets.indexOf(sentence) < 0) bullets.push(sentence);
+                }
+            }
+
+            var html = '<ul>';
+            for (var j = 0; j < bullets.length && j < 3; j++) {
+                html += '<li>' + escapeHtml(bullets[j]) + '</li>';
+            }
+            return html + '</ul>';
+        }
+
+        function normalizeIssueDescriptionBullets(text) {
+            return String(text || '')
+                .replace(/\s+([-*•])\s+/g, '\n$1 ')
+                .replace(/\s+(\d+[.)])\s+/g, '\n$1 ');
+        }
+
+        function renderAssistantRichText(text) {
+            var html = escapeHtml(text || '');
+            html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            html = html.replace(/~~(.+?)~~/g, '<u>$1</u>');
+            return html;
+        }
+
+        function normalizeImpactFixLine(line) {
+            var match = String(line || '').match(/^(?:Fix\s*(?:requested\s*)?by|Must\s*fix\s*for|Requested\s*fix(?:\s*(?:timing|by))?|Needed\s*by)\s*:\s*(.+)$/i);
+            if (!match) return '';
+            var timing = match[1].replace(/[.;]\s*$/, '').trim();
+            return timing ? 'Fix By: ' + timing : '';
+        }
+
+        function renderImpactSummaryText(text) {
+            var lines = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+                .replace(/\s+([-*•])\s+/g, '\n$1 ')
+                .replace(/\s+(\d+[.)])\s+/g, '\n$1 ')
+                .replace(/\s+((?:Fix\s*(?:requested\s*)?by|Must\s*fix\s*for|Requested\s*fix(?:\s*(?:timing|by))?|Needed\s*by)\s*:)\s*/ig, '\n$1 ')
+                .split('\n')
+                .map(function (line) { return line.trim(); })
+                .filter(Boolean);
+            if (!lines.length) return 'No impact summary available.';
+
+            var fixLine = '';
+            var bullets = [];
+            lines.forEach(function (line) {
+                var cleanLine = line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '').trim();
+                var normalizedFixLine = normalizeImpactFixLine(cleanLine);
+                if (normalizedFixLine) {
+                    fixLine = normalizedFixLine;
+                } else if (cleanLine) {
+                    bullets.push(cleanLine);
+                }
+            });
+
+            if (!bullets.length && !fixLine) bullets = lines;
+
+            var html = bullets.length ? '<ul class="cmf-assistant-impact-list">' + bullets.map(function (line) {
+                return '<li>' + renderAssistantRichText(line) + '</li>';
+            }).join('') + '</ul>' : '';
+
+            if (fixLine) {
+                html += '<div class="cmf-assistant-fix-line"><strong>' + renderAssistantRichText(fixLine) + '</strong></div>';
+            }
+
+            return html;
+        }
+
+        function renderMergedCmfRecommendation(result, payload) {
+            result = result || {};
+            payload = payload || {};
+            var recommendation = normalizeCmfRecommendationLabel(result.Recommendation || 'CMF_REVIEW');
+            var score = normalizeWeightedCmfScore(result.OverallQualityScore || 0);
+            var scorePercent = Math.max(0, Math.min(100, score * 20));
+            var rules = normalizeCmfDimensionScores(result.RuleScores || []);
+            var missing = extractCmfMissingInformation(result.Evidence || '', rules, payload);
+            var reasons = buildCmfRecommendationReasoning(recommendation, score, rules, result.Evidence || '', payload);
+            var impact = extractCmfImpactSentence(result.Evidence || '', payload);
+            var symptom = extractCmfSymptomEvidence(rules, reasons);
+            var reviewerActions = buildCmfReviewerActions(recommendation, missing, rules, impact);
+            var scoreDisplay = formatWeightedCmfScore(score) || '0.0';
+
+            var html = '<div class="cmf-rec-assessment-shell">';
+            html += '<section class="cmf-rec-summary-band">';
+            html += '<div><div class="cmf-rec-summary-title">' + escapeHtml(recommendation) + '</div>';
+            html += renderCmfScorePanel(scoreDisplay, scorePercent, recommendation);
+            html += '</section>';
+
+            html += '<section class="cmf-rec-stage-card"><h4>1. Issue Evidence</h4><ul>';
+            html += '<li><strong>Issue symptom / failure mode:</strong> ' + escapeHtml(symptom) + '</li>';
+            html += '<li><strong>Customer impact:</strong> ' + escapeHtml(impact) + '</li>';
+            html += '<li><strong>Occurrence / repro:</strong> ' + escapeHtml(firstUsefulText(payload.reproducibility || payload.reproOnRvp, 'Missing occurrence or repro evidence.')) + '</li>';
+            html += '<li><strong>Design:</strong> ' + escapeHtml(firstUsefulText(payload.customerDetail, 'Usage scenario not identified.')) + '</li>';
+            html += '<li><strong>Workaround / recovery:</strong> ' + escapeHtml(findRecoverySignal(result.Evidence || '', payload, rules)) + '</li>';
+            html += '<li><strong>Milestone / business exposure:</strong> ' + escapeHtml(findBusinessSignal(result.Evidence || '', payload, rules)) + '</li>';
+            html += '</ul></section>';
+
+            html += '<section class="cmf-rec-stage-card"><h4>2. Individual Metric Scores</h4>' + renderCmfMetricScoreTable(rules) + '</section>';
+
+            html += '<div class="cmf-rec-stage-grid">';
+            html += '<section class="cmf-rec-stage-card"><h4>3. Reasoning</h4>' + renderCmfBriefList(reasons) + '</section>';
+            html += '<section class="cmf-rec-stage-card"><h4>4. Missing Information</h4>' + renderCmfMissingList(missing) + '</section>';
+            html += '<section class="cmf-rec-stage-card"><h4>5. Reviewer Action</h4>' + renderCmfBriefList(reviewerActions) + '</section></div>';
+            html += '</div>';
+            return html;
+        }
+
+        function renderSightingQualityAssessment(result, payload) {
+            result = result || {};
+            payload = payload || {};
+            var assessment = normalizeSightingQualityAssessment(result, payload);
+            var score = assessment.score;
+            var qualityStateClass = getQualityStateClass(score);
+            window.CMF_PORTAL = window.CMF_PORTAL || {};
+            window.CMF_PORTAL.currentSightingQualityAssessment = { assessment: assessment, payload: payload };
+            var categoryItems = buildSqaCategoryItems(assessment);
+            var scoreOutOfTen = formatSqaScoreOutOfTen(score);
+
+            var html = '<section class="cmf-assistant-feature-card cmf-quality-assessment-card ' + qualityStateClass + '">';
+            html += '<div class="cmf-assistant-feature-head"><div><h3>Sighting Quality Assessment</h3></div><div class="cmf-sqa-score-pill ' + qualityStateClass + '">Quality Score: ' + escapeHtml(scoreOutOfTen) + '/10</div></div>';
+            html += '<div class="cmf-sqa-category-grid">';
+            html += renderSqaCategoryCard('Missing Information', 'missing', categoryItems.missing);
+            html += renderSqaCategoryCard('Partial Information', 'partial', categoryItems.partial);
+            html += renderSqaCategoryCard('Conflicting Information', 'conflicting', categoryItems.conflicting);
+            html += '</div>';
+            html += '<div class="cmf-quality-action-row"><button type="button" class="cmf-quality-details-btn" onclick="showSightingQualityDetails()">View details</button></div>';
+            html += '</section>';
+            return html;
+        }
+
+        function renderSightingQualityAssessmentSkeleton() {
+            return '<section class="cmf-assistant-feature-card cmf-quality-assessment-card cmf-sqa-skeleton" aria-label="Generating sighting quality assessment">' +
+                '<div class="cmf-assistant-feature-head"><div><h3>Sighting Quality Assessment</h3></div></div>' +
+                '<div class="ai-skeleton-loader">' +
+                    '<div class="ai-skeleton-line" style="width:62%; height:13px;"></div>' +
+                    '<div class="ai-skeleton-line" style="width:36%; height:13px; margin-top:8px;"></div>' +
+                    '<div class="cmf-sqa-skeleton-grid">' +
+                        '<div class="cmf-sqa-skeleton-box"><div class="ai-skeleton-line" style="width:72%;"></div><div class="ai-skeleton-line" style="width:54%; margin-top:10px;"></div></div>' +
+                        '<div class="cmf-sqa-skeleton-box"><div class="ai-skeleton-line" style="width:70%;"></div><div class="ai-skeleton-line" style="width:62%; margin-top:10px;"></div></div>' +
+                        '<div class="cmf-sqa-skeleton-box"><div class="ai-skeleton-line" style="width:78%;"></div><div class="ai-skeleton-line" style="width:50%; margin-top:10px;"></div></div>' +
+                    '</div>' +
+                '</div>' +
+            '</section>';
+        }
+
+        function renderSightingQualityAssessmentUnavailable() {
+            return '<section class="cmf-assistant-feature-card cmf-quality-assessment-card"><div class="cmf-assistant-feature-head"><div><h3>Sighting Quality Assessment</h3></div></div><div class="sighting-description-error">Sighting quality assessment unavailable.</div></section>';
+        }
+
+        function refreshSightingQualityAssessment() {
+            var state = window.CMF_PORTAL && window.CMF_PORTAL.currentSightingQualityAssessment;
+            if (!state || !state.payload) return;
+            var qualityAssessmentNode = document.getElementById('cmfAssistantQualityAssessment');
+            var detailsBody = document.getElementById('cmfDecisionDetailsBody');
+            var payload = state.payload || {};
+            if (detailsBody && !detailsBody.classList.contains('cmf-rec-hidden')) {
+                detailsBody.innerHTML = '<div class="cmf-quality-detail-shell">' + renderSightingQualityAssessmentSkeleton() + '</div>';
+            }
+            if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentSkeleton();
+
+            fetch('CMF_Web_portal.aspx/GetSightingQualityAssessment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify(payload)
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                var result = data && data.d ? data.d : data;
+                if (!result || result.Success !== true) {
+                    if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentUnavailable();
+                    if (detailsBody && !detailsBody.classList.contains('cmf-rec-hidden')) detailsBody.innerHTML = '<div class="sighting-description-error">Sighting quality assessment unavailable.</div>';
+                    return;
+                }
+                var assessment = normalizeSightingQualityAssessment(result, payload);
+                window.CMF_PORTAL.currentSightingQualityAssessment = { assessment: assessment, payload: payload };
+                if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessment(result, payload);
+                if (detailsBody && !detailsBody.classList.contains('cmf-rec-hidden')) detailsBody.innerHTML = renderSightingQualityDetails(assessment, payload);
+            })
+            .catch(function () {
+                if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentUnavailable();
+                if (detailsBody && !detailsBody.classList.contains('cmf-rec-hidden')) detailsBody.innerHTML = '<div class="sighting-description-error">Sighting quality assessment unavailable.</div>';
+            });
+        }
+
+        function formatSqaScoreOutOfTen(score) {
+            var value = Math.max(0, Math.min(10, (parseFloat(score) || 0) / 10));
+            return value % 1 === 0 ? String(value.toFixed(0)) : value.toFixed(1);
+        }
+
+        function buildSqaCategoryItems(assessment) {
+            var grouped = { missing: [], partial: [], conflicting: [] };
+            var fields = assessment.fields || [];
+            for (var i = 0; i < fields.length; i++) {
+                var field = fields[i] || {};
+                if (!isSqaCoreField(field.fieldName) && String(field.status || '').toLowerCase().indexOf('conflict') < 0) continue;
+                var status = String(field.status || '').toLowerCase();
+                if (status.indexOf('missing') >= 0) grouped.missing.push(field);
+                else if (status.indexOf('conflict') >= 0) grouped.conflicting.push(field);
+                else if (status.indexOf('partial') >= 0 || status.indexOf('review') >= 0) grouped.partial.push(field);
+            }
+            return grouped;
+        }
+
+        function isSqaCoreField(fieldName) {
+            var text = String(fieldName || '').toLowerCase();
+            return text === 'title'
+                || text === 'reproducibility / failure rate'
+                || text === 'processor'
+                || text === 'soc stepping'
+                || text === 'impact'
+                || text === 'steps to reproduce'
+                || text === 'exposure / priority'
+                || text === 'me sku';
+        }
+
+        function renderSqaCategoryCard(title, type, items) {
+            var list = (items || []).slice(0, 3);
+            var html = '<div class="cmf-sqa-category-card ' + escapeHtml(type) + '"><div class="cmf-sqa-category-title">' + escapeHtml(title) + '</div><ul class="cmf-sqa-category-list">';
+            if (!list.length) {
+                html += '<li class="is-empty">None identified</li>';
+            } else {
+                for (var i = 0; i < list.length; i++) {
+                    var field = list[i] || {};
+                    html += '<li>' + escapeHtml(field.fieldName || 'Field') + '</li>';
+                }
+            }
+            return html + '</ul></div>';
+        }
+
+        function getQualityStateClass(score) {
+            if (score >= 80) return 'is-quality-high';
+            if (score >= 50) return 'is-quality-medium';
+            return 'is-quality-low';
+        }
+
+        function normalizeSightingQualityAssessment(result, payload) {
+            var rawFields = result.Fields || result.fields || [];
+            if (rawFields && rawFields.length) {
+                var score = parseInt(result.QualityScore || result.qualityScore || 0, 10);
+                var baseline = parseInt(result.BaselineScore || result.baselineScore || 0, 10);
+                if (isNaN(score)) score = 0;
+                if (isNaN(baseline)) baseline = score;
+                var fields = [];
+                for (var i = 0; i < rawFields.length; i++) {
+                    var item = rawFields[i] || {};
+                    fields.push({
+                        fieldName: item.FieldName || item.fieldName || 'Field',
+                        status: item.Status || item.status || 'Present',
+                        characteristic: item.Characteristic || item.characteristic || 'Usable',
+                        evidence: item.Evidence || item.evidence || '',
+                        recommendation: item.Recommendation || item.recommendation || '',
+                        decisionUse: item.DecisionUse || item.decisionUse || item.WhyItMatters || item.whyItMatters || ''
+                    });
+                }
+                return {
+                    score: Math.max(0, Math.min(100, score)),
+                    baselineScore: Math.max(0, Math.min(100, baseline)),
+                    dimensionScores: normalizeSqaDimensionScores(result.DimensionScores || result.dimensionScores || []),
+                    tier: result.Tier || result.tier || '',
+                    summary: [result.Summary || result.summary || 'Sighting completeness was assessed from database and HSD context.'],
+                    issues: buildIssuesFromQualityFields(fields),
+                    fields: fields
+                };
+            }
+            var fallback = buildSightingQualityAssessment(result, payload);
+            fallback.baselineScore = fallback.score;
+            fallback.fields = buildFallbackQualityFields(fallback);
+            fallback.dimensionScores = [];
+            return fallback;
+        }
+
+        function normalizeSqaDimensionScores(rawDimensions) {
+            var dimensions = [];
+            for (var i = 0; i < (rawDimensions || []).length; i++) {
+                var item = rawDimensions[i] || {};
+                dimensions.push({
+                    name: item.Name || item.name || item.DimensionName || item.dimensionName || 'Dimension',
+                    score: Math.max(0, Math.min(100, parseInt(item.Score || item.score || 0, 10) || 0)),
+                    weight: Math.max(0, parseFloat(item.Weight || item.weight || 0) || 0),
+                    summary: item.Summary || item.summary || ''
+                });
+            }
+            return dimensions;
+        }
+
+        function buildIssuesFromQualityFields(fields) {
+            var issues = [];
+            for (var i = 0; i < (fields || []).length; i++) {
+                var field = fields[i] || {};
+                if (!/^present$/i.test(field.status || '')) {
+                    issues.push((field.fieldName || 'Field') + ': ' + (field.status || 'Needs review') + (field.characteristic ? ' - ' + field.characteristic : ''));
+                }
+            }
+            return issues;
+        }
+
+        function buildQualityAttentionItems(assessment) {
+            if (assessment.fields && assessment.fields.length) {
+                var items = [];
+                for (var i = 0; i < assessment.fields.length; i++) {
+                    var field = assessment.fields[i] || {};
+                    if (!/^present$/i.test(field.status || '')) {
+                        items.push((field.fieldName || 'Field') + ': ' + (field.status || 'Needs review') + (field.characteristic ? ' - ' + field.characteristic : ''));
+                    }
+                }
+                return items;
+            }
+            return assessment.issues || [];
+        }
+
+        function buildFallbackQualityFields(assessment) {
+            var fields = [];
+            var issues = assessment.issues || [];
+            for (var i = 0; i < issues.length; i++) {
+                var parts = String(issues[i]).split(':');
+                var rawCharacteristic = parts.slice(1).join(':').replace(/^\s+/, '') || 'Needs review';
+                var characteristic = /partial or vague/i.test(rawCharacteristic) ? 'Needs more specific evidence' : rawCharacteristic;
+                fields.push({
+                    fieldName: parts[0] || 'Field',
+                    status: /missing/i.test(issues[i]) ? 'Missing' : (/conflict|disagree/i.test(issues[i]) ? 'Partial' : 'Partial'),
+                    characteristic: characteristic,
+                    evidence: 'Preliminary row-data check flagged this field before the full database and HSD assessment completed.',
+                    recommendation: 'Add concrete sighting details or wait for the backend HSD assessment to refine this field.'
+                });
+            }
+            return fields;
+        }
+
+        function renderQualityFieldList(items) {
+            var html = '<ul class="cmf-quality-field-list">';
+            for (var i = 0; i < items.length; i++) {
+                html += '<li>' + escapeHtml(items[i]) + '</li>';
+            }
+            return html + '</ul>';
+        }
+
+        function showSightingQualityDetails() {
+            var state = window.CMF_PORTAL && window.CMF_PORTAL.currentSightingQualityAssessment;
+            if (!state || !state.assessment) return;
+
+            var headingNode = document.getElementById('cmfRecHeading');
+            var sightingDetails = document.getElementById('cmfAssistantSightingDetails');
+            var qualitySlot = document.getElementById('cmfAssistantQualityAssessment');
+            var recommendationSection = document.getElementById('cmfAssistantRecommendationSection');
+            var impactSection = document.getElementById('cmfAssistantImpactSection');
+            var reasoningSection = document.getElementById('cmfRecReasoningSection');
+            var detailsBody = document.getElementById('cmfDecisionDetailsBody');
+            if (headingNode) headingNode.innerHTML = '<button type="button" class="cmf-quality-back-btn" onclick="returnToCmfAssistantFromQualityDetails()">Back</button><span style="margin-left:10px;">Sighting Quality Details</span>';
+            if (sightingDetails) sightingDetails.classList.add('cmf-rec-hidden');
+            if (qualitySlot) qualitySlot.classList.add('cmf-rec-hidden');
+            if (recommendationSection) recommendationSection.classList.add('cmf-rec-hidden');
+            if (impactSection) impactSection.classList.add('cmf-rec-hidden');
+            if (reasoningSection) reasoningSection.classList.add('cmf-rec-hidden');
+            if (detailsBody) {
+                detailsBody.classList.remove('cmf-rec-hidden');
+                detailsBody.innerHTML = renderSightingQualityDetails(state.assessment, state.payload || {});
+            }
+        }
+
+        function returnToCmfAssistantFromQualityDetails() {
+            var headingNode = document.getElementById('cmfRecHeading');
+            var sightingDetails = document.getElementById('cmfAssistantSightingDetails');
+            var qualitySlot = document.getElementById('cmfAssistantQualityAssessment');
+            var recommendationSection = document.getElementById('cmfAssistantRecommendationSection');
+            var impactSection = document.getElementById('cmfAssistantImpactSection');
+            var reasoningSection = document.getElementById('cmfRecReasoningSection');
+            var detailsBody = document.getElementById('cmfDecisionDetailsBody');
+            if (headingNode) headingNode.innerHTML = '<span class="cmf-assistant-title-icon" aria-hidden="true">✨</span>AI CMF Assistant';
+            if (sightingDetails) sightingDetails.classList.remove('cmf-rec-hidden');
+            if (qualitySlot) qualitySlot.classList.remove('cmf-rec-hidden');
+            if (recommendationSection) recommendationSection.classList.remove('cmf-rec-hidden');
+            if (impactSection) impactSection.classList.remove('cmf-rec-hidden');
+            if (reasoningSection) reasoningSection.classList.remove('cmf-rec-hidden');
+            if (detailsBody) {
+                detailsBody.classList.add('cmf-rec-hidden');
+                detailsBody.innerHTML = '';
+            }
+        }
+
+        function renderSightingQualityDetails(assessment, payload) {
+            var html = '<div class="cmf-quality-detail-shell">';
+            html += renderSqaTemplateQualityOverview(assessment);
+            html += renderSqaFieldEvidenceTable(assessment);
+            html += renderSqaAssessmentSummary(assessment);
+            html += renderSightingQualitySuggestions(assessment);
+            html += '</div>';
+            return html;
+        }
+
+        function renderSqaSightingInformationCard(payload) {
+            payload = payload || {};
+            var html = '<section class="cmf-quality-detail-card cmf-sqa-info-card"><h4><span class="cmf-sqa-card-icon" aria-hidden="true">&#xf0fe;</span>Sighting Information</h4>';
+            html += '<div class="cmf-sqa-info-grid">';
+            html += renderSqaInfoCell('Sighting ID', payload.cpId || 'N/A', true);
+            html += renderSqaInfoCell('Title', payload.title || 'N/A', true);
+            html += renderSqaInfoCell('Platform', getPlatformDisplayLabel(payload.platform || getIssuePendingPlatformValue()));
+            html += renderSqaInfoCell('Component', payload.component || 'N/A');
+            html += renderSqaInfoCell('Component Group', payload.componentGroup || payload.component || 'N/A');
+            html += renderSqaInfoCell('Customer', extractSqaCustomer(payload.customerDetail));
+            html += renderSqaInfoCell('Owner', payload.customerOwner || 'N/A');
+            html += '</div></section>';
+            return html;
+        }
+
+        function renderSqaInfoCell(label, value, wide) {
+            return '<div class="cmf-sqa-info-cell' + (wide ? ' is-wide' : '') + '"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(firstUsefulText(value, 'N/A')) + '</strong></div>';
+        }
+
+        function extractSqaCustomer(value) {
+            var text = String(value || '').trim();
+            if (!text) return 'N/A';
+            var first = text.split(/[_\s-]+/).filter(Boolean)[0] || text;
+            return first.charAt(0).toUpperCase() + first.slice(1);
+        }
+
+        function renderSqaTemplateQualityOverview(assessment) {
+            var score = Math.max(0, Math.min(100, parseFloat(assessment.score) || 0));
+            var counts = getSqaStatusCounts(assessment.fields || []);
+            var quality = getSqaQualitySummary(score, counts);
+            var html = '<section class="cmf-quality-detail-card cmf-sqa-overview-template"><h4><span class="cmf-sqa-card-icon" aria-hidden="true">&#xf201;</span>Quality Overview</h4>';
+            html += '<div class="cmf-sqa-overview-grid">';
+            html += '<div class="cmf-sqa-score-block"><div class="cmf-quality-donut" style="--score:' + escapeHtml(score) + '"><div class="cmf-quality-donut-value">' + escapeHtml(Math.round(score)) + '<span>/100</span></div></div><div class="cmf-sqa-score-message ' + escapeHtml(getQualityStateClass(score)) + '"><strong>' + escapeHtml(quality.title) + '</strong><span>' + escapeHtml(quality.message) + '</span></div></div>';
+            html += '<div class="cmf-sqa-status-summary"><div class="cmf-quality-panel-label">Field Status Summary</div>';
+            html += renderSqaStatusSummaryRow('Complete', counts.complete, 'present');
+            html += renderSqaStatusSummaryRow('Partial', counts.partial, 'partial');
+            html += renderSqaStatusSummaryRow('Missing', counts.missing, 'missing');
+            html += renderSqaStatusSummaryRow('Conflicting', counts.conflicting, 'conflicting');
+            html += '</div></div></section>';
+            return html;
+        }
+
+        function getSqaQualitySummary(score, counts) {
+            if (score >= 80) return { title: 'Good', message: 'Sufficient information for CMF review with minor gaps.' };
+            if (score >= 50) return { title: 'Needs Review', message: 'Important information exists, but reviewers need a few clearer fields.' };
+            return { title: 'Poor', message: 'Critical sighting information is missing or unclear for CMF review.' };
+        }
+
+        function getSqaStatusCounts(fields) {
+            var counts = { complete: 0, partial: 0, missing: 0, conflicting: 0 };
+            for (var i = 0; i < (fields || []).length; i++) {
+                if (!isSqaCoreField((fields[i] || {}).fieldName)) continue;
+                var status = normalizeSqaFieldStatusLabel((fields[i] || {}).status);
+                if (status === 'Complete') counts.complete++;
+                else if (status === 'Partial') counts.partial++;
+                else if (status === 'Missing') counts.missing++;
+                else if (status === 'Conflicting') counts.conflicting++;
+            }
+            return counts;
+        }
+
+        function renderSqaStatusSummaryRow(label, count, type) {
+            return '<div class="cmf-sqa-status-summary-row ' + escapeHtml(type) + '"><span class="cmf-sqa-status-dot" aria-hidden="true"></span><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(count) + '</strong></div>';
+        }
+
+        function renderSqaFieldEvidenceTable(assessment) {
+            var fields = (assessment.fields || []).filter(function (field) { return isSqaCoreField(field.fieldName); });
+            var html = '<section class="cmf-quality-detail-card cmf-sqa-evidence-card"><h4><span class="cmf-sqa-card-icon" aria-hidden="true">&#xf15c;</span>Field Evidence</h4>';
+            html += '<div class="cmf-sqa-evidence-table"><div class="cmf-sqa-evidence-row is-header"><div>#</div><div>Field Name</div><div>Detected Value</div><div>Status</div></div>';
+            for (var i = 0; i < fields.length; i++) {
+                var field = fields[i] || {};
+                var statusClass = getQualityStatusClass(field.status);
+                html += '<div class="cmf-sqa-evidence-row ' + escapeHtml(statusClass) + '"><div>' + escapeHtml(i + 1) + '</div><div>' + escapeHtml(field.fieldName || 'Field') + '</div><div>' + escapeHtml(getSqaDetectedValue(field)) + '</div><div>' + renderQualityStatusBadge(normalizeSqaFieldStatusLabel(field.status)) + '</div></div>';
+            }
+            html += '</div></section>';
+            return html;
+        }
+
+        function getSqaDetectedValue(field) {
+            var evidence = summarizeSqaEvidenceForReason(field && field.evidence);
+            if (!evidence || /^no usable value found/i.test(evidence)) return 'Not found in HSD';
+            return evidence.length > 92 ? evidence.slice(0, 89).replace(/\s+\S*$/, '') + '...' : evidence;
+        }
+
+        function renderSqaAssessmentSummary(assessment) {
+            var fields = assessment.fields || [];
+            var gaps = [];
+            for (var i = 0; i < fields.length; i++) {
+                var field = fields[i] || {};
+                if (!isSqaCoreField(field.fieldName) || /^present$/i.test(field.status || '')) continue;
+                gaps.push((field.fieldName || 'Field') + ' is ' + normalizeSqaFieldStatusLabel(field.status).toLowerCase());
+            }
+            var summary = (assessment.summary && assessment.summary.length ? assessment.summary[0] : '') || 'The sighting quality was assessed from the requested HSD checklist fields.';
+            if (gaps.length) summary += ' Main gaps: ' + gaps.slice(0, 3).join('; ') + '.';
+            var html = '<section class="cmf-quality-detail-card cmf-sqa-assessment-summary"><h4><span class="cmf-sqa-sparkle" aria-hidden="true">&#10024;</span>Assessment Summary</h4>';
+            html += '<p>' + escapeHtml(summary) + '</p></section>';
+            return html;
+        }
+
+        function renderSightingQualityScoreOverview(assessment) {
+            var fields = (assessment.fields || []).filter(function (field) { return isSqaCoreField(field.fieldName); });
+            var score = Math.max(0, Math.min(100, parseFloat(assessment.score) || 0));
+            var html = '<section class="cmf-quality-detail-card cmf-quality-overview-card">';
+            html += '<div class="cmf-quality-score-topline"><span aria-hidden="true"></span><div class="cmf-quality-score-chart-wrap"><div class="cmf-quality-panel-label">Quality Score</div><div class="cmf-quality-donut" style="--score:' + escapeHtml(score) + '"><div class="cmf-quality-donut-value">' + escapeHtml(formatSqaScoreOutOfTen(score)) + '/10</div></div></div><button type="button" class="cmf-quality-refresh-btn" onclick="refreshSightingQualityAssessment()"><span aria-hidden="true">&#8635;</span><span>Refresh</span></button></div>';
+            html += '<div class="cmf-quality-score-list">';
+            html += '<div class="cmf-quality-score-row is-header"><div>Field Name</div><div>Field Score</div><div>Status</div></div>';
+            for (var i = 0; i < fields.length; i++) html += renderSightingQualityScoreRow(fields[i]);
+            html += '</div></section>';
+            return html;
+        }
+
+        function renderSightingQualityScoreRow(field) {
+            field = field || {};
+            var statusClass = getQualityStatusClass(field.status);
+            var statusText = normalizeSqaFieldStatusLabel(field.status);
+            var fieldScore = formatSqaFieldScore(getSqaFieldScore(field.status));
+            return '<div class="cmf-quality-score-row ' + escapeHtml(statusClass) + '">' +
+                '<div class="cmf-quality-score-name">' + escapeHtml(field.fieldName || 'Field') + '</div>' +
+                '<div class="cmf-quality-score-field-score">' + escapeHtml(fieldScore) + '</div>' +
+                '<div class="cmf-quality-score-status">' + escapeHtml(statusText) + '</div>' +
+            '</div>';
+        }
+
+        function getSqaBriefFactor(field) {
+            field = field || {};
+            var status = normalizeSqaFieldStatusLabel(field.status);
+            var fieldName = String(field.fieldName || '').toLowerCase();
+            var text = String(field.characteristic || '').replace(/\s+/g, ' ').trim();
+            var lower = text.toLowerCase();
+            if (status === 'Complete') {
+                if (fieldName.indexOf('title') >= 0 || fieldName.indexOf('subject') >= 0) return 'Clear title provided';
+                if (fieldName.indexOf('description') >= 0 || fieldName.indexOf('happened') >= 0) return 'Problem details provided';
+                if (fieldName.indexOf('impact') >= 0) return 'Impact context provided';
+                if (fieldName.indexOf('repro') >= 0 || fieldName.indexOf('failure rate') >= 0) return 'Repro details provided';
+                if (fieldName.indexOf('trigger') >= 0) return 'Trigger details provided';
+                if (fieldName.indexOf('platform') >= 0 || fieldName.indexOf('product') >= 0) return 'Platform context provided';
+                if (fieldName.indexOf('configuration') >= 0) return 'Configuration details provided';
+                if (fieldName.indexOf('debug') >= 0 || fieldName.indexOf('attachment') >= 0) return 'Debug evidence available';
+                return 'Sufficient evidence provided';
+            }
+            if (status === 'Missing') return 'No usable evidence found';
+            if (status === 'Conflicting') return 'Evidence does not agree';
+            if (!text) return 'Needs more detail';
+            if (lower.indexOf('empty') >= 0 || lower.indexOf('unavailable') >= 0) return 'No usable value';
+            if (lower.indexOf('idst') >= 0 || lower.indexOf('routing') >= 0) return 'Routing incomplete';
+            if (lower.indexOf('numeric') >= 0 || lower.indexOf('repro') >= 0) return 'Rate unclear';
+            if (lower.indexOf('trigger') >= 0 || lower.indexOf('scenario') >= 0) return 'Scenario unclear';
+            if (lower.indexOf('impact') >= 0) return 'Impact unclear';
+            if (lower.indexOf('configuration') >= 0 || lower.indexOf('os') >= 0 || lower.indexOf('driver') >= 0) return 'Config incomplete';
+            if (lower.indexOf('description') >= 0 || lower.indexOf('behavior') >= 0) return 'Description weak';
+            if (lower.indexOf('title') >= 0 || lower.indexOf('subject') >= 0) return 'Title weak';
+            var words = text.split(' ').filter(Boolean).slice(0, 8);
+            return words.join(' ');
+        }
+
+        function getSqaFieldScore(status) {
+            var text = String(status || '').toLowerCase();
+            if (text.indexOf('missing') >= 0) return 0;
+            if (text.indexOf('conflict') >= 0) return 0;
+            if (text.indexOf('partial') >= 0 || text.indexOf('review') >= 0) return 5;
+            return 10;
+        }
+
+        function formatSqaFieldScore(score) {
+            var value = Math.max(0, Math.min(10, parseFloat(score) || 0));
+            return (value % 1 === 0 ? value.toFixed(0) : value.toFixed(1)) + '/10';
+        }
+
+        function normalizeSqaFieldStatusLabel(status) {
+            var text = String(status || '').toLowerCase();
+            if (text.indexOf('missing') >= 0) return 'Missing';
+            if (text.indexOf('conflict') >= 0) return 'Conflicting';
+            if (text.indexOf('partial') >= 0 || text.indexOf('review') >= 0) return 'Partial';
+            return 'Complete';
+        }
+
+        function renderSightingQualitySuggestions(assessment) {
+            var fields = assessment.fields || [];
+            var suggestions = [];
+            for (var i = 0; i < fields.length; i++) {
+                var field = fields[i] || {};
+                if (/^present$/i.test(field.status || '')) continue;
+                var suggestion = field.recommendation || ('Improve ' + (field.fieldName || 'this field') + '.');
+                if (suggestions.indexOf(suggestion) < 0) suggestions.push(suggestion);
+            }
+            if (!suggestions.length) suggestions.push('No immediate quality improvements were identified for the core SQA fields.');
+            var html = '<section class="cmf-quality-detail-card cmf-sqa-next-steps"><h4><span class="cmf-sqa-card-icon" aria-hidden="true">&#xf0eb;</span>Suggested Next Steps</h4><ol class="cmf-quality-suggestions">';
+            for (var j = 0; j < suggestions.length; j++) html += '<li>' + escapeHtml(suggestions[j]) + '</li>';
+            return html + '</ol></section>';
+        }
+
+        function renderQualityScoreNotes(items) {
+            var html = '<ul class="cmf-quality-score-notes">';
+            for (var i = 0; i < (items || []).length; i++) {
+                if (String(items[i] || '').trim()) html += '<li>' + escapeHtml(items[i]) + '</li>';
+            }
+            return html + '</ul>';
+        }
+
+        function renderQualityDetailSection(title, items) {
+            if (!items || !items.length) return '';
+            return '<section class="cmf-quality-detail-card"><h4>' + escapeHtml(title) + '</h4>' + renderQualityDetailCards(items) + '</section>';
+        }
+
+        function renderQualityDetailCards(items) {
+            return '<div class="cmf-quality-detail-list">' + items.join('') + '</div>';
+        }
+
+        function renderSightingQualityFieldCard(field) {
+            field = field || {};
+            var statusClass = getQualityStatusClass(field.status);
+            var statusText = field.status || 'Needs review';
+            var html = '<article class="cmf-quality-field-card ' + statusClass + '">';
+            html += '<div class="cmf-quality-field-card-head"><div class="cmf-quality-field-card-title">' + escapeHtml(field.fieldName || 'Field') + '</div>' + renderQualityStatusBadge(statusText) + '</div>';
+            html += '<p><strong>Reason:</strong> ' + escapeHtml(getSqaStatusReason(field)) + '</p>';
+            html += '</article>';
+            return html;
+        }
+
+        function getSqaStatusReason(field) {
+            field = field || {};
+            var status = normalizeSqaFieldStatusLabel(field.status);
+            var reason = getSqaDetailedReasonText(field);
+            if (reason) return reason;
+            var factor = getSqaBriefFactor(field);
+            if (status === 'Missing') return factor + ' for this field.';
+            if (status === 'Conflicting') return factor + ' for this field.';
+            if (status === 'Partial') return factor + ' for this field.';
+            return factor + '.';
+        }
+
+        function getSqaDetailedReasonText(field) {
+            field = field || {};
+            var status = normalizeSqaFieldStatusLabel(field.status);
+            var insight = getSqaReasonInsight(field);
+            var evidence = summarizeSqaEvidenceMeaning(field, status);
+            var evidenceValue = summarizeSqaEvidenceValue(field);
+            var hasMissingEvidence = status === 'Missing' || isGenericMissingSqaReason(cleanSqaReasonText(field.characteristic));
+            if (status === 'Missing') {
+                return buildSqaNaturalSqaReason('missing', insight, evidence, evidenceValue, hasMissingEvidence);
+            }
+            if (status === 'Partial') {
+                return buildSqaNaturalSqaReason('partial', insight, evidence, evidenceValue, hasMissingEvidence);
+            }
+            if (status === 'Conflicting') {
+                return buildSqaNaturalSqaReason('conflicting', insight, evidence, evidenceValue, hasMissingEvidence);
+            }
+            return '';
+        }
+
+        function buildSqaNaturalSqaReason(status, insight, evidence, evidenceValue, hasMissingEvidence) {
+            insight = insight || {};
+            var evidenceText = evidence ? lowerFirstSqaReason(evidence) : '';
+            var valueText = evidenceValue ? lowerFirstSqaReason(evidenceValue) : '';
+            var valueClause = valueText ? ' The available information says ' + valueText.replace(/[.!?]+$/, '') + '.' : '';
+            if (status === 'missing') {
+                if (hasMissingEvidence || !evidenceText) {
+                    return sentenceCaseSqa('This field is marked missing because the sighting does not clearly provide ' + insight.focus + '.' + valueClause + ' Reviewers need ' + insight.reviewNeed + ' before this information can support a CMF decision.');
+                }
+                return sentenceCaseSqa('This field is marked missing because the information only suggests ' + evidenceText + ', but it does not clearly confirm ' + insight.focus + '.' + valueClause + ' Reviewers need ' + insight.reviewNeed + ' before this information can support a CMF decision.');
+            }
+            if (status === 'partial') {
+                if (evidenceText) {
+                    return sentenceCaseSqa('This field is marked partial because ' + evidenceText + ', but the detail is not complete enough for confident CMF review.' + valueClause + ' This creates reviewer uncertainty because ' + insight.partial + '. A complete rating would need ' + insight.reviewNeed + '.');
+                }
+                return sentenceCaseSqa('This field is marked partial because some useful context is present, but it is not strong enough for confident CMF review.' + valueClause + ' This creates reviewer uncertainty because ' + insight.partial + '. A complete rating would need ' + insight.reviewNeed + '.');
+            }
+            if (evidenceText) {
+                return sentenceCaseSqa('This field is marked conflicting because the available information points in more than one direction: ' + evidenceText + '.' + valueClause + ' This can confuse reviewers because ' + insight.conflicting + '. It should be clarified with ' + insight.reviewNeed + '.');
+            }
+            return sentenceCaseSqa('This field is marked conflicting because the available information does not align cleanly.' + valueClause + ' This can confuse reviewers because ' + insight.conflicting + '. It should be clarified with ' + insight.reviewNeed + '.');
+        }
+
+        function summarizeSqaEvidenceValue(field) {
+            var text = summarizeSqaEvidenceForReason(field && field.evidence);
+            if (!text) return '';
+            text = cleanSqaEvidenceValueForSentence(text);
+            text = text.replace(/\s*;\s*/g, '; ');
+            if (/^no usable value found/i.test(text)) return '';
+            if (text.length > 150) text = text.slice(0, 147).replace(/\s+\S*$/, '') + '...';
+            return text;
+        }
+
+        function cleanSqaEvidenceValueForSentence(value) {
+            var text = String(value || '').replace(/\s+/g, ' ').trim();
+            text = text.replace(/\[[^\]]+\]/g, ' ').replace(/\s+/g, ' ').trim();
+            text = text.replace(/\b(blocking|customer|stress\s+test|fvt)\b/gi, ' ').replace(/\s+/g, ' ').trim();
+            text = text.replace(/\bthe units occur hang when run\b/i, 'the units hang during the run');
+            text = text.replace(/\boccur hang\b/i, 'hangs');
+            text = text.replace(/\brun\b$/i, 'run');
+            if (text && !/[.!?]$/.test(text)) text += '.';
+            return text;
+        }
+
+        function summarizeSqaEvidenceMeaning(field, status) {
+            var raw = String((field && field.evidence) || '').toLowerCase();
+            var fieldName = String((field && field.fieldName) || '').toLowerCase();
+            if (!raw || /^no usable value found/i.test(raw)) return '';
+            if (fieldName.indexOf('description') >= 0 || fieldName.indexOf('happened') >= 0) {
+                if (/display|video|monitor|screen|blank/.test(raw)) return 'a visible symptom is mentioned';
+                return 'a symptom is mentioned without enough observed behavior detail';
+            }
+            if (fieldName.indexOf('debug') >= 0 || fieldName.indexOf('attachment') >= 0) {
+                if (/no\s+idst|not\s+assigned|unassigned/.test(raw) && /attach|log|scope|zip|yes/.test(raw)) return 'some debug material is referenced while ownership or routing remains unclear';
+                if (/attach|log|scope|zip|yes/.test(raw)) return 'some debug material is referenced';
+                return 'debug context is mentioned without enough supporting material';
+            }
+            if (fieldName.indexOf('failure rate') >= 0 || fieldName.indexOf('reproducibility') >= 0) {
+                if (/\d+\s*%/.test(raw)) return status === 'Conflicting' ? 'different occurrence values are present' : 'an occurrence value is mentioned';
+                return 'repeatability is implied without a clear rate or sample size';
+            }
+            if (fieldName.indexOf('trigger') >= 0 || fieldName.indexOf('steps to reproduce') >= 0) {
+                if (/(^|\s)\d+[\.)]/.test(raw) || /step\s*\d+/i.test(raw)) return 'some reproduction steps are written, but they do not fully explain a clear ordered path to reproduce the issue';
+                return 'a scenario may be implied, but clear reproduction steps are not available';
+            }
+            if (fieldName.indexOf('processor') >= 0) return 'processor information is mentioned but the exact processor context may still be unclear';
+            if (fieldName.indexOf('stepping') >= 0) return 'a stepping-related value may be present, but the SoC stepping is not clearly called out';
+            if (fieldName.indexOf('exposure') >= 0 || fieldName.indexOf('priority') >= 0) return 'priority or exposure information is present but the severity is not clearly called out';
+            if (fieldName.indexOf('me sku') >= 0 || fieldName.indexOf('me_sku') >= 0) return 'ME SKU information is present but it does not clearly say Consumer or Corp';
+            if (fieldName.indexOf('impact') >= 0) return 'some effect is implied without enough consequence or severity detail';
+            if (fieldName.indexOf('configuration') >= 0) return 'some setup details are present while important configuration context is still missing';
+            if (fieldName.indexOf('platform') >= 0 || fieldName.indexOf('product') >= 0) return 'some platform context is present without enough specificity';
+            if (fieldName.indexOf('ownership') >= 0 || fieldName.indexOf('routing') >= 0) return 'some routing context is present without a clear responsible owner';
+            if (fieldName.indexOf('status') >= 0 || fieldName.indexOf('resolution') >= 0) return 'some status context is present without a clear resolution state';
+            if (fieldName.indexOf('title') >= 0 || fieldName.indexOf('subject') >= 0) return 'a short issue summary is present but not fully descriptive';
+            return 'some related information is present';
+        }
+
+        function getSqaReasonInsight(field) {
+            var text = String((field && field.fieldName) || '').toLowerCase();
+            if (text === 'title' || text.indexOf('title') >= 0 || text.indexOf('subject') >= 0) {
+                return {
+                    missing: 'the sighting does not provide a usable short description of the issue',
+                    partial: 'the title gives some context, but it does not clearly capture the issue or affected area',
+                    conflicting: 'the title and the rest of the sighting point to different issue descriptions',
+                    focus: 'what issue is being reported',
+                    reviewNeed: 'a concise title that names the issue and affected area'
+                };
+            }
+            if (text.indexOf('description') >= 0 || text.indexOf('happened') >= 0) {
+                return {
+                    missing: 'there is no clear explanation of what actually happened',
+                    partial: 'the sighting describes the problem only at a high level and leaves the observed behavior or scope unclear',
+                    conflicting: 'the problem description does not match the other issue details',
+                    focus: 'what actually happened and where it was observed',
+                    reviewNeed: 'a clear statement of the observed behavior and affected scope'
+                };
+            }
+            if (text.indexOf('impact') >= 0) {
+                return {
+                    missing: 'the customer or validation impact is not stated',
+                    partial: 'some impact is implied, but the practical consequence or severity is not clear enough',
+                    conflicting: 'the impact statements suggest different levels of severity or affected users',
+                    focus: 'the customer or validation impact',
+                    reviewNeed: 'the practical consequence, severity, and affected users or validation area'
+                };
+            }
+            if (text.indexOf('failure rate') >= 0 || text.indexOf('reproducibility') >= 0) {
+                return {
+                    missing: 'the sighting does not say how often the issue occurs',
+                    partial: 'the issue appears reproducible, but the exact rate, sample size, or repeatability is not clear',
+                    conflicting: 'the occurrence rate is reported differently across the available details',
+                    focus: 'how often the issue occurs',
+                    reviewNeed: 'a specific occurrence rate, sample size, or repeatability statement'
+                };
+            }
+            if (text.indexOf('trigger') >= 0 || text.indexOf('steps to reproduce') >= 0) {
+                return {
+                    missing: 'the steps or condition that trigger the issue are not described',
+                    partial: 'some steps or scenario details are present, but the reviewer cannot clearly follow them to reproduce the issue',
+                    conflicting: 'the stated trigger does not line up with the rest of the sighting details',
+                    focus: 'what steps or condition reproduce the issue',
+                    reviewNeed: 'clear ordered reproduction steps or the exact trigger condition'
+                };
+            }
+            if (text.indexOf('processor') >= 0) {
+                return {
+                    missing: 'the processor is not called out',
+                    partial: 'processor context is hinted at, but the exact processor or processor family is not clear enough',
+                    conflicting: 'different processor details appear in the available information',
+                    focus: 'which processor the sighting applies to',
+                    reviewNeed: 'the exact processor or processor family'
+                };
+            }
+            if (text.indexOf('stepping') >= 0) {
+                return {
+                    missing: 'the SoC stepping is not called out',
+                    partial: 'there may be stepping-related context, but the actual SoC stepping value is not explicit',
+                    conflicting: 'different stepping values appear in the available information',
+                    focus: 'which SoC stepping the sighting applies to',
+                    reviewNeed: 'the exact SoC stepping value'
+                };
+            }
+            if (text.indexOf('exposure') >= 0 || text.indexOf('priority') >= 0) {
+                return {
+                    missing: 'the exposure or priority is not called out',
+                    partial: 'some priority context exists, but it does not clearly say whether the sighting is Showstopper or Critical',
+                    conflicting: 'the exposure or priority values do not agree with each other',
+                    focus: 'the exposure or priority severity',
+                    reviewNeed: 'a clear exposure or priority value such as Showstopper or Critical'
+                };
+            }
+            if (text.indexOf('me sku') >= 0 || text.indexOf('me_sku') >= 0) {
+                return {
+                    missing: 'the ME SKU is not called out',
+                    partial: 'ME SKU context may be present, but it does not clearly say Consumer or Corp',
+                    conflicting: 'different ME SKU values appear in the available information',
+                    focus: 'whether the ME SKU is Consumer or Corp',
+                    reviewNeed: 'a clear ME SKU value of Consumer or Corp'
+                };
+            }
+            if (text.indexOf('platform') >= 0 || text.indexOf('product') >= 0) {
+                return {
+                    missing: 'the affected platform, product, or component context is not clear',
+                    partial: 'some platform context is present, but it is not specific enough to identify the affected configuration confidently',
+                    conflicting: 'different platform or product details appear to refer to different targets',
+                    focus: 'which platform or product is affected',
+                    reviewNeed: 'specific platform, product, component, board, or family details'
+                };
+            }
+            if (text.indexOf('configuration') >= 0) {
+                return {
+                    missing: 'the system setup needed to understand the issue is not provided',
+                    partial: 'some configuration details are present, but important setup information such as OS, BIOS, driver, board, or build is still incomplete',
+                    conflicting: 'the configuration details do not agree with each other',
+                    focus: 'the setup in which the issue occurs',
+                    reviewNeed: 'the missing setup details such as OS, BIOS, driver, board, or build'
+                };
+            }
+            if (text.indexOf('debug') >= 0 || text.indexOf('attachment') >= 0) {
+                return {
+                    missing: 'there is no usable debug evidence, attachment, or log reference for review',
+                    partial: 'debug evidence is mentioned, but it is not complete enough to support confident triage',
+                    conflicting: 'the debug evidence points in different directions and needs reviewer confirmation',
+                    focus: 'whether there is enough debug material for triage',
+                    reviewNeed: 'clear logs, attachments, debug ownership, or a usable evidence reference'
+                };
+            }
+            if (text.indexOf('ownership') >= 0 || text.indexOf('routing') >= 0) {
+                return {
+                    missing: 'the sighting does not identify who owns or should review the issue',
+                    partial: 'some routing information exists, but ownership or debug responsibility is not clear enough',
+                    conflicting: 'the available routing details point to different owners or forums',
+                    focus: 'who owns or should review the issue',
+                    reviewNeed: 'a clear owner, submitter, debug forum, or routing path'
+                };
+            }
+            if (text.indexOf('status') >= 0 || text.indexOf('resolution') >= 0) {
+                return {
+                    missing: 'there is no useful status, fix, closure, or resolution context',
+                    partial: 'some status context exists, but it does not clearly explain the current resolution state',
+                    conflicting: 'the status or resolution details do not agree with each other',
+                    focus: 'the current status or resolution state',
+                    reviewNeed: 'the current status, fix, closure reason, or resolution state'
+                };
+            }
+            return {
+                missing: 'the information needed for this field is not available',
+                partial: 'some information is available, but it is not complete enough for confident review',
+                conflicting: 'the available information does not agree and needs reviewer confirmation',
+                focus: 'the information needed for this field',
+                reviewNeed: 'clearer evidence for this field'
+            };
+        }
+
+        function cleanSqaReasonText(value) {
+            var text = String(value || '').replace(/\s+/g, ' ').trim();
+            if (!text || /^(usable|complete|present|needs review)$/i.test(text)) return '';
+            return stripSqaSourceLabels(text).replace(/[.;:,\s]+$/g, '');
+        }
+
+        function summarizeSqaEvidenceForReason(value) {
+            var text = cleanSqaReasonText(value);
+            if (!text || /^no usable value found/i.test(text)) return '';
+            text = text.replace(/\b(DB|HSD)\b\s*/gi, '');
+            text = text.replace(/\s*\|\s*/g, '; ');
+            if (text.length > 120) text = text.slice(0, 117).replace(/\s+\S*$/, '') + '...';
+            return text;
+        }
+
+        function isGenericMissingSqaReason(value) {
+            var text = String(value || '').toLowerCase();
+            return !text || text.indexOf('empty') >= 0 || text.indexOf('unavailable') >= 0 || text.indexOf('no usable') >= 0;
+        }
+
+        function stripSqaSourceLabels(value) {
+            return String(value || '')
+                .replace(/\b(?:DB|HSD)\s+([A-Za-z][A-Za-z\s/]+):\s*/g, '')
+                .replace(/\b(?:Problem Description|Repro Steps|What Happened|Description|Actual Behavior|Customer Impact|Customer Summary|Customer Detail|Title|Subject|Component|Family|Board|Platform|Operating System|Processor|SoC Stepping|SOC Stepping|Stepping|Exposure|ME SKU|ME_SKU|System Scope Filename|Debug Log Attached|Sysdebug Category|Sysdebug Forum|Owner|Submitter|Status|Fix Description|Closed Reason|Fixed Version|CMF Justification|RVP Repro|Reproducibility|Steps to Reproduce|What Should Have Happened|Impact|Priority|iDST):\s*/g, '')
+                .replace(/\bHSD\b\s*/g, '')
+                .replace(/\bDB\b\s*/g, '');
+        }
+
+        function getSqaReadableFieldName(fieldName) {
+            var text = String(fieldName || 'this field').toLowerCase();
+            if (text.indexOf('title') >= 0 || text.indexOf('subject') >= 0) return 'the issue title';
+            if (text.indexOf('description') >= 0 || text.indexOf('happened') >= 0) return 'the problem description';
+            if (text.indexOf('impact') >= 0) return 'customer impact';
+            if (text.indexOf('failure rate') >= 0 || text.indexOf('reproducibility') >= 0) return 'reproducibility';
+            if (text.indexOf('trigger') >= 0 || text.indexOf('steps to reproduce') >= 0) return 'steps to reproduce';
+            if (text.indexOf('processor') >= 0) return 'processor';
+            if (text.indexOf('stepping') >= 0) return 'SoC stepping';
+            if (text.indexOf('exposure') >= 0 || text.indexOf('priority') >= 0) return 'exposure or priority';
+            if (text.indexOf('me sku') >= 0 || text.indexOf('me_sku') >= 0) return 'ME SKU';
+            if (text.indexOf('platform') >= 0 || text.indexOf('product') >= 0) return 'platform context';
+            if (text.indexOf('configuration') >= 0) return 'system configuration';
+            if (text.indexOf('debug') >= 0 || text.indexOf('attachment') >= 0) return 'debug evidence';
+            if (text.indexOf('ownership') >= 0 || text.indexOf('routing') >= 0) return 'ownership or routing';
+            if (text.indexOf('status') >= 0 || text.indexOf('resolution') >= 0) return 'status or resolution context';
+            return 'this field';
+        }
+
+        function sentenceCaseSqa(value) {
+            var text = String(value || '').replace(/\s+/g, ' ').trim();
+            if (!text) return '';
+            text = text.charAt(0).toUpperCase() + text.slice(1);
+            if (!/[.!?]$/.test(text)) text += '.';
+            return text;
+        }
+
+        function lowerFirstSqaReason(value) {
+            var text = cleanSqaReasonText(value);
+            if (!text) return '';
+            if (/^[A-Z]{2}/.test(text)) return text;
+            return text.charAt(0).toLowerCase() + text.slice(1);
+        }
+
+        function renderQualityStatusBadge(status) {
+            return '<span class="cmf-quality-status-badge ' + getQualityStatusClass(status) + '">' + escapeHtml(status || 'Needs review') + '</span>';
+        }
+
+        function getQualityStatusClass(status) {
+            var text = String(status || '').toLowerCase();
+            if (text.indexOf('missing') >= 0) return 'missing';
+            if (text.indexOf('conflict') >= 0) return 'conflicting';
+            if (text.indexOf('partial') >= 0 || text.indexOf('review') >= 0) return 'partial';
+            return 'present';
+        }
+
+        function buildSightingQualityAssessment(result, payload) {
+            var rules = result.RuleScores || [];
+            var mandatoryFields = [
+                { key: 'symptom', label: 'Symptom / failure mode', value: payload.title, ruleId: 'S', partialPattern: /^(issue|failure|problem|error|fails?|not working|observed|seen)$/i },
+                { key: 'occurrence', label: 'Occurrence / reproducibility', value: payload.reproducibility || payload.reproOnRvp, ruleId: 'O', partialPattern: /^(sometimes|intermittent|frequent|rare|random|occasionally|reproduced|not sure)$/i },
+                { key: 'usage', label: 'Usage trigger / decision context', value: payload.customerDetail || payload.component, ruleId: 'D', partialPattern: /^(customer|platform|component|validation|test|scenario)$/i },
+                { key: 'impact', label: 'Customer impact', value: payload.impact, ruleId: 'B', partialPattern: /^(impact|blocked|blocks|issue observed|issues observed|customer impact|affects customer)$/i },
+                { key: 'owner', label: 'Owner / debug routing', value: payload.idst || payload.customerOwner, ruleId: '', partialPattern: /^(owner|debug|idst|tbd|pending)$/i }
+            ];
+            var present = 0;
+            var partial = [];
+            var missing = [];
+            var conflicting = findOccurrenceConflicts(payload, rules);
+
+            for (var i = 0; i < mandatoryFields.length; i++) {
+                var field = mandatoryFields[i];
+                var value = String(field.value || '').replace(/\s+/g, ' ').trim();
+                var rule = field.ruleId ? findCmfRuleById(rules, field.ruleId) : null;
+                var ruleScore = rule ? parseInt(normalizeDimensionScore(rule.Score || '1'), 10) : 3;
+                if (!isUsefulQualityText(value)) {
+                    missing.push(field.label + ': missing');
+                } else if (isPartialQualityText(value, field.partialPattern) || (rule && ruleScore <= 2)) {
+                    partial.push(field.label + ': partial or vague');
+                    present += 0.5;
+                } else {
+                    present += 1;
+                }
+            }
+
+            var rawScore = Math.round((present / mandatoryFields.length) * 100);
+            var penalty = (conflicting.length * 15) + (partial.length * 5);
+            var score = Math.max(0, Math.min(100, rawScore - penalty));
+            var issues = missing.concat(partial).concat(conflicting);
+            var summary = [
+                'Mandatory CMF fields assessed: symptom, occurrence, usage context, customer impact, and owner/debug routing.',
+                'Completeness score before conflict penalties: ' + rawScore + '/100.',
+                issues.length ? 'Confidence reduced by ' + issues.length + ' missing, partial, or conflicting signal' + (issues.length === 1 ? '.' : 's.') : 'Current sighting has enough decision context for initial CMF review.'
+            ];
+            return { score: score, summary: summary, issues: issues };
+        }
+
+        function isUsefulQualityText(value) {
+            var text = String(value || '').replace(/\s+/g, ' ').trim();
+            return !!text && !/^n\/?a$|^none$|^unknown$|^missing$|^null$|^tbd$|^na$/i.test(text);
+        }
+
+        function isPartialQualityText(value, fieldPattern) {
+            var text = String(value || '').replace(/\s+/g, ' ').trim();
+            if (!isUsefulQualityText(text)) return false;
+            if (text.length < 18 || text.split(/\s+/).length < 4) return true;
+            if (fieldPattern && fieldPattern.test(text)) return true;
+            return /^(it should be reproduced|need to check|under debug|to be updated|will update|issue observed|issues observed|blocks fvt exit)$/i.test(text);
+        }
+
+        function findOccurrenceConflicts(payload, rules) {
+            var conflicts = [];
+            var titleBand = classifyOccurrenceSignal(payload.title);
+            var reproBand = classifyOccurrenceSignal(payload.reproducibility || payload.reproOnRvp);
+            var impactBand = classifyOccurrenceSignal(payload.impact);
+            var occurrenceRule = findCmfRuleById(rules, 'O');
+            var ruleBand = occurrenceRule ? classifyOccurrenceSignal(occurrenceRule.Evaluation) : '';
+            var referenceBand = titleBand || reproBand || ruleBand;
+            if (referenceBand && impactBand && referenceBand !== impactBand) {
+                conflicts.push('Occurrence: title/repro says ' + referenceBand + ', but impact says ' + impactBand + '.');
+            }
+            if (titleBand && reproBand && titleBand !== reproBand) {
+                conflicts.push('Occurrence: title and reproducibility fields disagree.');
+            }
+            return conflicts;
+        }
+
+        function classifyOccurrenceSignal(value) {
+            var text = String(value || '').toLowerCase();
+            if (!text) return '';
+            if (/>?=\s*1\s*\/\s*10|1\s*in\s*10|hourly|frequent|frequently|always|every\s+time|100%/i.test(text)) return 'frequent';
+            if (/1\s*\/\s*1000|1\s*in\s*1000|<\s*1\s*\/\s*1000|rare|sporadic|occasionally|intermittent/i.test(text)) return 'rare';
+            if (/1\s*\/\s*5000|1\s*in\s*5000|very\s+rare/i.test(text)) return 'very rare';
+            return '';
+        }
+
+        function renderCmfScorePanel(scoreDisplay, scorePercent, recommendation) {
+            return '<div class="cmf-rec-score-panel" style="--score-percent:' + escapeHtml(scorePercent) + '%">' +
+                '<div class="cmf-rec-score-top"><span class="cmf-rec-score-label">Weighted evidence score</span><span class="cmf-rec-score-value">' + escapeHtml(scoreDisplay) + '/5</span></div>' +
+                '<div class="cmf-rec-score-track" aria-hidden="true"><div class="cmf-rec-score-fill"></div></div>' +
+                '<div class="cmf-rec-score-caption">' + escapeHtml(buildCmfScoreCaption(recommendation)) + '</div>' +
+            '</div>';
+        }
+
+        function buildCmfScoreCaption(recommendation) {
+            var rec = String(recommendation || '').toUpperCase();
+            if (rec === 'CMF_OK') return 'Meets the CMF threshold; verify no blocking evidence is missing.';
+            if (rec === 'CMF_REVIEW') return 'Near or above threshold, but reviewer judgment is needed.';
+            if (rec === 'CMF_INCOMPLETE') return 'Evidence is not complete enough for a final CMF decision.';
+            return 'Below the CMF threshold based on current evidence.';
+        }
+
+        function extractCmfSymptomEvidence(rules, reasons) {
+            for (var i = 0; i < (rules || []).length; i++) {
+                var rule = rules[i] || {};
+                if (String(rule.RuleId || '').toUpperCase() === 'S') {
+                    var severityText = cleanCmfEvidenceSnippet(String(rule.Evaluation || '').replace(/^S\d\s*[:\-]?\s*/i, '').replace(/^SCORE\s*\d\s*[-:]?\s*/i, ''));
+                    if (severityText && !/^missing|no symptom/i.test(severityText)) return trimToCompleteSentence(severityText, 220);
+                }
+            }
+            for (var j = 0; j < (reasons || []).length; j++) {
+                if (/fail|black screen|hang|bsod|boot|crash|loss|error|warning|corrupt|damage/i.test(reasons[j])) {
+                    return trimToCompleteSentence(cleanCmfEvidenceSnippet(reasons[j]), 220);
+                }
+            }
+            return 'Not identified from available evidence.';
+        }
+
+        function normalizeCmfDimensionScores(ruleScores) {
+            var defaults = [
+                { RuleId: 'S', RuleName: 'Severity', Score: '0', Evaluation: 'Missing symptom severity evidence.' },
+                { RuleId: 'O', RuleName: 'Occurrence', Score: '0', Evaluation: 'Missing occurrence or reproduction frequency.' },
+                { RuleId: 'D', RuleName: 'Detection', Score: '0', Evaluation: 'Missing customer encounter or usage visibility.' },
+                { RuleId: 'R', RuleName: 'Recovery', Score: '0', Evaluation: 'Missing workaround or recovery evidence.' },
+                { RuleId: 'B', RuleName: 'Business Impact', Score: '0', Evaluation: 'Missing milestone or business exposure evidence.' },
+                { RuleId: 'CX', RuleName: 'Customer Experience', Score: '0', Evaluation: 'Missing customer-experience evidence.' }
+            ];
+            var map = {};
+            for (var i = 0; i < ruleScores.length; i++) {
+                var rule = ruleScores[i] || {};
+                var rawKey = String(rule.RuleId || '').toUpperCase();
+                var key = rawKey === 'CX' ? 'CX' : rawKey.charAt(0);
+                if (!map[key]) map[key] = rule;
+            }
+            for (var j = 0; j < defaults.length; j++) {
+                var existing = map[defaults[j].RuleId];
+                if (existing) defaults[j] = existing;
+            }
+            return defaults;
+        }
+
+        function renderCmfDimensionCards(rules) {
+            var html = '<div class="cmf-rec-dimension-grid">';
+            for (var i = 0; i < rules.length; i++) {
+                var rule = rules[i] || {};
+                var score = normalizeDimensionScore(rule.Score || '1');
+                html += '<div class="cmf-rec-dimension-card"><div class="cmf-rec-dimension-head">';
+                html += '<span class="cmf-rec-dimension-name">' + escapeHtml(rule.RuleId || '') + ' ' + escapeHtml(rule.RuleName || 'Score') + '</span>';
+                html += '<span class="cmf-rec-dimension-score">' + escapeHtml(score) + '/5</span></div>';
+                html += '<div class="cmf-rec-dimension-eval">' + escapeHtml(buildConciseCmfRuleEvaluation(rule, parseInt(score, 10))) + '</div></div>';
+            }
+            return html + '</div>';
+        }
+
+        function renderCmfMetricScoreTable(rules) {
+            var html = '<div class="cmf-rec-metric-table-wrap"><table class="cmf-rec-metric-table"><thead><tr>';
+            html += '<th>Metric Name</th><th>Score</th><th>Contributing Factor</th></tr></thead><tbody>';
+            for (var i = 0; i < rules.length; i++) {
+                var rule = rules[i] || {};
+                var score = normalizeDimensionScore(rule.Score || '1');
+                html += '<tr>';
+                html += '<td><strong>' + escapeHtml(buildCmfMetricDisplayName(rule)) + '</strong></td>';
+                html += '<td><span class="cmf-rec-metric-score">' + escapeHtml(score) + '/5</span></td>';
+                html += '<td>' + escapeHtml(extractCmfContributingFactor(rule.Evaluation || '')) + '</td>';
+                html += '</tr>';
+            }
+            return html + '</tbody></table></div>';
+        }
+
+        function renderCmfAssistantRecommendation(result, payload) {
+            result = result || {};
+            payload = payload || {};
+            var recommendation = normalizeCmfRecommendationLabel(result.Recommendation || 'CMF_REVIEW');
+            var rules = normalizeCmfDimensionScores(result.RuleScores || []);
+            var score = calculateDisplayedCmfScore(rules);
+            if (!score) score = normalizeWeightedCmfScore(result.OverallQualityScore || 0);
+            var scoreDisplay = formatWeightedCmfScore(score) || '0.0';
+            var scorePercent = Math.max(0, Math.min(100, (score / 5) * 100));
+            var reasons = buildCmfAssistantRecommendationReasoning(recommendation, score, rules, result.Evidence || '', payload);
+            var html = '<div class="cmf-assistant-rec-shell">';
+            html += '<div class="cmf-assistant-rec-top">';
+            html += '<div class="cmf-assistant-overall-score"><span>Overall Score</span><div class="cmf-assistant-score-ring" style="--score-percent:' + escapeHtml(scorePercent.toFixed(2)) + '"><div class="cmf-assistant-score-ring-value">' + escapeHtml(scoreDisplay) + '</div></div><strong>/5</strong></div>';
+            html += renderCmfMetricChips(rules);
+            html += '</div>';
+            html += '<div class="cmf-assistant-reasoning-box"><h4>Reasoning</h4>' + renderCmfReasoningBullets(reasons) + '</div>';
+            html += '</div>';
+            return html;
+        }
+
+        function renderCmfReasoningBullets(items) {
+            var html = '<div class="cmf-assistant-reasoning-copy"><ul>';
+            var list = (items || []).filter(function (item) { return item && String(item).trim().length; });
+            if (!list.length) list = ['No reasoning returned; review the score details and issue evidence.'];
+            for (var i = 0; i < list.length; i++) {
+                html += '<li>' + escapeHtml(list[i]) + '</li>';
+            }
+            return html + '</ul></div>';
+        }
+
+        function renderCmfMetricChips(rules) {
+            var html = '<div class="cmf-assistant-metric-grid" aria-label="Individual metric scores">';
+            for (var i = 0; i < rules.length; i++) {
+                var rule = rules[i] || {};
+                var score = parseInt(normalizeDimensionScore(rule.Score || '1'), 10);
+                html += '<div class="cmf-assistant-metric-chip ' + escapeHtml(getCmfMetricScoreClass(score)) + '">';
+                html += '<div class="cmf-assistant-metric-main"><span class="cmf-assistant-metric-name">' + escapeHtml(buildCmfMetricDisplayName(rule)) + '</span><span class="cmf-assistant-metric-value">' + escapeHtml(score) + '/5</span></div>';
+                html += '<div class="cmf-assistant-metric-factor">' + escapeHtml(extractBriefCmfContributingFactor(rule)) + '</div>';
+                html += '</div>';
+            }
+            return html + '</div>';
+        }
+
+        function calculateDisplayedCmfScore(rules) {
+            var weights = { S: 0.25, O: 0.15, D: 0.20, R: 0.10, B: 0.15, CX: 0.15 };
+            var total = 0;
+            var hasMetric = false;
+            for (var i = 0; i < (rules || []).length; i++) {
+                var rule = rules[i] || {};
+                var id = String(rule.RuleId || '').toUpperCase();
+                if (!weights.hasOwnProperty(id)) continue;
+                var score = parseInt(normalizeDimensionScore(rule.Score || '1'), 10);
+                total += score * weights[id];
+                hasMetric = true;
+            }
+            return hasMetric ? total : 0;
+        }
+
+        function buildCmfAssistantRecommendationReasoning(recommendation, score, rules, evidenceText, payload) {
+            var rec = normalizeCmfRecommendationLabel(recommendation || 'CMF_REVIEW');
+            var modelReasoning = buildCmfModelReasoningBullets(evidenceText, payload);
+            if (modelReasoning.length) return modelReasoning;
+            var scored = [];
+            var factorMap = {};
+            for (var i = 0; i < (rules || []).length; i++) {
+                var rule = rules[i] || {};
+                var ruleScore = parseInt(normalizeDimensionScore(rule.Score || '1'), 10);
+                var id = String(rule.RuleId || '').toUpperCase();
+                factorMap[String(rule.RuleId || '').toUpperCase()] = extractBriefCmfContributingFactor(rule);
+                scored.push({ id: id || String(rule.RuleName || 'Metric'), score: ruleScore });
+            }
+
+            var issueFact = buildCmfReasoningIssueBullet(evidenceText, payload, factorMap);
+            var impactFact = buildCmfReasoningImpactBullet(evidenceText, payload, scored);
+            var recoveryFact = buildCmfReasoningRecoveryBullet(factorMap, scored);
+            var scoreJudgment = buildCmfReasoningScoreJudgment(rec, score, scored);
+            var result = [];
+            if (rec === 'CMF_OK') {
+                result.push(issueFact);
+                result.push(impactFact);
+                result.push(recoveryFact + ' ' + scoreJudgment);
+            } else if (rec === 'CMF_REVIEW') {
+                result.push(issueFact);
+                result.push(impactFact);
+                result.push(scoreJudgment + ' Confirm the weaker evidence before approving or rejecting the tag.');
+            } else if (rec === 'CMF_INCOMPLETE') {
+                result.push(issueFact);
+                result.push(impactFact);
+                result.push(scoreJudgment + ' Add missing impact, repro, recovery, or customer evidence before final disposition.');
+            } else {
+                result.push(issueFact);
+                result.push(impactFact);
+                result.push(scoreJudgment + ' Current evidence supports CMF_REJECT unless stronger customer-impact or business-gating proof is added.');
+            }
+            return limitCmfReasoningWords(result, 140);
+        }
+
+        function buildCmfModelReasoningBullets(evidenceText, payload) {
+            var text = extractCmfReasoningText(evidenceText || '');
+            if (!text) return [];
+            var bullets = splitCmfReasoningItems(text).map(function (item) {
+                return cleanCmfReasoningSentence(item, payload);
+            }).filter(isUsefulCmfReasoningBullet);
+            if (!bullets.length) {
+                bullets = (text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text]).map(function (item) {
+                    return cleanCmfReasoningSentence(item, payload);
+                }).filter(isUsefulCmfReasoningBullet);
+            }
+            return limitCmfReasoningWords(bullets.slice(0, 4), 180);
+        }
+
+        function splitCmfReasoningItems(text) {
+            var normalized = String(text || '').replace(/\r/g, '\n').trim();
+            var raw = normalized.split(/\n+|(?:^|\s)[-•]\s+/).filter(function (item) { return item && item.trim(); });
+            if (raw.length <= 1) {
+                raw = normalized.split(/;\s+(?=[A-Z])/).filter(function (item) { return item && item.trim(); });
+            }
+            return raw;
+        }
+
+        function extractCmfReasoningText(value) {
+            var text = String(value || '').replace(/\r/g, '\n').trim();
+            if (!text) return '';
+            var match = text.match(/(?:^|\n)\s*(?:REASONING|AI\s+REASONING)\s*:\s*([\s\S]*?)(?=\n\s*(?:ISSUE\s+IMPACT|RULE\s+SCORES|MISSING\s+INFO|NEXT\s+STEPS)\s*:|$)/i);
+            if (match && match[1]) text = match[1];
+            text = text.replace(/^\s*(?:REASONING|AI\s+REASONING)\s*:\s*/i, '').trim();
+            return text;
+        }
+
+        function cleanCmfReasoningSentence(value, payload) {
+            var text = cleanCmfEvidenceSnippet(value || '');
+            text = text.replace(/^[-•\d.)\s]+/g, '').trim();
+            text = text.replace(/\b(?:request(?:ed)?\s+the\s+)?fix\s+by\s+WW\d+\b/gi, 'customer milestone risk');
+            text = text.replace(/"Reproducibility\s*:[^"]+"/gi, 'consistent reproduction evidence');
+            text = text.replace(/"System stuck in PC2 during MS stress test will cause a high power consumption"/gi, 'a Modern Standby power-state failure');
+            text = text.replace(/\bReproducibility\s*:\s*\S+/gi, 'consistent reproduction evidence');
+            text = text.replace(/with measurable PHM traces and a reproduced fail pattern\s*:/gi, 'with diagnostic traces and repeated reproduction evidence');
+            text = text.replace(/with diagnostic traces and repeated reproduction evidence\s+a Modern Standby power-state failure\s+and\s+consistent reproduction evidence/gi, 'with diagnostic traces and repeated reproduction evidence');
+            text = text.replace(/\bWW\d+\b/g, '').replace(/;\s*/g, '. ').replace(/\s{2,}/g, ' ').trim();
+            if (isCmfReasoningRepeatingDisplayedDetails(text, payload)) return '';
+            text = removeAbruptCmfTail(trimToCompleteSentence(text, 260));
+            return ensureCmfSentence(text);
+        }
+
+        function isUsefulCmfReasoningBullet(item) {
+            var text = String(item || '').trim();
+            if (!text) return false;
+            if (/^not identified from available evidence[.!?]?$/i.test(text)) return false;
+            return true;
+        }
+
+        function isCmfReasoningRepeatingDisplayedDetails(text, payload) {
+            payload = payload || {};
+            var lower = String(text || '').toLowerCase();
+            var title = String(payload.title || '').toLowerCase();
+            var component = String(payload.component || '').toLowerCase();
+            var platform = getPlatformDisplayLabel(payload.platform || getIssuePendingPlatformValue()).toLowerCase();
+            var repro = String(payload.reproducibility || payload.reproOnRvp || '').toLowerCase();
+            if (title && lower.length > 40 && (title.indexOf(lower) >= 0 || lower.indexOf(title.substring(0, Math.min(70, title.length))) >= 0)) return true;
+            if (component && lower === component) return true;
+            if (platform && lower === platform) return true;
+            if (repro && lower === repro) return true;
+            return false;
+        }
+
+        function buildCmfReasoningIssueBullet(evidenceText, payload, factorMap) {
+            payload = payload || {};
+            factorMap = factorMap || {};
+            var customer = extractSqaCustomer(payload.customerDetail || '').replace(/^N\/A$/i, '').trim();
+            var platform = getPlatformDisplayLabel(payload.platform || getIssuePendingPlatformValue());
+            var component = formatCmfReasoningComponent(firstUsefulText(payload.component, 'the affected component'));
+            var titleSignal = summarizeCmfTitleSignal(payload.title || payload.cmfRequest || 'Issue evidence is limited');
+            var reproSignal = firstUsefulText(payload.reproducibility || payload.reproOnRvp, '').replace(/[.!?]$/g, '');
+            var ownerText = customer ? ' for ' + customer : '';
+            var reproText = reproSignal ? ', with repro evidence: ' + reproSignal : '';
+            return ensureCmfSentence(trimToCompleteSentence('The sighting describes ' + titleSignal + ownerText + ' on ' + platform + '/' + component + reproText, 185));
+        }
+
+        function buildCmfReasoningImpactBullet(evidenceText, payload, scored) {
+            var cxScore = getCmfReasoningScore(scored, 'CX');
+            var businessScore = getCmfReasoningScore(scored, 'B');
+            var detectionScore = getCmfReasoningScore(scored, 'D');
+            if (cxScore >= 4) return 'Customer experience impact is strong because the symptom affects a visible workflow rather than only internal debug tracking.';
+            if (businessScore >= 4) return 'Business impact is material because the available evidence points to milestone, validation, or customer-delivery risk.';
+            if (detectionScore >= 4) return 'The detection signal is meaningful because the failure appears in a normal or frequently used workflow.';
+            return 'Customer impact is not yet strong enough in the available evidence, so reviewer judgment is still needed.';
+        }
+
+        function buildCmfReasoningRecoveryBullet(factorMap, scored) {
+            factorMap = factorMap || {};
+            var recoveryScore = getCmfReasoningScore(scored, 'R');
+            if (recoveryScore >= 4) return 'Recovery evidence indicates the issue is difficult to mitigate, increasing CMF concern.';
+            if (recoveryScore >= 2) return 'Any available workaround reduces immediate risk but does not remove the underlying issue.';
+            return 'Recovery/workaround evidence is limited, which lowers confidence in final disposition.';
+        }
+
+        function summarizeCmfTitleSignal(value) {
+            var text = cleanCmfEvidenceSnippet(value || '');
+            text = text.replace(/^(?:\[[^\]]+\]\s*)+/, '').trim();
+            return trimToCompleteSentence(text || 'Issue evidence is limited', 90).replace(/[.!?]$/g, '');
+        }
+
+        function formatCmfReasoningComponent(value) {
+            var text = cleanCmfEvidenceSnippet(value || '');
+            if (text.indexOf('.') >= 0) {
+                var parts = text.split('.').filter(function (part) { return part && part.trim(); });
+                return parts.length ? parts[parts.length - 1].trim() : text;
+            }
+            return text;
+        }
+
+        function buildCmfReasoningScoreJudgment(recommendation, score, scored) {
+            var strengthText = describeCmfReasoningStrengths(scored);
+            if (recommendation === 'CMF_OK') return 'Together, ' + strengthText + ' place the weighted result above the CMF_OK threshold.';
+            if (recommendation === 'CMF_REVIEW') return 'Together, ' + strengthText + ' indicate the sighting is important but still borderline, so CMF_REVIEW is the right disposition.';
+            if (recommendation === 'CMF_INCOMPLETE') return 'The evaluated signals are not complete enough to support a final CMF decision.';
+            return 'The evaluated signals do not clear the CMF tagging threshold.';
+        }
+
+        function describeCmfReasoningStrengths(scored) {
+            var phrases = [];
+            if (getCmfReasoningScore(scored, 'O') >= 4) phrases.push('high reproducibility');
+            if (getCmfReasoningScore(scored, 'D') >= 4) phrases.push('clear detection evidence');
+            if (getCmfReasoningScore(scored, 'CX') >= 4) phrases.push('customer-experience degradation');
+            if (getCmfReasoningScore(scored, 'B') >= 4) phrases.push('business exposure');
+            if (getCmfReasoningScore(scored, 'S') >= 4) phrases.push('severity');
+            if (phrases.length >= 2) return phrases.slice(0, 3).join(', ');
+            if (phrases.length === 1) return phrases[0] + ' with remaining evidence gaps';
+            return 'the available metric evidence and remaining gaps';
+        }
+
+        function getCmfReasoningScore(scored, id) {
+            id = String(id || '').toUpperCase();
+            for (var i = 0; i < (scored || []).length; i++) {
+                if (String((scored[i] || {}).id || '').toUpperCase() === id) return scored[i].score || 0;
+            }
+            return 0;
+        }
+
+        function limitCmfReasoningWords(items, maxWords) {
+            var remaining = maxWords || 80;
+            var result = [];
+            for (var i = 0; i < (items || []).length; i++) {
+                var text = finalizeCmfReasoningBullet(items[i]);
+                var words = text.split(/\s+/).filter(Boolean);
+                if (!words.length || remaining <= 0) continue;
+                if (words.length > remaining) {
+                    text = trimToCompleteSentence(text, Math.max(90, remaining * 9));
+                    text = finalizeCmfReasoningBullet(text);
+                    words = text.split(/\s+/).filter(Boolean);
+                    if (words.length > remaining) break;
+                }
+                result.push(text);
+                remaining -= words.length;
+            }
+            return result;
+        }
+
+        function finalizeCmfReasoningBullet(value) {
+            var text = String(value || '').replace(/\s+/g, ' ').trim();
+            if (!text) return '';
+            text = text.replace(/confidence in a single\s*[.!?]?$/i, 'confidence in a single recovery path.');
+            text = text.replace(/with consistent repro\s*[.!?]?$/i, 'with consistent reproduction evidence before approval.');
+            text = text.replace(/and consistent repro\s*[.!?]?$/i, 'and consistent reproduction evidence before approval.');
+            var parts = text.match(/[^.!?]+[.!?]+/g);
+            if (parts && parts.length) text = parts.join(' ').trim();
+            text = removeAbruptCmfTail(text);
+            if (/\b(single|consistent|repro|triage|owner|ownership|classification|decision|evidence|root cause)\.$/i.test(text) && parts && parts.length > 1) {
+                text = parts.slice(0, -1).join(' ').trim();
+            }
+            return ensureCmfSentence(text);
+        }
+
+        function ensureCmfSentence(value) {
+            var text = String(value || '').replace(/\s+/g, ' ').trim();
+            if (!text) return '';
+            return /[.!?]$/.test(text) ? text : text + '.';
+        }
+
+        function lowerFirstCmfPhrase(value) {
+            var text = String(value || '').replace(/\s+/g, ' ').trim();
+            if (!text || /^[A-Z]{2,}\b/.test(text)) return text;
+            return text.charAt(0).toLowerCase() + text.slice(1);
+        }
+
+        function getCmfMetricScoreClass(score) {
+            if (score >= 4) return 'is-high';
+            if (score >= 3) return 'is-medium';
+            if (score >= 1) return 'is-low';
+            return 'is-empty';
+        }
+
+        function updateCmfAssistantTag(recommendation) {
+            var node = document.getElementById('cmfAssistantRecTag');
+            if (!node) return;
+            var rec = normalizeCmfRecommendationLabel(recommendation || 'CMF_REVIEW');
+            var className = 'cmf-assistant-rec-tag';
+            if (rec === 'CMF_OK') className += ' is-ok';
+            else if (rec === 'CMF_REVIEW') className += ' is-review';
+            else if (rec === 'CMF_INCOMPLETE') className += ' is-incomplete';
+            else if (rec === 'CMF_REJECT') className += ' is-reject';
+            node.className = className;
+            node.textContent = rec;
+        }
+
+        function renderCmfRecommendationSkeleton() {
+            return '<div class="ai-skeleton-loader"><div class="ai-skeleton-line ai-skeleton-title" style="width:45%;"></div><div class="ai-skeleton-line" style="width:92%;"></div><div class="ai-skeleton-line" style="width:86%;"></div></div>';
+        }
+
+        function renderCmfMetricScoreSkeleton() {
+            return '<div class="ai-skeleton-loader"><div style="font-size:13px;font-weight:600;color:#5c7087;">Calculating individual metric scores...</div><div class="ai-skeleton-line ai-skeleton-title" style="width:45%;"></div><div class="ai-skeleton-line" style="width:92%;"></div><div class="ai-skeleton-line" style="width:86%;"></div></div>';
+        }
+
+        function buildCmfMetricDisplayName(rule) {
+            var id = String((rule || {}).RuleId || '').toUpperCase();
+            var name = String((rule || {}).RuleName || '').trim();
+            if (!name) name = id === 'CX' ? 'Customer Experience' : 'Metric';
+            return id ? name + ' (' + id + ')' : name;
+        }
+
+        function extractCmfContributingFactor(evaluation) {
+            var text = cleanCmfEvidenceSnippet(evaluation || '');
+            var match = text.match(/contributing factor\s*:\s*([\s\S]*?)(?:\.\s*Evidence\s*:|\.\s|$)/i);
+            if (match && match[1]) return trimToCompleteSentence(match[1], 260);
+            return trimToCompleteSentence(text.replace(/^SCORE\s*\d\s*[-:]?\s*/i, ''), 260);
+        }
+
+        function extractBriefCmfContributingFactor(rule) {
+            var id = String((rule || {}).RuleId || '').toUpperCase();
+            var text = extractCmfContributingFactor((rule || {}).Evaluation || '');
+            var lower = text.toLowerCase();
+            if (!text || /missing evidence|missing .* evidence|not identified/i.test(text)) return getCmfMissingEvidenceFactorLabel(id);
+            if (isConcreteCmfFactor(text)) return formatBriefCmfFactor(id, text);
+            if (id === 'S') {
+                if (/gpgpu|burnin|gpu/i.test(lower)) return 'GPGPU BurnIn failure';
+                if (/bsod|black screen|hang|crash|boot/i.test(lower)) return 'Major system failure';
+                if (/performance|degradation/i.test(lower)) return 'Performance degradation';
+                return 'Functional impact evidence';
+            }
+            if (id === 'O') {
+                if (/very_sporadic|sporadic|6\/90/i.test(lower)) return 'Sporadic repro rate';
+                if (/frequent|hourly|1\/10/i.test(lower)) return 'Frequent occurrence';
+                if (/rare|1\/1000/i.test(lower)) return 'Rare occurrence';
+                return 'Repro frequency';
+            }
+            if (id === 'D') {
+                if (/burnin|stress/i.test(lower)) return 'Stress workflow detection';
+                if (/daily|login|restart/i.test(lower)) return 'Common workflow detection';
+                return 'Usage trigger evidence';
+            }
+            if (id === 'R') {
+                if (/revert|rollback|pcode|dcode/i.test(lower)) return 'Firmware rollback workaround';
+                if (/reboot|restart|reconnect|reflash/i.test(lower)) return 'Manual recovery needed';
+                return 'Workaround clarity';
+            }
+            if (id === 'B') {
+                if (/blocked|blocks|validation|performance test/i.test(lower)) return 'Validation blocked';
+                if (/launch|milestone|gate/i.test(lower)) return 'Milestone risk';
+                return 'Business exposure';
+            }
+            if (id === 'CX') {
+                if (/display|audio|camera|network|touch|unusable/i.test(lower)) return 'Visible feature impact';
+                if (/missing/i.test(lower)) return 'Missing CX evidence';
+                return 'Customer visibility';
+            }
+            return trimToWordCount(text, 6);
+        }
+
+        function getCmfMissingEvidenceFactorLabel(id) {
+            if (id === 'S') return 'Low - Negligible Functional Impact';
+            if (id === 'O') return 'Low - Almost Never or Cannot Reliably Reproduce';
+            if (id === 'D') return 'Low - Special Debug, Lab, or Manufacturing Setup';
+            if (id === 'R') return 'Low - Fully Effective Workaround';
+            if (id === 'B') return 'Low - Internal Only with No Business Impact';
+            if (id === 'CX') return 'Low - Not Visible to End User';
+            return 'Missing evidence';
+        }
+
+        function formatBriefCmfFactor(id, value) {
+            var text = String(value || '').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
+            text = text.replace(/^"+|"+$/g, '').replace(/^>+/, '').trim();
+            var lower = text.toLowerCase();
+            if (/^(low|medium|moderate|high|frequent|very frequent|very high|critical)\s+-\s+/i.test(text)) return text;
+            if (id === 'O') {
+                var repro = text.match(/(?:frequently|sporadic|rare|always|occasionally)[\w_\-]*\s*\d*%?(?:-\d+%)?|\d+\s*%\s*-\s*\d+\s*%|\d+\/\d+/i);
+                if (repro) return repro[0].replace(/\s+/g, '');
+            }
+            if (id === 'R') {
+                if (/uma/i.test(text)) return 'UMA BIOS workaround';
+                if (/rollback|roll back|revert/i.test(text)) return 'Driver rollback workaround';
+                if (/reboot|restart/i.test(text)) return 'Restart recovery';
+            }
+            if (id === 'D') {
+                if (/modern standby|s0ix|idle/i.test(lower)) return 'Modern Standby / idle path';
+                if (/stress/i.test(lower)) return 'Stress test path';
+            }
+            if (id === 'S' || id === 'B') {
+                if (/fvt exit/i.test(lower)) return 'FVT exit gating impact';
+                if (/high power/i.test(lower)) return 'High power in PC2';
+            }
+            if (id === 'CX' && /missing/i.test(lower)) return 'Missing evidence';
+            return trimToWordCount(text, 8);
+        }
+
+        function isConcreteCmfFactor(value) {
+            var text = String(value || '').trim();
+            if (!text) return false;
+            if (/[:=]|\d|%|_|\b(WW|SKU|S0ix|S0i|S3|S4|S5|PC\d|BSOD|PHM|GFX|BIOS|driver|display|repro|stress|standby|resume|hang|timeout)\b/i.test(text)) return true;
+            return text.split(/\s+/).filter(Boolean).length > 3;
+        }
+
+        function trimToWordCount(value, maxWords) {
+            var words = String(value || '').replace(/[.!?]+$/g, '').split(/\s+/).filter(Boolean);
+            return words.slice(0, maxWords || 6).join(' ') || 'Missing evidence';
+        }
+
+        function buildConciseCmfRuleEvaluation(rule, score) {
+            var ruleName = String((rule || {}).RuleName || (rule || {}).RuleId || 'Criterion');
+            var evidence = sanitizeCmfDisplaySentence((rule || {}).Evaluation || '', 240);
+            evidence = evidence.replace(/^SCORE\s*\d\s*[-:]?\s*/i, '').replace(/^(?:CX|[SODRB])\d\s*[-:]?\s*/i, '').trim();
+            var meaning = score >= 4 ? 'strong support' : (score >= 3 ? 'partial support' : 'missing or weak support');
+            return ruleName + ' shows ' + meaning + ': ' + evidence;
+        }
+
+        function normalizeDimensionScore(value) {
+            var raw = String(value || '').replace('/100', '').replace('/5', '').replace('%', '').trim();
+            var num = parseFloat(raw);
+            if (isNaN(num)) return '1';
+            if (num > 5) num = Math.round(num / 20);
+            num = Math.max(1, Math.min(5, Math.round(num)));
+            return String(num);
+        }
+
+        function normalizeWeightedCmfScore(value) {
+            var num = parseFloat(String(value || '').replace('/100', '').replace('/5', '').replace('%', '').trim());
+            if (isNaN(num)) return 0;
+            if (num > 5) num = num / 20;
+            return Math.max(0, Math.min(5, num));
+        }
+
+        function formatWeightedCmfScore(value) {
+            var score = normalizeWeightedCmfScore(value);
+            if (!score) return '';
+            return score.toFixed(2).replace(/\.00$/, '.0');
+        }
+
+        function extractCmfReasonBullets(text) {
+            var raw = String(text || '').replace(/\r/g, '\n');
+            var reasonMatch = raw.match(/(?:^|\n)\s*(?:REASONING|AI REASONING)\s*:\s*([\s\S]*?)(?=(?:\n\s*ISSUE IMPACT\s*:|\n\s*RULE SCORES\s*:|$))/i);
+            var source = reasonMatch && reasonMatch[1] ? reasonMatch[1] : raw;
+            var items = [];
+            var current = '';
+            var lines = source.split('\n');
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].replace(/^\s+|\s+$/g, '');
+                if (!line || /^issue impact\s*:/i.test(line)) continue;
+                var bulletMatch = line.match(/^(?:[-*•]\s*|\d+[\.)]\s*)(.+)$/);
+                if (bulletMatch) {
+                    if (current) items.push(current);
+                    current = bulletMatch[1].trim();
+                } else {
+                    current = current ? current + ' ' + line : line;
+                }
+            }
+            if (current) items.push(current);
+            items = items.map(function (item) {
+                return sanitizeCmfDisplaySentence(item, 320);
+            }).filter(function (item) { return item.length > 0 && !/^issue impact\s*:/i.test(item); }).slice(0, 4);
+            return items.length ? items : ['No reasoning returned; review the score details and issue evidence.'];
+        }
+
+        function buildCmfRecommendationReasoning(recommendation, score, rules, evidenceText, payload) {
+            var rec = String(recommendation || '').toUpperCase();
+            var strengths = [];
+            var gaps = [];
+            var conflicts = /conflict|conflicting|borderline/i.test(evidenceText || '');
+
+            for (var i = 0; i < (rules || []).length; i++) {
+                var rule = rules[i] || {};
+                var ruleName = String(rule.RuleName || rule.RuleId || 'criterion').toLowerCase();
+                var ruleScore = parseInt(normalizeDimensionScore(rule.Score || '1'), 10);
+                var evaluation = sanitizeCmfDisplaySentence(rule.Evaluation || '', 240);
+                if (ruleScore >= 4) {
+                    strengths.push(ruleName + ' is strong: ' + evaluation);
+                } else if (ruleScore <= 2) {
+                    gaps.push(ruleName + ' is weak: ' + evaluation);
+                } else {
+                    gaps.push(ruleName + ' needs reviewer judgment: ' + evaluation);
+                }
+            }
+
+            var issueFact = extractCmfSymptomEvidence(rules, []) || firstUsefulText(payload.title, 'The issue has limited symptom detail.');
+            var scoreText = formatWeightedCmfScore(score) || '0';
+            var reasoning = [];
+            reasoning.push('The recommendation is based on the failure evidence and the weighted S/O/D/R/B/CX score, not just the row fields: ' + sanitizeCmfDisplaySentence(issueFact, 260));
+
+            if (rec === 'CMF_OK') {
+                reasoning.push('CMF_OK is supported because the weighted evidence score is ' + scoreText + '/5 and the strongest criteria are ' + summarizeCmfReasonList(strengths, 'severity and business impact') + '.');
+                reasoning.push(gaps.length ? 'Before approval, the reviewer should still confirm ' + summarizeCmfReasonList(gaps, 'any lower-scored criteria') + '.' : 'No decision-critical scoring gaps are visible from the supplied evidence.');
+            } else if (rec === 'CMF_REVIEW') {
+                reasoning.push('CMF_REVIEW is appropriate because the score is near or above the decision band but at least one criterion still needs judgment: ' + summarizeCmfReasonList(gaps, 'the borderline criteria') + '.');
+                reasoning.push(conflicts ? 'The explanation flags conflicting evidence, so the reviewer should resolve that conflict before approving or rejecting the CMF tag.' : 'The reviewer should confirm whether the weaker criteria are real gaps or simply missing details in the current record.');
+            } else if (rec === 'CMF_INCOMPLETE') {
+                reasoning.push('CMF_INCOMPLETE is appropriate because the current record does not provide enough decision-critical evidence across ' + summarizeCmfReasonList(gaps, 'the required criteria') + '.');
+                reasoning.push('The next action is to update the missing evidence, then rerun the recommendation so the score reflects the actual customer risk.');
+            } else {
+                reasoning.push('CMF_REJECT is supported only if the weak criteria remain low after review: ' + summarizeCmfReasonList(gaps, 'the low-scored criteria') + '.');
+                reasoning.push('The reviewer should confirm that no customer, launch, recovery, or business-impact evidence is missing before rejecting the CMF request.');
+            }
+            return reasoning.slice(0, 4);
+        }
+
+        function summarizeCmfReasonList(items, fallback) {
+            var clean = (items || []).filter(function (item) { return item && item.length; }).slice(0, 2);
+            return clean.length ? clean.join('; ') : fallback;
+        }
+
+        function extractCmfImpactSentence(text, payload) {
+            var raw = String(text || '').replace(/\r/g, '\n');
+            var match = raw.match(/(?:^|\n)\s*ISSUE IMPACT\s*:\s*([\s\S]*?)(?=(?:\n\s*RULE SCORES\s*:|$))/i);
+            if (match && match[1]) return firstCompleteSentence(match[1], 360);
+            return firstUsefulText(payload.impact, 'Customer/user impact and urgency are not sufficiently described.');
+        }
+
+        function extractCmfMissingInformation(text, rules, payload) {
+            var missing = [];
+            if (!firstUsefulText(payload.title, '')) missing.push('symptom / failure mode');
+            if (!firstUsefulText(payload.impact, '')) missing.push('customer impact');
+            if (!firstUsefulText(payload.reproducibility || payload.reproOnRvp, '')) missing.push('occurrence / repro evidence');
+            if (!firstUsefulText(payload.customerDetail, '')) missing.push('usage trigger / customer scenario');
+            if (/missing workaround|missing recovery|workaround or recovery impact is not described/i.test(text)) missing.push('workaround / recovery');
+            if (/business exposure is not established|missing milestone|customer or business exposure is not established/i.test(text)) missing.push('milestone / business impact');
+            for (var i = 0; i < rules.length; i++) {
+                var evalText = String((rules[i] || {}).Evaluation || '');
+                var ruleScore = parseInt(normalizeDimensionScore((rules[i] || {}).Score || '1'), 10);
+                if (/^FAIL|missing|not found|not described/i.test(evalText) || ruleScore <= 2) {
+                    var name = buildMissingInfoFromRule(rules[i]);
+                    if (missing.indexOf(name) < 0) missing.push(name);
+                }
+            }
+            return missing.filter(function (item, index) { return item && missing.indexOf(item) === index; }).slice(0, 6);
+        }
+
+        function buildMissingInfoFromRule(rule) {
+            var id = String((rule || {}).RuleId || '').toUpperCase();
+            if (id === 'S') return 'clear symptom severity and customer-visible failure impact';
+            if (id === 'O') return 'occurrence rate, cycle count, or reproducibility proof';
+            if (id === 'D') return 'usage trigger showing when a customer would hit the issue';
+            if (id === 'R') return 'workaround or recovery status and whether it is acceptable';
+            if (id === 'B') return 'milestone, launch, escalation, or business-impact evidence';
+            if (id === 'CX') return 'customer-experience visibility and feature degradation evidence';
+            return ((rule || {}).RuleName || 'rule evidence').toLowerCase();
+        }
+
+        function renderCmfMissingList(items) {
+            if (!items || !items.length) return '<ul class="cmf-rec-missing-list"><li class="is-empty">No decision-critical gaps identified from available evidence.</li></ul>';
+            return renderCmfBriefList(items);
+        }
+
+        function buildCmfReviewerActions(recommendation, missing, rules, impact) {
+            var actions = [];
+            var rec = String(recommendation || '').toUpperCase();
+            if (missing && missing.length) {
+                actions.push('Ask the owner to update ' + missing.slice(0, 2).join(' and ') + ' before final CMF approval.');
+            }
+            if (rec === 'CMF_OK') {
+                actions.push('Confirm the high S/O/D/R/B/CX evidence and approve only if the customer impact remains valid.');
+            } else if (rec === 'CMF_REVIEW') {
+                actions.push('Review the borderline or conflicting score evidence with the iDST owner before changing status.');
+            } else if (rec === 'CMF_REJECT') {
+                actions.push('Reject only if the current evidence still shows low CMF-level risk after checking customer impact.');
+            } else {
+                actions.push('Keep this as incomplete until the missing decision-critical evidence is added.');
+            }
+            var weakest = findWeakestCmfRule(rules);
+            if (weakest) actions.push('Focus review on ' + weakest.RuleName.toLowerCase() + ', currently scored ' + normalizeDimensionScore(weakest.Score) + '/5.');
+            if (impact && !/^missing|customer\/user impact/i.test(impact)) actions.push('Use the stated impact as the reviewer rationale if the disposition is confirmed.');
+            return actions.slice(0, 3);
+        }
+
+        function findWeakestCmfRule(rules) {
+            var weakest = null;
+            for (var i = 0; i < (rules || []).length; i++) {
+                var score = parseInt(normalizeDimensionScore(rules[i].Score || '1'), 10);
+                if (!weakest || score < weakest._score) {
+                    weakest = rules[i];
+                    weakest._score = score;
+                }
+            }
+            return weakest;
+        }
+
+        function firstUsefulText(value, fallback) {
+            var text = String(value || '').replace(/\s+/g, ' ').trim();
+            if (!text || /^n\/?a$|^none$|^unknown$|^missing$/i.test(text)) return fallback || '';
+            return cleanCmfEvidenceSnippet(trimToCompleteSentence(text, 260));
+        }
+
+        function findRecoverySignal(text, payload, rules) {
+            var recoveryRule = findCmfRuleById(rules, 'R');
+            if (recoveryRule && recoveryRule.Evaluation && !/missing|not described|no recovery/i.test(recoveryRule.Evaluation)) {
+                return sanitizeCmfDisplaySentence(recoveryRule.Evaluation, 220);
+            }
+            var combined = String(text || '') + ' ' + String(payload.impact || '');
+            var match = combined.match(/(?:no workaround|workaround[^.]*|reboot[^.]*|restart[^.]*|reflash[^.]*|reconnect[^.]*|recovery[^.]*)/i);
+            return match ? sanitizeCmfDisplaySentence(match[0], 220) : 'Missing workaround or recovery detail.';
+        }
+
+        function findBusinessSignal(text, payload, rules) {
+            var businessRule = findCmfRuleById(rules, 'B');
+            if (businessRule && businessRule.Evaluation && !/missing|not established|not described/i.test(businessRule.Evaluation)) {
+                return sanitizeCmfDisplaySentence(businessRule.Evaluation, 220);
+            }
+            var impact = firstUsefulText(payload.impact, '');
+            if (/gate|gating|validation|milestone|launch|customer|ww\d+/i.test(impact)) return impact;
+            var request = firstUsefulText(payload.cmfRequest, '');
+            if (/gate|gating|validation|milestone|launch|customer|cmf/i.test(request)) return request;
+            var combined = String(text || '') + ' ' + String(payload.impact || '') + ' ' + String(payload.cmfRequest || '');
+            var match = combined.match(/(?:launch[^.]*|validation[^.]*|milestone[^.]*|escalation[^.]*|financial[^.]*|warranty[^.]*|returns[^.]*|customer[^.]*)/i);
+            return match ? sanitizeCmfDisplaySentence(match[0], 220) : 'Missing milestone or business exposure detail.';
+        }
+
+        function findCmfRuleById(rules, ruleId) {
+            for (var i = 0; i < (rules || []).length; i++) {
+                if (String((rules[i] || {}).RuleId || '').toUpperCase() === ruleId) return rules[i];
+            }
+            return null;
+        }
+
+        function sanitizeCmfDisplaySentence(value, maxLength) {
+            var text = cleanCmfEvidenceSnippet(value);
+            text = removeAbruptCmfTail(text);
+            if (!/[.!?]$/.test(text)) text += '.';
+            return removeAbruptCmfTail(trimToCompleteSentence(text, maxLength || 240));
+        }
+
+        function removeAbruptCmfTail(value) {
+            var text = String(value || '').trim();
+            text = text.replace(/[,:;\-\s]+$/g, '').trim();
+            text = text.replace(/\b(indicating|including|because|with|and|or|that|the|a|an|to|of|for|by|as|which|rather than)\s*[.!?]?$/i, '').trim();
+            text = text.replace(/[,:;\-\s]+$/g, '').trim();
+            if (text && !/[.!?]$/.test(text)) text += '.';
+            return text || 'Not identified from available evidence.';
+        }
+
+        function cleanCmfEvidenceSnippet(value) {
+            var text = String(value || '').replace(/\s+/g, ' ').trim();
+            text = text.replace(/\bneeds confirm\b/gi, 'needs to confirm')
+                .replace(/\bneed confirm\b/gi, 'need to confirm')
+                .replace(/\bneeds talk to\b/gi, 'needs to talk to')
+                .replace(/\bneed talk to\b/gi, 'need to talk to');
+            text = text.replace(/["'“”‘’]+$/g, '').replace(/\s*\([^)]*$/g, '').trim();
+            if ((text.match(/"/g) || []).length % 2 === 1) text = text.replace(/"[^".]{0,120}$/g, '').trim();
+            text = text.replace(/^["“”]+/g, '').replace(/["“”]+$/g, '').trim();
+            text = text.replace(/\b(indicating|including|because|with|and|or|that|the|a|an|to|of|for|by|as|which|rather than)[\.]?$/i, '').trim();
+            return text.replace(/[,:;\-\s]+$/g, '').trim() || 'Not identified from available evidence.';
+        }
+
+        function renderCmfCriterionScores(ruleScores) {
+            if (!ruleScores || !ruleScores.length) return '';
+            var html = '<div style="margin-top:14px;"><strong>Scoring Criteria:</strong><div style="display:grid; gap:8px; margin-top:8px;">';
+            for (var i = 0; i < ruleScores.length; i++) {
+                var rule = ruleScores[i] || {};
+                var score = parseInt(String(rule.Score || '0').replace('%', ''), 10);
+                if (isNaN(score)) score = 0;
+                var status = /^PASS/i.test(rule.Evaluation || '') ? 'PASS' : (/^PARTIAL/i.test(rule.Evaluation || '') ? 'PARTIAL' : 'FAIL');
+                var color = status === 'PASS' ? '#047857' : (status === 'PARTIAL' ? '#b45309' : '#b91c1c');
+                html += '<div style="border:1px solid #d8e2ee; border-radius:8px; padding:9px 10px; background:#fff;">';
+                html += '<div style="display:flex; justify-content:space-between; gap:12px; align-items:center; font-weight:700; color:#1f344a;">';
+                html += '<span>' + escapeHtml(rule.RuleId || '') + ' - ' + escapeHtml(rule.RuleName || 'Criterion') + '</span>';
+                html += '<span style="color:' + color + '; white-space:nowrap;">' + escapeHtml(status) + ' · ' + score + '%</span>';
+                html += '</div>';
+                html += '<div style="margin-top:4px; color:#5d7289; font-size:12px; line-height:1.45;">' + escapeHtml(rule.Evaluation || '') + '</div>';
+                html += '</div>';
+            }
+            return html + '</div></div>';
+        }
+
+        function firstCompleteSentence(text, maxLength) {
+            var value = String(text || '').replace(/\s+/g, ' ').trim();
+            if (!value) return '';
+            var sentences = value.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [value];
+            var sentence = sentences[0].trim();
+            if (sentence.length <= maxLength) return sentence;
+            return trimToCompleteSentence(sentence, maxLength);
+        }
+
+        function filterCmfPendingRows() {
+            var input = document.getElementById('cmfPendingClientSearch');
+            var table = document.getElementById('GridView_cmf_pending');
+            if (!input || !table) return;
+            var query = (input.value || '').toLowerCase().trim();
+            var component = getPendingFilterValue('cmfPendingComponentFilter');
+            var owner = getPendingFilterValue('cmfPendingOwnerFilter');
+            var customer = getPendingFilterValue('cmfPendingCustomerFilter');
+            var idst = getPendingFilterValue('cmfPendingIdstFilter');
+            var rows = table.querySelectorAll('tbody tr');
+            for (var i = 0; i < rows.length; i++) {
+                var rowText = (rows[i].innerText || '').toLowerCase();
+                var rowComponent = extractPendingFieldValue(rows[i].innerText || '', 'component').toLowerCase();
+                var rowOwner = extractPendingFieldValue(rows[i].innerText || '', 'owner').toLowerCase();
+                var rowCustomer = extractPendingFieldValue(rows[i].innerText || '', 'customer').toLowerCase();
+                var rowIdst = extractPendingFieldValue(rows[i].innerText || '', 'idst').toLowerCase();
+                var matchesQuery = !query || rowText.indexOf(query) >= 0;
+                var matchesComponent = !component || rowComponent === component;
+                var matchesOwner = !owner || rowOwner === owner;
+                var matchesCustomer = !customer || rowCustomer === customer;
+                var matchesIdst = !idst || rowIdst === idst;
+                rows[i].style.display = matchesQuery && matchesComponent && matchesOwner && matchesCustomer && matchesIdst ? '' : 'none';
+            }
+
+            // Load sighting descriptions for visible rows
+            loadSightingDescriptions();
+        }
+
+        function loadSightingDescriptions() {
+            var table = document.getElementById('GridView_cmf_pending');
+            if (!table) return;
+
+            var rows = table.querySelectorAll('tbody tr');
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                if (getComputedStyle(row).display === 'none') continue;
+
+                var descriptionContainers = row.querySelectorAll('.sighting-description-content');
+                for (var j = 0; j < descriptionContainers.length; j++) {
+                    var container = descriptionContainers[j];
+                    var dataContainer = container.closest('.sighting-details-panel').querySelector('.sighting-data-container');
+
+                    if (dataContainer) {
+                        var cpId = dataContainer.getAttribute('data-sighting-id');
+                        var title = dataContainer.getAttribute('data-title');
+                        var component = dataContainer.getAttribute('data-component');
+
+                        // Only load if not already loaded
+                        if (container.getAttribute('data-loaded') !== 'true') {
+                            loadSingleSightingDescription(cpId, title, component, container);
+                        }
+                    }
+                }
+            }
+        }
+
+        function loadSingleSightingDescription(cpId, title, component, containerElement) {
+            if (!containerElement || !cpId) return;
+
+            // Mark as loading
+            containerElement.setAttribute('data-loaded', 'true');
+            containerElement.setAttribute('data-loading', 'true');
+
+            var platformValue = getIssuePendingPlatformValue();
+
+            fetch('CMF_Web_portal.aspx/GetSightingDescription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({
+                    cpId: cpId,
+                    title: title,
+                    platform: platformValue
+                })
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                containerElement.setAttribute('data-loading', 'false');
+                var result = data && data.d ? data.d : data;
+
+                if (!result || result.Success !== true) {
+                    var errorMsg = result && result.Message ? result.Message : 'Could not generate description.';
+                    containerElement.innerHTML = '<span class="sighting-description-error">⚠ ' + escapeHtml(errorMsg) + '</span>';
+                    return;
+                }
+
+                var description = result.Summary || 'No description available.';
+                containerElement.innerHTML = escapeHtml(description);
+            })
+            .catch(function (error) {
+                containerElement.setAttribute('data-loading', 'false');
+                containerElement.innerHTML = '<span class="sighting-description-error">⚠ Error loading description</span>';
+                console.error('Error loading sighting description:', error);
+            });
+        }
+
+        function openCmfPendingInsights() {
+            var drawerBg = document.getElementById('cmfRecDrawerBg');
+            var drawer = document.getElementById('cmfRecDrawer');
+            var headingNode = document.getElementById('cmfRecHeading');
+            var recNode = document.getElementById('cmfRecRecommendation');
+            var evidenceNode = document.getElementById('cmfDecisionDetailsBody');
+            var qualityNode = document.getElementById('cmfRecQuality');
+            if (!drawerBg || !drawer || !evidenceNode) return;
+
+            setCmfDrawerMode('insights');
+            if (headingNode) headingNode.textContent = 'CMF Pending List - Insights';
+            if (recNode) recNode.style.display = 'none';
+            if (qualityNode) qualityNode.textContent = 'Visible sightings overview';
+            evidenceNode.innerHTML = '<div class="ai-skeleton-loader"><div style="font-size:13px;font-weight:600;color:#5c7087;">&#10024; Generating CMF Pending insights...</div><div class="ai-skeleton-line ai-skeleton-title" style="width:55%;"></div><div class="ai-skeleton-line" style="width:95%;"></div><div class="ai-skeleton-line" style="width:88%;"></div></div>';
+            drawerBg.classList.add('show');
+            drawer.classList.add('show');
+
+            fetch('CMF_Web_portal.aspx/GetCmfPendingListInsights', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({ platform: getIssuePendingPlatformValue(), rowsContext: buildCmfPendingRowsContext() })
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                var result = data && data.d ? data.d : data;
+                if (!result || result.Success !== true) {
+                    evidenceNode.textContent = result && result.Message ? result.Message : 'Unable to generate CMF Pending insights.';
+                    return;
+                }
+                evidenceNode.innerHTML = renderCmfBriefList(String(result.Summary || '').split(/\r?\n/).map(function (line) { return line.replace(/^[-*]\s*/, '').trim(); }).filter(Boolean));
+            })
+            .catch(function () { evidenceNode.textContent = 'Error while calling CMF Pending insights service.'; });
+        }
+
+        function buildCmfPendingRowsContext() {
+            var rows = Array.from(document.querySelectorAll('#GridView_cmf_pending tbody tr')).filter(function (row) { return getComputedStyle(row).display !== 'none'; }).slice(0, 20);
+            return rows.map(function (row, index) {
+                var text = row.innerText || '';
+                return 'Sighting ' + (index + 1) + ': component=' + extractPendingFieldValue(text, 'component') + '; customer=' + extractPendingFieldValue(text, 'customer') + '; owner=' + extractPendingFieldValue(text, 'owner') + '; idst=' + extractPendingFieldValue(text, 'idst') + '; repro=' + extractPendingFieldValue(text, 'reproducibility') + '; impact=' + extractPendingFieldValue(text, 'impact') + '.';
+            }).join('\n');
+        }
+
+        function getPendingFilterValue(id) {
+            var element = document.getElementById(id);
+            return element ? (element.value || '').toLowerCase().trim() : '';
+        }
+
+        function populateCmfPendingFilterOptions() {
+            var table = document.getElementById('GridView_cmf_pending');
+            if (!table) return;
+
+            var filters = [
+                { id: 'cmfPendingComponentFilter', label: 'Components', field: 'component' },
+                { id: 'cmfPendingOwnerFilter', label: 'Owners', field: 'owner' },
+                { id: 'cmfPendingCustomerFilter', label: 'Customers', field: 'customer' },
+                { id: 'cmfPendingIdstFilter', label: 'iDST', field: 'idst' }
+            ];
+
+            for (var filterIndex = 0; filterIndex < filters.length; filterIndex++) {
+                var filter = filters[filterIndex];
+                var select = document.getElementById(filter.id);
+                if (!select) continue;
+
+                var currentValue = select.value;
+                var values = [];
+                var rows = table.querySelectorAll('tbody tr');
+                for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+                    var text = rows[rowIndex].innerText || '';
+                    var value = extractPendingFieldValue(text, filter.field);
+                    if (value && values.indexOf(value) === -1) {
+                        values.push(value);
+                    }
+                }
+
+                values.sort(function (left, right) { return left.localeCompare(right); });
+                select.innerHTML = '<option value="">All ' + filter.label + '</option>';
+                for (var valueIndex = 0; valueIndex < values.length; valueIndex++) {
+                    var option = document.createElement('option');
+                    option.value = values[valueIndex];
+                    option.textContent = values[valueIndex];
+                    select.appendChild(option);
+                }
+                if (currentValue && values.indexOf(currentValue) >= 0) {
+                    select.value = currentValue;
+                }
+            }
+        }
+
+        function extractPendingFieldValue(text, field) {
+            var lines = (text || '').split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                var lower = line.toLowerCase();
+                if (field === 'idst' && lower.indexOf('idst:') === 0) {
+                    return line.substring(line.indexOf(':') + 1).trim();
+                }
+                if (lower === field && lines[i + 1]) {
+                    return lines[i + 1].trim();
+                }
+            }
+            return '';
+        }
+
+        function resetCmfPendingClientFilters() {
+            var input = document.getElementById('cmfPendingClientSearch');
+            if (input) input.value = '';
+            var selects = ['cmfPendingComponentFilter', 'cmfPendingOwnerFilter', 'cmfPendingCustomerFilter', 'cmfPendingIdstFilter'];
+            for (var i = 0; i < selects.length; i++) {
+                var select = document.getElementById(selects[i]);
+                if (select) select.value = '';
+            }
+            filterCmfPendingRows();
+        }
+</script>
     <script src="Scripts/cmf-portal-main.js?v=20260805-ai-recommendation-fix"></script>
 
 
@@ -16960,11 +21825,11 @@ Submit
                     <div class="ai-summary-meta-row" id="aiSummaryTitleRow" style="display:none"><strong>Title:</strong> <span id="aiSummaryTitle">-</span></div>
                     <div id="aiSummaryFacts" class="ai-summary-facts"></div>
                     <div class="ai-summary-body" id="aiSummaryBody">Generating AI summary...</div>
-                    <div class="ai-summary-actions" id="aiSummaryActions" style="display:none">
-                        <button type="button" class="ai-action-btn ai-action-copy" onclick="copyAiSummaryForReport()" title="Copy summary as plain text for pasting into reports">
+                    <div class="ai-summary-actions" id="aiSummaryActions" style="display:none; display: flex; gap: 12px; width: 100%; margin-top: 15px;">
+                        <button type="button" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc; background-color: #f7f7f7; font-weight: bold; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e2e2e2'" onmouseout="this.style.backgroundColor='#f7f7f7'" onclick="copyAiSummaryForReport()" title="Copy summary as plain text for pasting into reports">
                             &#x2398; Copy for Report
                         </button>
-                        <button type="button" class="ai-action-btn ai-action-regen" onclick="regenerateAiSummary()" title="Regenerate summary from AI">
+                        <button type="button" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc; background-color: #f7f7f7; font-weight: bold; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e2e2e2'" onmouseout="this.style.backgroundColor='#f7f7f7'" onclick="regenerateAiSummary()" title="Regenerate summary from AI">
                             &#x21BA; Regenerate
                         </button>
                     </div>
@@ -16972,7 +21837,12 @@ Submit
                         <div id="aiSummaryChatMessages" class="ai-chat-messages" aria-live="polite"></div>
                         <div class="ai-chat-input">
                             <textarea id="aiSummaryChatInput" class="ai-chat-input-box" placeholder="Ask about this defect... (Enter to send, Shift+Enter for newline)"></textarea>
-                            <button type="button" id="aiSummaryChatSend" class="ai-chat-send" onclick="sendAiFollowUp();">Send</button>
+                            <button type="button" id="aiSummaryChatSend" class="ai-chat-send" onclick="sendAiFollowUp();" aria-label="Send" title="Send" style="background: transparent; border: none; padding: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #0071c5; transition: transform 0.1s ease;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </aside>
@@ -16980,19 +21850,44 @@ Submit
                 <div id="cmfRecDrawerBg" class="ai-summary-drawer-bg" onclick="closeCmfRecDrawer()"></div>
                 <aside id="cmfRecDrawer" class="ai-summary-drawer" aria-hidden="true" role="dialog" aria-label="AI CMF Pending Recommendation">
                     <button type="button" class="ai-summary-drawer-close" onclick="closeCmfRecDrawer()" aria-label="Close">&times;</button>
-                    <h2 id="cmfRecHeading" class="ai-summary-drawer-title">AI CMF Assessment</h2>
-                    <div id="cmfRecTitleRow" class="ai-summary-meta-row cmf-rec-title-row"><strong>Issue Title:</strong> <span id="cmfRecTitle" class="cmf-rec-title-text">-</span><span id="cmfRecRecommendation" class="cmf-rec-decision-badge">Generating...</span></div>
-                    <div id="cmfRecSightingRow" class="ai-summary-meta-row"><strong>Sighting ID:</strong> <span id="cmfRecCpId">-</span></div>
+                    <h2 id="cmfRecHeading" class="ai-summary-drawer-title"><span class="cmf-assistant-title-icon" aria-hidden="true">✨</span>AI CMF Assistant</h2>
+                    <div class="cmf-assistant-context" aria-label="Sighting context">
+                        <div class="cmf-assistant-context-line">Sighting ID: <strong id="cmfAssistantSightingId">-</strong><a id="cmfAssistantHsdLink" class="cmf-assistant-hsd-link" href="#" target="_blank" rel="noopener noreferrer" title="Open sighting in HSD" aria-label="Open sighting in HSD"><i class="fas fa-external-link-alt" aria-hidden="true"></i></a></div>
+                        <span id="cmfAssistantRecTag" class="cmf-assistant-rec-tag">CMF_Tag</span>
+                        <div class="cmf-assistant-context-line cmf-assistant-context-title-line">Title: <strong id="cmfRecTitle" class="cmf-rec-title-text">-</strong></div>
+                    </div>
+                    <section id="cmfAssistantSightingDetails" class="cmf-assistant-sighting-card" aria-label="Sighting details">
+                        <div class="cmf-assistant-text-section cmf-assistant-description-section">
+                            <h3>Problem Description</h3>
+                            <div id="cmfAssistantSightingDescription" class="cmf-assistant-description">-</div>
+                        </div>
+                    </section>
+                    <section id="cmfAssistantRecommendationSection" class="cmf-assistant-sighting-card" aria-label="CMF recommendation">
+                        <div class="cmf-assistant-text-section cmf-assistant-recommendation-section">
+                            <h3>CMF Recommendation</h3>
+                            <div id="cmfAssistantRecommendationBody">-</div>
+                        </div>
+                    </section>
+                    <div id="cmfAssistantQualityAssessment" class="cmf-assistant-quality-slot" aria-label="Sighting quality assessment"></div>
+                    <section id="cmfAssistantImpactSection" class="cmf-assistant-sighting-card" aria-label="Impact summary">
+                        <div class="cmf-assistant-text-section cmf-assistant-impact-section">
+                            <h3>Impact Summary</h3>
+                            <div class="cmf-assistant-impact-block">
+                                <div id="cmfAssistantImpactSummary" class="cmf-assistant-impact-summary">-</div>
+                            </div>
+                        </div>
+                    </section>
+                    <div id="cmfRecTitleRow" class="ai-summary-meta-row cmf-rec-title-row" style="display:none"><strong>Issue Title:</strong> <span class="cmf-rec-title-text">-</span><span id="cmfRecRecommendation" class="cmf-rec-decision-badge">Generating...</span></div>
+                    <div id="cmfRecSightingRow" class="ai-summary-meta-row" style="display:none"><strong>Sighting ID:</strong> <span id="cmfRecCpId">-</span></div>
                     <span id="cmfRecComponent" style="display:none">-</span>
-                    <div id="cmfRecQuality" class="ai-summary-meta-row">Evidence quality: --</div>
-                    
-                    <div id="cmfRecReasoningSection" class="cmf-rec-section">
-                        <h3>Reasoning</h3>
+                    <div id="cmfRecQuality" class="ai-summary-meta-row" style="display:none">Evidence quality: --</div>
+
+                    <div id="cmfRecReasoningSection" class="cmf-rec-section" style="display:none">
                         <div id="cmfRecEvidence" class="ai-summary-body">-</div>
                     </div>
                     <div id="cmfDecisionDetailsBody" class="cmf-rec-hidden"></div>
-                    
-                    <div id="cmfRecActions" class="cmf-rec-placeholder-actions">
+
+                    <div id="cmfRecActions" class="cmf-rec-placeholder-actions" style="display:none">
                         <button type="button" class="cmf-rec-placeholder-btn primary" onclick="showCmfPlaceholderAction('Approve CMF Tag')">Approve CMF Tag</button>
                         <button type="button" class="cmf-rec-placeholder-btn" onclick="showCmfPlaceholderAction('Commit Auto-fill')">Commit Auto-fill</button>
                     </div>
@@ -17231,8 +22126,8 @@ Submit
                         </div>
                         <!-- MODIFY YOUR GRIDVIEW TO ADD DATA-FIELD ATTRIBUTES -->
                         <div id="issue-grid-inner" class="issue-grid-inner">
-                        
-                                            <asp:GridView ID="overall_request_details" ClientIDMode="Static" CssClass="table-primary" runat="server" AutoGenerateColumns="False"
+
+<asp:GridView ID="overall_request_details" CssClass="table-primary" runat="server" AutoGenerateColumns="False"
     EmptyDataText="No Open CMFs" OnRowEditing="overall_request_details_RowEditing"
     OnRowUpdating="overall_request_details_RowUpdating" OnRowCancelingEdit="overall_request_details_RowCancelingEdit"
     OnRowDataBound="overall_request_details_RowDataBound" OnPageIndexChanging="overall_request_details_PageIndexChanging"
@@ -17241,7 +22136,7 @@ Submit
     <PagerSettings Visible="false" />
 
     <Columns>
-   
+
         <asp:TemplateField HeaderText="#" ItemStyle-Width="50px" HeaderStyle-Width="50px"
             ItemStyle-CssClass="field-sno" HeaderStyle-CssClass="field-sno">
             <ItemTemplate>
@@ -17324,7 +22219,7 @@ Submit
 
         <asp:TemplateField HeaderText="Status" ItemStyle-CssClass="field-status" HeaderStyle-CssClass="field-status">
             <ItemTemplate>
-                <%# RenderStatusWithAiSummaryButton(Eval("IssueStatus"), Eval("Status"), Eval("SightingID"), Eval("title"), Eval("SubmittedDate"), Eval("sysdebug")) %>
+                <%# RenderStatusWithAiSummaryButton(Eval("IssueStatus"), Eval("Status"), Eval("SightingID"), Eval("title"), Eval("SubmittedDate"), Eval("sysdebug"), Container.DataItem) %>
             </ItemTemplate>
         </asp:TemplateField>
 
@@ -17339,7 +22234,7 @@ Submit
             <ItemTemplate><%# CreateDuplicateLinks(Eval("DuplicateDetails")) %></ItemTemplate>
         </asp:TemplateField>
 
-      
+
         <asp:TemplateField HeaderText="RVP Repro" ItemStyle-CssClass="field-rvp_repro" HeaderStyle-CssClass="field-rvp_repro">
             <HeaderTemplate>
                 <div class="filter-header-container">
@@ -17370,7 +22265,7 @@ Submit
             </EditItemTemplate>
         </asp:TemplateField>
 
-        
+
         <asp:TemplateField HeaderText="LOS" ItemStyle-CssClass="field-los" HeaderStyle-CssClass="field-los">
             <HeaderTemplate>
                 <div class="filter-header-container">
@@ -17389,11 +22284,11 @@ Submit
             </EditItemTemplate>
         </asp:TemplateField>
 
-        
+
         <asp:BoundField DataField="processor" HeaderText="Processor" ReadOnly="True"
             ItemStyle-CssClass="field-processor" HeaderStyle-CssClass="field-processor" Visible="false" />
 
-        
+
     <asp:TemplateField HeaderText="Impact" ItemStyle-CssClass="field-impact_processor" HeaderStyle-CssClass="field-impact_processor">
         <ItemTemplate><%# RenderImpactWithProcessor(Eval("impact"), Eval("processor")) %></ItemTemplate>
             <EditItemTemplate>
@@ -17402,7 +22297,7 @@ Submit
             </EditItemTemplate>
         </asp:TemplateField>
 
-       
+
         <asp:TemplateField HeaderText="Days Open" ItemStyle-CssClass="daysopen-column field-days_open" HeaderStyle-CssClass="field-days_open">
             <ItemTemplate><%# RenderDaysOpen(Eval("days_active")) %></ItemTemplate>
         </asp:TemplateField>
@@ -17414,13 +22309,13 @@ Submit
             ItemStyle-CssClass="field-progress" HeaderStyle-CssClass="field-progress" />
 
     </Columns>
-    
+
 <EmptyDataTemplate>
     <div class="empty-data-container">
         <table class="table-primary" style="width:100%">
             <thead>
                 <tr>
-                    
+
                     <th style="width:50px;" class="field-sno">S.No</th>
 
                     <th class="field-sightingid">SightingID | Promoted ID</th>
@@ -17472,7 +22367,7 @@ Submit
                     </th>
 
                     <th class="field-imagefreeze">ImageFreeze</th>
-                    
+
                     <th class="field-duplicatedetails">Duplicate Details</th>
 
                     <th class="field-rvp_repro">
@@ -17501,7 +22396,7 @@ Submit
                         </div>
                     </th>
 
-                    
+
                     <th class="field-los" style="width:100px;">
                         <div class="filter-header-container">
                             <div class="filter-header-text">LOS</div>
@@ -17515,21 +22410,21 @@ Submit
                         </div>
                     </th>
 
-                   
+
                     <th class="field-processor">Processor</th>
 
-                   
+
                     <th class="field-impact">Impact</th>
 
-                    
+
                     <th class="field-days_open">Days_Open</th>
 
-                    
+
                     <th class="field-closed_reason">Closed Reason / Fixed Version</th>
 
                     <th class="field-progress">Progress</th>
 
-                   
+
                 </tr>
             </thead>
             <tbody>
@@ -17543,7 +22438,7 @@ Submit
     </div>
 </EmptyDataTemplate>
 
-  
+
 </asp:GridView>
                         </div>
                     </div>
@@ -17576,35 +22471,6 @@ Submit
                                 <asp:Label ID="lblIssuePageStatus" runat="server" />
                             </div>
                         </asp:Panel>
-
-                    <aside class="issue-side-panel" aria-label="Issue tab assistant panel">
-                        <section class="interactive-side-card">
-                            <div class="interactive-side-head">
-                                <h3 class="interactive-side-title"><i class="fas fa-wand-magic-sparkles" aria-hidden="true" style="color:#4f46e5; margin-right:6px;"></i>AI Assistant</h3>
-                            </div>
-                            <p class="interactive-side-sub">Ask anything about your active issues and triage signals.</p>
-                            <button type="button" class="interactive-side-btn" onclick="focusReportsAssistant('Summarize active issues and debug risks across all CMF data'); return false;">Ask AI</button>
-                        </section>
-
-                        <section class="interactive-side-card">
-                            <div class="interactive-side-head"><h3 class="interactive-side-title">Quick Insights</h3></div>
-                            <ul class="interactive-chip-list">
-                                <li><span>Total visible issues</span><span class="interactive-chip" id="issueSideTotal">0</span></li>
-                                <li><span>In progress signals</span><span class="interactive-chip" id="issueSideProgress">0</span></li>
-                                <li><span>Implemented issues</span><span class="interactive-chip" id="issueSideStale">0</span></li>
-                            </ul>
-                        </section>
-
-                        <section class="interactive-side-card">
-                            <div class="interactive-side-head"><h3 class="interactive-side-title">Shortcuts</h3></div>
-                            <div class="interactive-shortcuts">
-                                <button type="button" class="interactive-shortcut-btn" onclick="document.getElementById('issueFiltersToggleBtn').click()">Toggle Filters</button>
-                                <button type="button" class="interactive-shortcut-btn" onclick="showAllColumns()">Show Columns</button>
-                                <button type="button" class="interactive-shortcut-btn" onclick="focusFirstRowAiSummary(); return false;">AI Summary</button>
-                                <button type="button" class="interactive-shortcut-btn" onclick="focusReportsAssistant('Generate an export-ready issue report for all CMF data'); return false;">Export View</button>
-                            </div>
-                        </section>
-                    </aside>
                     </div>
 
                     <!-- CMF PENDING LIST HEADER PANEL - INSIDE mainDataWrapper -->
@@ -17612,21 +22478,48 @@ Submit
                         <div class="pending-tab-main">
                             <div class="cmf-pending-page-hd">
                                 <div>
-                                    <h1 class="cmf-pending-page-title">CMF Pending</h1>
-
-                                    <p class="cmf-pending-page-desc">
-                                        Review pending requests, supporting evidence, customer impact, and qualification signals.
-                                    </p>
+                                    <div class="cmf-pending-breadcrumb"><asp:LinkButton ID="lnkPendingBreadcrumbHome" runat="server" OnClick="btnShowHomeDashboard_Click">Home</asp:LinkButton> <span>›</span> CMF Pending List</div>
+                                    <div class="cmf-pending-page-hd-top">
+                                        <div>
+                                            <h1 class="cmf-pending-page-title">CMF Pending List</h1>
+                                            <p class="cmf-pending-page-desc">Track and manage all pending CMFs and recommended dispositions.</p>
+                                        </div>
+                                        <div class="cmf-pending-actions">
+                                            <button type="button" class="cmf-pending-action-btn" onclick="openCmfPendingInsights();"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span>AI Insights</span></button>
+                                            <button type="button" class="cmf-pending-action-btn primary" onclick="showPortalToast('Use Export to Excel from the left navigation for the active portal export workflow.');"><i class="fas fa-download" aria-hidden="true"></i><span>Export</span></button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
                             <asp:Panel ID="cmf_pending_header_panel" runat="server" Visible="false"></asp:Panel>
 
-                            <div style="display:none;" aria-hidden="true">
-                                <asp:Label ID="lblPendingSightings" runat="server" Text="0" />
-                                <asp:Label ID="lblQualifyForCmf" runat="server" Text="0" />
-                                <asp:Label ID="lblLikelyDuplicate" runat="server" Text="0" />
-                                <asp:Label ID="lblIncompleteSysScope" runat="server" Text="0" />
+                            <div class="cmf-pending-kpi-row template-kpi-row">
+                                <div class="cmf-pending-kpi template-kpi-card kpi-blue">
+                                    <div class="template-kpi-icon"><i class="fas fa-file-lines" aria-hidden="true"></i></div>
+                                    <div><div class="cmf-pending-kpi-label">Pending CMFs</div><div class="cmf-pending-kpi-value"><asp:Label ID="lblPendingSightings" runat="server" Text="0" /></div><div class="cmf-pending-kpi-sub">Current platform workload</div></div>
+                                </div>
+                                <div class="cmf-pending-kpi template-kpi-card kpi-amber">
+                                    <div class="template-kpi-icon"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i></div>
+                                    <div><div class="cmf-pending-kpi-label">Needs Attention</div><div class="cmf-pending-kpi-value"><asp:Label ID="lblIncompleteSysScope" runat="server" Text="0" /></div><div class="cmf-pending-kpi-sub">Missing decision evidence</div></div>
+                                </div>
+                                <div class="cmf-pending-kpi template-kpi-card kpi-violet">
+                                    <div class="template-kpi-icon"><i class="fas fa-robot" aria-hidden="true"></i></div>
+                                    <div><div class="cmf-pending-kpi-label">AI Recommended</div><div class="cmf-pending-kpi-value"><asp:Label ID="lblQualifyForCmf" runat="server" Text="0" /></div><div class="cmf-pending-kpi-sub">Likely CMF candidates</div></div>
+                                </div>
+                                <div class="cmf-pending-kpi template-kpi-card kpi-green">
+                                    <div class="template-kpi-icon"><i class="fas fa-copy" aria-hidden="true"></i></div>
+                                    <div><div class="cmf-pending-kpi-label">Potential Duplicates</div><div class="cmf-pending-kpi-value"><asp:Label ID="lblLikelyDuplicate" runat="server" Text="0" /></div><div class="cmf-pending-kpi-sub">Review linked sightings</div></div>
+                                </div>
+                            </div>
+
+                            <div class="cmf-pending-filter-card" aria-label="CMF pending list filters">
+                                <div class="cmf-pending-searchbox"><i class="fas fa-search" aria-hidden="true"></i><input type="text" id="cmfPendingClientSearch" placeholder="Search by ID, title, customer, component..." oninput="filterCmfPendingRows()" /></div>
+                                <select id="cmfPendingComponentFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()" aria-label="Filter CMF Pending by component"><option value="">All Components</option></select>
+                                <select id="cmfPendingOwnerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()" aria-label="Filter CMF Pending by owner"><option value="">All Owners</option></select>
+                                <select id="cmfPendingCustomerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()" aria-label="Filter CMF Pending by customer"><option value="">All Customers</option></select>
+                                <select id="cmfPendingIdstFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()" aria-label="Filter CMF Pending by iDST"><option value="">All iDST</option></select>
+                                <button type="button" class="cmf-pending-filter-btn" onclick="resetCmfPendingClientFilters()"><i class="fas fa-rotate-left" aria-hidden="true"></i><span>Reset</span></button>
                             </div>
 
                             <!-- CMF PENDING LIST GRIDVIEW - INSIDE mainDataWrapper -->
@@ -17649,11 +22542,11 @@ Submit
                                             <ItemTemplate><%# RenderPendingAskImpact(Eval("cp_id"), Eval("title"), Eval("component"), Eval("date_cmf_ask"), Eval("cmf_request"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner")) %></ItemTemplate>
                                         </asp:TemplateField>
 
-                                        <asp:TemplateField HeaderText="AI Recommendation" ItemStyle-Width="150px" HeaderStyle-Width="150px">
-                                            <ItemTemplate><%# RenderPendingRecommendationCell(Eval("cp_id"), Eval("title"), Eval("component"), Eval("cmf_request"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner")) %></ItemTemplate>
+                                        <asp:TemplateField HeaderText="AI CMF Assistant" ItemStyle-Width="150px" HeaderStyle-Width="150px">
+                                            <ItemTemplate><%# RenderPendingRecommendationCell(Eval("cp_id"), Eval("title"), Eval("component"), Eval("component_group"), Eval("cmf_request"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner")) %></ItemTemplate>
                                         </asp:TemplateField>
 
-                                    </Columns> 
+                                    </Columns>
                                 </asp:GridView>
                             </div>
                         </div>
@@ -18232,4 +23125,3 @@ Target="_blank" />
 
 </body>
 </html>
-

@@ -349,10 +349,39 @@ Then manually verify the main flows in the browser:
 ```text
 Dashboard loads for the selected/default platform context
 Platform chips switch platform data
+Overall dashboard summary cards, trends, OEM table, and heatmap load
+CMF Summary loads for an individual platform
 Issue List loads and filters work
-Issue AI Summary opens
+Issue List paging and filters retain a consistent issue count
+Issue AI Summary and AI Issue Details open
 CMF Pending List loads
-CMF Pending AI Recommendation opens
+CMF Pending KPI cards, search, component/owner/customer/iDST filters, and Reset work
+CMF Pending AI Insights opens for the visible rows
+CMF Pending AI Recommendation, sighting quality assessment, and impact details open
+Switching between Dashboard, Issue List, and CMF Pending hides the inactive views
 Reports & Analytics opens
 Admin Rules tab appears only in admin mode
 ```
+
+The dashboard and list views share the same page and code-behind. When integrating
+dashboard changes, preserve the list markup, client-side helpers, and matching
+WebMethods together; a merge can compile while still removing visible features.
+Platform handling must support both individual platforms and the Overall view.
+
+To compile the current portal without the archived test pages:
+
+```powershell
+& "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\aspnet_compiler.exe" -v / -p "$PWD" -x /others -nologo
+```
+
+The archived pages under `others/` are not runtime entry points and may reference
+old code-behind files or controls that are no longer available.
+
+With Node.js installed, run the dependency-free drawer integration regression tests:
+
+```powershell
+node --test .\Scripts\tests\portal-integration.test.js
+```
+
+These tests cover drawer-mode visibility, Pending Insights success/error responses,
+and impact details without contacting the AI service.
