@@ -10,6 +10,7 @@
 
     <!-- Stylesheets -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" type="text/css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" />
     <link rel="stylesheet" href="Content/cmf-portal.css">
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -41,11 +42,14 @@
             --portal-border: #cdd9e5;
             --portal-shadow: 0 18px 42px rgba(17, 43, 70, 0.12);
             --portal-radius: 18px;
+            --portal-font-body: "Plus Jakarta Sans", "Segoe UI", "Trebuchet MS", sans-serif;
+            --portal-font-display: "Outfit", "Manrope", "Segoe UI", sans-serif;
+            --portal-font-card: "Manrope", "Plus Jakarta Sans", "Segoe UI", sans-serif;
         }
 
         body {
             overflow-x: hidden;
-            font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+            font-family: var(--portal-font-body);
             margin: 0;
             padding: 0;
             color: var(--portal-ink);
@@ -55,7 +59,22 @@
                 linear-gradient(180deg, #f4f8fb 0%, var(--portal-bg) 100%);
         }
 
-        /* Skeleton Shimmer */
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        .ccip-dash-greeting,
+        .ccip-cmf-summary-title,
+        .ccip-card-title,
+        .ccip-card-mini-title,
+        .overall-card-title {
+            font-family: var(--portal-font-display);
+            letter-spacing: 0.01em;
+        }
+
+        /* Markdown content styles */
         @keyframes shimmer {
             0% { background-position: -468px 0; }
             100% { background-position: 468px 0; }
@@ -83,7 +102,7 @@
         .ai-skeleton-title { width: 40%; height: 20px; }
         .ai-skeleton-label { width: 25%; }
         .ai-skeleton-value { width: 85%; }
-        
+
         .ai-sk-block {
             display: flex;
             flex-direction: column;
@@ -95,8 +114,6 @@
             gap: 12px;
             align-items: center;
         }
-
-        /* Semantic Badges */
         .ai-semantic-badge {
             display: inline-flex;
             padding: 2px 8px;
@@ -110,7 +127,7 @@
         .badge-amber { background: #FFF4CE; color: #8F6200; border: 1px solid #FDE08B; }
         .badge-red { background: #FDE8E9; color: #9A242B; border: 1px solid #F9C3C6; }
         .badge-neutral { background: #f0f2f5; color: #444; border: 1px solid #e0e2e5; }
-        
+
         .issue-details-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -137,8 +154,6 @@
             overflow-wrap: break-word;
             white-space: normal;
         }
-
-        /* Markdown content styles */
         .markdown-content {
             word-wrap: break-word;
             overflow-wrap: break-word;
@@ -1376,12 +1391,9 @@
                     width: 100%;
                     max-width: 100%;
                     white-space: normal;
-                    max-height: 64px;
-                    overflow-y: auto;
-                    overflow-x: hidden;
+                    overflow: hidden;
                     overflow-wrap: break-word;
                     word-break: normal;
-                    padding-right: 4px;
                 }
 
                 .issue-grid-toolbar {
@@ -2940,36 +2952,35 @@ body {
 .ccip-dashboard {
     display: flex;
     flex-direction: column;
-    gap: 9px;
+    gap: 14px;
 }
 
 .ccip-dash-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    padding: 2px 2px 0;
+    gap: 16px;
+    padding: 6px 2px 2px;
     flex-wrap: wrap;
 }
 
 .ccip-dash-greeting {
     margin: 0;
-    font-size: 26px;
+    font-size: 34px;
     line-height: 1.05;
     font-weight: 800;
     color: #101828;
 }
 
 .ccip-dash-sub {
-    margin: 3px 0 0;
+    margin: 6px 0 0;
     color: #475467;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .ccip-dash-updated {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
     min-height: 36px;
     border: 1px solid #d9e1ec;
     background: #ffffff;
@@ -2979,10 +2990,6 @@ body {
     font-size: 12px;
     font-weight: 700;
     box-shadow: 0 4px 14px rgba(16, 24, 40, 0.06);
-}
-
-.ccip-updated-value {
-    margin-left: 4px;
 }
 
 .ccip-link-btn {
@@ -3000,157 +3007,74 @@ body {
     font-weight: 700;
 }
 
-.ccip-kpi-row {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(150px, 1fr));
-    gap: 8px;
-}
-
-.ccip-kpi {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 8px 10px;
-    box-shadow: 0 5px 12px rgba(16, 24, 40, 0.035);
-}
-
-.ccip-kpi-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.ccip-kpi-title {
-    color: #1f2937;
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.ccip-kpi-icon {
-    width: 26px;
-    height: 26px;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-}
-
-.ccip-kpi.kpi-red .ccip-kpi-icon { background: #fee2e2; color: #dc2626; }
-.ccip-kpi.kpi-orange .ccip-kpi-icon { background: #ffedd5; color: #f97316; }
-.ccip-kpi.kpi-green .ccip-kpi-icon { background: #dcfce7; color: #16a34a; }
-.ccip-kpi.kpi-blue .ccip-kpi-icon { background: #dbeafe; color: #2563eb; }
-.ccip-kpi.kpi-purple .ccip-kpi-icon { background: #ede9fe; color: #7c3aed; }
-
-.ccip-kpi-value {
-    font-size: 32px;
-    font-weight: 900;
-    line-height: 1;
-    margin: 5px 0 3px;
-}
-
-.ccip-kpi.kpi-red .ccip-kpi-value { color: #dc2626; }
-.ccip-kpi.kpi-orange .ccip-kpi-value { color: #f97316; }
-.ccip-kpi.kpi-green .ccip-kpi-value { color: #16a34a; }
-.ccip-kpi.kpi-blue .ccip-kpi-value { color: #2563eb; }
-.ccip-kpi.kpi-purple .ccip-kpi-value { color: #7c3aed; }
-
-.ccip-kpi-note {
-    font-size: 10px;
-    font-weight: 700;
-    color: #667085;
-}
-
-.ccip-kpi-note i {
-    margin-right: 4px;
-}
-
-.ccip-kpi-spark {
-    margin-top: 8px;
-    height: 22px;
-    border-radius: 10px;
-    background-size: 100% 100%;
-    opacity: 0.85;
-}
-
-.ccip-kpi.kpi-red .ccip-kpi-spark {
-    background: linear-gradient(180deg, rgba(254, 202, 202, 0) 0%, rgba(254, 202, 202, 0.35) 90%),
-        radial-gradient(circle at 8% 70%, #f87171 0 6%, transparent 8%),
-        radial-gradient(circle at 26% 45%, #f87171 0 6%, transparent 8%),
-        radial-gradient(circle at 48% 74%, #f87171 0 6%, transparent 8%),
-        radial-gradient(circle at 68% 36%, #f87171 0 6%, transparent 8%),
-        radial-gradient(circle at 92% 58%, #f87171 0 6%, transparent 8%);
-}
-
-.ccip-kpi.kpi-orange .ccip-kpi-spark {
-    background: linear-gradient(180deg, rgba(254, 215, 170, 0) 0%, rgba(254, 215, 170, 0.35) 90%),
-        radial-gradient(circle at 10% 65%, #fb923c 0 6%, transparent 8%),
-        radial-gradient(circle at 30% 48%, #fb923c 0 6%, transparent 8%),
-        radial-gradient(circle at 48% 70%, #fb923c 0 6%, transparent 8%),
-        radial-gradient(circle at 74% 42%, #fb923c 0 6%, transparent 8%),
-        radial-gradient(circle at 94% 62%, #fb923c 0 6%, transparent 8%);
-}
-
-.ccip-kpi.kpi-green .ccip-kpi-spark {
-    background: linear-gradient(180deg, rgba(187, 247, 208, 0) 0%, rgba(187, 247, 208, 0.35) 90%),
-        radial-gradient(circle at 8% 64%, #4ade80 0 6%, transparent 8%),
-        radial-gradient(circle at 28% 46%, #4ade80 0 6%, transparent 8%),
-        radial-gradient(circle at 46% 72%, #4ade80 0 6%, transparent 8%),
-        radial-gradient(circle at 70% 40%, #4ade80 0 6%, transparent 8%),
-        radial-gradient(circle at 92% 58%, #4ade80 0 6%, transparent 8%);
-}
-
-.ccip-kpi.kpi-blue .ccip-kpi-spark {
-    background: linear-gradient(180deg, rgba(191, 219, 254, 0) 0%, rgba(191, 219, 254, 0.35) 90%),
-        radial-gradient(circle at 8% 68%, #60a5fa 0 6%, transparent 8%),
-        radial-gradient(circle at 28% 48%, #60a5fa 0 6%, transparent 8%),
-        radial-gradient(circle at 49% 72%, #60a5fa 0 6%, transparent 8%),
-        radial-gradient(circle at 72% 39%, #60a5fa 0 6%, transparent 8%),
-        radial-gradient(circle at 93% 61%, #60a5fa 0 6%, transparent 8%);
-}
-
-.ccip-kpi.kpi-purple .ccip-kpi-spark {
-    background: linear-gradient(180deg, rgba(221, 214, 254, 0) 0%, rgba(221, 214, 254, 0.35) 90%),
-        radial-gradient(circle at 8% 68%, #a78bfa 0 6%, transparent 8%),
-        radial-gradient(circle at 29% 47%, #a78bfa 0 6%, transparent 8%),
-        radial-gradient(circle at 50% 74%, #a78bfa 0 6%, transparent 8%),
-        radial-gradient(circle at 72% 39%, #a78bfa 0 6%, transparent 8%),
-        radial-gradient(circle at 93% 60%, #a78bfa 0 6%, transparent 8%);
-}
 
 .ccip-main-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.82fr);
-    gap: 8px;
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.9fr);
+    gap: 12px;
     align-items: stretch;
+}
+
+.ccip-main-grid .ccip-design-summary-card {
+    grid-column: 1 / -1;
+}
+
+.ccip-main-grid .ccip-milestone-summary-card,
+.ccip-main-grid .ccip-component-summary-card {
+    align-self: flex-start;
+    width: 502px;
+    min-width: 502px;
+    max-width: 502px;
+    height: 312px;
+    min-height: 312px;
+    max-height: 312px;
+    display: flex;
+    flex-direction: column;
+}
+
+.ccip-main-grid .ccip-component-summary-card {
+    width: 600px;
+    min-width: 600px;
+    max-width: 600px;
+}
+
+.ccip-main-grid .ccip-milestone-summary-card .ccip-live-table-wrap,
+.ccip-main-grid .ccip-component-summary-card .ccip-live-table-wrap {
+    width: max-content;
+    max-width: 100%;
+    max-height: none;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+}
+
+.ccip-main-grid .ccip-component-summary-card .ccip-live-table-wrap {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
 }
 
 .ccip-dashboard-overview {
     display: grid;
-    grid-template-columns: minmax(520px, 0.92fr) minmax(430px, 1.08fr);
+    grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr);
     gap: 12px;
-    align-items: stretch;
-    min-height: 455px;
+    align-items: start;
 }
 
 .ccip-dashboard-left {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
     min-width: 0;
-    overflow: hidden;
 }
 
 .ccip-dashboard-overview .ccip-dashboard-left {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 0.28fr);
+    gap: 12px;
     align-items: stretch;
-}
-
-.ccip-dashboard-overview .dashboard-kpis-left {
-    grid-column: 1 / -1;
 }
 
 .ccip-dashboard-overview .ccip-trend-card-inline {
@@ -3160,41 +3084,321 @@ body {
 .ccip-dashboard-right-stack {
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: 12px;
     min-width: 0;
-    height: 100%;
-    overflow: hidden;
+}
+
+.ccip-specific-top-layout {
+    width: 1840px;
+    min-width: 1840px;
+    max-width: 1840px;
+    display: grid;
+    grid-template-columns: 1262px 568px;
+    grid-template-rows: auto auto;
+    gap: 10px;
+    align-items: start;
+}
+
+#homeLegacyTopLayout #homeLegacySummarySection {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+#homeLegacyTopLayout #homeLegacyOverview {
+    grid-column: 1;
+    grid-row: 2;
+    display: block;
+}
+
+#homeLegacyTopLayout #homeLegacyOverview .ccip-dashboard-left {
+    display: grid;
+    grid-template-columns: 660px var(--ccip-component-slot-width, 437.62px);
+    grid-template-rows: 312px;
+    gap: 10px;
+    align-items: start;
+    width: 1130px;
+    min-width: 1130px;
+    max-width: 1130px;
+    border: 1px solid #e4e9f2;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 8px 20px rgba(16, 24, 40, 0.04);
+    padding: 10px;
+}
+
+#homeLegacyTopLayout #homeLegacyOverview .ccip-trend-card-inline.overall-trend-card {
+    grid-column: 1;
+    grid-row: 1;
+    order: 0;
+}
+
+#homeLegacyTopLayout #homeLegacyOverview .ccip-trend-card-inline.overall-trend-card,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-inline-summary-card {
+    border: 1px solid #d9dde5 !important;
+    border-radius: 10px !important;
+    background: transparent;
+    box-shadow: none;
+}
+
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot {
+    grid-column: 2;
+    grid-row: 1;
+    width: var(--ccip-component-slot-width, 437.62px);
+    min-width: var(--ccip-component-slot-width, 437.62px);
+    max-width: var(--ccip-component-slot-width, 437.62px);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 312px;
+    min-height: 312px;
+    max-height: 312px;
+}
+
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table-wrap {
+    width: max-content;
+    min-width: 0;
+    max-width: 100%;
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+#homeLegacyTopLayout #homeLegacyOverview .ccip-inline-summary-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 312px;
+    max-height: 312px;
+}
+
+#homeLegacyTopLayout #homeLegacyOverview .ccip-inline-summary-card .ccip-card-head {
+    margin-bottom: 10px;
+}
+
+#homeLegacyTopLayout #homeLegacyOverview .ccip-inline-summary-card .ccip-card-mini-title {
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.01em !important;
+    text-transform: uppercase;
+    color: #1e3a60 !important;
+}
+
+#homeLegacyTopLayout #homeLegacyOverview .ccip-inline-summary-card .ccip-live-table-wrap {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack {
+    display: contents;
+}
+
+#homeLegacyTablesGrid .ccip-summary-canvas {
+    --ccip-design-lock-width: 871.7px;
+    --ccip-third-grid-gap: 10px;
+    --ccip-third-side-width: calc((100% - var(--ccip-design-lock-width) - (2 * var(--ccip-third-grid-gap))) / 2);
+    --ccip-third-design-width: var(--ccip-design-lock-width);
+    --ccip-third-milestone-width: 502px;
+    --ccip-third-pending-width: calc(100% - var(--ccip-third-design-width) - var(--ccip-third-milestone-width) - (2 * var(--ccip-third-grid-gap)));
+    display: grid;
+    grid-template-columns: var(--ccip-third-design-width) var(--ccip-third-milestone-width) var(--ccip-third-pending-width);
+    gap: var(--ccip-third-grid-gap);
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #e4e9f2;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 8px 20px rgba(16, 24, 40, 0.04);
+    padding: 10px;
+}
+
+#homeLegacyTablesGrid {
+    width: 1840px;
+    min-width: 1840px;
+    max-width: 1840px;
+}
+
+/* Match platform-specific row-2 to row-3 spacing with overall tab rhythm. */
+#homeWelcomePanel .ccip-dashboard > #homeLegacyTablesGrid {
+    margin-top: -4px;
+}
+
+#homeLegacyTablesGrid .ccip-col.ccip-col-center {
+    grid-column: 1 / -1;
+}
+
+#homeLegacyTablesGrid .ccip-col.ccip-col-right {
+    display: none;
+}
+
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    width: var(--ccip-design-lock-width);
+    min-width: var(--ccip-design-lock-width);
+    max-width: var(--ccip-design-lock-width);
+    height: 312px;
+    min-height: 312px;
+    max-height: 312px;
+}
+
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card .ccip-live-table-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card {
+    grid-column: 3;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    align-self: start;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    justify-self: stretch;
+    min-height: 0;
+    height: 312px;
+    max-height: 312px;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card.ccip-milestone-summary-card {
+    grid-column: 2;
+    grid-row: 1;
+    width: var(--ccip-third-milestone-width);
+    min-width: var(--ccip-third-milestone-width);
+    max-width: var(--ccip-third-milestone-width);
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card.ccip-pending-summary-card {
+    width: 420px;
+    min-width: 420px;
+    max-width: 420px;
+    justify-self: start;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card .ccip-card-head {
+    margin-bottom: 10px;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card .ccip-card-mini-title {
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.01em !important;
+    text-transform: uppercase;
+    color: #1e3a60 !important;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card .ccip-live-table-wrap {
+    width: max-content;
+    min-width: 0;
+    max-width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable.ccip-live-table-wrap {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-live-table {
+    width: max-content;
+    min-width: max-content;
+    table-layout: auto;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-live-table th:first-child,
+#homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-live-table td:first-child {
+    position: sticky;
+    left: 0;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-live-table th:first-child {
+    z-index: 5;
+    background: #f2f4f7;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-live-table td:first-child {
+    z-index: 2;
+    background: #ffffff;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-live-table tr.ccip-live-total td:first-child {
+    background: #f8fafc !important;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-live-table th:nth-child(2),
+#homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-live-table td:nth-child(2) {
+    white-space: nowrap;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-live-table th:nth-child(3),
+#homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-live-table td:nth-child(3) {
+    white-space: nowrap;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-pending-summary-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-pending-summary-count {
+    font-weight: 800;
+}
+
+#homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-pending-summary-link {
+    font-weight: 800;
+}
+
+#homeLegacyAiHealthCard {
+    --ccip-ai-left-extend: 132px;
+    --ccip-ai-fixed-height: 506px;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin-left: calc(-1 * var(--ccip-ai-left-extend));
+    width: calc(100% + var(--ccip-ai-left-extend));
+    min-width: calc(100% + var(--ccip-ai-left-extend));
+    max-width: calc(100% + var(--ccip-ai-left-extend));
+    height: var(--ccip-ai-fixed-height);
+    min-height: var(--ccip-ai-fixed-height);
+    max-height: var(--ccip-ai-fixed-height);
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .ccip-trend-card-inline {
-    min-height: 230px;
-    flex: 1 1 auto;
-}
-
-.dashboard-kpis-left {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-}
-
-.dashboard-kpis-left .ccip-kpi {
-    min-height: 78px;
-    padding: 9px 12px;
-}
-
-.dashboard-kpis-left .ccip-kpi-value {
-    font-size: 28px;
+    min-height: 312px;
+    max-height: 312px;
 }
 
 .ccip-ai-health-card {
     background: #ffffff;
-    border: 2px solid #ff6b1a;
+    border: 1px solid #e4e9f2;
     border-radius: 8px;
-    box-shadow: 0 7px 16px rgba(16, 24, 40, 0.06);
-    padding: 9px;
+    box-shadow: 0 12px 28px rgba(16, 24, 40, 0.08);
+    padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    height: 100%;
+    gap: 12px;
 }
 
 .ccip-ai-health-head {
@@ -3202,69 +3406,49 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    color: #2140a8;
-    font-size: 12px;
-    font-weight: 900;
+    color: #1e3a60;
+    font-family: Outfit, Manrope, "Segoe UI", sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
     text-transform: uppercase;
-    margin-bottom: 4px;
+    margin-bottom: 10px;
 }
 
-/* .ccip-ai-beta {
+.ccip-ai-beta {
     border-radius: 999px;
     background: #f3e8ff;
     color: #7e22ce;
     padding: 2px 8px;
     font-size: 10px;
     font-weight: 900;
-} */
+}
+
+.overall-ai-card .ccip-ai-beta {
+    font-family: Outfit, Manrope, "Segoe UI", sans-serif;
+    line-height: 12px;
+    letter-spacing: -0.16px;
+    text-transform: uppercase;
+}
 
 .ccip-ai-health-grid {
     display: grid;
-    grid-template-columns: minmax(112px, 0.44fr) minmax(0, 1fr) minmax(0, 1.1fr);
-    grid-template-rows: minmax(132px, auto) minmax(172px, auto);
-    gap: 6px;
-    flex: 1 1 auto;
-    min-height: 0;
-    align-content: start;
-}
-
-.ccip-health-score {
-    grid-column: 1;
-    grid-row: 1;
-}
-
-.ccip-health-risk-compact {
-    grid-column: 1;
-    grid-row: 2;
-}
-
-.ccip-health-weekly {
-    grid-column: 2;
-    grid-row: 1;
-}
-
-.ccip-health-blockers {
-    grid-column: 3;
-    grid-row: 1;
-}
-
-.ccip-ai-health-grid .ccip-ai-health-summary {
-    grid-column: 2 / 4;
-    grid-row: 2;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
 }
 
 .ccip-ai-health-grid > div {
     border: 1px solid #e4e7ec;
     border-radius: 8px;
     background: #fbfcff;
-    padding: 7px;
-    min-height: 70px;
-    min-width: 0;
+    padding: 10px;
+    min-height: 92px;
 }
 
 .ccip-health-score-value {
-    width: 54px;
-    height: 54px;
+    width: 74px;
+    height: 74px;
     border-radius: 999px;
     display: flex;
     align-items: center;
@@ -3272,9 +3456,9 @@ body {
     margin: 0 auto 6px;
     background: conic-gradient(#22c55e 0 70%, #f59e0b 70% 88%, #ef4444 88% 100%);
     color: #111827;
-    font-size: 19px;
+    font-size: 25px;
     font-weight: 900;
-    box-shadow: inset 0 0 0 7px #ffffff;
+    box-shadow: inset 0 0 0 9px #ffffff;
 }
 
 .ccip-health-score-label,
@@ -3300,61 +3484,67 @@ body {
 
 .ccip-health-value.large {
     color: #4f46e5;
-    font-size: 20px;
+    font-size: 28px;
 }
 
 .ccip-health-list {
-    margin: 4px 0 0;
+    margin: 6px 0 0;
     padding-left: 16px;
     color: #111827;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
 }
 
 .ccip-ai-health-summary {
-    border: 1px solid #e4e7ec;
-    border-radius: 8px;
-    background: #fbfcff;
-    padding: 10px;
-    flex: 1 1 auto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.ccip-ai-health-summary .ccip-cmf-summary-title {
-    margin: 0;
+    border-top: 1px solid #e4e7ec;
+    padding-top: 12px;
 }
 
 .ccip-summary-facts {
     display: grid;
     grid-template-columns: repeat(8, minmax(96px, 1fr));
-    gap: 6px;
+    gap: 8px;
 }
 
 .ccip-summary-fact {
     background: #ffffff;
     border: 1px solid #e4e7ec;
     border-radius: 8px;
-    padding: 7px 8px;
+    padding: 10px;
     text-align: center;
 }
 
 .ccip-cmf-summary-section {
-    margin-top: 4px;
+    margin-top: 12px;
     border: 1px solid #d0e4ff;
     border-radius: 8px;
     background: #f8fbff;
-    padding: 8px;
+    padding: 12px;
+}
+
+.ccip-specific-summary-row {
+    margin-top: 12px;
+}
+
+#homeLegacySummarySection.ccip-specific-summary-row {
+    margin-top: 0;
+}
+
+/* Platform-specific: remove outer section canvas around CMF Summary block. */
+#homeLegacySummarySection.ccip-specific-summary-row,
+#homeCmfSummaryPanel .overall-row-summary.ccip-specific-summary-row {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
 }
 
 .ccip-cmf-summary-title {
     color: #12315f;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 900;
     letter-spacing: 0;
-    margin: 0 0 6px;
+    margin: 0 0 10px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -3366,12 +3556,9 @@ body {
 
 .ccip-executive-summary-body {
     color: #344054;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    line-height: 1.38;
-    flex: 1 1 auto;
-    max-height: 168px;
-    overflow: auto;
+    line-height: 1.55;
 }
 
 .ccip-executive-summary-body strong {
@@ -3394,10 +3581,23 @@ body {
 
 .ccip-summary-fact-value {
     color: #111827;
-    font-size: 20px;
+    font-size: 28px;
     font-weight: 900;
     line-height: 1.05;
-    margin-top: 2px;
+    margin-top: 4px;
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.ccip-days-suffix {
+    font-size: 16px;
+    line-height: 1;
+    font-weight: 800;
+    display: inline-block;
+    white-space: nowrap;
 }
 
 .ccip-summary-fact-note {
@@ -3409,49 +3609,7 @@ body {
 }
 
 .ccip-dashboard-tables-grid {
-    grid-template-columns: minmax(290px, 0.62fr) minmax(0, 1.38fr);
-    align-items: stretch;
-    grid-auto-rows: 1fr;
-}
-
-.ccip-dashboard-tables-grid .ccip-col-center {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-.ccip-dashboard-tables-grid .ccip-col-right {
-    gap: 8px;
-    height: 100%;
-    min-height: 0;
-}
-
-.ccip-dashboard-tables-grid .ccip-col-center .ccip-card {
-    flex: 1 1 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.ccip-dashboard-tables-grid .ccip-col-center .ccip-live-table-wrap {
-    flex: 1 1 auto;
-    max-height: none;
-}
-
-.ccip-dashboard-tables-grid .ccip-col-right .ccip-card {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-}
-
-.ccip-dashboard-tables-grid .ccip-col-right .ccip-live-table-wrap {
-    flex: 1 1 auto;
-    max-height: none;
-    min-height: 0;
-}
-
-.ccip-dashboard-tables-grid .ccip-col-right .ccip-live-table,
-.ccip-dashboard-tables-grid .ccip-col-center .ccip-live-table {
-    height: 100%;
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.9fr);
 }
 
 .ccip-dashboard-charts-grid {
@@ -3460,13 +3618,238 @@ body {
 
 .ccip-live-table-wrap {
     overflow: auto;
-    max-height: 210px;
+    max-height: 360px;
+}
+
+#homeLegacyTablesGrid .ccip-live-table-wrap,
+#homeCmfSummaryPanel .ccip-live-table-wrap,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table-wrap,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table-wrap {
+    border-radius: 0;
+    background: #ffffff;
+    scrollbar-width: none;
+    scrollbar-color: transparent transparent;
+}
+
+#homeLegacyTablesGrid .ccip-live-table-wrap:hover,
+#homeCmfSummaryPanel .ccip-live-table-wrap:hover,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table-wrap:hover,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table-wrap:hover {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd3dd transparent;
+}
+
+#homeLegacyTablesGrid .ccip-live-table-wrap::-webkit-scrollbar,
+#homeCmfSummaryPanel .ccip-live-table-wrap::-webkit-scrollbar,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table-wrap::-webkit-scrollbar,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table-wrap::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+#homeLegacyTablesGrid .ccip-live-table-wrap:hover::-webkit-scrollbar,
+#homeCmfSummaryPanel .ccip-live-table-wrap:hover::-webkit-scrollbar,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table-wrap:hover::-webkit-scrollbar,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table-wrap:hover::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+#homeLegacyTablesGrid .ccip-live-table-wrap::-webkit-scrollbar-track,
+#homeCmfSummaryPanel .ccip-live-table-wrap::-webkit-scrollbar-track,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table-wrap::-webkit-scrollbar-track,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table-wrap::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#homeLegacyTablesGrid .ccip-live-table-wrap::-webkit-scrollbar-thumb,
+#homeCmfSummaryPanel .ccip-live-table-wrap::-webkit-scrollbar-thumb,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table-wrap::-webkit-scrollbar-thumb,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table-wrap::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 999px;
+}
+
+#homeLegacyTablesGrid .ccip-live-table-wrap:hover::-webkit-scrollbar-thumb,
+#homeCmfSummaryPanel .ccip-live-table-wrap:hover::-webkit-scrollbar-thumb,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table-wrap:hover::-webkit-scrollbar-thumb,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table-wrap:hover::-webkit-scrollbar-thumb {
+    background: #cbd3dd;
+}
+
+#homeLegacyTablesGrid .ccip-live-table-wrap:hover::-webkit-scrollbar-thumb:hover,
+#homeCmfSummaryPanel .ccip-live-table-wrap:hover::-webkit-scrollbar-thumb:hover,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table-wrap:hover::-webkit-scrollbar-thumb:hover,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table-wrap:hover::-webkit-scrollbar-thumb:hover {
+    background: #aeb8c5;
+}
+
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card #homeDesignSummaryTable.ccip-hover-width-lock {
+    overflow-x: hidden;
+}
+
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card #homeDesignSummaryTable.ccip-hover-width-lock .ccip-live-table {
+    width: calc(100% + var(--ccip-hover-comp, 0px));
+    min-width: calc(100% + var(--ccip-hover-comp, 0px));
 }
 
 .ccip-live-table {
     width: 100%;
     border-collapse: collapse;
+    font-size: 12px;
+}
+
+.ccip-live-table.ccip-component-summary-table {
+    width: auto;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.ccip-live-table.ccip-component-summary-table td {
+    white-space: nowrap;
+}
+
+.ccip-live-table.ccip-component-summary-table tr > *:first-child {
+    width: 92px;
+    min-width: 92px;
+    max-width: 92px;
+}
+
+.ccip-live-table.ccip-milestone-summary-table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+}
+
+.ccip-live-table.ccip-milestone-summary-table th,
+.ccip-live-table.ccip-milestone-summary-table td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+#homeLegacyTablesGrid .ccip-live-table.ccip-design-summary-table td:first-child,
+#homeCmfSummaryPanel .ccip-live-table.ccip-design-summary-table td:first-child,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table.ccip-design-summary-table td:first-child,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-design-summary-table td:first-child {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+#homeLegacyTablesGrid .ccip-live-table.ccip-design-summary-table th:not(:first-child),
+#homeLegacyTablesGrid .ccip-live-table.ccip-design-summary-table td:not(:first-child),
+#homeCmfSummaryPanel .ccip-live-table.ccip-design-summary-table th:not(:first-child),
+#homeCmfSummaryPanel .ccip-live-table.ccip-design-summary-table td:not(:first-child),
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table.ccip-design-summary-table th:not(:first-child),
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table.ccip-design-summary-table td:not(:first-child),
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-design-summary-table th:not(:first-child),
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-design-summary-table td:not(:first-child) {
+    text-align: center;
+}
+
+#homeLegacyTablesGrid .ccip-live-table.ccip-design-summary-table td,
+#homeCmfSummaryPanel .ccip-live-table.ccip-design-summary-table td,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table.ccip-design-summary-table td,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-design-summary-table td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+#homeLegacyTablesGrid .ccip-live-table.ccip-design-summary-table th.ccip-design-edit-col,
+#homeLegacyTablesGrid .ccip-live-table.ccip-design-summary-table td.ccip-design-edit-col,
+#homeCmfSummaryPanel .ccip-live-table.ccip-design-summary-table th.ccip-design-edit-col,
+#homeCmfSummaryPanel .ccip-live-table.ccip-design-summary-table td.ccip-design-edit-col,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table.ccip-design-summary-table th.ccip-design-edit-col,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table.ccip-design-summary-table td.ccip-design-edit-col,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-design-summary-table th.ccip-design-edit-col,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-design-summary-table td.ccip-design-edit-col {
+    width: 72px;
+    min-width: 72px;
+    max-width: 72px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.ccip-design-edit-link {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #1d4ed8;
     font-size: 11px;
+    font-weight: 700;
+    text-decoration: none;
+    line-height: 1.4;
+}
+
+.ccip-design-edit-link:hover {
+    background: #eff6ff;
+    border-color: #93c5fd;
+}
+
+.ccip-design-edit-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.ccip-design-edit-actions .ccip-design-edit-link {
+    padding: 1px 6px;
+}
+
+.ccip-design-inline-field {
+    width: 100%;
+    min-width: 0;
+    min-height: 28px;
+    max-height: 86px;
+    resize: vertical;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 11px;
+    line-height: 1.35;
+    padding: 4px 6px;
+    box-sizing: border-box;
+}
+
+.ccip-design-row-editing td {
+    background: #f8fbff;
+}
+
+.design-summary-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.design-summary-logo {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    object-fit: contain;
+    flex: 0 0 auto;
+    background: #ffffff;
+}
+
+.design-summary-name-text {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+#homeLegacyTablesGrid .ccip-live-table.ccip-milestone-summary-table thead th,
+#homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-live-table thead th {
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
 }
 
 .ccip-live-table th {
@@ -3475,14 +3858,82 @@ body {
     z-index: 1;
     background: #244aaf;
     color: #ffffff;
-    padding: 5px 6px;
+    padding: 8px;
     text-align: left;
     white-space: nowrap;
 }
 
+.ccip-live-table.ccip-component-summary-table thead th {
+    border-left: 0 !important;
+    border-right: 1px solid #1f2937 !important;
+}
+
+.ccip-live-table.ccip-component-summary-table thead tr:first-child th:first-child {
+    left: 0;
+    z-index: 6;
+    border-left: 1px solid #1f2937 !important;
+    border-right: 2px solid #1f2937 !important;
+}
+
+.ccip-live-table.ccip-component-summary-table thead th:last-child {
+    border-right: 0 !important;
+}
+
+.ccip-live-table .ccip-component-group-header {
+    text-align: left;
+}
+
+.ccip-live-table .ccip-component-sub-header {
+    border-top: 0;
+    text-align: left;
+}
+
+.ccip-live-table.ccip-component-summary-table thead tr:first-child th {
+    top: 0;
+    z-index: 3;
+    box-sizing: border-box;
+    height: 36px;
+    min-height: 36px;
+    border-bottom: 2px solid #1f2937;
+}
+
+.ccip-live-table.ccip-component-summary-table .ccip-component-sub-header {
+    top: 36px;
+    z-index: 2;
+    box-sizing: border-box;
+    height: 50px;
+    min-height: 50px;
+}
+
+.ccip-live-table.ccip-component-summary-table tbody td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    border-left: 1px solid #e4e7ec !important;
+    border-right: 2px solid #1f2937 !important;
+}
+
+.ccip-live-table.ccip-component-summary-table tbody td {
+    border-left: 0 !important;
+    border-right: 1px solid #e4e7ec !important;
+}
+
+.ccip-live-table.ccip-component-summary-table tbody td:last-child {
+    border-right: 0 !important;
+}
+
+.ccip-live-table .ccip-header-format {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.92;
+    margin-top: 2px;
+    line-height: 1.2;
+}
+
 .ccip-live-table td {
     border: 1px solid #e4e7ec;
-    padding: 5px 6px;
+    padding: 8px;
     color: #111827;
     background: #ffffff;
 }
@@ -3497,6 +3948,136 @@ body {
     font-weight: 900;
 }
 
+/* Match platform-specific table visuals to Overall OEM table style. */
+#homeLegacyTablesGrid .ccip-live-table,
+#homeCmfSummaryPanel .ccip-live-table,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 0;
+}
+
+#homeLegacyTablesGrid .ccip-live-table th,
+#homeCmfSummaryPanel .ccip-live-table th,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table th,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table th {
+    background: #f2f4f7;
+    color: #344054;
+    padding: 7px;
+    border-top: 1px solid #d9dde5;
+    border-right: 1px solid #d9dde5;
+    border-bottom: 1px solid #d9dde5;
+    border-left: 0;
+    font-size: 10px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    background-clip: padding-box;
+}
+
+#homeLegacyTablesGrid .ccip-live-table td,
+#homeCmfSummaryPanel .ccip-live-table td,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table td,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table td {
+    background: #ffffff;
+    color: #1f2937;
+    border-top: 0;
+    border-right: 1px solid #d9dde5;
+    border-bottom: 1px solid #d9dde5;
+    border-left: 0;
+    padding: 7px;
+}
+
+#homeLegacyTablesGrid .ccip-live-table tr > *:first-child,
+#homeCmfSummaryPanel .ccip-live-table tr > *:first-child,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table tr > *:first-child,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table tr > *:first-child {
+    border-left: 0;
+}
+
+#homeLegacyTablesGrid .ccip-live-table tr > *:last-child,
+#homeCmfSummaryPanel .ccip-live-table tr > *:last-child,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table tr > *:last-child,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table tr > *:last-child {
+    border-right: 0;
+}
+
+#homeLegacyTablesGrid .ccip-live-table tbody tr:last-child td,
+#homeCmfSummaryPanel .ccip-live-table tbody tr:last-child td,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table tbody tr:last-child td,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+#homeLegacyTablesGrid .ccip-live-table tbody tr:nth-child(even) td,
+#homeCmfSummaryPanel .ccip-live-table tbody tr:nth-child(even) td,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table tbody tr:nth-child(even) td,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table tbody tr:nth-child(even) td {
+    background: #ffffff;
+}
+
+#homeLegacyTablesGrid .ccip-live-table .ccip-live-total td,
+#homeCmfSummaryPanel .ccip-live-table .ccip-live-total td,
+#homeLegacyOverview .ccip-inline-side-stack .ccip-live-table .ccip-live-total td,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table .ccip-live-total td {
+    background: #f8fafc !important;
+    color: #1f2937;
+    font-weight: 800;
+}
+
+#homeLegacyTablesGrid .ccip-live-table.ccip-component-summary-table thead th,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-component-summary-table thead th,
+#homeCmfSummaryPanel .ccip-live-table.ccip-component-summary-table thead th {
+    border-right: 1px solid #d9dde5 !important;
+}
+
+#homeLegacyTablesGrid .ccip-live-table.ccip-component-summary-table thead tr:first-child th:first-child,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-component-summary-table thead tr:first-child th:first-child,
+#homeCmfSummaryPanel .ccip-live-table.ccip-component-summary-table thead tr:first-child th:first-child {
+    border-left: 0 !important;
+    border-right: 1px solid #d9dde5 !important;
+}
+
+#homeLegacyTablesGrid .ccip-live-table.ccip-component-summary-table thead tr:first-child th,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-component-summary-table thead tr:first-child th,
+#homeCmfSummaryPanel .ccip-live-table.ccip-component-summary-table thead tr:first-child th {
+    border-bottom: 1px solid #d9dde5;
+}
+
+#homeLegacyTablesGrid .ccip-live-table .ccip-component-sub-header,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table .ccip-component-sub-header,
+#homeCmfSummaryPanel .ccip-live-table .ccip-component-sub-header {
+    border-top: 1px solid #d9dde5;
+}
+
+#homeLegacyTablesGrid .ccip-live-table.ccip-component-summary-table tbody td:first-child,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-component-summary-table tbody td:first-child,
+#homeCmfSummaryPanel .ccip-live-table.ccip-component-summary-table tbody td:first-child {
+    border-left: 0 !important;
+    border-right: 1px solid #d9dde5 !important;
+}
+
+#homeLegacyTablesGrid .ccip-live-table.ccip-component-summary-table tbody td,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-component-summary-table tbody td,
+#homeCmfSummaryPanel .ccip-live-table.ccip-component-summary-table tbody td {
+    border-right: 1px solid #d9dde5 !important;
+}
+
+#homeLegacyTablesGrid .ccip-live-table.ccip-component-summary-table thead th:last-child,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-component-summary-table thead th:last-child,
+#homeCmfSummaryPanel .ccip-live-table.ccip-component-summary-table thead th:last-child,
+#homeLegacyTablesGrid .ccip-live-table.ccip-component-summary-table tbody td:last-child,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-component-summary-table tbody td:last-child,
+#homeCmfSummaryPanel .ccip-live-table.ccip-component-summary-table tbody td:last-child {
+    border-right: 0 !important;
+}
+
+#homeLegacyTablesGrid .ccip-live-table.ccip-component-summary-table tbody tr:last-child td,
+#homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-component-summary-table tbody tr:last-child td,
+#homeCmfSummaryPanel .ccip-live-table.ccip-component-summary-table tbody tr:last-child td {
+    border-bottom: 0 !important;
+}
+
 .ccip-empty-state {
     color: #667085;
     font-size: 12px;
@@ -3509,16 +4090,16 @@ body {
 .ccip-col {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
     min-width: 0;
 }
 
 .ccip-card {
     background: #ffffff;
     border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    box-shadow: 0 5px 14px rgba(16, 24, 40, 0.035);
-    padding: 9px;
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(16, 24, 40, 0.04);
+    padding: 14px;
     min-width: 0;
 }
 
@@ -3527,7 +4108,7 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-bottom: 6px;
+    margin-bottom: 10px;
 }
 
 .ccip-card-title {
@@ -3547,7 +4128,7 @@ body {
 .ccip-card-mini-title {
     margin: 0;
     color: #111827;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 800;
 }
 
@@ -3653,11 +4234,7 @@ body {
 }
 
 .ccip-trend-chart {
-    height: 202px;
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    overflow: hidden;
+    height: 218px;
 }
 
 .ccip-priority-table {
@@ -3819,17 +4396,1325 @@ body {
 .ccip-quick-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
+    gap: 8px;
 }
 
 .ccip-quick-btn {
-    min-height: 32px;
-    border-radius: 8px;
+    min-height: 40px;
+    border-radius: 10px;
     border: 1px solid #d9e1ec;
     background: #ffffff;
     color: #344054;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.overall-layout-v2 {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr);
+    grid-template-rows: auto auto auto;
+    gap: 10px;
+    align-items: stretch;
+}
+
+.overall-row {
+    border: 1px solid #d8e2f0;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 8px 20px rgba(16, 24, 40, 0.05);
+    padding: 10px;
+}
+
+.overall-row-title {
+    margin: 0 0 10px;
+    color: #143563;
+    font-size: 15px;
+    font-weight: 900;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.overall-row-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 2.55fr) minmax(0, 1.45fr);
+    gap: 10px;
+    align-items: stretch;
+    grid-column: 1;
+    grid-row: 1;
+}
+
+#homeOverallLayoutV2 .overall-row-summary {
+    grid-template-columns: 1fr !important;
+}
+
+#homeLegacySummarySection.overall-row-summary,
+#homeCmfSummaryPanel .overall-row-summary {
+    grid-template-columns: 1fr !important;
+}
+
+/* Overall tab: remove outer section/card chrome around CMF Summary cards. */
+#homeOverallLayoutV2 > .overall-row-summary {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
+#homeOverallLayoutV2 .overall-row-summary .overall-summary-card {
+    border: 1px solid #e4e9f2;
+    background: #ffffff;
+    box-shadow: 0 8px 20px rgba(16, 24, 40, 0.04);
+    border-radius: 10px;
+    padding: 9px;
+    width: 1130px;
+    min-width: 1130px;
+    max-width: 1130px;
+    justify-self: start;
+}
+
+.overall-summary-card {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.overall-summary-card .overall-summary-facts {
+    flex: 1 1 auto;
+}
+
+.overall-summary-facts {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    padding-bottom: 0;
+    align-items: stretch;
+    height: 100%;
+}
+
+#homeOverallSummaryFacts.overall-summary-facts,
+#homeSpecificSummaryFactsDashboard.overall-summary-facts,
+#homeSpecificSummaryFactsCmf.overall-summary-facts {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 6px;
+    align-items: stretch;
+    justify-content: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+#homeOverallSummaryFacts .overall-summary-facts-core,
+#homeSpecificSummaryFactsDashboard .overall-summary-facts-core,
+#homeSpecificSummaryFactsCmf .overall-summary-facts-core {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    min-width: max-content;
+    align-items: stretch;
+    justify-content: start;
+}
+
+#homeOverallSummaryFacts .overall-summary-tpt-inline,
+#homeSpecificSummaryFactsDashboard .overall-summary-tpt-inline,
+#homeSpecificSummaryFactsCmf .overall-summary-tpt-inline {
+    display: grid;
+    grid-template-columns: repeat(3, 117px);
+    gap: 6px;
+    align-items: stretch;
+    justify-content: end;
+    min-width: max-content;
+}
+
+#homeOverallSummaryFacts .overall-summary-fact,
+#homeSpecificSummaryFactsDashboard .overall-summary-fact,
+#homeSpecificSummaryFactsCmf .overall-summary-fact {
+    flex: 0 0 117px;
+    width: 117px;
+    min-width: 117px;
+    max-width: 117px;
+    height: 117px;
+    min-height: 117px;
+    max-height: 117px;
+}
+
+.overall-summary-facts .overall-summary-fact {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    height: 100%;
+    min-height: 100%;
+    max-height: 100%;
+    text-align: center;
+    border-width: 1px;
+    box-sizing: border-box;
+    cursor: help;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    align-items: center;
+    padding: 10px 8px;
+}
+
+.overall-summary-facts .overall-summary-fact.ccip-summary-clickable {
+    cursor: pointer;
+    transition: border-color 140ms ease;
+}
+
+.overall-summary-facts .overall-summary-fact.ccip-summary-clickable:hover,
+.overall-summary-facts .overall-summary-fact.ccip-summary-clickable:focus-visible {
+    border-color: #2563eb;
+}
+
+.overall-summary-fact .ccip-summary-fact-label {
+    color: #475467;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    text-align: center;
+    white-space: normal;
+    line-height: 1.2;
+    align-self: start;
+}
+
+.overall-summary-fact .ccip-summary-fact-value {
+    font-size: 30px;
+    margin-top: 0;
+    align-self: center;
+}
+
+.overall-summary-fact .ccip-summary-fact-note {
+    font-size: 10px;
+    text-align: center;
+    white-space: normal;
+    line-height: 1.2;
+    margin-top: 0;
+    align-self: end;
+}
+
+.overall-summary-fact.tone-total {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.overall-summary-fact.tone-total .ccip-summary-fact-value {
+    color: #1d4ed8;
+}
+
+.overall-summary-fact.tone-closed {
+    background: #ecfdf3;
+    border-color: #abefc6;
+}
+
+.overall-summary-fact.tone-closed .ccip-summary-fact-value {
+    color: #067647;
+}
+
+.overall-summary-fact.tone-implemented {
+    background: #f0f9ff;
+    border-color: #bae6fd;
+}
+
+.overall-summary-fact.tone-implemented .ccip-summary-fact-value {
+    color: #0369a1;
+}
+
+.overall-summary-fact.tone-open {
+    background: #fff4ed;
+    border-color: #ffccba;
+}
+
+.overall-summary-fact.tone-open .ccip-summary-fact-value {
+    color: #c2410c;
+}
+
+.overall-summary-fact.tone-pending {
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+.overall-summary-fact.tone-pending .ccip-summary-fact-value {
+    color: #b45309;
+}
+
+.overall-row-second {
+    display: grid;
+    grid-template-columns: 660px minmax(0, 1fr);
+    gap: 10px;
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.overall-row-third {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 810px;
+    gap: 10px;
+    grid-column: 1 / -1;
+    grid-row: 3;
+}
+
+.overall-ai-span-card {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    display: flex;
+    flex-direction: column;
+}
+
+.overall-card {
+    border: 1px solid #e4e9f2;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 9px;
+    min-width: 0;
+}
+
+.overall-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.overall-card-title {
+    margin: 0;
+    color: #1e3a60;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.overall-trend-range {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.overall-trend-range-select {
+    min-width: 138px;
+    height: 28px;
+    border: 1px solid #cdd9e5;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #1f2937;
     font-size: 11px;
     font-weight: 700;
+    padding: 0 8px;
+}
+
+.overall-ai-blank {
+    min-height: 226px;
+    border: 1px dashed #cfd9e8;
+    border-radius: 8px;
+    background: #f8fbff;
+}
+
+.overall-oem-table-wrap {
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 226px;
+}
+
+/* Overall tab: remove outer section chrome around OEM table. */
+.overall-row-second .overall-oem-card {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+}
+
+.overall-row-second .overall-oem-card .overall-card-head {
+    display: flex;
+}
+
+.overall-row-second .overall-trend-card {
+    width: 660px;
+    min-width: 660px;
+    max-width: 660px;
+    grid-column: 1 !important;
+}
+
+.overall-row-second .overall-pending-card {
+    grid-column: 2 !important;
+    width: 445px;
+    min-width: 445px;
+    max-width: 445px;
+    justify-self: start;
+}
+
+.overall-oem-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.overall-oem-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f2f4f7;
+    color: #344054;
+    padding: 7px;
+    text-align: left;
+    white-space: nowrap;
+    font-size: 10px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    border: 1px solid #d9dde5;
+}
+
+.overall-oem-table th:nth-child(1),
+.overall-oem-table td:nth-child(1) { width: 22%; min-width: 190px; }
+
+.overall-oem-table th:nth-child(2),
+.overall-oem-table td:nth-child(2) { width: 11%; }
+
+.overall-oem-table th:nth-child(3),
+.overall-oem-table td:nth-child(3) { width: 10%; }
+
+.overall-oem-table th:nth-child(4),
+.overall-oem-table td:nth-child(4) { width: 11%; }
+
+.overall-oem-table th:nth-child(5),
+.overall-oem-table td:nth-child(5) { width: 10%; }
+
+.overall-oem-table th:nth-child(6),
+.overall-oem-table td:nth-child(6) { width: 9%; }
+
+.overall-oem-table th:nth-child(7),
+.overall-oem-table td:nth-child(7) { width: 15%; }
+
+.overall-oem-table th:nth-child(8),
+.overall-oem-table td:nth-child(8) { width: 12%; }
+
+.overall-oem-table td {
+    border: 1px solid #d9dde5;
+    padding: 7px;
+    color: #1f2937;
+    background: #ffffff;
+    white-space: nowrap;
+}
+
+.overall-oem-table th:nth-child(n+2),
+.overall-oem-table td:nth-child(n+2) {
+    text-align: center;
+}
+
+.overall-oem-metric-total {
+    color: #1d4ed8;
+    font-weight: 800;
+}
+
+.overall-oem-metric-open {
+    color: #c2410c;
+    font-weight: 800;
+}
+
+.overall-oem-metric-pending {
+    color: #b45309;
+    font-weight: 800;
+}
+
+.overall-oem-metric-implemented {
+    color: #0369a1;
+    font-weight: 800;
+}
+
+.overall-oem-metric-closed {
+    color: #067647;
+    font-weight: 800;
+}
+
+.overall-oem-name-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+}
+
+.overall-oem-logo {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    object-fit: contain;
+    flex: 0 0 auto;
+    background: #ffffff;
+}
+
+.overall-oem-name-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.overall-oem-trend {
+    display: inline-grid;
+    grid-template-columns: 12px auto;
+    align-items: center;
+    column-gap: 6px;
+    justify-content: center;
+    min-width: 64px;
+}
+
+.overall-oem-trend-arrow {
+    width: 14px;
+    text-align: center;
+    line-height: 1;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.overall-oem-trend-value {
+    min-width: 44px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.overall-risk-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 20px;
+    border-radius: 999px;
+    padding: 0 8px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.overall-risk-pill.high { background: #fee2e2; color: #b42318; }
+.overall-risk-pill.medium { background: #fef3c7; color: #b54708; }
+.overall-risk-pill.low { background: #dcfce7; color: #067647; }
+
+.overall-trend-up { color: #067647; font-weight: 800; }
+.overall-trend-down { color: #b42318; font-weight: 800; }
+.overall-trend-flat { color: #475467; font-weight: 800; }
+
+.overall-trend-chart {
+    height: 226px;
+}
+
+.overall-tpt-boxes {
+    display: grid;
+    grid-template-columns: repeat(3, 117px);
+    gap: 6px;
+    align-items: stretch;
+    justify-content: center;
+}
+
+.overall-tpt-card {
+    display: flex;
+    flex-direction: column;
+    aspect-ratio: 1 / 1;
+    box-sizing: border-box;
+}
+
+.overall-tpt-card .overall-tpt-boxes {
+    flex: 1;
+}
+
+.overall-tpt-box {
+    border: 1px solid #d9e1ee;
+    border-radius: 9px;
+    background: #f8fbff;
+    width: 117px;
+    min-width: 117px;
+    max-width: 117px;
+    min-height: 117px;
+    box-sizing: border-box;
+    padding: 10px 8px;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    align-items: center;
+    text-align: center;
+    cursor: help;
+}
+
+.overall-tpt-label {
+    color: #475467;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-align: center;
+    align-self: start;
+}
+
+.overall-tpt-value {
+    margin-top: 0;
+    color: #101828;
+    font-size: 28px;
+    line-height: 1;
+    font-weight: 900;
+    align-self: center;
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.overall-tpt-value-unit {
+    font-size: 16px;
+    line-height: 1;
+    font-weight: 800;
+}
+
+.overall-tpt-note {
+    margin-top: 0;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.25;
+    text-align: center;
+    align-self: end;
+    border-radius: 999px;
+    padding: 2px 8px;
+}
+
+.overall-tpt-note.overall-tpt-trend-better {
+    color: #067647;
+    background: #ecfdf3;
+    border: 1px solid #abefc6;
+}
+
+.overall-tpt-note.overall-tpt-trend-neutral {
+    color: #b54708;
+    background: #fffaeb;
+    border: 1px solid #fedf89;
+}
+
+.overall-tpt-note.overall-tpt-trend-worse {
+    color: #b42318;
+    background: #fef3f2;
+    border: 1px solid #fecdca;
+}
+
+.overall-heatmap-wrap {
+    overflow: hidden;
+    max-height: 226px;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 6px;
+    position: relative;
+}
+
+.overall-heatmap-board {
+    display: grid;
+    gap: 6px;
+    align-content: start;
+    min-width: max-content;
+    grid-auto-rows: 46px;
+    background: #ffffff;
+}
+
+.overall-heatmap-corner,
+.overall-heatmap-platform,
+.overall-heatmap-ingredient,
+.overall-heatmap-tile {
+    border-radius: 9px;
+    border: 1px solid #dbe3ee;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 900;
+}
+
+.overall-heatmap-corner {
+    background: #f2f4f7;
+    color: #344054;
+    border: none;
+    font-size: 9px;
+    letter-spacing: 0.02em;
+}
+
+.overall-heatmap-platform {
+    background: #f2f4f7;
+    color: #344054;
+    border: none;
+    font-size: 9px;
+    letter-spacing: 0.02em;
+}
+
+.overall-heatmap-ingredient {
+    justify-content: flex-start;
+    padding-left: 8px;
+    background: #f2f4f7;
+    color: #344054;
+    border: none;
+    font-size: 9px;
+}
+
+.overall-heatmap-tile {
+    width: 46px;
+    height: 46px;
+    font-size: 11px;
+    border: none;
+    cursor: help;
+}
+
+.overall-heatmap-tile.overall-heatmap-clickable {
+    cursor: pointer;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.overall-heatmap-tile.overall-heatmap-clickable:hover,
+.overall-heatmap-tile.overall-heatmap-clickable:focus {
+    border-color: rgba(30, 64, 175, 0.72);
+    box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.14);
+    outline: none;
+}
+
+.overall-heatmap-tile.overall-heat-low { background: #bbf7d0; color: #000000; }
+.overall-heatmap-tile.overall-heat-med { background: #fde68a; color: #000000; }
+.overall-heatmap-tile.overall-heat-high { background: #fdba74; color: #000000; }
+.overall-heatmap-tile.overall-heat-critical { background: #fca5a5; color: #000000; }
+
+.component-summary-heatmap-board {
+    grid-auto-rows: 44px;
+}
+
+.component-summary-heatmap-board .overall-heatmap-corner,
+.component-summary-heatmap-board .overall-heatmap-platform,
+.component-summary-heatmap-board .overall-heatmap-ingredient,
+.component-summary-heatmap-board .overall-heatmap-tile {
+    min-height: 44px;
+}
+
+.component-summary-heatmap-board .overall-heatmap-platform {
+    width: 100%;
+    min-width: 0;
+    padding: 0 8px;
+    white-space: nowrap;
+}
+
+.component-summary-heatmap-board .overall-heatmap-tile {
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+.component-summary-heatmap-board .overall-heatmap-corner,
+.component-summary-heatmap-board .overall-heatmap-ingredient {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #f2f4f7;
+}
+
+.component-summary-heatmap-board .overall-heatmap-corner {
+    z-index: 3;
+}
+
+.component-summary-heatmap-board .overall-heatmap-ingredient.ccip-component-heat-total-label {
+    font-weight: 900;
+    color: #101828;
+}
+
+.component-summary-heatmap-board .overall-heatmap-tile.ccip-component-heat-total-tile {
+    background: #e5e7eb;
+    color: #111827;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.25);
+}
+
+.component-summary-legend {
+    margin-top: 6px;
+    padding: 0 4px 0 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    font-size: 9px;
+    color: #344054;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.component-summary-legend-title {
+    font-weight: 800;
+    color: #1f2937;
+}
+
+.component-summary-legend-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    line-height: 1.2;
+}
+
+.component-summary-legend-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    color: #1f2937;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.component-summary-legend-toggle-input {
+    width: 11px;
+    height: 11px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: #2563eb;
+}
+
+.component-summary-legend-row-toggle {
+    min-height: 11px;
+    height: auto;
+    margin-left: -1px;
+    padding-left: 4px;
+    border-left: 1px solid #d0d5dd;
+}
+
+.component-summary-legend-label {
+    font-weight: 600;
+}
+
+.component-summary-legend-value {
+    min-width: 22px;
+    height: 15px;
+    padding: 0 3px;
+    border: 1px solid #d0d5dd;
+    border-radius: 0;
+    background: #ffffff;
+    color: #111827;
+    font-size: 9px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.component-summary-legend-derived {
+    color: #111827;
+    font-size: 9px;
+    line-height: 1;
+    font-weight: 600;
+}
+
+.component-summary-legend-range-row {
+    gap: 2px;
+}
+
+.component-summary-legend-sep {
+    font-weight: 700;
+    color: #475467;
+}
+
+.component-summary-legend-input {
+    width: 22px;
+    min-width: 22px;
+    height: 15px;
+    padding: 0 2px;
+    border: 1px solid #d0d5dd;
+    border-radius: 0;
+    background: #ffffff;
+    color: #111827;
+    font-size: 9px;
+    line-height: 1;
+    text-align: center;
+}
+
+.component-summary-legend-input:focus {
+    outline: 1px solid #9ec5ff;
+    border-color: #6ea8fe;
+}
+
+.component-summary-legend-input::-webkit-outer-spin-button,
+.component-summary-legend-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.component-summary-legend-input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.component-summary-legend-input.component-summary-legend-input-invalid {
+    border-color: #d92d20 !important;
+    box-shadow: 0 0 0 1px rgba(217, 45, 32, 0.2) !important;
+}
+
+.component-summary-warning-popup {
+    position: absolute;
+    left: 50%;
+    bottom: 8px;
+    transform: translate(-50%, 8px);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 3;
+    max-width: calc(100% - 16px);
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #b42318;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.25;
+    box-shadow: 0 6px 16px rgba(16, 24, 40, 0.2);
+    white-space: nowrap;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.component-summary-warning-popup.component-summary-warning-popup-visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+/* Keep editable threshold inputs visually identical to value boxes. */
+.component-summary-legend-input.component-summary-legend-value {
+    padding: 0 3px;
+    border: 1px solid #d0d5dd;
+    border-radius: 0;
+    background: #ffffff;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+#homeComponentSummaryTable .component-summary-legend .component-summary-legend-input,
+#homeComponentSummaryTable .component-summary-legend .component-summary-legend-input.component-summary-legend-value,
+#homeOverallHeatmap .component-summary-legend .component-summary-legend-input,
+#homeOverallHeatmap .component-summary-legend .component-summary-legend-input.component-summary-legend-value {
+    border: 1px solid #d0d5dd !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.component-summary-legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    border: 1px solid rgba(15, 23, 42, 0.16);
+    flex: 0 0 auto;
+}
+
+.component-summary-legend-swatch.low { background: #bbf7d0; }
+.component-summary-legend-swatch.med { background: #fde68a; }
+.component-summary-legend-swatch.high { background: #fdba74; }
+.component-summary-legend-swatch.critical { background: #fca5a5; }
+
+#homeComponentSummaryTable.ccip-component-riskmap-wrap {
+    overflow: hidden;
+    position: relative;
+}
+
+.component-summary-heatmap-layout {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 8px;
+    height: 100%;
+    min-height: 0;
+}
+
+.component-summary-heatmap-scroll {
+    overflow-x: auto;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.overall-pending-body {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    gap: 8px;
+    min-height: 0;
+    height: 100%;
+    box-sizing: border-box;
+    padding-bottom: 8px;
+}
+
+.overall-pending-top {
+    display: grid;
+    grid-template-columns: minmax(96px, 40%) minmax(0, 1fr);
+    align-items: start;
+    gap: 6px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.overall-pending-bottom {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.overall-pending-pie {
+    width: 100%;
+    max-width: 132px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    min-width: 0;
+    justify-self: center;
+}
+
+#homeMilestoneSummaryTable.ccip-milestone-pie-wrap {
+    overflow: hidden;
+    max-height: none;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.milestone-pie-layout {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 8px;
+    min-height: 0;
+    height: 100%;
+    box-sizing: border-box;
+    padding-bottom: 0;
+}
+
+.milestone-stacked-total {
+    font-size: 11px;
+    font-weight: 800;
+    color: #344054;
+    text-align: left;
+}
+
+.milestone-pie-canvas {
+    width: 100%;
+    max-width: 100%;
+    height: 72px;
+    min-height: 72px;
+    min-width: 0;
+    justify-self: stretch;
+}
+
+.milestone-pie-breakdown {
+    border: 1px solid #d8e3f5;
+    border-radius: 10px;
+    background: #f8fbff;
+    margin-top: 8px;
+    padding: 8px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-content: start;
+    min-width: 0;
+    max-width: 100%;
+    display: grid;
+    gap: 5px;
+}
+
+.overall-pending-breakdown,
+.overall-age-buckets {
+    display: grid;
+    gap: 5px;
+}
+
+.overall-pending-breakdown {
+    border: 1px solid #d8e3f5;
+    border-radius: 10px;
+    background: #f8fbff;
+    padding: 8px;
+    height: 132px;
+    max-height: 132px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-content: start;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.overall-age-buckets {
+    border: 1px solid #d8e3f5;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 8px;
+    align-content: start;
+    max-height: none;
+    overflow-y: visible;
+    min-height: 0;
+}
+
+.overall-break-row,
+.overall-age-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px;
+    width: 100%;
+    font-size: 11px;
+    color: #344054;
+}
+
+.overall-break-left {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.overall-break-name {
+    display: block;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.3;
+}
+
+.overall-break-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    flex: 0 0 auto;
+}
+
+.overall-break-metrics {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    white-space: nowrap;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+}
+
+.overall-age-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 86px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+}
+
+.overall-age-label {
+    display: inline-grid;
+    grid-template-columns: 38px auto;
+    column-gap: 2px;
+    align-items: center;
+    min-width: 0;
+    white-space: nowrap;
+    justify-self: start;
+    text-align: left;
+}
+
+.overall-age-label-main {
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+}
+
+.overall-age-label-unit {
+    text-align: left;
+}
+
+.overall-age-bar-track {
+    width: 86px;
+    height: 6px;
+    border-radius: 999px;
+    background: #e3ebf7;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px #d7e2f2;
+    justify-self: center;
+}
+
+.overall-age-bar-fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    min-width: 2px;
+    background: linear-gradient(90deg, #93c5fd 0%, #2563eb 100%);
+}
+
+.overall-age-metrics {
+    white-space: nowrap;
+    text-align: right;
+    color: #1f2937;
+    font-weight: 800;
+    justify-self: end;
+    min-width: max-content;
+}
+
+.overall-break-count {
+    color: #111827;
+    font-weight: 900;
+}
+
+.overall-break-pct {
+    color: #667085;
+    font-weight: 700;
+}
+
+.overall-age-title {
+    margin-top: 0;
+    margin-bottom: 4px;
+    color: #334155;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.ccip-component-spaces {
+    margin-top: 12px;
+    border: 1px solid #d0ddf3;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #f9fcff 0%, #f4f8ff 100%);
+    padding: 14px;
+}
+
+.ccip-component-spaces-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.ccip-component-spaces-title {
+    margin: 0;
+    color: #0f2f62;
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 0.01em;
+}
+
+.ccip-component-spaces-note {
+    margin: 2px 0 0;
+    color: #52627a;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.ccip-space-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.ccip-space-card {
+    border: 1px solid #d8e3f5;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+    padding: 12px;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ccip-space-card.space-performance {
+    grid-column: span 2;
+}
+
+.ccip-space-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.ccip-space-title {
+    margin: 0;
+    color: #1f2f4f;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.01em;
+}
+
+.ccip-space-subtitle {
+    margin: 2px 0 0;
+    color: #667085;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.ccip-perf-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.ccip-perf-tile {
+    border: 1px solid #dbe4f2;
+    border-radius: 10px;
+    padding: 10px;
+    background: #fbfdff;
+}
+
+.ccip-perf-label {
+    color: #56637a;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.ccip-perf-value {
+    margin-top: 5px;
+    color: #10243f;
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 900;
+}
+
+.ccip-perf-note {
+    margin-top: 4px;
+    color: #7b8798;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.ccip-space-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 8px;
+}
+
+.ccip-space-list li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+    border: 1px solid #ecf0f7;
+    border-radius: 8px;
+    padding: 7px 9px;
+    background: #ffffff;
+}
+
+.ccip-space-item-name {
+    color: #334155;
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ccip-space-item-value {
+    color: #0f4ea8;
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.ccip-space-empty {
+    border: 1px dashed #c8d4e6;
+    border-radius: 8px;
+    background: #fbfdff;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 12px;
 }
 
 .ccip-activity-list,
@@ -3871,18 +5756,57 @@ body {
         grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.9fr);
     }
 
-    .ccip-dashboard-tables-grid {
-        grid-template-columns: minmax(280px, 0.62fr) minmax(0, 1.38fr);
-    }
-
     .ccip-dashboard-overview {
-        grid-template-columns: minmax(470px, 0.9fr) minmax(380px, 1.1fr);
+        grid-template-columns: 1fr;
     }
 
     .ccip-main-grid .ccip-col-right {
         grid-column: auto;
         display: flex;
         flex-direction: column;
+    }
+
+    .overall-layout-v2 {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+    }
+
+    .overall-row-summary,
+    .overall-row-second,
+    .overall-row-third,
+    .overall-ai-span-card {
+        grid-column: auto;
+        grid-row: auto;
+    }
+
+    .overall-row-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .overall-summary-facts .overall-summary-fact {
+        flex: 1 1 0;
+        width: auto;
+        min-width: 0;
+        max-width: none;
+        height: 100%;
+        min-height: 100%;
+        max-height: 100%;
+    }
+
+    .overall-row-third {
+        grid-template-columns: minmax(0, 1.1fr) minmax(220px, 0.65fr);
+    }
+
+    .overall-trend-card {
+        grid-column: 1 / -1;
+    }
+
+    .ccip-space-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ccip-space-card.space-performance {
+        grid-column: span 2;
     }
 }
 
@@ -3915,15 +5839,69 @@ body {
 }
 
 @media (max-width: 900px) {
-    .ccip-kpi-row {
-        grid-template-columns: repeat(2, minmax(170px, 1fr));
-    }
-
     .ccip-main-grid {
         grid-template-columns: 1fr;
     }
 
+    #homeLegacyTablesGrid .ccip-inline-side-stack {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+    }
+
     .ccip-main-grid .ccip-col-right {
+        grid-template-columns: 1fr;
+    }
+
+    .overall-layout-v2 {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+    }
+
+    .overall-row-summary,
+    .overall-row-second,
+    .overall-row-third,
+    .overall-ai-span-card {
+        grid-column: auto;
+        grid-row: auto;
+    }
+
+    .overall-summary-facts .overall-summary-fact {
+        flex: 1 1 0;
+        width: auto;
+        min-width: 0;
+        max-width: none;
+        height: 100%;
+        min-height: 100%;
+        max-height: 100%;
+    }
+
+    .overall-row-summary,
+    .overall-row-second,
+    .overall-row-third {
+        grid-template-columns: 1fr;
+    }
+
+    .overall-pending-top {
+        grid-template-columns: 1fr;
+    }
+
+    .overall-pending-pie {
+        width: 100%;
+        max-width: none;
+        height: 170px;
+        aspect-ratio: auto;
+        justify-self: stretch;
+    }
+
+    .ccip-space-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ccip-space-card.space-performance {
+        grid-column: auto;
+    }
+
+    .ccip-perf-tiles {
         grid-template-columns: 1fr;
     }
 }
@@ -3933,14 +5911,224 @@ body {
         font-size: 26px;
     }
 
-    .ccip-kpi-row {
-        grid-template-columns: 1fr;
-    }
-
     .ccip-product-wrap,
     .ccip-region-wrap {
         grid-template-columns: 1fr;
     }
+}
+
+/* Fixed geometry mode: keep positions/sizes rigid and scroll the whole page */
+html,
+body {
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+}
+
+form,
+.content-wrapper,
+.main-content,
+.portal-content,
+.page-content {
+    min-width: 1880px;
+}
+
+.overall-layout-v2 {
+    width: 1840px;
+    min-width: 1840px;
+    max-width: 1840px;
+    display: grid;
+    grid-template-columns: 1130px 700px;
+    grid-template-rows: auto auto auto;
+    gap: 10px;
+}
+
+.overall-row {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.overall-row-second {
+    grid-template-columns: 660px minmax(0, 1fr) !important;
+    width: 1130px;
+    min-width: 1130px;
+    max-width: 1130px;
+    justify-self: start;
+}
+
+.overall-row-summary {
+    grid-template-columns: 840px 390px !important;
+    width: 1130px;
+    min-width: 1130px;
+    max-width: 1130px;
+    justify-self: start;
+}
+
+#homeOverallLayoutV2 .overall-row-summary {
+    grid-template-columns: 1fr !important;
+}
+
+.overall-row-summary > .overall-card {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.overall-row-second > .overall-card {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.overall-row-third {
+    grid-template-columns: minmax(0, 1fr) 810px !important;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.overall-row-third > .overall-card {
+    grid-column: auto !important;
+}
+
+.overall-layout-v2 > .overall-row-summary {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+}
+
+.overall-layout-v2 > .overall-row-second {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+}
+
+.overall-layout-v2 > .overall-ai-span-card {
+    grid-column: 2 !important;
+    grid-row: 1 / span 2 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+}
+
+.overall-layout-v2 > .overall-row-third {
+    grid-column: 1 / -1 !important;
+    grid-row: 3 !important;
+}
+
+.overall-trend-card { order: 1; }
+.overall-heatmap-card { order: 2; }
+.overall-pending-card { order: 3; }
+
+.overall-heatmap-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.overall-heatmap-card .overall-card-head {
+    flex: 0 0 auto;
+}
+
+.overall-heatmap-card .overall-heatmap-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+}
+
+.overall-pending-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.overall-pending-card .overall-card-head {
+    flex: 0 0 auto;
+}
+
+.overall-pending-card .overall-pending-body {
+    flex: 1 1 auto;
+}
+
+.overall-summary-card,
+.overall-tpt-card {
+    min-height: 0;
+    max-height: none;
+    height: auto;
+}
+
+.overall-oem-card,
+.overall-ai-card {
+    min-height: 312px;
+    max-height: 312px;
+}
+
+.overall-ai-span-card.overall-ai-card {
+    min-height: 0 !important;
+    max-height: none !important;
+}
+
+.overall-oem-card,
+.overall-ai-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.overall-summary-card .overall-card-head,
+.overall-tpt-card .overall-card-head,
+.overall-oem-card .overall-card-head,
+.overall-ai-card .overall-card-head {
+    flex: 0 0 auto;
+}
+
+.overall-summary-card .overall-summary-facts,
+.overall-tpt-card .overall-tpt-boxes,
+.overall-oem-card .overall-oem-table-wrap,
+.overall-ai-card .overall-ai-blank {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.overall-ai-span-card .overall-ai-blank {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+}
+
+.overall-trend-card,
+.overall-heatmap-card,
+.overall-pending-card {
+    min-height: 312px;
+    max-height: 312px;
+}
+
+.overall-tpt-card {
+    width: 390px;
+    min-width: 390px;
+    max-width: 390px;
+    aspect-ratio: auto;
+}
+
+.overall-trend-chart {
+    height: 249px;
+}
+
+/* Match platform-specific issue trend card geometry to overall trend card. */
+#homeLegacyOverview .ccip-trend-card-inline.overall-trend-card {
+    width: 660px;
+    min-width: 660px;
+    max-width: 660px;
+    min-height: 312px;
+    max-height: 312px;
+    justify-self: start;
+}
+
+.overall-oem-table-wrap {
+    max-height: none;
+}
+
+.overall-ai-blank {
+    min-height: 0;
+    height: 100%;
 }
 
 /* Issue List + CMF Pending interactive modernization */
@@ -4610,6 +6798,29 @@ td:nth-child(odd), th:nth-child(odd) {
     border-left: solid 2px black;
 }
 
+/* Keep Overall OEM table borders thin/open despite global nth-child table border rules above. */
+.overall-oem-table th {
+    border-left: 1px solid #d9dde5 !important;
+}
+
+.overall-oem-table td {
+    border-left: 1px solid #d9dde5 !important;
+}
+
+.overall-oem-table th:first-child,
+.overall-oem-table td:first-child {
+    border-left: none !important;
+}
+
+.overall-oem-table th:last-child,
+.overall-oem-table td:last-child {
+    border-right: none !important;
+}
+
+.overall-oem-table tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
 /* First row within .table-primary2 */
 .table-primary2 tr:first-child {
     background-color: #ffebcc; /* Mild yellow background for the first row */
@@ -4814,6 +7025,203 @@ td:nth-child(odd), th:nth-child(odd) {
   padding: 0.5rem; /* Reduce padding for smaller text in scaled grid */
 }
 
+.summary-issues-popup-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    z-index: 1060;
+    display: none;
+}
+
+.summary-issues-popup-backdrop.visible {
+    display: block;
+}
+
+.summary-issues-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(980px, calc(100vw - 44px));
+    max-height: calc(100vh - 64px);
+    border-radius: 12px;
+    border: 1px solid #d0d9e8;
+    background: #ffffff;
+    box-shadow: 0 18px 44px rgba(15, 23, 42, 0.24);
+    z-index: 1061;
+    display: none;
+    overflow: hidden;
+}
+
+.summary-issues-popup.visible {
+    display: flex;
+    flex-direction: column;
+}
+
+.summary-issues-popup-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid #e4e9f2;
+    background: #f8fbff;
+}
+
+.summary-issues-popup-title {
+    margin: 0;
+    color: #1e3a60;
+    font-size: 14px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.summary-issues-popup-close {
+    border: 0;
+    background: transparent;
+    color: #475467;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.summary-issues-popup-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e4e9f2;
+    background: #ffffff;
+}
+
+.summary-issues-popup-filter-stack {
+    display: grid;
+    grid-template-columns: auto minmax(172px, 1fr);
+    column-gap: 8px;
+    row-gap: 8px;
+    align-items: center;
+}
+
+.summary-issues-popup-controls label {
+    margin: 0;
+    color: #344054;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.summary-issues-popup-controls select {
+    min-width: 172px;
+    height: 30px;
+    border: 1px solid #cdd9e5;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #1f2937;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 0 8px;
+}
+
+.summary-issues-popup-checkers {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.summary-issues-popup-checkers label {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #344054;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.summary-issues-popup-checkers input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+}
+
+.summary-issues-popup-meta {
+    color: #667085;
+    font-size: 12px;
+    font-weight: 700;
+    margin-left: auto;
+    text-align: right;
+}
+
+.summary-issues-popup-meta-idst {
+    display: block;
+    margin-top: 2px;
+}
+
+.summary-issues-popup-body {
+    padding: 12px 14px;
+    overflow: auto;
+    background: #f9fbff;
+}
+
+.summary-issues-popup-empty {
+    padding: 20px 14px;
+    color: #667085;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.summary-issues-group {
+    border: 1px solid #deE6f2;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.summary-issues-group-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: #1f3b61;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-bottom: 6px;
+}
+
+.summary-issues-group-count {
+    margin-left: auto;
+    text-transform: none;
+    letter-spacing: 0;
+    text-align: right;
+    color: #475467;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.summary-issues-group-links {
+    color: #334155;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.summary-issues-group-links a {
+    color: #1d4ed8;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.summary-issues-group-links a:hover {
+    text-decoration: underline;
+}
+
 #selectallcheckbox {
     visibility: hidden;
 }
@@ -4822,6 +7230,99 @@ td:nth-child(odd), th:nth-child(odd) {
     /* Field visibility controls */
 
     /* COMPLETE HIDING OF TABLE STRUCTURE FOR UNSELECTED FIELDS */
+    #overall_request_details .field-sno.hidden,
+    #overall_request_details .field-progress.hidden,
+    #overall_request_details .field-sightingid.hidden,
+    #overall_request_details .field-issue_details.hidden,
+    #overall_request_details .field-promotedid.hidden,
+    #overall_request_details .field-title.hidden,
+    #overall_request_details .field-component.hidden,
+    #overall_request_details .field-owner.hidden,
+    #overall_request_details .field-promoted_owner.hidden,
+    #overall_request_details .field-rvp_repro.hidden,
+    #overall_request_details .field-processor.hidden,
+    #overall_request_details .field-status.hidden,
+    #overall_request_details .field-idst.hidden,
+    #overall_request_details .field-los.hidden,
+    #overall_request_details .field-customer_company.hidden,
+    #overall_request_details .field-customer_detail.hidden,
+    #overall_request_details .field-imagefreeze.hidden,
+    #overall_request_details .field-component_group.hidden,
+    #overall_request_details .field-duplicatedetails.hidden,
+    #overall_request_details .field-impact.hidden,
+    #overall_request_details .field-impact_processor.hidden,
+    #overall_request_details .field-milestone.hidden,
+    #overall_request_details .field-days_open.hidden,
+    #overall_request_details .field-cmf_request.hidden,
+    #overall_request_details .field-cmf_status.hidden,
+    #overall_request_details .field-closed_reason.hidden,
+    #overall_request_details .field-edit_column.hidden {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        border-width: 0 !important;
+        overflow: hidden !important;
+    }
+
+    /* Hide empty data template columns as well */
+    #overall_request_details .empty-data-container .field-sno.hidden,
+    #overall_request_details .empty-data-container .field-progress.hidden,
+    #overall_request_details .empty-data-container .field-sightingid.hidden,
+    #overall_request_details .empty-data-container .field-issue_details.hidden,
+    #overall_request_details .empty-data-container .field-promotedid.hidden,
+    #overall_request_details .empty-data-container .field-title.hidden,
+    #overall_request_details .empty-data-container .field-component.hidden,
+    #overall_request_details .empty-data-container .field-owner.hidden,
+    #overall_request_details .empty-data-container .field-promoted_owner.hidden,
+    #overall_request_details .empty-data-container .field-rvp_repro.hidden,
+    #overall_request_details .empty-data-container .field-processor.hidden,
+    #overall_request_details .empty-data-container .field-status.hidden,
+    #overall_request_details .empty-data-container .field-idst.hidden,
+    #overall_request_details .empty-data-container .field-los.hidden,
+    #overall_request_details .empty-data-container .field-customer_company.hidden,
+    #overall_request_details .empty-data-container .field-customer_detail.hidden,
+    #overall_request_details .empty-data-container .field-duplicatedetails.hidden,
+    #overall_request_details .empty-data-container .field-component_group.hidden,
+    #overall_request_details .empty-data-container .field-imagefreeze.hidden,
+    #overall_request_details .empty-data-container .field-impact.hidden,
+    #overall_request_details .empty-data-container .field-impact_processor.hidden,
+    #overall_request_details .empty-data-container .field-milestone.hidden,
+    #overall_request_details .empty-data-container .field-days_open.hidden,
+    #overall_request_details .empty-data-container .field-cmf_request.hidden,
+    #overall_request_details .empty-data-container .field-closed_reason.hidden,
+    #overall_request_details .empty-data-container .field-edit_column.hidden {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        border-width: 0 !important;
+        overflow: hidden !important;
+    }
+
+    /* Force table layout to recalculate when columns are hidden */
+    #overall_request_details {
+        border-collapse: separate !important;
+        border-spacing: 0 10px !important;
+        border: 0 !important;
+        background: transparent !important;
+        overflow: visible !important;
+    }
+
+    #overall_request_details table {
+        table-layout: auto !important;
+        width: 100% !important;
+    }
+
+    /* Responsive design */
     #<%= overall_request_details.ClientID %> .field-sno.hidden,
     #<%= overall_request_details.ClientID %> .field-progress.hidden,
     #<%= overall_request_details.ClientID %> .field-sightingid.hidden,
@@ -4860,8 +7361,6 @@ td:nth-child(odd), th:nth-child(odd) {
         border-width: 0 !important;
         overflow: hidden !important;
     }
-
-    /* Hide empty data template columns as well */
     #<%= overall_request_details.ClientID %> .empty-data-container .field-sno.hidden,
     #<%= overall_request_details.ClientID %> .empty-data-container .field-progress.hidden,
     #<%= overall_request_details.ClientID %> .empty-data-container .field-sightingid.hidden,
@@ -4899,8 +7398,6 @@ td:nth-child(odd), th:nth-child(odd) {
         border-width: 0 !important;
         overflow: hidden !important;
     }
-
-    /* Force table layout to recalculate when columns are hidden */
     #<%= overall_request_details.ClientID %> {
         table-layout: auto !important;
     }
@@ -4909,13 +7406,11 @@ td:nth-child(odd), th:nth-child(odd) {
         table-layout: auto !important;
         width: 100% !important;
     }
-
-    /* Responsive design */
     @media (max-width: 768px) {
         .checkbox-grid {
             grid-template-columns: 1fr;
         }
-        
+
         .panel-actions {
             justify-content: center;
         }
@@ -5060,15 +7555,87 @@ td:nth-child(odd), th:nth-child(odd) {
     }
 
     .platform-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         border: 1px solid #d1d1d1;
         background: #fafafa;
         color: #424242;
         border-radius: 999px;
         padding: 6px 12px;
+        min-height: 29px;
         font-size: 12px;
         font-weight: 600;
+        line-height: 1;
         cursor: pointer;
         white-space: nowrap;
+        box-sizing: border-box;
+    }
+
+    .platform-chip-label {
+        line-height: 1;
+    }
+
+    .platform-chip-state {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        visibility: hidden;
+        width: 16px;
+        min-width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 900;
+        line-height: 14px;
+        text-align: center;
+        border: 1px solid transparent;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .platform-chip-rail:not(.is-overall-selection) .platform-chip {
+        gap: 0;
+    }
+
+    .platform-chip-rail:not(.is-overall-selection) .platform-chip-state {
+        width: 0;
+        min-width: 0;
+        border-width: 0;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .platform-chip-rail.is-overall-selection .platform-chip[data-platform="CMF_OVERALL_ALL_COMPONENTS_TABLE"] {
+        gap: 0;
+    }
+
+    .platform-chip-rail.is-overall-selection .platform-chip[data-platform="CMF_OVERALL_ALL_COMPONENTS_TABLE"] .platform-chip-state {
+        width: 0;
+        min-width: 0;
+        border-width: 0;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .platform-chip.is-platform-included .platform-chip-state {
+        visibility: visible;
+        background: #dcfce7;
+        border-color: #86efac;
+        color: #166534;
+    }
+
+    .platform-chip.is-platform-excluded .platform-chip-state {
+        visibility: visible;
+        background: #fee2e2;
+        border-color: #fca5a5;
+        color: #991b1b;
     }
 
     .platform-chip:hover {
@@ -5596,7 +8163,1086 @@ td:nth-child(odd), th:nth-child(odd) {
         line-height: 1.1;
     }
 
-    /* Sighting Details Panel Styles */
+    .pending-id-link {
+        font-weight: 850;
+        color: #075ea8;
+        text-decoration: none;
+    }
+
+    .pending-title-text {
+        font-size: 11px;
+        font-weight: 750;
+        color: #172b3f;
+        line-height: 1.3;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .pending-mini-label {
+        font-size: 9px;
+        font-weight: 850;
+        color: #6b7b8f;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .pending-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .pending-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 18px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: #eef5fb;
+        color: #214967;
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+    .pane-heading {
+        margin-top: 10px;
+    }
+
+    /* Fluent-inspired focused UI overrides for Issue/Pending/Reports.
+       These are intentionally last to safely override legacy styles. */
+    header {
+        min-height: 48px;
+        padding: 0 18px;
+        justify-content: center;
+        background: linear-gradient(90deg, #00377c 0%, #0068b5 100%);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    }
+
+    .header-title {
+        font-size: 15px;
+        letter-spacing: 0.04em;
+        text-transform: none;
+        font-weight: 600;
+    }
+
+    #updateinfo {
+        left: 16px;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.92);
+        line-height: 1.35;
+        display: none !important;
+    }
+
+    .sidebar-toggle-div {
+        right: 16px;
+    }
+
+    .sidebar-toggle {
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.18);
+    }
+
+    .dropdown {
+        height: 34px;
+        border-radius: 18px;
+        border: 1px solid #d1d1d1;
+        box-shadow: none;
+        font-size: 12px;
+        background: #ffffff;
+    }
+
+    .button-container.button-container-focus {
+        margin: 10px 0 8px;
+        padding: 0;
+        gap: 0;
+        background: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-left: none;
+        border-right: none;
+        border-radius: 0;
+        box-shadow: none;
+        justify-content: flex-start;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+
+    .button-container.button-container-focus .link-container {
+        margin: 0 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        flex-wrap: nowrap;
+    }
+
+    .button-container.button-container-focus .link-container a,
+    .button-container.button-container-focus .link-container .aspNetDisabled {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 8px 12px;
+        font-size: 12px;
+        border-radius: 999px;
+        white-space: nowrap;
+    }
+
+    .button-container-focus .tab-pill {
+        border: none;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
+        min-height: 40px;
+        padding: 10px 18px;
+        background: transparent;
+        color: #616161;
+        box-shadow: none;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .button-container-focus .tab-pill:hover {
+        background: #f5f5f5;
+        color: #242424;
+        border-color: transparent;
+    }
+
+    .button-container-focus .tab-pill.is-active {
+        background: transparent;
+        color: #0068b5;
+        border-bottom-color: #0068b5;
+        box-shadow: none;
+    }
+
+    .link-container {
+        margin-top: 10px;
+        justify-content: flex-start;
+        background: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        box-shadow: none;
+        padding: 8px 10px;
+    }
+
+    .link-container a {
+        background: #f5f5f5;
+        color: #242424;
+        font-weight: 600;
+        font-size: 12px;
+        border-radius: 999px;
+    }
+
+    .container-fluid.page-body-wrapper {
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .portal-layout-shell {
+        gap: 8px;
+        margin-top: 0;
+        flex-wrap: wrap;
+    }
+
+    .portal-layout-shell > .portal-main-workspace {
+        flex: 1 1 calc(100% - 228px);
+    }
+
+    .portal-layout-shell > .gridview-container-wrapper {
+        flex: 0 0 100%;
+        width: 100%;
+        margin-top: 8px;
+    }
+
+    .portal-left-nav {
+        padding: 10px 8px;
+        top: 48px;
+        min-height: calc(100vh - 48px);
+        max-height: calc(100vh - 48px);
+    }
+
+    .portal-section-header {
+        margin: 0 2px 10px;
+        padding: 6px 0;
+    }
+
+    .portal-left-nav .portal-nav-link {
+        margin: 0 0 8px;
+        padding: 10px 10px;
+    }
+
+    .content-wrapper {
+        margin: 6px 4px 10px;
+        padding: 8px;
+        background: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        min-height: 0;
+    }
+
+    .table-container {
+        max-height: none;
+        overflow: visible;
+        border: none;
+        box-shadow: none;
+        background: transparent;
+        padding: 0;
+    }
+
+    .pane-heading {
+        margin: 8px 0 10px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        background: #fafafa;
+        color: #242424;
+        font-size: 14px;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        text-align: left;
+        display: none !important;
+    }
+
+    .portal-view-row {
+        display: flex;
+        justify-content: flex-start;
+        margin: 10px 0 8px;
+    }
+
+    .portal-view-dropdown {
+        min-width: 240px;
+        height: 40px;
+        border-radius: 10px;
+        border: 1px solid #c6d4e1;
+        background: #ffffff;
+        color: #23364b;
+        font-weight: 600;
+        padding: 0 10px;
+    }
+
+    .issue-platform-links-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin: 8px 0 10px;
+        flex-wrap: wrap;
+    }
+
+    .issue-platform-switcher {
+        flex: 1;
+        min-width: 420px;
+        margin: 0;
+    }
+
+    .issue-external-links {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .issue-external-links a,
+    .issue-external-links .aspNetDisabled {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid #d7e1ec;
+        background: #f8fbff;
+        color: #1b4e7f;
+        font-size: 12px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .issue-external-links a:hover {
+        background: #e6f0fb;
+        color: #0a3a66;
+        border-color: #bfd4e5;
+    }
+
+    .field-selector-panel {
+        margin: 8px 0 12px;
+        border-radius: 10px;
+    }
+
+    .gridview-container {
+        margin-top: 0;
+        padding-top: 0;
+        overflow-x: auto;
+    }
+
+    .gridview-container .table-primary,
+    .gridview-container #overall_request_details {
+        min-width: 100% !important;
+        width: 100% !important;
+        table-layout: fixed;
+    }
+
+    .gridview-container .table-primary th,
+    .gridview-container .table-primary td {
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .empty-data-container table.table-primary {
+        min-width: 100% !important;
+        width: 100% !important;
+    }
+
+    .table-primary td,
+    #overall_request_details td {
+        white-space: normal;
+        word-break: break-word;
+        padding: 16px !important;
+        vertical-align: top !important;
+    }
+
+    .table-primary .field-title,
+    .table-primary .field-customer_detail,
+    .table-primary .field-duplicatedetails {
+        min-width: 180px;
+        max-width: 300px;
+    }
+
+    .table-primary .field-milestone {
+        min-width: 120px;
+        max-width: 200px;
+    }
+
+    /* Dynamic-width columns: size to content, wrap long lines */
+    .table-primary th,
+    .table-primary td {
+        width: auto;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        white-space: normal;
+        max-width: 100%;
+    }
+
+    .table-primary td *,
+    #overall_request_details td * {
+        max-width: 100%;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        white-space: normal;
+    }
+
+    .table-primary .field-component,
+    .table-primary .field-owner,
+    .table-primary .field-promoted_owner {
+        min-width: 160px;
+        max-width: 260px;
+    }
+    .table-primary .field-sno { min-width: 42px; max-width: 56px; }
+    .table-primary .field-sightingid { min-width: 140px; max-width: 200px; }
+    .table-primary .field-status { min-width: 180px; max-width: 240px; }
+    .table-primary .field-cmf_status { min-width: 130px; max-width: 240px; }
+    .table-primary .field-imagefreeze { min-width: 80px; max-width: 110px; }
+    .table-primary .field-days_open { min-width: 60px; max-width: 80px; }
+    .table-primary .field-impact { min-width: 130px; max-width: 220px; }
+    .table-primary .field-rvp_repro { min-width: 90px; max-width: 140px; }
+    .table-primary .field-idst { min-width: 110px; max-width: 200px; }
+    .table-primary .field-los { min-width: 60px; max-width: 80px; }
+
+    /* Customer Detail combined cell */
+    .issue-details-cell {
+        max-width: 100%; /* This line is now correctly placed */
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .issue-title-text {
+        color: #172b3f;
+        word-break: break-word;
+        max-width: 100%;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .cmf-pending-grid-wrap #GridView_cmf_pending td *,
+    .cmf-pending-grid-wrap #GridView_cmf_pending th * {
+        max-width: 100%;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        white-space: normal;
+    }
+
+    .issue-meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .issue-id-link,
+    .issue-promoted-id,
+    .cmf-request-chip {
+        display: inline-flex;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        align-items: center;
+        min-height: 20px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 800;
+        line-height: 1;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .issue-id-link {
+        color: #075ea8;
+        background: #eaf4ff;
+        border: 1px solid #c9dff3;
+    }
+
+    .issue-promoted-id {
+        color: #4f5f73;
+        background: #f3f6fa;
+        border: 1px solid #e0e7ef;
+    }
+
+    .cmf-request-chip {
+        color: #0f766e;
+        background: #e9fbf7;
+        border: 1px solid #c8efe6;
+    }
+
+    .days-open-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 46px;
+        min-height: 30px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #fff5f1;
+        color: #c2410c;
+        border: 1px solid #fed7c7;
+        font-weight: 800;
+        font-size: 12px;
+    }
+
+    .impact-processor-cell,
+    .milestone-progress-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        align-items: flex-start;
+    }
+
+    .impact-processor-cell {
+        gap: 16px;
+    }
+
+    .impact-text {
+        font-size: 12px;
+        color: #26384d;
+        font-weight: 700;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .progress-track {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .progress-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #d5deea;
+    }
+
+    .progress-dot.is-active { background: #0f6db5; }
+
+    .progress-badge {
+        display: inline-flex;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #eef6ff;
+        color: #095c9f;
+        border: 1px solid #cfe4f8;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .milestone-progress-fill {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 54px;
+        width: 100%;
+        border-radius: 10px;
+        padding: 10px 8px;
+        text-align: center;
+        color: #ffffff;
+        font-weight: 900;
+        font-size: 12px;
+        line-height: 1.25;
+        box-shadow: inset 0 -12px 22px rgba(0, 0, 0, 0.08);
+        overflow-wrap: anywhere;
+    }
+
+    .milestone-progress-red { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); }
+    .milestone-progress-orange { background: linear-gradient(135deg, #f97316 0%, #c2410c 100%); }
+    .milestone-progress-yellow { background: linear-gradient(135deg, #facc15 0%, #ca8a04 100%); color: #3f2f05; }
+    .milestone-progress-green { background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); }
+    .milestone-progress-neutral { background: linear-gradient(135deg, #64748b 0%, #334155 100%); }
+
+    .reports-format-card {
+        flex-shrink: 0;
+        padding-top: 4px !important;
+    }
+
+    .reports-format-title {
+        margin: 0 0 4px;
+        color: #0f3554;
+        font-size: 17px;
+        font-weight: 800;
+    }
+
+    .reports-format-subtitle {
+        color: #45627d;
+        font-size: 12px;
+        margin-bottom: 10px;
+    }
+
+    .reports-format-textarea {
+        width: 100%;
+        min-height: 172px;
+        border: 1px solid #d8e3ee;
+        border-radius: 8px;
+        padding: 12px;
+        color: #18324a;
+        background: #ffffff;
+        font-family: Consolas, 'Courier New', monospace;
+        font-size: 12px;
+        line-height: 1.45;
+        resize: vertical;
+    }
+
+    .reports-format-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 10px;
+    }
+
+    .issue-row-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .issue-sno-cell {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .milestone-text-only {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        min-height: 24px;
+        padding: 3px 8px;
+        border-radius: 7px;
+        background: #eef5fb;
+        color: #143a5a;
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .company-badge-full {
+        font-size: 11px !important;
+        padding: 3px 10px !important;
+        height: auto !important;
+        min-width: auto !important;
+        line-height: 1.5 !important;
+        border-radius: 999px !important;
+    }
+
+    .customer-detail-text {
+        display: block;
+        padding-bottom: 8px;
+        font-size: 12px;
+        color: #374151;
+        line-height: 1.35;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .processor-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        color: #4b5563;
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        padding: 3px 8px;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
+    }
+
+    .processor-chip::before {
+        content: "⚙";
+        font-size: 10px;
+        opacity: 0.6;
+        flex-shrink: 0;
+    }
+
+    .milestone-with-company {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .company-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        height: 18px;
+        padding: 0 6px;
+        border-radius: 999px;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        line-height: 1;
+        flex-shrink: 0;
+        box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.18);
+    }
+
+    .company-badge-tone-0 { background: #0068b5; }
+    .company-badge-tone-1 { background: #0f7c67; }
+    .company-badge-tone-2 { background: #8f5cc6; }
+    .company-badge-tone-3 { background: #b05d2e; }
+    .company-badge-tone-4 { background: #6b7280; }
+    .company-badge-tone-5 { background: #d13438; }
+
+    .milestone-label {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    /* SightingID + Promoted ID inline label:value layout */
+    .id-pair-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .id-inline-row {
+        display: flex;
+        align-items: baseline;
+        gap: 5px;
+        flex-wrap: wrap;
+    }
+
+    .id-inline-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #6b7280;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .id-inline-link {
+        font-size: 13px;
+        font-weight: 600;
+        color: #0068b5;
+        text-decoration: none;
+        word-break: break-all;
+    }
+
+    .id-inline-link:hover { text-decoration: underline; }
+
+    .id-inline-value {
+        font-size: 13px;
+        color: #4b5563;
+        word-break: break-all;
+    }
+
+    .table-primary .pager,
+    .table-primary .pager table {
+        display: none;
+    }
+
+    .table-primary .pager a,
+    .table-primary .pager span {
+        display: inline-block;
+        min-width: 36px;
+        text-align: center;
+        padding: 6px 10px;
+        margin: 0 3px;
+        border: 1px solid #d4d4d4;
+        border-radius: 6px;
+        font-size: 12px;
+        color: #2e2e2e;
+        background: #fafafa;
+        text-decoration: none;
+    }
+
+    .table-primary .pager span {
+        border-color: #0068b5;
+        color: #0068b5;
+        background: #eff6fc;
+        font-weight: 700;
+    }
+
+    .issue-page-status {
+        margin-top: 8px;
+        text-align: right;
+        font-size: 12px;
+        color: #616161;
+    }
+
+    .issue-pager-controls {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        justify-content: stretch;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        padding: 8px 10px;
+        border: 1px solid #e1e8f0;
+        border-radius: 10px;
+        background: #ffffff;
+        box-shadow: 0 8px 18px rgba(30, 58, 90, 0.06);
+        position: relative;
+    }
+
+    .issue-pager-btn,
+    .issue-pager-current {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 40px;
+        min-height: 32px;
+        padding: 0 12px;
+        border: 1px solid #d0d0d0;
+        border-radius: 6px;
+        font-size: 12px;
+        text-decoration: none;
+        background: #ffffff;
+        color: #2a2a2a;
+    }
+
+    .issue-page-nav {
+        grid-column: 2;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .issue-pager-group-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 40px;
+        min-height: 32px;
+        padding: 0 10px;
+        border: 1px solid #d0d0d0;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: bold;
+        text-decoration: none;
+        background: #f5f5f5;
+        color: #666;
+        cursor: pointer;
+    }
+
+    .issue-pager-group-btn:hover:not(.disabled) {
+        background: #e0e0e0;
+    }
+
+    .issue-pager-current {
+        background: #0068b5;
+        border-color: #0068b5;
+        color: #ffffff;
+        font-weight: 700;
+        min-width: 34px;
+    }
+
+    .issue-page-size-control {
+        grid-column: 3;
+        justify-self: end;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #58677a;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .issue-page-size-select {
+        height: 30px;
+        min-width: 62px;
+        border: 1px solid #cfdae8;
+        border-radius: 8px;
+        background: #f8fbff;
+        color: #1f3b57;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 0 6px;
+    }
+
+    .issue-pager-btn.disabled,
+    .issue-pager-btn.aspNetDisabled,
+    .issue-pager-group-btn.disabled,
+    .issue-pager-group-btn.aspNetDisabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .table-primary,
+    #overall_request_details,
+    #GridView_cmf_pending,
+    #GridView_analytics_summary {
+        width: 100%;
+        border-collapse: collapse !important;
+        border-spacing: 0;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-top: 0 !important;
+        margin-bottom: 0;
+        background: #ffffff;
+    }
+
+    .table-primary th,
+    #overall_request_details th,
+    #GridView_cmf_pending th,
+    #GridView_analytics_summary th {
+        background: #fafafa !important;
+        color: #424242 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        border: 1px solid #e0e0e0 !important;
+        padding: 10px 10px !important;
+        vertical-align: top;
+        text-align: left !important;
+    }
+
+    .table-primary td,
+    #overall_request_details td,
+    #GridView_cmf_pending td,
+    #GridView_analytics_summary td {
+        border: 1px solid #f0f0f0 !important;
+        padding: 10px !important;
+        font-size: 12px;
+        color: #242424;
+        background: #ffffff;
+    }
+
+    /* Issue List gets more breathing room than the other grids */
+    #overall_request_details td {
+        padding: 16px !important;
+        vertical-align: top !important;
+    }
+
+    #overall_request_details tr:hover td,
+    #GridView_cmf_pending tr:hover td,
+    #GridView_analytics_summary tr:hover td {
+        background: #f8fbff;
+    }
+
+    /* Final visual layer: keep Issue List/Pending away from flat Excel styling. */
+
+    #overall_request_details {
+        width: 100% !important;
+
+        min-width: 1050px !important;
+
+        margin: 0 !important;
+
+        border-collapse: separate !important;
+
+        border-spacing: 0 !important;
+
+        table-layout: auto !important;
+
+        background: #ffffff !important;
+
+        border: none !important;
+
+        border-radius: 12px !important;
+
+        box-shadow: none !important;
+
+        font-size: 12px !important;
+    }
+
+    #overall_request_details th {
+        background: #ffffff !important;
+        color: #5d6f84 !important;
+        border-top: 1px solid #e6edf5 !important;
+        border-bottom: 1px solid #e6edf5 !important;
+        border-left: 0 !important;
+        border-right: 0 !important;
+    }
+
+    #overall_request_details td {
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%) !important;
+        border-top: 1px solid #e4edf6 !important;
+        border-bottom: 1px solid #e4edf6 !important;
+        border-left: 0 !important;
+        border-right: 0 !important;
+        box-shadow: 0 10px 24px rgba(16, 41, 67, 0.07) !important;
+        transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    }
+
+    #overall_request_details tr td:first-child {
+        border-left: 1px solid #e4edf6 !important;
+        border-radius: 10px 0 0 10px !important;
+    }
+
+    #overall_request_details tr td:last-child {
+        border-right: 1px solid #e4edf6 !important;
+        border-radius: 0 10px 10px 0 !important;
+    }
+
+    #overall_request_details tr:hover td {
+        background: linear-gradient(180deg, #ffffff 0%, #f4f9ff 100%) !important;
+        transform: translateY(-2px);
+        border-color: #cfdff0 !important;
+        box-shadow: 0 16px 34px rgba(16, 41, 67, 0.12) !important;
+    }
+
+    .cmf-pending-grid-wrap #GridView_cmf_pending {
+        min-width: 1260px !important;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+        border: 1px solid #e8edf5 !important;
+        border-radius: 10px !important;
+        overflow: hidden !important;
+        background: #ffffff !important;
+        box-shadow: 0 10px 24px rgba(28, 48, 78, 0.05) !important;
+    }
+
+    .cmf-pending-grid-wrap #GridView_cmf_pending th {
+        background: #f7f9fc !important;
+        color: #243042 !important;
+        border: 0 !important;
+        border-bottom: 1px solid #e5ebf3 !important;
+        padding: 10px 12px !important;
+        font-size: 10px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0 !important;
+        text-transform: none !important;
+    }
+
+    .cmf-pending-grid-wrap #GridView_cmf_pending td {
+        background: #ffffff !important;
+        border: 0 !important;
+        border-bottom: 1px solid #eef2f7 !important;
+        box-shadow: none !important;
+        padding: 12px !important;
+        color: #1f2937 !important;
+        vertical-align: top !important;
+    }
+
+    .cmf-pending-grid-wrap #GridView_cmf_pending tr:hover td {
+        background: #fbfdff !important;
+    }
+
+    .cmf-pending-grid-wrap .pending-chip {
+        border-radius: 999px;
+        background: #eef5fb;
+        color: #214967;
+        font-size: 10px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .cmf-pending-grid-wrap .ai-summary-btn {
+        width: 100%;
+        min-height: 32px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 800;
+        white-space: normal;
+    }
+
+    .cmf-pending-grid-wrap .pending-recommendation-btn {
+        width: auto;
+        max-width: 100%;
+        white-space: nowrap;
+    }
+
+    .header-dropdown {
+        height: 28px;
+        width: 126px;
+        border-radius: 4px !important;
+        border: 1px solid #d1d1d1 !important;
+        font-size: 11px !important;
+        padding: 2px 6px !important;
+        background: #ffffff !important;
+        color: #242424 !important;
+    }
+
+    #searchfilters {
+        margin: 0 0 10px;
+        padding: 8px;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        background: #fafafa;
+    }
+
+    #searchfilters input[type="text"] {
+        height: 30px;
+        border: 1px solid #d1d1d1;
+        border-radius: 4px;
+        padding: 0 8px;
+        font-size: 12px;
+    }
     .sighting-details-panel {
         display: flex;
         flex-direction: column;
@@ -7208,6 +10854,39 @@ td:nth-child(odd), th:nth-child(odd) {
     }
 
     @media (max-width: 900px) {
+        #updateinfo {
+            display: none;
+        }
+
+        .button-container.button-container-focus {
+            margin-top: 8px;
+        }
+
+        .content-wrapper {
+            margin: 10px;
+            padding: 10px;
+        }
+
+        .issue-kpi-row {
+            grid-template-columns: repeat(2, minmax(120px, 1fr));
+        }
+
+        .portal-layout-shell {
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .portal-left-nav {
+            width: 100%;
+            flex: 1 1 auto;
+            position: static;
+            max-height: none;
+            min-height: 0;
+        }
+
+        .issue-page-hd-top {
+            align-items: flex-start;
+        }
         .cmf-rec-stage-grid,
         .cmf-rec-dimension-grid,
         .cmf-rec-summary-band {
@@ -7215,1073 +10894,7 @@ td:nth-child(odd), th:nth-child(odd) {
         }
     }
 
-    .pending-id-link {
-        font-weight: 850;
-        color: #075ea8;
-        text-decoration: none;
-    }
-
-    .pending-title-text {
-        font-size: 11px;
-        font-weight: 750;
-        color: #172b3f;
-        line-height: 1.3;
-        max-width: 100%;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-    }
-
-    .pending-mini-label {
-        font-size: 9px;
-        font-weight: 850;
-        color: #6b7b8f;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-    }
-
-    .pending-chip-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-    }
-
-    .pending-chip {
-        display: inline-flex;
-        align-items: center;
-        min-height: 18px;
-        padding: 2px 6px;
-        border-radius: 999px;
-        background: #eef5fb;
-        color: #214967;
-        font-size: 10px;
-        font-weight: 800;
-    }
-
-    .pane-heading {
-        margin-top: 10px;
-    }
-
-    /* Fluent-inspired focused UI overrides for Issue/Pending/Reports.
-       These are intentionally last to safely override legacy styles. */
-    header {
-        min-height: 48px;
-        padding: 0 18px;
-        justify-content: center;
-        background: linear-gradient(90deg, #00377c 0%, #0068b5 100%);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
-    }
-
-    .header-title {
-        font-size: 15px;
-        letter-spacing: 0.04em;
-        text-transform: none;
-        font-weight: 600;
-    }
-
-    #updateinfo {
-        left: 16px;
-        font-size: 11px;
-        color: rgba(255, 255, 255, 0.92);
-        line-height: 1.35;
-        display: none !important;
-    }
-
-    .sidebar-toggle-div {
-        right: 16px;
-    }
-
-    .sidebar-toggle {
-        width: 30px;
-        height: 30px;
-        font-size: 14px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.18);
-    }
-
-    .dropdown {
-        height: 34px;
-        border-radius: 18px;
-        border: 1px solid #d1d1d1;
-        box-shadow: none;
-        font-size: 12px;
-        background: #ffffff;
-    }
-
-    .button-container.button-container-focus {
-        margin: 10px 0 8px;
-        padding: 0;
-        gap: 0;
-        background: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-left: none;
-        border-right: none;
-        border-radius: 0;
-        box-shadow: none;
-        justify-content: flex-start;
-        overflow-x: auto;
-        flex-wrap: nowrap;
-    }
-
-    .button-container.button-container-focus .link-container {
-        margin: 0 0 0 auto;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 8px;
-        border: none;
-        background: transparent;
-        box-shadow: none;
-        flex-wrap: nowrap;
-    }
-
-    .button-container.button-container-focus .link-container a,
-    .button-container.button-container-focus .link-container .aspNetDisabled {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 34px;
-        padding: 8px 12px;
-        font-size: 12px;
-        border-radius: 999px;
-        white-space: nowrap;
-    }
-
-    .button-container-focus .tab-pill {
-        border: none;
-        border-bottom: 2px solid transparent;
-        border-radius: 0;
-        min-height: 40px;
-        padding: 10px 18px;
-        background: transparent;
-        color: #616161;
-        box-shadow: none;
-        font-size: 13px;
-        font-weight: 500;
-    }
-
-    .button-container-focus .tab-pill:hover {
-        background: #f5f5f5;
-        color: #242424;
-        border-color: transparent;
-    }
-
-    .button-container-focus .tab-pill.is-active {
-        background: transparent;
-        color: #0068b5;
-        border-bottom-color: #0068b5;
-        box-shadow: none;
-    }
-
-    .link-container {
-        margin-top: 10px;
-        justify-content: flex-start;
-        background: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        box-shadow: none;
-        padding: 8px 10px;
-    }
-
-    .link-container a {
-        background: #f5f5f5;
-        color: #242424;
-        font-weight: 600;
-        font-size: 12px;
-        border-radius: 999px;
-    }
-
-    .container-fluid.page-body-wrapper {
-        padding-left: 4px !important;
-        padding-right: 4px !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-        max-width: 100% !important;
-    }
-
-    .portal-layout-shell {
-        gap: 8px;
-        margin-top: 0;
-        flex-wrap: wrap;
-    }
-
-    .portal-layout-shell > .portal-main-workspace {
-        flex: 1 1 calc(100% - 228px);
-    }
-
-    .portal-layout-shell > .gridview-container-wrapper {
-        flex: 0 0 100%;
-        width: 100%;
-        margin-top: 8px;
-    }
-
-    .portal-left-nav {
-        padding: 10px 8px;
-        top: 48px;
-        min-height: calc(100vh - 48px);
-        max-height: calc(100vh - 48px);
-    }
-
-    .portal-section-header {
-        margin: 0 2px 10px;
-        padding: 6px 0;
-    }
-
-    .portal-left-nav .portal-nav-link {
-        margin: 0 0 8px;
-        padding: 10px 10px;
-    }
-
-    .content-wrapper {
-        margin: 6px 4px 10px;
-        padding: 8px;
-        background: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        min-height: 0;
-    }
-
-    .table-container {
-        max-height: none;
-        overflow: visible;
-        border: none;
-        box-shadow: none;
-        background: transparent;
-        padding: 0;
-    }
-
-    .pane-heading {
-        margin: 8px 0 10px;
-        padding: 10px 14px;
-        border-radius: 8px;
-        border: 1px solid #e0e0e0;
-        background: #fafafa;
-        color: #242424;
-        font-size: 14px;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        text-align: left;
-        display: none !important;
-    }
-
-    .portal-view-row {
-        display: flex;
-        justify-content: flex-start;
-        margin: 10px 0 8px;
-    }
-
-    .portal-view-dropdown {
-        min-width: 240px;
-        height: 40px;
-        border-radius: 10px;
-        border: 1px solid #c6d4e1;
-        background: #ffffff;
-        color: #23364b;
-        font-weight: 600;
-        padding: 0 10px;
-    }
-
-    .issue-platform-links-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-        margin: 8px 0 10px;
-        flex-wrap: wrap;
-    }
-
-    .issue-platform-switcher {
-        flex: 1;
-        min-width: 420px;
-        margin: 0;
-    }
-
-    .issue-external-links {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .issue-external-links a,
-    .issue-external-links .aspNetDisabled {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 34px;
-        padding: 8px 12px;
-        border-radius: 999px;
-        border: 1px solid #d7e1ec;
-        background: #f8fbff;
-        color: #1b4e7f;
-        font-size: 12px;
-        font-weight: 700;
-        text-decoration: none;
-        transition: all 0.2s ease;
-    }
-
-    .issue-external-links a:hover {
-        background: #e6f0fb;
-        color: #0a3a66;
-        border-color: #bfd4e5;
-    }
-
-    .field-selector-panel {
-        margin: 8px 0 12px;
-        border-radius: 10px;
-    }
-
-    .gridview-container {
-        margin-top: 0;
-        padding-top: 0;
-        overflow-x: auto;
-    }
-
-    .gridview-container .table-primary,
-    .gridview-container #overall_request_details {
-        min-width: 100% !important;
-        width: 100% !important;
-        table-layout: fixed;
-    }
-
-    .gridview-container .table-primary th,
-    .gridview-container .table-primary td {
-        white-space: normal !important;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-    }
-
-    .empty-data-container table.table-primary {
-        min-width: 100% !important;
-        width: 100% !important;
-    }
-
-    .table-primary td,
-    #overall_request_details td {
-        white-space: normal;
-        word-break: break-word;
-        padding: 16px !important;
-        vertical-align: top !important;
-    }
-
-    .table-primary .field-title,
-    .table-primary .field-customer_detail,
-    .table-primary .field-duplicatedetails {
-        min-width: 180px;
-        max-width: 300px;
-    }
-
-    .table-primary .field-milestone {
-        min-width: 120px;
-        max-width: 200px;
-    }
-
-    /* Dynamic-width columns: size to content, wrap long lines */
-    .table-primary th,
-    .table-primary td {
-        width: auto;
-        word-break: break-word;
-        overflow-wrap: anywhere;
-        white-space: normal;
-        max-width: 100%;
-    }
-
-    .table-primary td *,
-    #overall_request_details td * {
-        max-width: 100%;
-        min-width: 0;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-        white-space: normal;
-    }
-
-    .table-primary .field-component,
-    .table-primary .field-owner,
-    .table-primary .field-promoted_owner {
-        min-width: 160px;
-        max-width: 260px;
-    }
-    .table-primary .field-sno { min-width: 42px; max-width: 56px; }
-    .table-primary .field-sightingid { min-width: 140px; max-width: 200px; }
-    .table-primary .field-status { min-width: 180px; max-width: 240px; }
-    .table-primary .field-cmf_status { min-width: 130px; max-width: 240px; }
-    .table-primary .field-imagefreeze { min-width: 80px; max-width: 110px; }
-    .table-primary .field-days_open { min-width: 60px; max-width: 80px; }
-    .table-primary .field-impact { min-width: 130px; max-width: 220px; }
-    .table-primary .field-rvp_repro { min-width: 90px; max-width: 140px; }
-    .table-primary .field-idst { min-width: 110px; max-width: 200px; }
-    .table-primary .field-los { min-width: 60px; max-width: 80px; }
-
-    /* Customer Detail combined cell */
-    .issue-details-cell,
-        max-width: 100%; /* This line is now correctly placed */
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        align-items: flex-start;
-    }
-
-    .issue-title-text {
-        color: #172b3f;
-        word-break: break-word;
-        max-width: 100%;
-        line-height: 1.35;
-    .cmf-pending-grid-wrap #GridView_cmf_pending td *,
-    .cmf-pending-grid-wrap #GridView_cmf_pending th * {
-        max-width: 100%;
-        min-width: 0;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-        white-space: normal;
-    }
-        overflow-wrap: anywhere;
-        word-break: break-word;
-    }
-
-    .issue-meta-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        align-items: center;
-        max-width: 100%;
-        min-width: 0;
-    }
-
-    .issue-id-link,
-    .issue-promoted-id,
-    .cmf-request-chip {
-        display: inline-flex;
-        max-width: 100%;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-        align-items: center;
-        min-height: 20px;
-        padding: 2px 7px;
-        border-radius: 999px;
-        font-size: 10px;
-        font-weight: 800;
-        line-height: 1;
-        text-decoration: none;
-        white-space: nowrap;
-    }
-
-    .issue-id-link {
-        color: #075ea8;
-        background: #eaf4ff;
-        border: 1px solid #c9dff3;
-    }
-
-    .issue-promoted-id {
-        color: #4f5f73;
-        background: #f3f6fa;
-        border: 1px solid #e0e7ef;
-    }
-
-    .cmf-request-chip {
-        color: #0f766e;
-        background: #e9fbf7;
-        border: 1px solid #c8efe6;
-    }
-
-    .days-open-pill {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 46px;
-        min-height: 30px;
-        padding: 4px 8px;
-        border-radius: 999px;
-        background: #fff5f1;
-        color: #c2410c;
-        border: 1px solid #fed7c7;
-        font-weight: 800;
-        font-size: 12px;
-    }
-
-    .impact-processor-cell,
-    .milestone-progress-cell {
-        display: flex;
-        flex-direction: column;
-        gap: 7px;
-        align-items: flex-start;
-    }
-
-    .impact-processor-cell {
-        gap: 16px;
-    }
-
-    .impact-text {
-        font-size: 12px;
-        color: #26384d;
-        font-weight: 700;
-        line-height: 1.35;
-        overflow-wrap: anywhere;
-        display: block;
-        max-height: 76px;
-        overflow-y: auto;
-        overflow-x: hidden;
-        padding-right: 4px;
-    }
-
-    .progress-track {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .progress-dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: #d5deea;
-    }
-
-    .progress-dot.is-active { background: #0f6db5; }
-
-    .progress-badge {
-        display: inline-flex;
-        padding: 2px 8px;
-        border-radius: 999px;
-        background: #eef6ff;
-        color: #095c9f;
-        border: 1px solid #cfe4f8;
-        font-size: 10px;
-        font-weight: 800;
-        text-transform: uppercase;
-    }
-
-    .milestone-progress-fill {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 54px;
-        width: 100%;
-        border-radius: 10px;
-        padding: 10px 8px;
-        text-align: center;
-        color: #ffffff;
-        font-weight: 900;
-        font-size: 12px;
-        line-height: 1.25;
-        box-shadow: inset 0 -12px 22px rgba(0, 0, 0, 0.08);
-        overflow-wrap: anywhere;
-    }
-
-    .milestone-progress-red { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); }
-    .milestone-progress-orange { background: linear-gradient(135deg, #f97316 0%, #c2410c 100%); }
-    .milestone-progress-yellow { background: linear-gradient(135deg, #facc15 0%, #ca8a04 100%); color: #3f2f05; }
-    .milestone-progress-green { background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); }
-    .milestone-progress-neutral { background: linear-gradient(135deg, #64748b 0%, #334155 100%); }
-
-    .reports-format-card {
-        flex-shrink: 0;
-        padding-top: 4px !important;
-    }
-
-    .reports-format-title {
-        margin: 0 0 4px;
-        color: #0f3554;
-        font-size: 17px;
-        font-weight: 800;
-    }
-
-    .reports-format-subtitle {
-        color: #45627d;
-        font-size: 12px;
-        margin-bottom: 10px;
-    }
-
-    .reports-format-textarea {
-        width: 100%;
-        min-height: 172px;
-        border: 1px solid #d8e3ee;
-        border-radius: 8px;
-        padding: 12px;
-        color: #18324a;
-        background: #ffffff;
-        font-family: Consolas, 'Courier New', monospace;
-        font-size: 12px;
-        line-height: 1.45;
-        resize: vertical;
-    }
-
-    .reports-format-actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        align-items: center;
-        margin-top: 10px;
-    }
-
-    .issue-row-actions {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
-
-    .issue-sno-cell {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        width: 100%;
-    }
-
-    .milestone-text-only {
-        display: inline-flex;
-        align-items: center;
-        max-width: 100%;
-        min-height: 24px;
-        padding: 3px 8px;
-        border-radius: 7px;
-        background: #eef5fb;
-        color: #143a5a;
-        font-size: 11px;
-        font-weight: 800;
-        line-height: 1.25;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-    }
-
-    .company-badge-full {
-        font-size: 11px !important;
-        padding: 3px 10px !important;
-        height: auto !important;
-        min-width: auto !important;
-        line-height: 1.5 !important;
-        border-radius: 999px !important;
-    }
-
-    .customer-detail-text {
-        display: block;
-        padding-bottom: 8px;
-        font-size: 12px;
-        color: #374151;
-        line-height: 1.35;
-        word-break: break-word;
-        overflow-wrap: anywhere;
-    }
-
-    .processor-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 11px;
-        color: #4b5563;
-        background: #f3f4f6;
-        border: 1px solid #e5e7eb;
-        border-radius: 4px;
-        padding: 3px 8px;
-        word-break: break-word;
-        overflow-wrap: anywhere;
-        max-width: 100%;
-    }
-
-    .processor-chip::before {
-        content: "⚙";
-        font-size: 10px;
-        opacity: 0.6;
-        flex-shrink: 0;
-    }
-
-    .milestone-with-company {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .company-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 28px;
-        height: 18px;
-        padding: 0 6px;
-        border-radius: 999px;
-        color: #fff;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        line-height: 1;
-        flex-shrink: 0;
-        box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.18);
-    }
-
-    .company-badge-tone-0 { background: #0068b5; }
-    .company-badge-tone-1 { background: #0f7c67; }
-    .company-badge-tone-2 { background: #8f5cc6; }
-    .company-badge-tone-3 { background: #b05d2e; }
-    .company-badge-tone-4 { background: #6b7280; }
-    .company-badge-tone-5 { background: #d13438; }
-
-    .milestone-label {
-        white-space: normal;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-    }
-
-    /* SightingID + Promoted ID inline label:value layout */
-    .id-pair-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .id-inline-row {
-        display: flex;
-        align-items: baseline;
-        gap: 5px;
-        flex-wrap: wrap;
-    }
-
-    .id-inline-label {
-        font-size: 11px;
-        font-weight: 600;
-        color: #6b7280;
-        white-space: nowrap;
-        flex-shrink: 0;
-    }
-
-    .id-inline-link {
-        font-size: 13px;
-        font-weight: 600;
-        color: #0068b5;
-        text-decoration: none;
-        word-break: break-all;
-    }
-
-    .id-inline-link:hover { text-decoration: underline; }
-
-    .id-inline-value {
-        font-size: 13px;
-        color: #4b5563;
-        word-break: break-all;
-    }
-
-    .table-primary .pager,
-    .table-primary .pager table {
-        display: none;
-    }
-
-    .table-primary .pager a,
-    .table-primary .pager span {
-        display: inline-block;
-        min-width: 36px;
-        text-align: center;
-        padding: 6px 10px;
-        margin: 0 3px;
-        border: 1px solid #d4d4d4;
-        border-radius: 6px;
-        font-size: 12px;
-        color: #2e2e2e;
-        background: #fafafa;
-        text-decoration: none;
-    }
-
-    .table-primary .pager span {
-        border-color: #0068b5;
-        color: #0068b5;
-        background: #eff6fc;
-        font-weight: 700;
-    }
-
-    .issue-page-status {
-        margin-top: 8px;
-        text-align: right;
-        font-size: 12px;
-        color: #616161;
-    }
-
-    .issue-pager-controls {
-        display: grid;
-        grid-template-columns: 1fr auto 1fr;
-        justify-content: stretch;
-        align-items: center;
-        gap: 6px;
-        margin-top: 10px;
-        padding: 8px 10px;
-        border: 1px solid #e1e8f0;
-        border-radius: 10px;
-        background: #ffffff;
-        box-shadow: 0 8px 18px rgba(30, 58, 90, 0.06);
-        position: relative;
-    }
-
-    .issue-pager-btn,
-    .issue-pager-current {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 40px;
-        min-height: 32px;
-        padding: 0 12px;
-        border: 1px solid #d0d0d0;
-        border-radius: 6px;
-        font-size: 12px;
-        text-decoration: none;
-        background: #ffffff;
-        color: #2a2a2a;
-    }
-
-    .issue-page-nav {
-        grid-column: 2;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        flex-wrap: wrap;
-    }
-
-    .issue-pager-group-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 40px;
-        min-height: 32px;
-        padding: 0 10px;
-        border: 1px solid #d0d0d0;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: bold;
-        text-decoration: none;
-        background: #f5f5f5;
-        color: #666;
-        cursor: pointer;
-    }
-
-    .issue-pager-group-btn:hover:not(.disabled) {
-        background: #e0e0e0;
-    }
-
-    .issue-pager-current {
-        background: #0068b5;
-        border-color: #0068b5;
-        color: #ffffff;
-        font-weight: 700;
-        min-width: 34px;
-    }
-
-    .issue-page-size-control {
-        grid-column: 3;
-        justify-self: end;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        color: #58677a;
-        font-size: 11px;
-        font-weight: 700;
-        white-space: nowrap;
-    }
-
-    .issue-page-size-select {
-        height: 30px;
-        min-width: 62px;
-        border: 1px solid #cfdae8;
-        border-radius: 8px;
-        background: #f8fbff;
-        color: #1f3b57;
-        font-size: 12px;
-        font-weight: 700;
-        padding: 0 6px;
-    }
-
-    .issue-pager-btn.disabled,
-    .issue-pager-btn.aspNetDisabled,
-    .issue-pager-group-btn.disabled,
-    .issue-pager-group-btn.aspNetDisabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-        pointer-events: none;
-    }
-
-    .table-primary,
-    #overall_request_details,
-    #GridView_cmf_pending,
-    #GridView_analytics_summary {
-        width: 100%;
-        border-collapse: collapse !important;
-        border-spacing: 0;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        overflow: hidden;
-        margin-top: 0 !important;
-        margin-bottom: 0;
-        background: #ffffff;
-    }
-
-    .table-primary th,
-    #overall_request_details th,
-    #GridView_cmf_pending th,
-    #GridView_analytics_summary th {
-        background: #fafafa !important;
-        color: #424242 !important;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        font-size: 11px !important;
-        font-weight: 600 !important;
-        border: 1px solid #e0e0e0 !important;
-        padding: 10px 10px !important;
-        vertical-align: top;
-        text-align: left !important;
-    }
-
-    .table-primary td,
-    #overall_request_details td,
-    #GridView_cmf_pending td,
-    #GridView_analytics_summary td {
-        border: 1px solid #f0f0f0 !important;
-        padding: 10px !important;
-        font-size: 12px;
-        color: #242424;
-        background: #ffffff;
-    }
-
-    /* Issue List gets more breathing room than the other grids */
-    #overall_request_details td {
-        padding: 16px !important;
-        vertical-align: top !important;
-    }
-
-    #overall_request_details tr:hover td,
-    #GridView_cmf_pending tr:hover td,
-    #GridView_analytics_summary tr:hover td {
-        background: #f8fbff;
-    }
-
-    /* Final visual layer: keep Issue List/Pending away from flat Excel styling. */
-    #overall_request_details {
-        border-collapse: separate !important;
-        border-spacing: 0 10px !important;
-        border: 0 !important;
-        background: transparent !important;
-        overflow: visible !important;
-    }
-
-    #overall_request_details th {
-        background: #ffffff !important;
-        color: #5d6f84 !important;
-        border-top: 1px solid #e6edf5 !important;
-        border-bottom: 1px solid #e6edf5 !important;
-        border-left: 0 !important;
-        border-right: 0 !important;
-    }
-
-    #overall_request_details td {
-        background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%) !important;
-        border-top: 1px solid #e4edf6 !important;
-        border-bottom: 1px solid #e4edf6 !important;
-        border-left: 0 !important;
-        border-right: 0 !important;
-        box-shadow: 0 10px 24px rgba(16, 41, 67, 0.07) !important;
-        transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
-    }
-
-    #overall_request_details tr td:first-child {
-        border-left: 1px solid #e4edf6 !important;
-        border-radius: 10px 0 0 10px !important;
-    }
-
-    #overall_request_details tr td:last-child {
-        border-right: 1px solid #e4edf6 !important;
-        border-radius: 0 10px 10px 0 !important;
-    }
-
-    #overall_request_details tr:hover td {
-        background: linear-gradient(180deg, #ffffff 0%, #f4f9ff 100%) !important;
-        transform: translateY(-2px);
-        border-color: #cfdff0 !important;
-        box-shadow: 0 16px 34px rgba(16, 41, 67, 0.12) !important;
-    }
-
-    .cmf-pending-grid-wrap #GridView_cmf_pending {
-        min-width: 1260px !important;
-        border-collapse: separate !important;
-        border-spacing: 0 !important;
-        border: 1px solid #e8edf5 !important;
-        border-radius: 10px !important;
-        overflow: hidden !important;
-        background: #ffffff !important;
-        box-shadow: 0 10px 24px rgba(28, 48, 78, 0.05) !important;
-    }
-
-    .cmf-pending-grid-wrap #GridView_cmf_pending th {
-        background: #f7f9fc !important;
-        color: #243042 !important;
-        border: 0 !important;
-        border-bottom: 1px solid #e5ebf3 !important;
-        padding: 10px 12px !important;
-        font-size: 10px !important;
-        font-weight: 800 !important;
-        letter-spacing: 0 !important;
-        text-transform: none !important;
-    }
-
-    .cmf-pending-grid-wrap #GridView_cmf_pending td {
-        background: #ffffff !important;
-        border: 0 !important;
-        border-bottom: 1px solid #eef2f7 !important;
-        box-shadow: none !important;
-        padding: 12px !important;
-        color: #1f2937 !important;
-        vertical-align: top !important;
-    }
-
-    .cmf-pending-grid-wrap #GridView_cmf_pending tr:hover td {
-        background: #fbfdff !important;
-    }
-
-    .cmf-pending-grid-wrap .pending-chip {
-        border-radius: 999px;
-        background: #eef5fb;
-        color: #214967;
-        font-size: 10px;
-        font-weight: 800;
-        line-height: 1.2;
-    }
-
-    .cmf-pending-grid-wrap .ai-summary-btn {
-        width: 100%;
-        min-height: 32px;
-        border-radius: 8px;
-        font-size: 11px;
-        font-weight: 800;
-        white-space: normal;
-    }
-
-    .cmf-pending-grid-wrap .pending-recommendation-btn {
-        width: auto;
-        max-width: 100%;
-        white-space: nowrap;
-    }
-
-    .header-dropdown {
-        height: 28px;
-        width: 126px;
-        border-radius: 4px !important;
-        border: 1px solid #d1d1d1 !important;
-        font-size: 11px !important;
-        padding: 2px 6px !important;
-        background: #ffffff !important;
-        color: #242424 !important;
-    }
-
-    #searchfilters {
-        margin: 0 0 10px;
-        padding: 8px;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        background: #fafafa;
-    }
-
-    #searchfilters input[type="text"] {
-        height: 30px;
-        border: 1px solid #d1d1d1;
-        border-radius: 4px;
-        padding: 0 8px;
-        font-size: 12px;
-    }
+    /* Final override: enforce horizontal scrolling for Issue List columns */
 
     @media (max-width: 900px) {
         #updateinfo {
@@ -8318,8 +10931,6 @@ td:nth-child(odd), th:nth-child(odd) {
             align-items: flex-start;
         }
     }
-
-    /* Final override: enforce horizontal scrolling for Issue List columns */
     .issue-grid-scroll {
         overflow: hidden !important;
         width: 100%;
@@ -8370,6 +10981,17 @@ td:nth-child(odd), th:nth-child(odd) {
         white-space: normal !important;
         overflow-wrap: anywhere !important;
         word-break: break-word !important;
+    }
+
+    .issue-grid-inner #overall_request_details,
+    .issue-grid-inner > table,
+    .issue-grid-inner > .table-primary,
+    .issue-grid-inner .table-primary {
+        table-layout: fixed !important;
+        width: 100% !important;
+        min-width: 1560px !important;
+        max-width: none !important;
+        display: table !important;
     }
 
     .issue-grid-inner #<%= overall_request_details.ClientID %>,
@@ -8654,11 +11276,85 @@ td:nth-child(odd), th:nth-child(odd) {
     }
 
     body {
-        font-family:
-            "Segoe UI",
-            Inter,
-            Arial,
-            sans-serif !important;
+        font-family: var(--portal-font-body) !important;
+        font-size: 14px !important;
+        line-height: 1.45 !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    .header-title,
+    .ccip-dash-greeting,
+    .ccip-cmf-summary-title,
+    .ccip-card-title,
+    .ccip-card-mini-title,
+    .overall-card-title {
+        font-family: var(--portal-font-display) !important;
+        letter-spacing: -0.01em !important;
+    }
+
+    .ccip-dash-greeting {
+        font-size: 22px !important;
+        font-weight: 800 !important;
+        line-height: 1.15 !important;
+        font-family: var(--portal-font-display) !important;
+    }
+
+    .overall-card-title,
+    .ccip-card-title {
+        font-size: 16px !important;
+        font-weight: 800 !important;
+        line-height: 1.2 !important;
+    }
+
+    .ccip-card-mini-title {
+        font-size: 14px !important;
+        font-weight: 780 !important;
+        line-height: 1.2 !important;
+    }
+
+    #homeLegacyTablesGrid .ccip-card-mini-title,
+    #homeCmfSummaryPanel .ccip-card-mini-title {
+        font-size: 16px !important;
+        font-weight: 800 !important;
+        line-height: 1.2 !important;
+        letter-spacing: -0.01em !important;
+        text-transform: uppercase;
+        color: #1e3a60 !important;
+    }
+
+    .ccip-summary-fact-label,
+    .overall-tpt-label {
+        font-family: var(--portal-font-card) !important;
+        font-size: 11px !important;
+        font-weight: 760 !important;
+        letter-spacing: 0.02em !important;
+        text-transform: uppercase;
+    }
+
+    .ccip-summary-fact-value,
+    .overall-tpt-value {
+        font-family: var(--portal-font-card) !important;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum" 1, "lnum" 1;
+        letter-spacing: -0.01em;
+    }
+
+    .overall-tpt-note,
+    .ccip-summary-fact-note {
+        font-family: var(--portal-font-card) !important;
+    }
+
+    .ccip-summary-fact-value,
+    .overall-tpt-value {
+        font-weight: 900 !important;
     }
 
 
@@ -8737,6 +11433,7 @@ td:nth-child(odd), th:nth-child(odd) {
         gap: 10px !important;
 
         min-height: calc(100vh - 76px) !important;
+        align-items: stretch !important;
         padding-top: 12px !important;
     }
 
@@ -8746,8 +11443,10 @@ td:nth-child(odd), th:nth-child(odd) {
 
         top: 76px !important;
 
-        min-height: calc(100vh - 76px) !important;
-        max-height: calc(100vh - 76px) !important;
+        min-height: 100% !important;
+        max-height: none !important;
+        height: auto !important;
+        align-self: stretch !important;
 
         padding: 16px 10px !important;
 
@@ -9964,8 +12663,10 @@ td:nth-child(odd), th:nth-child(odd) {
 
     .portal-left-nav {
         top: 76px !important;
-        min-height: calc(100vh - 76px) !important;
-        max-height: calc(100vh - 76px) !important;
+        min-height: 100% !important;
+        max-height: none !important;
+        height: auto !important;
+        align-self: stretch !important;
         background: linear-gradient(180deg, #0f3f59 0%, #0b3148 54%, #09263b 100%) !important;
     }
 
@@ -10453,8 +13154,6 @@ td:nth-child(odd), th:nth-child(odd) {
         top: 0 !important;
         z-index: 20 !important;
     }
-
-    /* CMF Pending List template layer */
     #pendingTabShell.pending-tab-shell,
     #pendingTabShell.pending-tab-shell.side-hidden {
         width: 100% !important;
@@ -10726,10 +13425,17 @@ td:nth-child(odd), th:nth-child(odd) {
         window.CMF_PORTAL.ids.hiddenIssueType = '<%= HiddenIssueType.ClientID %>';
         window.CMF_PORTAL.ids.hiddenModalDesign = '<%= HiddenModalDesign.ClientID %>';
         window.CMF_PORTAL.ids.hiddenModalDriver = '<%= HiddenModalDriver.ClientID %>';
+        window.CMF_PORTAL.ids.hiddenInlineDesignName = '<%= HiddenInlineDesignName.ClientID %>';
+        window.CMF_PORTAL.ids.hiddenInlineSwImageFreeze = '<%= HiddenInlineSwImageFreeze.ClientID %>';
+        window.CMF_PORTAL.ids.hiddenInlineSupportModel = '<%= HiddenInlineSupportModel.ClientID %>';
         window.CMF_PORTAL.ids.ddlTables = '<%= ddlTables.ClientID %>';
         window.CMF_PORTAL.ids.ddlSharedPlatform = '<%= ddlSharedPlatform.ClientID %>';
         window.CMF_PORTAL.ids.hfQuickPlatform = '<%= hfQuickPlatform.ClientID %>';
+        window.CMF_PORTAL.ids.hfQuickPlatformSourceTab = '<%= hfQuickPlatformSourceTab.ClientID %>';
+        window.CMF_PORTAL.ids.hfOverallExcludedPlatforms = '<%= hfOverallExcludedPlatforms.ClientID %>';
         window.CMF_PORTAL.ids.btnQuickPlatformApply = '<%= btnQuickPlatformApply.UniqueID %>';
+        window.CMF_PORTAL.ids.btnShowGridView2 = '<%= btnShowGridView2.UniqueID %>';
+        window.CMF_PORTAL.ids.btnExportToExcelDesignSummary = '<%= btnExportToExcel_des_summary.UniqueID %>';
         window.CMF_PORTAL.ids.overallRequestDetails = '<%= overall_request_details.ClientID %>';
         window.CMF_PORTAL.ids.gridViewDesignSummary = '<%= GridView_design_summary.ClientID %>';
         window.CMF_PORTAL.ids.gridViewComponentSummary = '<%= GridView_component_summary.ClientID %>';
@@ -10751,6 +13457,11 @@ td:nth-child(odd), th:nth-child(odd) {
         window.CMF_PORTAL.ids.lblLikelyDuplicate = '<%= lblLikelyDuplicate.ClientID %>';
         window.CMF_PORTAL.ids.lblIncompleteSysScope = '<%= lblIncompleteSysScope.ClientID %>';
         window.CMF_PORTAL.currentPlatform = '<%= ResolvePlatformTable(Session["selectedPlatform"] as string ?? ddlTables.SelectedValue) %>';
+        window.CMF_PORTAL.currentDashboardPlatform = '<%= ResolveDashboardPlatformSelection() %>';
+        window.CMF_PORTAL.overallPlatformTable = '<%= CmfPlatformCatalog.OverallPlatformTableName %>';
+        window.CMF_PORTAL.availablePlatforms = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(AvailablePlatformTablesJson) %>');
+        window.CMF_PORTAL.platformChipOptions = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(AvailablePlatformChipOptionsJson) %>');
+        window.CMF_PORTAL.overallExcludedPlatforms = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(OverallExcludedPlatformsJson) %>');
 
         window.CMF_PORTAL.defaults = {
             componentName: '',
@@ -10758,39 +13469,265 @@ td:nth-child(odd), th:nth-child(odd) {
             driverName: ''
         };
 
-        window.CMF_PORTAL.driversJson = <%= DriversJson %>;
-        window.CMF_PORTAL.isInitialLoad = <%= IsPostBack ? "false" : "true" %>;
+        window.CMF_PORTAL.driversJson = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(DriversJson) %>');
+        window.CMF_PORTAL.isInitialLoad = '<%= IsPostBack ? "false" : "true" %>' === 'true';
         window.CMF_PORTAL.activeFocusedTab = '<%= GetActiveFocusedTab() %>';
 
-        window.CMF_PORTAL.platformAliasMap = {
-            "PTL": "CMF_PTL_ALL_COMPONENTS_TABLE",
-            "LNL": "CMF_LNL_ALL_COMPONENTS_TABLE",
-            "ARL-S": "CMF_ARL_S_ALL_COMPONENTS_TABLE",
-            "ARL-H": "CMF_ARL_H_ALL_COMPONENTS_TABLE",
-            "ARL-U": "CMF_ARL_U_ALL_COMPONENTS_TABLE",
-            "ARL-HX": "CMF_ARL_HX_ALL_COMPONENTS_TABLE",
-            "ARL-REFRESH": "CMF_ARL_Refresh_ALL_COMPONENTS_TABLE",
-            "GNR": "CMF_GNR_ALL_COMPONENTS_TABLE",
-            "WCL": "CMF_WCL_ALL_COMPONENTS_TABLE",
-            "NVL-S": "CMF_NVL_S_ALL_COMPONENTS_TABLE",
-            "NVL-H": "CMF_NVL_H_ALL_COMPONENTS_TABLE"
-        };
+        function isOverallDashboardSelected() {
+            return String(window.CMF_PORTAL.currentDashboardPlatform || '') === String(window.CMF_PORTAL.overallPlatformTable || '');
+        }
+
+        function getOverallSelectablePlatforms() {
+            var overallValue = String(window.CMF_PORTAL.overallPlatformTable || '');
+            var available = window.CMF_PORTAL.availablePlatforms || [];
+            var result = [];
+            for (var i = 0; i < available.length; i++) {
+                var value = String(available[i] || '');
+                if (!value || value === overallValue) {
+                    continue;
+                }
+                result.push(value);
+            }
+            return result;
+        }
+
+        function getOverallExcludedPlatformSet() {
+            var source = window.CMF_PORTAL.overallExcludedPlatforms || [];
+            var set = {};
+            for (var i = 0; i < source.length; i++) {
+                var value = String(source[i] || '');
+                if (value) {
+                    set[value] = true;
+                }
+            }
+            return set;
+        }
+
+        function syncOverallExcludedPlatformsHidden() {
+            var hidden = document.getElementById(window.CMF_PORTAL.ids.hfOverallExcludedPlatforms);
+            if (!hidden) {
+                return;
+            }
+
+            var values = window.CMF_PORTAL.overallExcludedPlatforms || [];
+            hidden.value = values.join(',');
+        }
+
+        function setOverallExcludedPlatformsFromSet(set) {
+            var values = [];
+            for (var key in set) {
+                if (Object.prototype.hasOwnProperty.call(set, key) && set[key]) {
+                    values.push(key);
+                }
+            }
+            values.sort();
+            window.CMF_PORTAL.overallExcludedPlatforms = values;
+            syncOverallExcludedPlatformsHidden();
+        }
+
+        function updateOverallPlatformChipStates() {
+            var overallValue = String(window.CMF_PORTAL.overallPlatformTable || '');
+            var overallSelected = isOverallDashboardSelected();
+            var excludedSet = getOverallExcludedPlatformSet();
+            var chips = document.querySelectorAll('.platform-chip');
+            var rails = document.querySelectorAll('.platform-chip-rail[data-chip-source="server"]');
+
+            for (var railIndex = 0; railIndex < rails.length; railIndex++) {
+                rails[railIndex].classList.toggle('is-overall-selection', !!overallSelected);
+            }
+
+            for (var i = 0; i < chips.length; i++) {
+                var chip = chips[i];
+                var value = String(chip.getAttribute('data-platform') || '');
+                var state = chip.querySelector('.platform-chip-state');
+                chip.classList.remove('is-platform-included');
+                chip.classList.remove('is-platform-excluded');
+
+                if (!state || !overallSelected || value === overallValue || chip.style.display === 'none') {
+                    if (state) {
+                        state.textContent = '';
+                        state.style.visibility = 'hidden';
+                    }
+                    continue;
+                }
+
+                var excluded = !!excludedSet[value];
+                chip.classList.add(excluded ? 'is-platform-excluded' : 'is-platform-included');
+                state.textContent = excluded ? 'x' : '✓';
+                state.title = excluded
+                    ? 'Excluded from Overall metrics. Click to include.'
+                    : 'Included in Overall metrics. Click to exclude.';
+                state.setAttribute('aria-label', state.title);
+                state.style.visibility = 'visible';
+            }
+        }
+
+        function toggleOverallPlatformInclusion(platformValue) {
+            var overallValue = String(window.CMF_PORTAL.overallPlatformTable || '');
+            var target = String(platformValue || '');
+
+            if (!target || target === overallValue || !isOverallDashboardSelected()) {
+                return;
+            }
+
+            var selectable = getOverallSelectablePlatforms();
+            var selectableSet = {};
+            for (var i = 0; i < selectable.length; i++) {
+                selectableSet[selectable[i]] = true;
+            }
+
+            if (!selectableSet[target]) {
+                return;
+            }
+
+            var excludedSet = getOverallExcludedPlatformSet();
+            if (excludedSet[target]) {
+                delete excludedSet[target];
+            } else {
+                var includedCount = 0;
+                for (var key in selectableSet) {
+                    if (Object.prototype.hasOwnProperty.call(selectableSet, key) && !excludedSet[key] && key !== target) {
+                        includedCount++;
+                    }
+                }
+
+                if (includedCount <= 0) {
+                    alert('At least one platform must remain included in Overall metrics.');
+                    return;
+                }
+
+                excludedSet[target] = true;
+            }
+
+            for (var pruneKey in excludedSet) {
+                if (Object.prototype.hasOwnProperty.call(excludedSet, pruneKey) && !selectableSet[pruneKey]) {
+                    delete excludedSet[pruneKey];
+                }
+            }
+
+            setOverallExcludedPlatformsFromSet(excludedSet);
+            updateOverallPlatformChipStates();
+            applyQuickPlatform(overallValue);
+        }
+
+        function renderPlatformChipRails() {
+            var options = window.CMF_PORTAL.platformChipOptions || [];
+            var overallValue = String(window.CMF_PORTAL.overallPlatformTable || '');
+            var rails = document.querySelectorAll('.platform-chip-rail[data-chip-source="server"]');
+
+            for (var railIndex = 0; railIndex < rails.length; railIndex++) {
+                var rail = rails[railIndex];
+                while (rail.firstChild) {
+                    rail.removeChild(rail.firstChild);
+                }
+
+                if (!options.length) {
+                    rail.style.display = 'none';
+                    continue;
+                }
+
+                rail.style.display = '';
+                for (var optionIndex = 0; optionIndex < options.length; optionIndex++) {
+                    var option = options[optionIndex];
+                    if (!option || !option.value) {
+                        continue;
+                    }
+
+                    var button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'platform-chip';
+                    button.setAttribute('data-platform', option.value);
+                    button.setAttribute('aria-label', 'Switch to ' + (option.label || option.value));
+
+                    var label = document.createElement('span');
+                    label.className = 'platform-chip-label';
+                    label.textContent = option.label || option.value;
+                    button.appendChild(label);
+
+                    var state = document.createElement('span');
+                    state.className = 'platform-chip-state';
+                    state.setAttribute('aria-hidden', 'true');
+                    state.onclick = function (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        toggleOverallPlatformInclusion(this.parentNode.getAttribute('data-platform'));
+                    };
+                    button.appendChild(state);
+
+                    button.onclick = function (event) {
+                        if (event && event.target && event.target.classList && event.target.classList.contains('platform-chip-state')) {
+                            return;
+                        }
+                        applyQuickPlatform(this.getAttribute('data-platform'));
+                    };
+
+                    rail.appendChild(button);
+                }
+            }
+        }
+
+        function applyPlatformChipVisibility() {
+            var available = window.CMF_PORTAL.availablePlatforms || [];
+            if (!available.length) {
+                return;
+            }
+
+            var availableSet = {};
+            for (var i = 0; i < available.length; i++) {
+                availableSet[available[i]] = true;
+            }
+
+            var chips = document.querySelectorAll('.platform-chip');
+            for (var chipIndex = 0; chipIndex < chips.length; chipIndex++) {
+                var value = chips[chipIndex].getAttribute('data-platform');
+                chips[chipIndex].style.display = availableSet[value] ? '' : 'none';
+            }
+
+            updateOverallPlatformChipStates();
+        }
 
         function syncActivePlatformChip() {
-            var ddl = document.getElementById(window.CMF_PORTAL.ids.ddlTables);
-            if (!ddl) return;
-            var current = ddl.value;
+            var current = window.CMF_PORTAL.currentDashboardPlatform || window.CMF_PORTAL.currentPlatform || '';
+            if (!current) {
+                var ddl = document.getElementById(window.CMF_PORTAL.ids.ddlTables);
+                current = ddl ? ddl.value : '';
+            }
             var chips = document.querySelectorAll('.platform-chip');
             for (var i = 0; i < chips.length; i++) {
                 chips[i].classList.toggle('is-active', chips[i].getAttribute('data-platform') === current);
             }
+
+            updateOverallPlatformChipStates();
         }
 
         function applyQuickPlatform(platformValue) {
             if (!platformValue) return;
             var hidden = document.getElementById(window.CMF_PORTAL.ids.hfQuickPlatform);
             if (!hidden) return;
+
+            var sourceHidden = document.getElementById(window.CMF_PORTAL.ids.hfQuickPlatformSourceTab);
+            if (sourceHidden) {
+                var sourceTab = (window.CMF_PORTAL.activeFocusedTab || '').toLowerCase();
+                var homePanel = document.getElementById(window.CMF_PORTAL.ids.homeWelcomePanel);
+                var cmfPanel = document.getElementById(window.CMF_PORTAL.ids.homeCmfSummaryPanel);
+                var issuePane = document.getElementById(window.CMF_PORTAL.ids.paneIssueList);
+                var pendingPane = document.getElementById(window.CMF_PORTAL.ids.paneCmfPending);
+
+                if (isElementVisible(homePanel)) {
+                    sourceTab = 'home';
+                } else if (isElementVisible(cmfPanel)) {
+                    sourceTab = 'cmf';
+                } else if (isElementVisible(pendingPane)) {
+                    sourceTab = 'pending';
+                } else if (isElementVisible(issuePane)) {
+                    sourceTab = 'issue';
+                }
+
+                sourceHidden.value = sourceTab || 'home';
+            }
+
             hidden.value = platformValue;
+            syncOverallExcludedPlatformsHidden();
             __doPostBack(window.CMF_PORTAL.ids.btnQuickPlatformApply, '');
         }
 
@@ -10855,146 +13792,11 @@ td:nth-child(odd), th:nth-child(odd) {
             return getCurrentPlatformValue();
         }
 
-        function getPlatformDisplayLabel(platformValue) {
-            var value = String(platformValue || '').trim();
-            if (!value) return 'Current platform';
-
-            var aliases = window.CMF_PORTAL && window.CMF_PORTAL.platformAliasMap ? window.CMF_PORTAL.platformAliasMap : {};
-            for (var label in aliases) {
-                if (Object.prototype.hasOwnProperty.call(aliases, label) && aliases[label] === value) {
-                    return label.replace(/-/g, '_').toUpperCase();
-                }
-            }
-
-            return value
-                .replace(/^CMF_/i, '')
-                .replace(/_ALL_COMPONENTS_TABLE$/i, '')
-                .replace(/-/g, '_')
-                .toUpperCase();
-        }
-
-        function renderImpactSummarySkeleton() {
-            return '<div class="ai-skeleton-loader cmf-impact-skeleton" aria-label="Generating impact summary">' +
-                '<div class="ai-skeleton-line" style="width: 94%;"></div>' +
-                '<div class="ai-skeleton-line" style="width: 88%;"></div>' +
-                '<div class="ai-skeleton-line" style="width: 72%;"></div>' +
-                '<div class="ai-skeleton-line" style="width: 90%; margin-top: 8px;"></div>' +
-                '<div class="ai-skeleton-line" style="width: 84%;"></div>' +
-                '<div class="ai-skeleton-line" style="width: 66%;"></div>' +
-                '</div>';
-        }
-
-            function renderIssueDescriptionSkeleton() {
-                return '<div class="ai-skeleton-loader cmf-impact-skeleton" aria-label="Generating issue description">' +
-                '<div class="ai-skeleton-line" style="width: 92%;"></div>' +
-                '<div class="ai-skeleton-line" style="width: 76%; margin-top: 8px;"></div>' +
-                '</div>';
-            }
-
-        function renderIssueDescriptionText(text) {
-            var source = normalizeIssueDescriptionBullets(text || '');
-            var lines = source.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-                .split('\n')
-                .map(function (line) { return line.trim(); })
-                .filter(Boolean);
-            if (!lines.length) return 'No description available.';
-
-            var parsedLines = lines.map(function (line) {
-                var isBullet = /^\s*(?:[-*•]|\d+[.)])\s+/.test(line);
-                return {
-                    isBullet: isBullet,
-                    text: line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '').trim()
-                };
-            }).filter(function (item) { return item.text; });
-
-            var bullets = [];
-            var markedBullets = parsedLines.filter(function (item) { return item.isBullet; });
-            if (markedBullets.length >= 2) {
-                bullets = markedBullets.map(function (item) { return item.text; }).slice(0, 3);
-            } else if (parsedLines.length >= 4) {
-                bullets = parsedLines.slice(1, 4).map(function (item) { return item.text; });
-            } else {
-                bullets = parsedLines.map(function (item) { return item.text; }).slice(0, 3);
-            }
-
-            if (bullets.length < 3) {
-                var sentenceParts = parsedLines.map(function (item) { return item.text; }).join(' ').match(/[^.!?]+[.!?]+/g) || [];
-                for (var i = 0; i < sentenceParts.length && bullets.length < 3; i++) {
-                    var sentence = sentenceParts[i].trim();
-                    if (sentence && bullets.indexOf(sentence) < 0) bullets.push(sentence);
-                }
-            }
-
-            var html = '<ul>';
-            for (var j = 0; j < bullets.length && j < 3; j++) {
-                html += '<li>' + escapeHtml(bullets[j]) + '</li>';
-            }
-            return html + '</ul>';
-        }
-
-        function normalizeIssueDescriptionBullets(text) {
-            return String(text || '')
-                .replace(/\s+([-*•])\s+/g, '\n$1 ')
-                .replace(/\s+(\d+[.)])\s+/g, '\n$1 ');
-        }
-
-        function renderAssistantRichText(text) {
-            var html = escapeHtml(text || '');
-            html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
-            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            html = html.replace(/_(.+?)_/g, '<em>$1</em>');
-            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-            html = html.replace(/~~(.+?)~~/g, '<u>$1</u>');
-            return html;
-        }
-
-        function normalizeImpactFixLine(line) {
-            var match = String(line || '').match(/^(?:Fix\s*(?:requested\s*)?by|Must\s*fix\s*for|Requested\s*fix(?:\s*(?:timing|by))?|Needed\s*by)\s*:\s*(.+)$/i);
-            if (!match) return '';
-            var timing = match[1].replace(/[.;]\s*$/, '').trim();
-            return timing ? 'Fix By: ' + timing : '';
-        }
-
-        function renderImpactSummaryText(text) {
-            var lines = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-                .replace(/\s+([-*•])\s+/g, '\n$1 ')
-                .replace(/\s+(\d+[.)])\s+/g, '\n$1 ')
-                .replace(/\s+((?:Fix\s*(?:requested\s*)?by|Must\s*fix\s*for|Requested\s*fix(?:\s*(?:timing|by))?|Needed\s*by)\s*:)\s*/ig, '\n$1 ')
-                .split('\n')
-                .map(function (line) { return line.trim(); })
-                .filter(Boolean);
-            if (!lines.length) return 'No impact summary available.';
-
-            var fixLine = '';
-            var bullets = [];
-            lines.forEach(function (line) {
-                var cleanLine = line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '').trim();
-                var normalizedFixLine = normalizeImpactFixLine(cleanLine);
-                if (normalizedFixLine) {
-                    fixLine = normalizedFixLine;
-                } else if (cleanLine) {
-                    bullets.push(cleanLine);
-                }
-            });
-
-            if (!bullets.length && !fixLine) bullets = lines;
-
-            var html = bullets.length ? '<ul class="cmf-assistant-impact-list">' + bullets.map(function (line) {
-                return '<li>' + renderAssistantRichText(line) + '</li>';
-            }).join('') + '</ul>' : '';
-
-            if (fixLine) {
-                html += '<div class="cmf-assistant-fix-line"><strong>' + renderAssistantRichText(fixLine) + '</strong></div>';
-            }
-
-            return html;
-        }
-
         function renderMarkdown(text) {
             try {
                 var htmlContent = marked.parse(text);
                 var cleanHtml = DOMPurify.sanitize(htmlContent, {
-                    ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'strong', 'b', 'em', 'i', 
+                    ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'strong', 'b', 'em', 'i',
                                    'ul', 'ol', 'li', 'code', 'pre', 'blockquote', 'a', 'hr', 'span', 'div'],
                     ALLOWED_ATTR: ['href', 'target', 'class']
                 });
@@ -11058,11 +13860,11 @@ td:nth-child(odd), th:nth-child(odd) {
             source = source.replace(/^\s*Reproducibility\s*:\s*.*$/gim, '');
             source = source.replace(/^\s*Logs\(sysdebug(?:\/debug details)?\)\s*:\s*.*$/gim, '');
             source = source.replace(/^\s*RVP platform debug details\s*:\s*.*$/gim, '');
-            
+
             // For the new prompt format with headings ### Debug Summary and ### Next Steps
             var debugSummaryMatch = source.match(/(?:###\s*)?Debug Summary(?:\*\*)?\s*:?([\s\S]*?)(?=(?:###\s*)?Next Steps(?:\*\*)?\s*:?|$)/i);
             var nextStepsMatch = source.match(/(?:###\s*)?Next Steps(?:\*\*)?\s*:?([\s\S]*)$/i);
-            
+
             if (debugSummaryMatch || nextStepsMatch) {
                  return {
                      summary: debugSummaryMatch && debugSummaryMatch[1] ? debugSummaryMatch[1].trim() : '',
@@ -11134,7 +13936,7 @@ td:nth-child(odd), th:nth-child(odd) {
         function openAiSummaryModal(issueId, title, submittedDate, status, sysdebug, mode) {
             var currentMode = mode || 'AI Summary';
             var isDetails = currentMode === 'AI issue details';
-            
+
             var headingNode = document.getElementById('aiSummaryHeadingText');
             var badgesNode = document.getElementById('aiSummaryTitleBadges');
             var metaNode = document.getElementById('aiSummaryMeta');
@@ -11169,7 +13971,7 @@ td:nth-child(odd), th:nth-child(odd) {
             if (factsNode) factsNode.style.display = 'none';
             // Clear or format the meta string depending on mode
             issueIdNode.textContent = isDetails ? '' : (issueId || 'N/A');
-            
+
             // Revert stylize override since it's now in the header itself
             issueIdNode.style.cssText = '';
             if (titleNode) titleNode.textContent = '';
@@ -11181,7 +13983,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 statusBadgeNode.className = 'ai-summary-status-value';
             }
             bodyNode.className = isDetails ? 'ai-summary-body issue-details-brief' : 'ai-summary-body markdown-content';
-            
+
             if (isDetails || currentMode === 'AI Summary') {
                 bodyNode.innerHTML = `
                     <div class="ai-skeleton-loader">
@@ -11241,7 +14043,7 @@ td:nth-child(odd), th:nth-child(odd) {
             if (!actionsNode) actionsNode = document.getElementById('aiSummaryActions');
 
             bodyNode.className = 'ai-summary-body';
-            
+
             // Only inject the banner if it's the chat/summary mode; details mode already injected a shimmer.
             if (payload.mode !== 'AI issue details' || bodyNode.innerHTML.indexOf('ai-skeleton-loader') === -1) {
                 if (payload.mode === 'AI issue details' || payload.mode === 'AI Summary') {
@@ -11310,7 +14112,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 }
 
                 window._aiSummaryLastText = payload.mode === 'AI issue details' ? summary : assistantSummary;
-                
+
                 // Hide heavy fixed copy/regen buttons permanently when in chat
                 if (actionsNode) {
                     actionsNode.style.cssText = 'display: none !important;';
@@ -11376,14 +14178,14 @@ td:nth-child(odd), th:nth-child(odd) {
             };
 
             var html = '<div class="issue-details-grid">';
-            
+
             // Build badges based on values to colorize them semantically
             var colorBadge = function(val, type) {
                 var v = String(val).toLowerCase();
                 if (v === 'n/a' || v === 'none' || v === 'no' || v === 'unknown' || v === '' || v === 'tbd') return `<span class="ai-semantic-badge badge-neutral">${val}</span>`;
                 if (v.includes('not actioned') || v.includes('no promoted ticket yet')) return `<span class="ai-semantic-badge badge-neutral">${val}</span>`;
                 if (v.includes('must fix') || v.includes('must_fix') || v.includes('blocker') || v.includes('critical')) return `<span class="ai-semantic-badge badge-red">${val}</span>`;
-                
+
                 if (type === 'repro') {
                     if (v.includes('100%') || v.includes('always')) return `<span class="ai-semantic-badge badge-red">${val}</span>`;
                     return `<span class="ai-semantic-badge badge-amber">${val}</span>`;
@@ -11400,21 +14202,21 @@ td:nth-child(odd), th:nth-child(odd) {
             html += `<div class="ai-sk-block"><div class="idg-label">Current State</div><div class="idg-val">${colorBadge(getField('Current State'), 'state')}</div></div>`;
             html += `<div class="ai-sk-block"><div class="idg-label">Scenario / Trigger</div><div class="idg-val">${getField('Scenario.*?')}</div></div>`;
             html += `<div class="ai-sk-block"><div class="idg-label">Reproduction</div><div class="idg-val">${colorBadge(getField('Reproduction'), 'repro')}</div></div>`;
-            
+
             html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Affected Platform / System</div><div class="idg-val">${getField('Affected Platform.*?')}</div></div>`;
             html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Environment</div><div class="idg-val">${getField('Environment.*?')}</div></div>`;
             html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Current Investigation</div><div class="idg-val">${getField('Current Investigation')}</div></div>`;
-            
+
             html += `<div class="ai-sk-block"><div class="idg-label">Suspected Root Cause</div><div class="idg-val">${getField('Suspected Root Cause')}</div></div>`;
             html += `<div class="ai-sk-block"><div class="idg-label">Workaround</div><div class="idg-val">${colorBadge(getField('Workaround'), 'workaround')}</div></div>`;
             html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Evidence / Logs</div><div class="idg-val">${getField('Evidence.*?')}</div></div>`;
-            
+
             html +=`</div>`; // end grid
-            
+
             // Check for promoted ticket presence before blindly yielding N/A
             var promotedId = getField('Promoted ID');
             var isPromoted = promotedId !== 'N/A' && promotedId.toLowerCase() !== 'missing' && promotedId.toLowerCase() !== 'none' && promotedId !== '';
-            
+
             var owner = isPromoted ? getField('Owner') : 'No promoted ticket yet';
             var fixedVer = isPromoted ? getField('(?:Fixed Version|Closure).*?') : 'No promoted ticket yet';
             var lastAct = isPromoted ? getField('Latest Activity') : 'No promoted ticket yet';
@@ -11498,23 +14300,23 @@ td:nth-child(odd), th:nth-child(odd) {
             msg.className = 'ai-chat-message ai-chat-' + (role === 'user' ? 'user' : 'assistant');
             var inner = document.createElement('div');
             inner.className = 'ai-chat-message-body';
-            
+
             // Check if text already contains our injected structured HTML wrappers (e.g. from prepareIssueDetailsForDrawer)
             if (text.indexOf('class="issue-details-grid"') > -1) {
                 inner.innerHTML = text; // Inject raw HTML
             } else {
                 inner.innerHTML = renderMarkdown(escapeHtml(text).replace(/\n/g, '\n'));
             }
-            
+
             if (role === 'assistant' && window._aiSummaryLastPayload) {
                 var isAI_IssueDetails = window._aiSummaryLastPayload.mode === 'AI issue details';
                 var isAI_Summary = window._aiSummaryLastPayload.mode === 'AI Summary';
-                
+
                 if (isAI_IssueDetails || isAI_Summary) {
                     var actionRibbon = document.createElement('div');
                     actionRibbon.className = 'ai-chat-msg-actions';
                     actionRibbon.style.cssText = 'display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; align-items: center; color: #5c7087; font-size: 13px;';
-                    
+
                     var retryLink = document.createElement('a');
                     retryLink.href = '#';
                     retryLink.onclick = function(e) {
@@ -11531,7 +14333,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     retryLink.title = 'Regenerate this response';
                     retryLink.onmouseover = function() { this.style.color = '#005A9E'; };
                     retryLink.onmouseout = function() { this.style.color = '#0071c5'; };
-                    
+
                     var copyIcon = document.createElement('a');
                     copyIcon.href = '#';
                     copyIcon.onclick = function(e) {
@@ -11543,7 +14345,7 @@ td:nth-child(odd), th:nth-child(odd) {
                         // Remove action ribbon text itself during copy
                         var ribbonCopy = tmp.querySelector('.ai-chat-msg-actions');
                         if(ribbonCopy) tmp.removeChild(ribbonCopy);
-                        
+
                         navigator.clipboard.writeText(tmp.textContent || tmp.innerText).then(function() {
                             var o = copyIcon.innerHTML;
                             copyIcon.innerHTML = '&#10003;';
@@ -11555,7 +14357,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     copyIcon.title = 'Copy response text';
                     copyIcon.onmouseover = function() { this.style.color = '#0071c5'; };
                     copyIcon.onmouseout = function() { this.style.color = '#5c7087'; };
-                    
+
                     actionRibbon.appendChild(retryLink);
                     actionRibbon.appendChild(copyIcon);
                     inner.appendChild(actionRibbon);
@@ -11564,7 +14366,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
             msg.appendChild(inner);
             container.appendChild(msg);
-            
+
             if (autoScroll) {
                 container.scrollTop = container.scrollHeight;
             } else {
@@ -11742,7 +14544,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 recTagNode.textContent = 'CMF_Tag';
                 recTagNode.className = 'cmf-assistant-rec-tag';
             }
-            
+
             var recNode = document.getElementById('cmfRecRecommendation');
             var evidenceNode = document.getElementById('cmfRecEvidence');
             var qualityNode = document.getElementById('cmfRecQuality');
@@ -11767,7 +14569,7 @@ td:nth-child(odd), th:nth-child(odd) {
             }
             if (platformNode) platformNode.textContent = getPlatformDisplayLabel(getIssuePendingPlatformValue());
             if (visibleComponentNode) visibleComponentNode.textContent = component || 'N/A';
-            
+
             if (recNode) recNode.style.display = 'none';
             if (evidenceNode) evidenceNode.innerHTML = '';
             if (qualityNode) qualityNode.textContent = 'Evidence Quality: --';
@@ -11967,7 +14769,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var drawer = document.getElementById('cmfRecDrawer');
             var headingNode = document.getElementById('cmfRecHeading');
             var recNode = document.getElementById('cmfRecRecommendation');
-            var evidenceNode = document.getElementById('cmfRecEvidence');
+            var evidenceNode = document.getElementById('cmfDecisionDetailsBody');
             var qualityNode = document.getElementById('cmfRecQuality');
             var actionsNode = document.getElementById('cmfRecActions');
 
@@ -11976,7 +14778,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
-            setCmfDrawerMode('recommendation');
+            setCmfDrawerMode('details');
             if (headingNode) headingNode.textContent = 'AI Impact Details';
             cpIdNode.textContent = cpId || 'N/A';
             titleNode.textContent = title || 'N/A';
@@ -12044,8 +14846,8 @@ td:nth-child(odd), th:nth-child(odd) {
             if (qualityNode) qualityNode.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
             if (reasoningSection) reasoningSection.classList.toggle('cmf-rec-hidden', isDetails);
             if (actionsNode) actionsNode.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
-            if (detailsBody) detailsBody.classList.toggle('cmf-rec-hidden', !isDetails);
-            if (!isDetails && detailsBody) detailsBody.innerHTML = '';
+            if (detailsBody) detailsBody.classList.toggle('cmf-rec-hidden', !isDetails && !isInsights);
+            if (!isDetails && !isInsights && detailsBody) detailsBody.innerHTML = '';
             if (!isDetails && !isInsights) {
                 var headingNode = document.getElementById('cmfRecHeading');
                 if (headingNode) headingNode.textContent = 'AI CMF Assistant';
@@ -12078,6 +14880,4510 @@ td:nth-child(odd), th:nth-child(odd) {
                 nodes[i].setAttribute('aria-label', 'Open CMF Analysis: ' + rec);
                 nodes[i].setAttribute('title', 'Open CMF Analysis: ' + rec);
             }
+        }
+
+        function renderCmfRecommendationHighlights(reasoningText, ruleScores) {
+            var text = String(reasoningText || '').trim();
+            if (!text) return '<div class="cmf-rec-reasoning-card">No AI reasoning provided.</div>';
+
+            var normalized = text.replace(/\r/g, '\n').replace(/\n{2,}/g, '\n').trim();
+            var impactMatch = normalized.match(/(?:^|\n)\s*(?:ISSUE\s+IMPACT|DECISION\s+IMPACT)\s*:\s*([\s\S]*)$/i);
+            var impactText = impactMatch ? impactMatch[1].replace(/^[-*]\s*/gm, '').trim() : '';
+            var reasonText = impactMatch ? normalized.substring(0, impactMatch.index).trim() : normalized;
+            reasonText = reasonText.replace(/^\s*(?:REASONING|AI\s+REASONING)\s*:\s*/i, '').replace(/^[-*]\s*/gm, '').trim();
+
+            var bullets = reasonText.split(/\n+|(?:^|\s)[-•]\s+/).map(function (item) {
+                return item.replace(/^\d+[\.)]\s*/, '').trim();
+            }).filter(function (item) { return item.length > 0; }).slice(0, 4);
+            if (bullets.length === 0 && reasonText) bullets = [firstCompleteSentence(reasonText, 420)];
+            var firstImpact = firstCompleteSentence(impactText, 260);
+
+            var html = '<div class="cmf-rec-reasoning-card">';
+            html += '<div><strong>Reason:</strong></div>';
+            html += '<ul class="cmf-rec-reason-list">';
+            for (var i = 0; i < bullets.length; i++) {
+                html += '<li>' + escapeHtml(trimToCompleteSentence(bullets[i], 240)) + '</li>';
+            }
+            html += '</ul>';
+            if (firstImpact) html += '<div><strong>Impact:</strong> ' + escapeHtml(firstImpact) + '</div>';
+            html += renderCmfCriterionScores(ruleScores || []);
+            return html + '</div>';
+        }
+
+        function trimToCompleteSentence(text, maxLength) {
+            var value = String(text || '').trim();
+            if (!value || value.length <= maxLength) return value;
+            var clipped = value.substring(0, maxLength).trim();
+            var boundary = Math.max(clipped.lastIndexOf('.'), clipped.lastIndexOf('!'), clipped.lastIndexOf('?'));
+            if (boundary >= 80) return clipped.substring(0, boundary + 1).trim();
+            return clipped.replace(/\s+\S*$/, '').replace(/[,:;\-\s]+$/, '').trim() + '.';
+        }
+
+        function renderCmfDecisionDetailsLoading(cpId) {
+            return '<div class="cmf-decision-details-shell"><div class="cmf-decision-card"><h4>Context</h4><div class="ai-loading-banner">&#10024; Generating CMF decision details, please wait...</div></div></div>';
+        }
+
+        function renderCmfDecisionDetails(rawText, cpId) {
+            var parsed = parseCmfDecisionDetails(rawText || '');
+            var score = parsed.score;
+            var scoreText = typeof score === 'number' ? score + '%' : '--';
+            return '<div class="cmf-decision-details-shell">' +
+                '<section class="cmf-decision-card"><h4>Context</h4>' + renderCmfBriefList(parsed.context) + '</section>' +
+                '<section class="cmf-decision-card"><h4>HSD Information Quality</h4>' +
+                    '<div class="cmf-quality-meter-row"><div class="cmf-quality-score-ring" style="--score:' + escapeHtml(typeof score === 'number' ? score : 0) + '"><span>' + escapeHtml(scoreText) + '</span></div><div class="cmf-quality-caption">Quality score reflects how complete the HSD and row details are for a CMF decision.</div></div>' +
+                    '<div class="cmf-quality-columns"><div class="cmf-quality-column missing"><div class="cmf-quality-column-title">Missing/Incomplete Details</div>' + renderCmfBriefList(parsed.missing) + '</div><div class="cmf-quality-column strengths"><div class="cmf-quality-column-title">Key Strengths</div>' + renderCmfBriefList(parsed.strengths) + '</div></div>' +
+                '</section>' +
+                '<section class="cmf-decision-card"><h4>Evidence Signals</h4>' + renderCmfBriefList(parsed.evidence) + '</section>' +
+                '<section class="cmf-decision-card"><h4>Reviewer Attention</h4>' + renderCmfBriefList(parsed.attention) + '</section>' +
+            '</div>';
+        }
+
+        function parseCmfDecisionDetails(rawText) {
+            var text = String(rawText || '').replace(/\r/g, '\n');
+            var lines = text.split('\n');
+            var parsed = { context: [], missing: [], strengths: [], evidence: [], attention: [], score: null };
+            var section = 'context';
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (!line) continue;
+                var heading = line.replace(/^#+\s*/, '').replace(/:$/, '').trim().toLowerCase();
+                if (heading === 'context' || heading === 'cmf decision context') { section = 'context'; continue; }
+                if (heading === 'hsd information quality') { section = 'quality'; continue; }
+                if (heading === 'evidence signals') { section = 'evidence'; continue; }
+                if (heading === 'reviewer attention') { section = 'attention'; continue; }
+                var scoreMatch = line.match(/quality\s*score\s*:\s*(\d{1,3})|score\s*:\s*(\d{1,3})/i);
+                if (scoreMatch) {
+                    parsed.score = Math.max(0, Math.min(100, parseInt(scoreMatch[1] || scoreMatch[2], 10)));
+                    continue;
+                }
+                if (/^missing\/incomplete details\s*:/i.test(line)) {
+                    section = 'missing';
+                    addCmfDetailItems(parsed.missing, line.replace(/^missing\/incomplete details\s*:/i, ''));
+                    continue;
+                }
+                if (/^key strengths\s*:/i.test(line)) {
+                    section = 'strengths';
+                    addCmfDetailItems(parsed.strengths, line.replace(/^key strengths\s*:/i, ''));
+                    continue;
+                }
+                line = line.replace(/^[-*]\s*/, '').trim();
+                if (section === 'quality') {
+                    parsed.context.push(line);
+                } else if (section === 'missing') {
+                    addCmfDetailItems(parsed.missing, line);
+                } else if (section === 'strengths') {
+                    addCmfDetailItems(parsed.strengths, line);
+                } else if (section === 'evidence') {
+                    parsed.evidence.push(line);
+                } else if (section === 'attention') {
+                    parsed.attention.push(line);
+                } else {
+                    parsed.context.push(line);
+                }
+            }
+            if (typeof parsed.score !== 'number') parsed.score = estimateCmfQualityScore(parsed);
+            if (!parsed.context.length) parsed.context.push('No context returned by the model.');
+            if (!parsed.missing.length) parsed.missing.push('None called out by the model.');
+            if (!parsed.strengths.length) parsed.strengths.push('Limited strengths available.');
+            if (!parsed.evidence.length) parsed.evidence.push('No evidence signals returned by the model.');
+            if (!parsed.attention.length) parsed.attention.push('Review the CMF recommendation after checking HSD quality.');
+            return parsed;
+        }
+
+        function addCmfDetailItems(target, text) {
+            var clean = String(text || '').replace(/^[-*]\s*/, '').trim();
+            if (!clean) return;
+            var parts = clean.split(/;|,(?=\s*[A-Za-z])/);
+            for (var i = 0; i < parts.length; i++) {
+                var item = parts[i].trim();
+                if (item) target.push(item);
+            }
+        }
+
+        function estimateCmfQualityScore(parsed) {
+            var score = 50 + Math.min(25, (parsed.strengths || []).length * 10) - Math.min(25, (parsed.missing || []).length * 8);
+            return Math.max(20, Math.min(90, score));
+        }
+
+        function renderCmfBriefList(items) {
+            var list = items && items.length ? items : ['No detail available.'];
+            var html = '<ul>';
+            for (var i = 0; i < list.length && i < 4; i++) {
+                html += '<li>' + escapeHtml(sanitizeCmfDisplaySentence(list[i], 320)) + '</li>';
+            }
+            return html + '</ul>';
+        }
+
+        function closeCmfRecDrawer() {
+            var drawerBg = document.getElementById('cmfRecDrawerBg');
+            var drawer = document.getElementById('cmfRecDrawer');
+            if (!drawerBg || !drawer) {
+                return;
+            }
+
+            drawerBg.classList.remove('show');
+            drawer.classList.remove('show');
+        }
+
+        function showCmfPlaceholderAction(actionName) {
+            if (/approve/i.test(actionName)) {
+                showPortalToast('Review the AI recommendation and quality score before approving CMF tagging.');
+                return;
+            }
+            if (/commit/i.test(actionName)) {
+                showPortalToast('Commit is gated until a generated recommendation is reviewed in this drawer.');
+                return;
+            }
+            showPortalToast(actionName + ' is routed through the active portal workflow.');
+        }
+
+        function focusReportsAssistant(promptText) {
+            var reportsLink = document.getElementById('lnkNavReports');
+            var input = document.getElementById('reportsPromptInput');
+            if (input) {
+                input.value = promptText || input.value || '';
+                input.focus();
+                return false;
+            }
+            if (reportsLink) reportsLink.click();
+            return false;
+        }
+
+        function focusFirstRowAiSummary() {
+            var btn = document.querySelector('.status-cell-wrap .ai-summary-btn');
+            if (btn) {
+                btn.focus();
+                btn.click();
+                return false;
+            }
+            showPortalToast('No Issue List rows are available for AI summary.');
+            return false;
+        }
+
+        function focusFirstPendingRecommendation() {
+            var btn = document.querySelector('.pending-ai-rec-btn');
+            if (btn) {
+                btn.focus();
+                btn.click();
+                return false;
+            }
+            showPortalToast('No CMF Pending rows are available for recommendation.');
+            return false;
+        }
+
+        function appendReportsChatMessage(role, text, imageUrl, reportUrl) {
+            var chatLog = document.getElementById('reportsChatLog');
+            if (!chatLog) {
+                return;
+            }
+
+            var messageRow = document.createElement('div');
+            messageRow.style.display = 'flex';
+            messageRow.style.justifyContent = role === 'user' ? 'flex-end' : 'flex-start';
+            messageRow.style.marginBottom = '10px';
+
+            var bubble = document.createElement('div');
+            bubble.style.maxWidth = '80%';
+            bubble.style.padding = '10px 12px';
+            bubble.style.borderRadius = '10px';
+            bubble.style.whiteSpace = 'pre-wrap';
+            bubble.style.fontSize = '13px';
+            bubble.style.lineHeight = '1.4';
+
+            if (role === 'user') {
+                bubble.style.background = '#0068b5';
+                bubble.style.color = '#fff';
+                bubble.textContent = text || '';
+            } else {
+                bubble.style.background = '#eef4fb';
+                bubble.style.color = '#12344d';
+                bubble.style.border = '1px solid #d6e2ef';
+                bubble.style.whiteSpace = 'normal';
+                var markdownHtml = renderMarkdown(text || '');
+                bubble.innerHTML = markdownHtml;
+                bubble.className = 'markdown-content';
+            }
+            messageRow.appendChild(bubble);
+            chatLog.appendChild(messageRow);
+
+            if (role !== 'user' && imageUrl) {
+                var imageWrap = document.createElement('div');
+                imageWrap.style.margin = '6px 0 12px 0';
+                var image = document.createElement('img');
+                image.src = imageUrl;
+                image.alt = 'Generated analytics chart';
+                image.style.maxWidth = '100%';
+                image.style.border = '1px solid #d6e2ef';
+                image.style.borderRadius = '8px';
+                image.style.background = '#fff';
+                imageWrap.appendChild(image);
+                chatLog.appendChild(imageWrap);
+            }
+
+            if (role !== 'user' && reportUrl) {
+                var linkWrap = document.createElement('div');
+                linkWrap.style.margin = '0 0 12px 0';
+                var link = document.createElement('a');
+                link.href = reportUrl;
+                link.target = '_blank';
+                link.textContent = 'Download generated report';
+                link.style.fontSize = '13px';
+                linkWrap.appendChild(link);
+                chatLog.appendChild(linkWrap);
+            }
+
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        function sendReportsPrompt() {
+            var input = document.getElementById('reportsPromptInput');
+            var sendButton = document.getElementById('reportsPromptSend');
+            if (!input || !sendButton) {
+                return;
+            }
+
+            var prompt = (input.value || '').trim();
+            if (!prompt) {
+                return;
+            }
+
+            appendReportsChatMessage('user', prompt);
+            input.value = '';
+            sendButton.disabled = true;
+            sendButton.textContent = 'Running...';
+
+            var payload = {
+                prompt: prompt,
+                platform: getCurrentPlatformValue()
+            };
+
+            fetch('CMF_Web_portal.aspx/GetReportsAssistantResponse', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                var result = data && data.d ? data.d : data;
+                if (!result || result.Success !== true) {
+                    appendReportsChatMessage('assistant', (result && result.Message) ? result.Message : 'Unable to process this analytics request right now.');
+                    return;
+                }
+
+                appendReportsChatMessage('assistant', result.Message || 'Completed.', result.ImageUrl || '', result.ReportUrl || '');
+            })
+            .catch(function () {
+                appendReportsChatMessage('assistant', 'Error while calling reports assistant service.');
+            })
+            .finally(function () {
+                sendButton.disabled = false;
+                sendButton.textContent = 'Send';
+            });
+        }
+
+        function sendReportsQuickPrompt(prompt) {
+            var input = document.getElementById('reportsPromptInput');
+            if (!input) {
+                return;
+            }
+
+            input.value = prompt;
+            sendReportsPrompt();
+        }
+
+        function saveReportsFormatTemplate() {
+            try {
+                var textarea = document.getElementById('reportsFormatTemplate');
+                if (textarea && textarea.readOnly) {
+                    showPortalToast('Click Edit format before saving changes.');
+                    return;
+                }
+                var payload = { template: textarea ? (textarea.value || '') : '', platform: '', fileName: 'manual-template.md' };
+                fetch('CMF_Web_portal.aspx/SaveReportsTemplate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                    body: JSON.stringify(payload)
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    var res = data && data.d ? data.d : data;
+                    if (res && res.Success) {
+                        setReportsTemplateEditMode(false);
+                        showPortalToast('Report format saved to server.');
+                    } else {
+                        showPortalToast('Failed to save template: ' + (res && res.Message ? res.Message : 'unknown'));
+                    }
+                })
+                .catch(function () { showPortalToast('Failed to save report template.'); });
+            } catch (ignore) {
+                showPortalToast('Failed to save report template.');
+            }
+        }
+
+        function generateReportsFromTemplate() {
+            // Request server to generate using the saved global template across all CMF data.
+            var payload = { platform: '' };
+            var btn = document.querySelector('.reports-format-actions button[onclick*="generateReportsFromTemplate"]');
+            if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
+            fetch('CMF_Web_portal.aspx/GenerateReportFromTemplate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify(payload)
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var res = data && data.d ? data.d : data;
+                if (!res || res.Success !== true) {
+                    appendReportsChatMessage('assistant', (res && res.Message) ? res.Message : 'Unable to generate report from template.');
+                } else {
+                    appendReportsChatMessage('assistant', res.Message || 'Report generated.', res.ImageUrl || '', res.ReportUrl || '');
+                }
+            })
+            .catch(function () { appendReportsChatMessage('assistant', 'Error while generating report from template.'); })
+            .finally(function () { if (btn) { btn.disabled = false; btn.textContent = 'Generate from format'; } });
+        }
+
+        function uploadReportsFormat(event) {
+            var file = event && event.target && event.target.files && event.target.files[0];
+            if (!file) return;
+            var label = document.getElementById('reportsFormatName');
+            var reader = new FileReader();
+            reader.onload = function () {
+                var content = reader.result || '';
+                var payload = { template: content, platform: '', fileName: file.name };
+                fetch('CMF_Web_portal.aspx/SaveReportsTemplate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                    body: JSON.stringify(payload)
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    var res = data && data.d ? data.d : data;
+                    if (res && res.Success) {
+                        var textarea = document.getElementById('reportsFormatTemplate');
+                        if (textarea) { textarea.value = content; }
+                        setReportsTemplateEditMode(false);
+                        if (label) { label.style.display = 'inline'; label.textContent = file.name + ' uploaded'; }
+                        showPortalToast('Report template uploaded to server.');
+                    } else {
+                        showPortalToast('Failed to upload template: ' + (res && res.Message ? res.Message : 'unknown'));
+                    }
+                })
+                .catch(function () { showPortalToast('Failed to upload report template.'); });
+            };
+            reader.readAsText(file);
+        }
+
+        function initReportsFormatTemplate() {
+            try {
+                var textarea = document.getElementById('reportsFormatTemplate');
+                setReportsTemplateEditMode(false);
+                // Try load server-saved template first
+                fetch('CMF_Web_portal.aspx/GetSavedTemplate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                    body: JSON.stringify({ platform: getCurrentPlatformValue() })
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    var res = data && data.d ? data.d : data;
+                    if (res && res.Success && textarea) {
+                        textarea.value = res.Message || textarea.value;
+                        setReportsTemplateEditMode(false);
+                        return;
+                    }
+                    var saved = localStorage.getItem('cmf.reports.formatTemplate');
+                    if (textarea && saved) { textarea.value = saved; }
+                })
+                .catch(function () {
+                    var saved = localStorage.getItem('cmf.reports.formatTemplate');
+                    if (textarea && saved) { textarea.value = saved; }
+                });
+            } catch (ignore) {
+            }
+        }
+
+        function setReportsTemplateEditMode(isEditing) {
+            var textarea = document.getElementById('reportsFormatTemplate');
+            var editBtn = document.getElementById('reportsFormatEditBtn');
+            var saveBtn = document.getElementById('reportsFormatSaveBtn');
+            if (textarea) {
+                textarea.readOnly = !isEditing;
+                textarea.classList.toggle('is-readonly', !isEditing);
+            }
+            if (editBtn) editBtn.style.display = isEditing ? 'none' : '';
+            if (saveBtn) saveBtn.disabled = !isEditing;
+        }
+
+        function bindReportsPromptEnterHandler() {
+            var input = document.getElementById('reportsPromptInput');
+            if (!input || input.dataset.boundEnter === '1') {
+                return;
+            }
+
+            input.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    sendReportsPrompt();
+                }
+            });
+            input.dataset.boundEnter = '1';
+        }
+
+        function getCollapsibleConfig() {
+            return {
+                mainMenu: {
+                    bodyId: 'mainMenuSectionBody',
+                    buttonId: 'mainMenuToggleBtn',
+                    storageKey: 'cmf.collapsible.mainMenu',
+                    containerId: 'mainMenuSidebar',
+                    shellId: 'portalLayoutShell',
+                    reopenButtonId: 'mainMenuReopenBtn'
+                },
+                issueFilters: {
+                    bodyId: 'issueTopFilterBody',
+                    buttonId: 'issueFiltersToggleBtn',
+                    storageKey: 'cmf.collapsible.issueFilters.inline',
+                    defaultCollapsed: false
+                }
+            };
+        }
+
+        function setCollapsibleSection(sectionName, collapsed, persistState) {
+            var config = getCollapsibleConfig()[sectionName];
+            if (!config) {
+                return;
+            }
+
+            var body = document.getElementById(config.bodyId);
+            var button = document.getElementById(config.buttonId);
+            var container = config.containerId ? document.getElementById(config.containerId) : null;
+            var shell = config.shellId ? document.getElementById(config.shellId) : null;
+            var reopenButton = config.reopenButtonId ? document.getElementById(config.reopenButtonId) : null;
+
+            if (body) {
+                if (collapsed) {
+                    body.classList.add('is-collapsed');
+                } else {
+                    body.classList.remove('is-collapsed');
+                }
+            }
+
+            if (button) {
+                button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+                var label = button.querySelector('.toggle-label');
+                if (label) {
+                    label.textContent = sectionName === 'mainMenu' ? (collapsed ? '>>' : '<<') : (collapsed ? 'Show' : 'Hide');
+                }
+                if (sectionName === 'mainMenu') {
+                    button.title = collapsed ? 'Expand menu labels' : 'Collapse menu labels';
+                    button.setAttribute('aria-label', collapsed ? 'Expand menu labels' : 'Collapse menu labels');
+                }
+            }
+
+            if (container) {
+                if (collapsed) {
+                    container.classList.add('is-collapsed');
+                } else {
+                    container.classList.remove('is-collapsed');
+                }
+            }
+
+            if (shell) {
+                if (collapsed) {
+                    shell.classList.add('main-menu-collapsed');
+                } else {
+                    shell.classList.remove('main-menu-collapsed');
+                }
+            }
+
+            if (reopenButton) {
+                reopenButton.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            }
+
+            if (sectionName === 'mainMenu' && window.CMF_PORTAL && window.CMF_PORTAL.homeTrendChart) {
+                setTimeout(function () {
+                    try { window.CMF_PORTAL.homeTrendChart.resize(); } catch (ignore) { }
+                }, 220);
+            }
+
+            if (persistState) {
+                try {
+                    localStorage.setItem(config.storageKey, collapsed ? '1' : '0');
+                } catch (ignore) {
+                }
+            }
+        }
+
+        function toggleCollapsibleSection(sectionName) {
+            var config = getCollapsibleConfig()[sectionName];
+            if (!config) {
+                return;
+            }
+
+            var body = document.getElementById(config.bodyId);
+            var collapsed = body ? !body.classList.contains('is-collapsed') : false;
+            setCollapsibleSection(sectionName, collapsed, true);
+        }
+
+        function initCollapsibleSections() {
+            var all = getCollapsibleConfig();
+            for (var sectionName in all) {
+                if (!Object.prototype.hasOwnProperty.call(all, sectionName)) {
+                    continue;
+                }
+
+                var cfg = all[sectionName];
+                var initialCollapsed = !!cfg.defaultCollapsed;
+                try {
+                    var storedState = localStorage.getItem(cfg.storageKey);
+                    if (storedState !== null) {
+                        initialCollapsed = storedState === '1';
+                    }
+                } catch (ignore) {
+                }
+                setCollapsibleSection(sectionName, initialCollapsed, false);
+            }
+        }
+
+        function initMainMenuTooltips() {
+            var links = document.querySelectorAll('#mainMenuSidebar .portal-nav-link');
+            for (var i = 0; i < links.length; i++) {
+                var textNode = links[i].querySelector('span');
+                var label = textNode ? (textNode.textContent || '').trim() : '';
+                if (label) {
+                    links[i].setAttribute('title', label);
+                    links[i].setAttribute('aria-label', label);
+                }
+            }
+        }
+
+        function syncIssueHorizontalScroll(attempt) {
+            var host = document.getElementById('issue-grid-inner');
+            var proxy = document.getElementById('issue-scroll-proxy');
+            var proxyInner = document.getElementById('issue-scroll-proxy-inner');
+            var table = document.getElementById(window.CMF_PORTAL.ids.overallRequestDetails);
+
+            if (!host || !table) {
+                return;
+            }
+
+            host.style.overflowX = 'auto';
+            host.style.overflowY = 'auto';
+            host.style.maxHeight = 'min(62vh, 620px)';
+            host.style.width = '100%';
+            host.style.maxWidth = '100%';
+
+            // Enforce width at runtime in case later CSS rules collapse the table width.
+            table.style.width = 'max-content';
+            table.style.minWidth = '2200px';
+            table.style.maxWidth = 'none';
+
+            var targetWidth = Math.max(table.scrollWidth || 0, table.offsetWidth || 0, 2200);
+            if (proxyInner) {
+                proxyInner.style.width = targetWidth + 'px';
+            }
+
+            // If layout is not ready yet (e.g., after async update while hidden), retry a few times.
+            if (host.clientWidth > 0 && targetWidth <= host.clientWidth && (attempt || 0) < 6) {
+                setTimeout(function () { syncIssueHorizontalScroll((attempt || 0) + 1); }, 80);
+            }
+
+            if (!proxy) {
+                return;
+            }
+
+            var syncLock = false;
+            host.onscroll = function () {
+                if (syncLock) return;
+                syncLock = true;
+                proxy.scrollLeft = host.scrollLeft;
+                syncLock = false;
+            };
+
+            proxy.onscroll = function () {
+                if (syncLock) return;
+                syncLock = true;
+                host.scrollLeft = proxy.scrollLeft;
+                syncLock = false;
+            };
+
+            proxy.scrollLeft = host.scrollLeft;
+            proxy.style.display = 'none';
+        }
+
+        function isOverallDashboardSelection() {
+            var overallPlatform = (window.CMF_PORTAL.overallPlatformTable || '').toLowerCase();
+            var currentPlatform = (window.CMF_PORTAL.currentDashboardPlatform || window.CMF_PORTAL.currentPlatform || '').toLowerCase();
+            return !!overallPlatform && currentPlatform === overallPlatform;
+        }
+
+        function getOverallTrendRangeWeeks() {
+            var selector = document.getElementById('homeOverallTrendRange');
+            if (!selector) {
+                return 6;
+            }
+
+            var parsed = parseInt(selector.value || '6', 10);
+            return isNaN(parsed) || parsed <= 0 ? 6 : parsed;
+        }
+
+        function getSpecificTrendRangeWeeks() {
+            var selector = document.getElementById('homeSpecificTrendRange');
+            if (!selector) {
+                return 6;
+            }
+
+            var parsed = parseInt(selector.value || '6', 10);
+            return isNaN(parsed) || parsed <= 0 ? 6 : parsed;
+        }
+
+        function bindOverallTrendRangeSelector() {
+            var selector = document.getElementById('homeOverallTrendRange');
+            if (!selector || selector.dataset.boundChange === '1') {
+                return;
+            }
+
+            selector.addEventListener('change', function () {
+                if (!isOverallDashboardSelection()) {
+                    return;
+                }
+
+                var snapshot = window.CMF_PORTAL.homeDashboardSnapshot;
+                if (!snapshot) {
+                    return;
+                }
+
+                renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'homeOverallTrendChartRef', getOverallTrendRangeWeeks());
+            });
+
+            selector.dataset.boundChange = '1';
+        }
+
+        function bindSpecificTrendRangeSelector() {
+            var selector = document.getElementById('homeSpecificTrendRange');
+            if (!selector || selector.dataset.boundChange === '1') {
+                return;
+            }
+
+            selector.addEventListener('change', function () {
+                if (isOverallDashboardSelection()) {
+                    return;
+                }
+
+                var snapshot = window.CMF_PORTAL.homeDashboardSnapshot;
+                if (!snapshot) {
+                    return;
+                }
+
+                renderHomeTrendChart(snapshot, 'homeTrendChart', 'homeTrendChartRef', getSpecificTrendRangeWeeks());
+            });
+
+            selector.dataset.boundChange = '1';
+        }
+
+        function renderHomeTrendChart(snapshot, hostId, chartRefKey, rangeWeeks) {
+            var trendHost = document.getElementById(hostId);
+            if (!trendHost || typeof echarts === 'undefined') {
+                return;
+            }
+
+            var fullTrend = snapshot.Trend || [];
+            var selectedRangeWeeks = parseInt(rangeWeeks || 0, 10);
+            if (isNaN(selectedRangeWeeks) || selectedRangeWeeks <= 0) {
+                selectedRangeWeeks = fullTrend.length;
+            }
+
+            var trend = fullTrend;
+            if (fullTrend.length > selectedRangeWeeks) {
+                trend = fullTrend.slice(fullTrend.length - selectedRangeWeeks);
+            }
+            var trendStartIndex = Math.max(0, fullTrend.length - trend.length);
+            var visibleTrendPoints = [];
+            for (var visibleIndex = 0; visibleIndex < trend.length; visibleIndex++) {
+                var visibleItem = trend[visibleIndex] || {};
+                visibleTrendPoints.push({
+                    weekLabel: String(visibleItem.WeekLabel || ''),
+                    weekOffset: Math.max(0, (fullTrend.length - 1) - (trendStartIndex + visibleIndex)),
+                    openValue: Number(visibleItem.NewIssues || 0),
+                    closedValue: Number(visibleItem.ResolvedIssues || 0)
+                });
+            }
+
+            function toTrendSeriesData(items, valueSelector) {
+                var points = [];
+                for (var pointIndex = 0; pointIndex < items.length; pointIndex++) {
+                    var item = items[pointIndex] || {};
+                    var fullIndex = trendStartIndex + pointIndex;
+                    points.push({
+                        value: Number(valueSelector(item) || 0),
+                        weekLabel: item.WeekLabel || '',
+                        weekOffset: Math.max(0, (fullTrend.length - 1) - fullIndex)
+                    });
+                }
+                return points;
+            }
+
+            var cacheKey = 'lastHomeDashboardKey_' + hostId;
+            var snapshotKey = [
+                window.CMF_PORTAL.currentPlatform || '',
+                hostId,
+                selectedRangeWeeks,
+                fullTrend.length,
+                trend.length,
+                getTextById(window.CMF_PORTAL.ids.lblIssueTotal),
+                getTextById(window.CMF_PORTAL.ids.lblPendingSightings)
+            ].join('|');
+
+            if (window.CMF_PORTAL[cacheKey] === snapshotKey && window.CMF_PORTAL[chartRefKey]) {
+                return;
+            }
+
+            if (!window.CMF_PORTAL[chartRefKey]) {
+                window.CMF_PORTAL[chartRefKey] = echarts.init(trendHost);
+            }
+
+            window.CMF_PORTAL[chartRefKey].setOption({
+                animation: false,
+                color: ['#ef4444', '#16a34a'],
+                tooltip: { trigger: 'axis' },
+                legend: {
+                    top: 0,
+                    left: 0,
+                    icon: 'circle',
+                    itemWidth: 8,
+                    itemHeight: 8,
+                    textStyle: { color: '#475467', fontSize: 11 }
+                },
+                grid: { left: 36, right: 14, top: 30, bottom: 26 },
+                xAxis: {
+                    type: 'category',
+                    data: trend.map(function (item) { return item.WeekLabel; }),
+                    boundaryGap: false,
+                    axisLine: { lineStyle: { color: '#e4e7ec' } },
+                    axisLabel: { color: '#667085', fontSize: 11 }
+                },
+                yAxis: {
+                    type: 'value',
+                    axisLine: { show: false },
+                    splitLine: { lineStyle: { color: '#eef2f7' } },
+                    axisLabel: { color: '#667085', fontSize: 11 }
+                },
+                series: [
+                    {
+                        name: 'Open',
+                        type: 'line',
+                        smooth: true,
+                        data: toTrendSeriesData(trend, function (item) { return item.NewIssues; }),
+                        lineStyle: { width: 3 },
+                        symbol: 'circle',
+                        symbolSize: 6
+                    },
+                    {
+                        name: 'Closed',
+                        type: 'line',
+                        smooth: true,
+                        data: toTrendSeriesData(trend, function (item) { return item.ResolvedIssues; }),
+                        lineStyle: { width: 3 },
+                        symbol: 'circle',
+                        symbolSize: 6,
+                        areaStyle: { color: 'rgba(22,163,74,0.12)' }
+                    }
+                ]
+            }, true);
+
+            var trendChart = window.CMF_PORTAL[chartRefKey];
+            if (trendChart) {
+                if (trendChart.__cmfTrendClickHandler) {
+                    trendChart.off('click', trendChart.__cmfTrendClickHandler);
+                }
+
+                if (trendChart.__cmfTrendAxisPointerHandler) {
+                    trendChart.off('updateAxisPointer', trendChart.__cmfTrendAxisPointerHandler);
+                }
+
+                if (trendChart.__cmfTrendZrClickHandler && trendChart.getZr) {
+                    trendChart.getZr().off('click', trendChart.__cmfTrendZrClickHandler);
+                }
+                trendChart.__cmfTrendClickHandler = null;
+
+                var trendAxisPointerHandler = function (params) {
+                    if (!params || !params.axesInfo || !params.axesInfo.length) {
+                        return;
+                    }
+
+                    var axisInfo = params.axesInfo[0] || {};
+                    var rawIndex = axisInfo.value;
+                    var axisIndex = parseInt(rawIndex, 10);
+                    if (isNaN(axisIndex) || axisIndex < 0 || axisIndex >= visibleTrendPoints.length) {
+                        return;
+                    }
+
+                    trendChart.__cmfTrendLastAxisIndex = axisIndex;
+                };
+
+                trendChart.__cmfTrendAxisPointerHandler = trendAxisPointerHandler;
+                trendChart.on('updateAxisPointer', trendAxisPointerHandler);
+
+                trendChart.__cmfTrendVisiblePoints = visibleTrendPoints;
+
+                var trendZrClickHandler = function (event) {
+                    if (!event || !trendChart || !trendChart.containPixel || !trendChart.convertFromPixel) {
+                        return;
+                    }
+
+                    var offsetX = event.offsetX;
+                    var offsetY = event.offsetY;
+                    if (!trendChart.containPixel({ gridIndex: 0 }, [offsetX, offsetY])) {
+                        return;
+                    }
+
+                    var axisIndex = parseInt(trendChart.__cmfTrendLastAxisIndex, 10);
+                    if (isNaN(axisIndex) || axisIndex < 0 || axisIndex >= visibleTrendPoints.length) {
+                        var xValue = trendChart.convertFromPixel({ xAxisIndex: 0 }, [offsetX, offsetY])[0];
+                        axisIndex = Math.round(Number(xValue));
+                    }
+
+                    if (isNaN(axisIndex) || axisIndex < 0 || axisIndex >= visibleTrendPoints.length) {
+                        return;
+                    }
+
+                    var point = visibleTrendPoints[axisIndex] || null;
+                    if (!point) {
+                        return;
+                    }
+
+                    var totalIssues = Number(point.openValue || 0) + Number(point.closedValue || 0);
+                    if (isNaN(totalIssues) || totalIssues <= 0) {
+                        return;
+                    }
+
+                    openTrendWeekIssueLinksPopup('All', point.weekLabel, point.weekOffset);
+                };
+
+                trendChart.__cmfTrendZrClickHandler = trendZrClickHandler;
+                if (trendChart.getZr) {
+                    trendChart.getZr().on('click', trendZrClickHandler);
+                }
+            }
+
+            window.CMF_PORTAL[cacheKey] = snapshotKey;
+            window.CMF_PORTAL[chartRefKey].resize();
+        }
+
+        function renderHomeDashboard() {
+            var homePanel = document.getElementById(window.CMF_PORTAL.ids.homeWelcomePanel);
+            var cmfPanel = document.getElementById(window.CMF_PORTAL.ids.homeCmfSummaryPanel);
+            var homeVisible = homePanel && isElementVisible(homePanel);
+            var cmfVisible = cmfPanel && isElementVisible(cmfPanel);
+            if (!homeVisible && !cmfVisible) {
+                return;
+            }
+
+            var snapshot = window.CMF_PORTAL.homeDashboardSnapshot;
+            if (!snapshot) {
+                return;
+            }
+
+            var isOverall = isOverallDashboardSelection();
+            var overallLayout = document.getElementById('homeOverallLayoutV2');
+            var legacyTopLayout = document.getElementById('homeLegacyTopLayout');
+            var legacyOverview = document.getElementById('homeLegacyOverview');
+            var legacySummary = document.getElementById('homeLegacySummarySection');
+            var legacyAiHealth = document.getElementById('homeLegacyAiHealthCard');
+            var legacyTables = document.getElementById('homeLegacyTablesGrid');
+
+            if (overallLayout) overallLayout.style.display = isOverall ? '' : 'none';
+            if (legacyTopLayout) legacyTopLayout.style.display = isOverall ? 'none' : '';
+            if (legacyOverview) legacyOverview.style.display = isOverall ? 'none' : '';
+            if (legacySummary) legacySummary.style.display = isOverall ? 'none' : '';
+            if (legacyAiHealth) legacyAiHealth.style.display = isOverall ? 'none' : '';
+            if (legacyTables) legacyTables.style.display = isOverall ? 'none' : '';
+
+            if (isOverall) {
+                renderOverallCombinedSummaryFacts(snapshot);
+                renderOverallOemTable(snapshot.OemSummary || []);
+                renderOverallHeatmap(snapshot);
+                renderOverallPendingSummary(snapshot);
+                renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'homeOverallTrendChartRef', getOverallTrendRangeWeeks());
+                return;
+            }
+
+            renderHomePortalHealth(snapshot);
+            renderHomePredictedBlockers(snapshot);
+            renderHomeExecutiveSummary(snapshot);
+            renderSpecificSummarySection(snapshot);
+            renderDashboardLiveTable('homeMilestoneSummaryTable', snapshot.MilestoneSummary);
+            renderDashboardLiveTable('homeComponentSummaryTable', snapshot.ComponentSummary);
+            renderDashboardLiveTable('homePendingSummaryTable', snapshot.PendingSummary);
+            renderDashboardLiveTable('homeDesignSummaryTable', snapshot.DesignSummary);
+            renderHomeTrendChart(snapshot, 'homeTrendChart', 'homeTrendChartRef', getSpecificTrendRangeWeeks());
+        }
+
+        function renderSpecificSummarySection(snapshot) {
+            renderCombinedSummaryFacts(snapshot, 'homeSpecificSummaryFactsDashboard');
+            renderCombinedSummaryFacts(snapshot, 'homeSpecificSummaryFactsCmf');
+        }
+
+        function renderHomeExecutiveSummary(snapshot) {
+            var host = document.getElementById('homeExecutiveSummary');
+            if (!host) return;
+            var platform = snapshot.PlatformLabel || 'selected platform';
+            var summaryKey = [
+                window.CMF_PORTAL.currentPlatform || '',
+                snapshot.ActiveIssues || 0,
+                snapshot.NeedsAttention || 0,
+                snapshot.ClosedIssues || 0,
+                snapshot.StaleIssues || 0,
+                snapshot.ProgramReadinessScore || 0,
+                snapshot.TopRisk || '',
+                (snapshot.PredictedBlockers || []).join('|')
+            ].join('|');
+
+            if (window.CMF_PORTAL.lastExecutiveSummaryKey === summaryKey) {
+                return;
+            }
+
+            window.CMF_PORTAL.lastExecutiveSummaryKey = summaryKey;
+            host.textContent = 'Generating AI executive summary...';
+
+            fetch('CMF_Web_portal.aspx/GetHomeExecutiveSummary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({
+                    platformLabel: platform,
+                    snapshotContext: buildHomeExecutiveSummaryContext(snapshot)
+                })
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                var result = data && data.d ? data.d : data;
+                if (!result || result.Success !== true || !result.Summary) {
+                    host.textContent = (result && result.Message) ? result.Message : 'Unable to generate AI executive summary at this time.';
+                    return;
+                }
+                if (typeof renderMarkdown === 'function') {
+                    host.innerHTML = renderMarkdown(result.Summary);
+                } else {
+                    host.textContent = result.Summary;
+                }
+            })
+            .catch(function () {
+                host.textContent = 'Unable to generate AI executive summary at this time.';
+            });
+        }
+
+        function buildHomeExecutiveSummaryContext(snapshot) {
+            var lines = [];
+            lines.push('Platform: ' + (snapshot.PlatformLabel || 'selected platform'));
+            lines.push('Current workload only. Issue buckets: total=' + String(snapshot.ActiveIssues || 0) + ', open=' + String(snapshot.NeedsAttention || 0) + ', implemented=' + String(snapshot.StaleIssues || 0) + ', closed=' + String(snapshot.ClosedIssues || 0));
+            lines.push('Operational metrics: resolved_last_7_days=' + String(snapshot.ResolvedThisWeek || 0) + ', average_resolution_days=' + String(snapshot.AverageResolutionDays || 0) + ', customer_impacted_rows=' + String(snapshot.CustomersAffected || 0));
+            lines.push('AI portal health: readiness_score=' + String(snapshot.ProgramReadinessScore || 0) + ', risk_level=' + (snapshot.ProgramRiskLevel || 'unknown') + ', top_risk=' + (snapshot.TopRisk || 'none') + ', risk_concentration=' + (snapshot.RiskConcentration || '0%'));
+            lines.push('Predicted blockers: ' + ((snapshot.PredictedBlockers || []).join('; ') || 'none'));
+            lines.push('CMF summary facts: ' + summarizeFactsForAi(snapshot.SummaryFacts));
+            lines.push('CMF TPT facts: ' + summarizeFactsForAi(snapshot.TptFacts));
+            lines.push('Milestone CMF summary: ' + summarizeTableForAi(snapshot.MilestoneSummary, 5));
+            lines.push('Component Open CMF summary: ' + summarizeTableForAi(snapshot.ComponentSummary, 6));
+            lines.push('Pending CMF summary: ' + summarizeTableForAi(snapshot.PendingSummary, 4));
+            lines.push('Design summary: ' + summarizeTableForAi(snapshot.DesignSummary, 4));
+            return lines.join('\n');
+        }
+
+        function summarizeFactsForAi(facts) {
+            facts = facts || [];
+            var parts = [];
+            for (var i = 0; i < facts.length; i++) {
+                parts.push((facts[i].Label || '-') + '=' + (facts[i].Value || '0') + (facts[i].Note ? ' (' + facts[i].Note + ')' : ''));
+            }
+            return parts.join(', ') || 'none';
+        }
+
+        function summarizeTableForAi(tableData, maxRows) {
+            if (!tableData || !tableData.Columns || !tableData.Rows) return 'none';
+            var rows = [];
+            for (var r = 0; r < tableData.Rows.length && r < maxRows; r++) {
+                var cells = [];
+                for (var c = 0; c < tableData.Columns.length; c++) {
+                    var rawValue = tableData.Rows[r][c] == null ? '' : String(tableData.Rows[r][c]);
+                    if (rawValue.indexOf(':::OPEN_HSDS:::') >= 0) {
+                        rawValue = rawValue.split(':::OPEN_HSDS:::')[0];
+                    }
+                    cells.push(tableData.Columns[c] + '=' + rawValue);
+                }
+                rows.push(cells.join(', '));
+            }
+            return rows.join(' | ') || 'none';
+        }
+
+        function renderHomePortalHealth(snapshot) {
+            var scoreNode = document.getElementById('homePortalHealthScore');
+            var riskNode = document.getElementById('homePortalHealthRisk');
+            var weeklyNode = document.getElementById('homeWeeklyChanges');
+            var concentrationNode = document.getElementById('homePortalRiskConcentration');
+            var blockersNode = document.getElementById('homePortalBlockers');
+            if (scoreNode) scoreNode.textContent = String(snapshot.ProgramReadinessScore || 0);
+            if (riskNode) riskNode.textContent = snapshot.ProgramRiskLevel || 'No risk data';
+            if (weeklyNode) {
+                weeklyNode.innerHTML = '';
+                var weeklyChanges = snapshot.WeeklyChanges || [];
+                if (weeklyChanges.length === 0) weeklyChanges = ['No weekly changes are available yet.'];
+                for (var weeklyIndex = 0; weeklyIndex < weeklyChanges.length && weeklyIndex < 4; weeklyIndex++) {
+                    var changeItem = document.createElement('li');
+                    changeItem.textContent = weeklyChanges[weeklyIndex];
+                    weeklyNode.appendChild(changeItem);
+                }
+            }
+            if (concentrationNode) concentrationNode.textContent = snapshot.RiskConcentration || '0%';
+            if (blockersNode) {
+                blockersNode.innerHTML = '';
+                var blockers = snapshot.PredictedBlockers || [];
+                if (blockers.length === 0) blockers = ['Predicting blockers from current workload...'];
+                for (var i = 0; i < blockers.length && i < 4; i++) {
+                    var item = document.createElement('li');
+                    item.textContent = blockers[i];
+                    blockersNode.appendChild(item);
+                }
+            }
+        }
+
+        function renderHomePredictedBlockers(snapshot) {
+            var blockersNode = document.getElementById('homePortalBlockers');
+            if (!blockersNode) return;
+
+            var blockerKey = [
+                window.CMF_PORTAL.currentPlatform || '',
+                snapshot.ActiveIssues || 0,
+                snapshot.NeedsAttention || 0,
+                snapshot.StaleIssues || 0,
+                snapshot.ClosedIssues || 0,
+                snapshot.TopRisk || '',
+                snapshot.RiskConcentration || '',
+                (snapshot.PredictedBlockers || []).join('|')
+            ].join('|');
+
+            if (window.CMF_PORTAL.lastPredictedBlockersKey === blockerKey) {
+                return;
+            }
+
+            window.CMF_PORTAL.lastPredictedBlockersKey = blockerKey;
+
+            fetch('CMF_Web_portal.aspx/GetHomePredictedBlockers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({
+                    platformLabel: snapshot.PlatformLabel || 'selected platform',
+                    snapshotContext: buildHomeExecutiveSummaryContext(snapshot)
+                })
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                var result = data && data.d ? data.d : data;
+                if (!result || result.Success !== true || !result.Summary) {
+                    return;
+                }
+
+                var lines = result.Summary
+                    .replace(/<[^>]+>/g, '')
+                    .split(/\r?\n|\s*[-•]\s+/)
+                    .map(function (line) { return line.replace(/^\d+[\.)]\s*/, '').trim(); })
+                    .filter(function (line) { return line.length > 0; })
+                    .slice(0, 3);
+
+                if (lines.length === 0) {
+                    lines = [result.Summary.trim()];
+                }
+
+                blockersNode.innerHTML = '';
+                for (var i = 0; i < lines.length; i++) {
+                    var item = document.createElement('li');
+                    item.textContent = lines[i];
+                    blockersNode.appendChild(item);
+                }
+            })
+            .catch(function () { });
+        }
+
+        function formatSummaryFactValueAndNote(value, note) {
+            var valueText = String(value == null ? '0' : value);
+            var noteText = String(note == null ? '' : note);
+
+            var daysPrefixMatch = noteText.match(/^\s*days?\s*\|\s*(.*)$/i);
+            if (!daysPrefixMatch) {
+                return {
+                    valueText: valueText,
+                    noteText: noteText
+                };
+            }
+
+            if (!/\bdays?\b/i.test(valueText)) {
+                valueText = valueText + ' days';
+            }
+
+            return {
+                valueText: valueText,
+                noteText: daysPrefixMatch[1] || ''
+            };
+        }
+
+        function renderValueWithDaysSuffix(valueText, suffixClassName) {
+            var rawText = String(valueText == null ? '0' : valueText).trim();
+            var dayMatch = rawText.match(/^(.+?)\s+(day|days)$/i);
+            if (!dayMatch) {
+                return escapeHtml(rawText);
+            }
+
+            var numericCandidate = String(dayMatch[1] || '').replace(/,/g, '').trim();
+            var parsed = parseFloat(numericCandidate);
+            var displayValue = isNaN(parsed) ? dayMatch[1] : String(parseInt(parsed, 10));
+            var mainValue = escapeHtml(displayValue);
+            var dayUnit = escapeHtml(dayMatch[2].toLowerCase());
+            var cls = suffixClassName || 'ccip-days-suffix';
+            return mainValue + ' <span class="' + cls + '">' + dayUnit + '</span>';
+        }
+
+        function renderHomeSummaryFacts(snapshot) {
+            var host = document.getElementById('homeDashboardSummaryFacts');
+            if (!host) return;
+            var facts = [].concat(snapshot.SummaryFacts || [], snapshot.TptFacts || []);
+            host.innerHTML = '';
+            for (var i = 0; i < facts.length; i++) {
+                var fact = facts[i] || {};
+                var formattedFact = formatSummaryFactValueAndNote(fact.Value, fact.Note);
+                var card = document.createElement('div');
+                card.className = 'ccip-summary-fact';
+                card.innerHTML = '<div class="ccip-summary-fact-label">' + escapeHtml(fact.Label || '-') + '</div>' +
+                    '<div class="ccip-summary-fact-value">' + renderValueWithDaysSuffix(formattedFact.valueText, 'ccip-days-suffix') + '</div>' +
+                    '<div class="ccip-summary-fact-note">' + escapeHtml(formattedFact.noteText) + '</div>';
+                host.appendChild(card);
+            }
+        }
+
+        function getOverallSummaryToneClass(label) {
+            var normalized = String(label || '').toLowerCase();
+            if (normalized.indexOf('pending') >= 0) {
+                return 'tone-pending';
+            }
+            if (normalized.indexOf('open') >= 0) {
+                return 'tone-open';
+            }
+            if (normalized.indexOf('closed') >= 0) {
+                return 'tone-closed';
+            }
+            if (normalized.indexOf('implemented') >= 0 || normalized.indexOf('verified') >= 0) {
+                return 'tone-implemented';
+            }
+            if (normalized.indexOf('total') >= 0) {
+                return 'tone-total';
+            }
+
+            return 'tone-total';
+        }
+
+        function buildOverallSummaryFactTooltip(fact) {
+            var label = String((fact && fact.Label) || '').toLowerCase();
+            var constituentTooltip = fact && fact.ConstituentTooltip ? String(fact.ConstituentTooltip).trim() : '';
+            var lines = [];
+
+            if (constituentTooltip && (label === 'implemented' || label === 'open' || label === 'pending')) {
+                return constituentTooltip;
+            }
+
+            if (label === 'total cmfs') {
+                lines.push('Total customer_must_fix CMFs in the current summary scope.');
+                lines.push('Calculated as count of cmf_ok + cmf_duplicate rows.');
+            } else if (label === 'closed') {
+                lines.push('CMFs that are finalized.');
+                lines.push('Calculated as count where status is complete or rejected.');
+            } else if (label === 'implemented') {
+                lines.push('CMFs that are implemented in the current summary scope.');
+                lines.push('Calculated as count where status is implemented.');
+            } else if (label === 'open') {
+                lines.push('CMFs that are not complete, rejected, or implemented.');
+                lines.push('Calculated directly from cmf_ok + cmf_duplicate rows in the summary scope.');
+            } else if (label === 'pending') {
+                lines.push('CMFs still unresolved in the pending pipeline.');
+                lines.push('Calculated as count where status is not complete or rejected.');
+            } else if (label.indexOf('avg resolution') >= 0) {
+                lines.push('Mean time to resolve CMFs.');
+                lines.push('Calculated as average days between date_cmf_decided and implemented_date over resolved CMFs with valid dates.');
+            } else {
+                lines.push('Summary KPI for the selected scope.');
+            }
+
+            return lines.join('\n');
+        }
+
+        function normalizeSummaryIssueMetricKey(label) {
+            var normalized = String(label || '').trim().toLowerCase();
+            if (normalized === 'total cmfs' || normalized === 'total') {
+                return 'total';
+            }
+            if (normalized === 'closed') {
+                return 'closed';
+            }
+            if (normalized === 'implemented') {
+                return 'implemented';
+            }
+            if (normalized === 'open') {
+                return 'open';
+            }
+            if (normalized === 'pending') {
+                return 'pending';
+            }
+            return '';
+        }
+
+        function getSummaryIssueGroupByLabel(groupBy) {
+            var key = String(groupBy || '').toLowerCase();
+            if (key === 'issue') return 'Issue';
+            if (key === 'platform') return 'Platform';
+            if (key === 'milestone') return 'Milestone';
+            if (key === 'design') return 'Design';
+            if (key === 'component') return 'Component';
+            if (key === 'owner') return 'Owner';
+            if (key === 'idst') return 'iDST Name';
+            return 'Ingredient';
+        }
+
+        function normalizeSummaryIssueSortBy(sortBy) {
+            var key = String(sortBy || '').toLowerCase();
+            return key === 'hsdcount' ? 'hsdcount' : 'alphabetical';
+        }
+
+        function getSummaryIssueSortByLabel(sortBy) {
+            var key = normalizeSummaryIssueSortBy(sortBy);
+            if (key === 'hsdcount') {
+                return 'HSD Count';
+            }
+            return 'Alphabetical';
+        }
+
+        function syncSummaryIssuePopupControls(sourceType) {
+            var normalizedSource = String(sourceType || 'summary').toLowerCase();
+            var groupBySelect = document.getElementById('summaryIssuesGroupBy');
+            var groupByLabel = document.querySelector('label[for="summaryIssuesGroupBy"]');
+            var sortBySelect = document.getElementById('summaryIssuesSortBy');
+            var sortByLabel = document.querySelector('label[for="summaryIssuesSortBy"]');
+            var trendStatusLabel = document.getElementById('summaryIssuesTrendStatusLabel');
+            var trendStatusChecks = document.getElementById('summaryIssuesTrendStatusChecks');
+            if (!groupBySelect || !groupByLabel || !sortBySelect || !sortByLabel || !trendStatusLabel || !trendStatusChecks) {
+                return;
+            }
+
+            var showGrouping = normalizedSource === 'summary' || normalizedSource === 'overall-heatmap' || normalizedSource === 'trend-week';
+            var showTrendStatus = normalizedSource === 'trend-week';
+            groupBySelect.style.display = showGrouping ? '' : 'none';
+            groupByLabel.style.display = showGrouping ? '' : 'none';
+            sortBySelect.style.display = showGrouping ? '' : 'none';
+            sortByLabel.style.display = showGrouping ? '' : 'none';
+            trendStatusLabel.style.display = showTrendStatus ? '' : 'none';
+            trendStatusChecks.style.display = showTrendStatus ? 'flex' : 'none';
+        }
+
+        function syncSummaryTrendIssueStatusControls(showOpen, showClosed) {
+            var openCheck = document.getElementById('summaryIssuesShowOpen');
+            var closedCheck = document.getElementById('summaryIssuesShowClosed');
+
+            var normalizedOpen = showOpen !== false;
+            var normalizedClosed = showClosed !== false;
+
+            if (openCheck) {
+                openCheck.checked = normalizedOpen;
+            }
+
+            if (closedCheck) {
+                closedCheck.checked = normalizedClosed;
+            }
+
+            return {
+                showOpen: normalizedOpen,
+                showClosed: normalizedClosed
+            };
+        }
+
+        function syncSummaryIssueSortByOptions(preferredSortBy) {
+            var select = document.getElementById('summaryIssuesSortBy');
+            var selected = normalizeSummaryIssueSortBy(preferredSortBy);
+            if (!select) {
+                return selected;
+            }
+
+            var options = [
+                { value: 'alphabetical', text: getSummaryIssueSortByLabel('alphabetical') },
+                { value: 'hsdcount', text: getSummaryIssueSortByLabel('hsdcount') }
+            ];
+
+            select.innerHTML = '';
+            for (var index = 0; index < options.length; index++) {
+                var option = document.createElement('option');
+                option.value = options[index].value;
+                option.textContent = options[index].text;
+                select.appendChild(option);
+            }
+
+            select.value = selected;
+            return selected;
+        }
+
+        function syncSummaryIssueGroupByOptions(availableGroupBy, preferredGroupBy) {
+            var select = document.getElementById('summaryIssuesGroupBy');
+            if (!select) {
+                return preferredGroupBy || 'ingredient';
+            }
+
+            var options = Array.isArray(availableGroupBy) ? availableGroupBy.slice() : [];
+            if (!options.length) {
+                options = ['ingredient'];
+            }
+
+            var normalized = [];
+            var seen = {};
+            for (var i = 0; i < options.length; i++) {
+                var candidate = String(options[i] || '').toLowerCase().trim();
+                if (!candidate || seen[candidate]) {
+                    continue;
+                }
+                seen[candidate] = true;
+                normalized.push(candidate);
+            }
+
+            if (!normalized.length) {
+                normalized.push('ingredient');
+            }
+
+            var requested = String(preferredGroupBy || '').toLowerCase().trim();
+            var selected = normalized.indexOf(requested) >= 0 ? requested : normalized[0];
+
+            select.innerHTML = '';
+            for (var index = 0; index < normalized.length; index++) {
+                var value = normalized[index];
+                var option = document.createElement('option');
+                option.value = value;
+                option.textContent = getSummaryIssueGroupByLabel(value);
+                select.appendChild(option);
+            }
+
+            select.value = selected;
+            return selected;
+        }
+
+        function buildSummaryIssueGroupByOptions(isOverallScope) {
+            var options = ['ingredient', 'milestone', 'design', 'component', 'owner', 'idst'];
+            if (isOverallScope) {
+                options.splice(1, 0, 'platform');
+            }
+            return options;
+        }
+
+        function buildTrendIssueGroupByOptions(isOverallScope) {
+            var options = ['issue', 'ingredient', 'milestone', 'design', 'component', 'owner', 'idst'];
+            if (isOverallScope) {
+                options.splice(2, 0, 'platform');
+            }
+            return options;
+        }
+
+        function closeSummaryIssueLinksPopup() {
+            var popup = document.getElementById('summaryIssuesPopup');
+            var backdrop = document.getElementById('summaryIssuesPopupBackdrop');
+            if (popup) popup.classList.remove('visible');
+            if (backdrop) backdrop.classList.remove('visible');
+        }
+
+        function renderSummaryIssueLinks(result) {
+            var body = document.getElementById('summaryIssuesPopupBody');
+            var meta = document.getElementById('summaryIssuesPopupMeta');
+            if (!body || !meta) {
+                return;
+            }
+
+            var popupState = window.CMF_PORTAL.summaryIssuesPopupState || {};
+            window.CMF_PORTAL.summaryIssuesPopupLastResult = result || null;
+            syncSummaryIssuePopupControls(popupState.sourceType || 'summary');
+            var syncedGroupBy = syncSummaryIssueGroupByOptions(
+                result && result.AvailableGroupBy ? result.AvailableGroupBy : null,
+                result && result.GroupBy ? result.GroupBy : popupState.groupBy
+            );
+            popupState.groupBy = syncedGroupBy;
+            popupState.sortBy = syncSummaryIssueSortByOptions(popupState.sortBy || 'alphabetical');
+            var trendStatus = syncSummaryTrendIssueStatusControls(popupState.showOpen, popupState.showClosed);
+            popupState.showOpen = trendStatus.showOpen;
+            popupState.showClosed = trendStatus.showClosed;
+            window.CMF_PORTAL.summaryIssuesPopupState = popupState;
+
+            var totalIssues = result && result.TotalIssues ? parseInt(result.TotalIssues, 10) : 0;
+            if (isNaN(totalIssues)) {
+                totalIssues = 0;
+            }
+
+            var metaParts = [String(totalIssues) + ' issues'];
+            var idstMetaLine = '';
+            if (popupState.sourceType === 'trend-week') {
+                var weekLabel = String(popupState.weekLabel || '').trim();
+                if (weekLabel) {
+                    metaParts.push(weekLabel);
+                }
+            }
+
+            if (popupState.sourceType === 'overall-heatmap') {
+                var platformLabel = String(popupState.platformLabel || '').trim();
+                var ingredientLabel = String(popupState.ingredient || '').trim();
+                var scopeTokens = [];
+                if (platformLabel) {
+                    scopeTokens.push(platformLabel);
+                }
+                if (ingredientLabel) {
+                    scopeTokens.push(ingredientLabel);
+                }
+                if (scopeTokens.length) {
+                    metaParts.push(scopeTokens.join(' / '));
+                }
+
+                var idstNames = result && Array.isArray(result.IdstNames) ? result.IdstNames.slice() : [];
+                if (idstNames.length) {
+                    var maxVisibleIdst = 3;
+                    var preview = idstNames.slice(0, maxVisibleIdst).join(', ');
+                    if (idstNames.length > maxVisibleIdst) {
+                        preview += ' +' + String(idstNames.length - maxVisibleIdst) + ' more';
+                    }
+                    idstMetaLine = 'iDST: ' + preview;
+                }
+            }
+
+            var metaMainLine = metaParts.join(' • ');
+            if (idstMetaLine) {
+                meta.innerHTML =
+                    '<span class="summary-issues-popup-meta-main">' + escapeHtml(metaMainLine) + '</span>' +
+                    '<span class="summary-issues-popup-meta-idst">' + escapeHtml(idstMetaLine) + '</span>';
+            } else {
+                meta.textContent = metaMainLine;
+            }
+
+            if (!result || result.Success !== true) {
+                body.innerHTML = '<div class="summary-issues-popup-empty">' + escapeHtml((result && result.Message) ? result.Message : 'Unable to load issue links.') + '</div>';
+                return;
+            }
+
+            var groups = result.Groups || [];
+            if (!groups.length) {
+                body.innerHTML = '<div class="summary-issues-popup-empty">' + escapeHtml(result.Message || 'No matching CMF records found.') + '</div>';
+                return;
+            }
+
+            var sortBy = normalizeSummaryIssueSortBy(popupState.sortBy || 'alphabetical');
+            var sortedGroups = groups.slice();
+            if (sortBy === 'hsdcount') {
+                sortedGroups.sort(function (left, right) {
+                    var leftCount = left && left.HsdIds ? left.HsdIds.length : 0;
+                    var rightCount = right && right.HsdIds ? right.HsdIds.length : 0;
+                    if (leftCount !== rightCount) {
+                        return rightCount - leftCount;
+                    }
+
+                    var leftName = String((left && left.GroupName) || '').toLowerCase();
+                    var rightName = String((right && right.GroupName) || '').toLowerCase();
+                    if (leftName < rightName) return -1;
+                    if (leftName > rightName) return 1;
+                    return 0;
+                });
+            } else {
+                sortedGroups.sort(function (left, right) {
+                    var leftName = String((left && left.GroupName) || '').toLowerCase();
+                    var rightName = String((right && right.GroupName) || '').toLowerCase();
+                    if (leftName < rightName) return -1;
+                    if (leftName > rightName) return 1;
+                    return 0;
+                });
+            }
+
+            var html = '';
+            for (var i = 0; i < sortedGroups.length; i++) {
+                var group = sortedGroups[i] || {};
+                var ids = group.HsdIds || [];
+                var links = [];
+                for (var j = 0; j < ids.length; j++) {
+                    var rawId = String(ids[j] || '').trim();
+                    if (!rawId) {
+                        continue;
+                    }
+
+                    var safeId = rawId.replace(/[^0-9]/g, '');
+                    if (!safeId) {
+                        continue;
+                    }
+
+                    links.push('<a href="https://hsdes.intel.com/appstore/article/#/' + encodeURIComponent(safeId) + '" target="_blank" rel="noopener noreferrer">#' + escapeHtml(safeId) + '</a>');
+                }
+
+                html += '<section class="summary-issues-group">';
+                html += '<div class="summary-issues-group-title"><span class="summary-issues-group-name">' + escapeHtml(group.GroupName || 'Unassigned') + '</span><span class="summary-issues-group-count">Issues: ' + String(links.length) + '</span></div>';
+                html += '<div class="summary-issues-group-links">' + (links.length ? links.join(', ') : 'No HSD links') + '</div>';
+                html += '</section>';
+            }
+
+            body.innerHTML = html;
+        }
+
+        function loadSummaryIssueLinks(metricKey, metricLabel, groupBy) {
+            var body = document.getElementById('summaryIssuesPopupBody');
+            var title = document.getElementById('summaryIssuesPopupTitle');
+            if (!body || !title) {
+                return;
+            }
+
+            var popupState = window.CMF_PORTAL.summaryIssuesPopupState || {};
+            var sourceType = String(popupState.sourceType || 'summary');
+
+            if (sourceType === 'overall-heatmap') {
+                title.textContent = 'CMF Issues • OVERALL HEATMAP';
+            } else if (sourceType === 'trend-week') {
+                var trendWeek = String(popupState.weekLabel || '').toUpperCase();
+                title.textContent = 'CMF Issues' + (trendWeek ? (' • ' + trendWeek) : '');
+            } else {
+                title.textContent = 'CMF Issues • ' + String(metricLabel || metricKey || 'Summary Metric').toUpperCase();
+            }
+
+            body.innerHTML = '<div class="summary-issues-popup-empty">Loading issue links...</div>';
+
+            var endpoint = 'CMF_Web_portal.aspx/GetSummaryCardIssueLinks';
+            var payload = {
+                metricKey: metricKey,
+                groupBy: groupBy,
+                dashboardPlatform: window.CMF_PORTAL.currentDashboardPlatform || ''
+            };
+
+            if (sourceType === 'overall-heatmap') {
+                endpoint = 'CMF_Web_portal.aspx/GetOverallHeatmapIssueLinks';
+                payload = {
+                    ingredient: String(popupState.ingredient || ''),
+                    platformLabel: String(popupState.platformLabel || ''),
+                    groupBy: groupBy
+                };
+            } else if (sourceType === 'trend-week') {
+                endpoint = 'CMF_Web_portal.aspx/GetTrendWeekIssueLinks';
+                payload = {
+                    seriesName: String(popupState.seriesName || ''),
+                    weekLabel: String(popupState.weekLabel || ''),
+                    weekOffset: parseInt(popupState.weekOffset, 10) || 0,
+                    dashboardPlatform: window.CMF_PORTAL.currentDashboardPlatform || '',
+                    groupBy: groupBy,
+                    includeOpen: popupState.showOpen !== false,
+                    includeClosed: popupState.showClosed !== false
+                };
+            }
+
+            fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify(payload)
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                var result = data && data.d ? data.d : data;
+                renderSummaryIssueLinks(result);
+            })
+            .catch(function () {
+                renderSummaryIssueLinks({ Success: false, Message: 'Unable to load issue links right now.' });
+            });
+        }
+
+        function openSummaryIssueLinksPopup(metricKey, metricLabel, popupOptions) {
+            var popup = document.getElementById('summaryIssuesPopup');
+            var backdrop = document.getElementById('summaryIssuesPopupBackdrop');
+            var groupBySelect = document.getElementById('summaryIssuesGroupBy');
+            var sortBySelect = document.getElementById('summaryIssuesSortBy');
+            var showOpenCheck = document.getElementById('summaryIssuesShowOpen');
+            var showClosedCheck = document.getElementById('summaryIssuesShowClosed');
+
+            if (!popup || !backdrop || !groupBySelect || !sortBySelect || !showOpenCheck || !showClosedCheck) {
+                return;
+            }
+
+            var sourceType = popupOptions && popupOptions.sourceType
+                ? String(popupOptions.sourceType || '').toLowerCase()
+                : 'summary';
+            var options = sourceType === 'overall-heatmap'
+                ? ['milestone', 'design', 'component', 'owner', 'idst']
+                : (sourceType === 'trend-week'
+                    ? buildTrendIssueGroupByOptions(isOverallDashboardSelection())
+                    : buildSummaryIssueGroupByOptions(isOverallDashboardSelection()));
+            var initialGroupBy = syncSummaryIssueGroupByOptions(options, options.length > 0 ? options[0] : 'ingredient');
+            var initialSortBy = syncSummaryIssueSortByOptions('alphabetical');
+            var initialTrendStatus = syncSummaryTrendIssueStatusControls(true, true);
+            syncSummaryIssuePopupControls(sourceType);
+
+            window.CMF_PORTAL.summaryIssuesPopupState = {
+                metricKey: String(metricKey || ''),
+                metricLabel: String(metricLabel || ''),
+                groupBy: initialGroupBy,
+                sortBy: initialSortBy,
+                showOpen: initialTrendStatus.showOpen,
+                showClosed: initialTrendStatus.showClosed,
+                sourceType: sourceType,
+                ingredient: popupOptions && popupOptions.ingredient ? String(popupOptions.ingredient || '').trim() : '',
+                platformLabel: popupOptions && popupOptions.platformLabel ? String(popupOptions.platformLabel || '').trim() : '',
+                seriesName: popupOptions && popupOptions.seriesName ? String(popupOptions.seriesName || '').trim() : '',
+                weekLabel: popupOptions && popupOptions.weekLabel ? String(popupOptions.weekLabel || '').trim() : '',
+                weekOffset: popupOptions && popupOptions.weekOffset != null ? parseInt(popupOptions.weekOffset, 10) : 0
+            };
+            window.CMF_PORTAL.summaryIssuesPopupLastResult = null;
+
+            groupBySelect.onchange = function () {
+                var state = window.CMF_PORTAL.summaryIssuesPopupState || {};
+                state.groupBy = String(groupBySelect.value || 'ingredient');
+                window.CMF_PORTAL.summaryIssuesPopupState = state;
+                loadSummaryIssueLinks(state.metricKey, state.metricLabel, state.groupBy);
+            };
+
+            sortBySelect.onchange = function () {
+                var state = window.CMF_PORTAL.summaryIssuesPopupState || {};
+                state.sortBy = normalizeSummaryIssueSortBy(sortBySelect.value || 'alphabetical');
+                window.CMF_PORTAL.summaryIssuesPopupState = state;
+                renderSummaryIssueLinks(window.CMF_PORTAL.summaryIssuesPopupLastResult || null);
+            };
+
+            showOpenCheck.onchange = function () {
+                var state = window.CMF_PORTAL.summaryIssuesPopupState || {};
+                state.showOpen = !!showOpenCheck.checked;
+                state.showClosed = !!showClosedCheck.checked;
+                window.CMF_PORTAL.summaryIssuesPopupState = state;
+                loadSummaryIssueLinks(state.metricKey, state.metricLabel, state.groupBy);
+            };
+
+            showClosedCheck.onchange = function () {
+                var state = window.CMF_PORTAL.summaryIssuesPopupState || {};
+                state.showOpen = !!showOpenCheck.checked;
+                state.showClosed = !!showClosedCheck.checked;
+                window.CMF_PORTAL.summaryIssuesPopupState = state;
+                loadSummaryIssueLinks(state.metricKey, state.metricLabel, state.groupBy);
+            };
+
+            popup.classList.add('visible');
+            backdrop.classList.add('visible');
+
+            if (!window.CMF_PORTAL.summaryIssuesPopupEscBound) {
+                document.addEventListener('keydown', function (event) {
+                    if (event && event.key === 'Escape') {
+                        closeSummaryIssueLinksPopup();
+                    }
+                });
+                window.CMF_PORTAL.summaryIssuesPopupEscBound = true;
+            }
+
+            loadSummaryIssueLinks(
+                window.CMF_PORTAL.summaryIssuesPopupState.metricKey,
+                window.CMF_PORTAL.summaryIssuesPopupState.metricLabel,
+                window.CMF_PORTAL.summaryIssuesPopupState.groupBy
+            );
+        }
+
+        function openOverallHeatmapIssueLinksPopup(ingredient, platformLabel) {
+            var normalizedIngredient = String(ingredient || '').trim() || 'Unassigned';
+            var normalizedPlatform = String(platformLabel || '').trim();
+            var labelParts = ['Overall Heatmap'];
+            if (normalizedPlatform) {
+                labelParts.push(normalizedPlatform);
+            }
+            if (normalizedIngredient) {
+                labelParts.push(normalizedIngredient);
+            }
+
+            openSummaryIssueLinksPopup('open', labelParts.join(' • '), {
+                sourceType: 'overall-heatmap',
+                ingredient: normalizedIngredient,
+                platformLabel: normalizedPlatform
+            });
+        }
+
+        function openTrendWeekIssueLinksPopup(seriesName, weekLabel, weekOffset) {
+            var normalizedSeries = String(seriesName || '').trim();
+            var normalizedWeek = String(weekLabel || '').trim();
+            var safeWeekOffset = parseInt(weekOffset, 10);
+            if (isNaN(safeWeekOffset) || safeWeekOffset < 0) {
+                safeWeekOffset = 0;
+            }
+
+            var popupLabel = normalizedSeries + (normalizedWeek ? (' • ' + normalizedWeek) : '');
+            openSummaryIssueLinksPopup('open', popupLabel, {
+                sourceType: 'trend-week',
+                seriesName: normalizedSeries,
+                weekLabel: normalizedWeek,
+                weekOffset: safeWeekOffset
+            });
+        }
+
+        function renderOverallSummaryFacts(snapshot, hostId) {
+            var host = document.getElementById(hostId || 'homeOverallSummaryFacts');
+            if (!host) {
+                return;
+            }
+
+            var facts = snapshot && snapshot.SummaryFacts ? snapshot.SummaryFacts : [];
+            if (!facts.length) {
+                host.innerHTML = '<div class="ccip-empty-state">No summary data available.</div>';
+                return;
+            }
+
+            host.innerHTML = '';
+            for (var i = 0; i < facts.length; i++) {
+                var fact = facts[i] || {};
+                var formattedFact = formatSummaryFactValueAndNote(fact.Value, fact.Note);
+                var card = document.createElement('div');
+                card.className = 'ccip-summary-fact overall-summary-fact ' + getOverallSummaryToneClass(fact.Label);
+                var tooltip = buildOverallSummaryFactTooltip(fact);
+                var metricKey = normalizeSummaryIssueMetricKey(fact.Label);
+                card.setAttribute('title', tooltip);
+                card.setAttribute('aria-label', tooltip);
+
+                if (metricKey) {
+                    card.className += ' ccip-summary-clickable';
+                    card.setAttribute('role', 'button');
+                    card.setAttribute('tabindex', '0');
+                    card.setAttribute('title', tooltip + '\nClick to view individual HSD links.');
+                    card.setAttribute('aria-label', (fact.Label || 'Summary metric') + '. ' + tooltip + '. Click to view individual HSD links grouped by selection.');
+                }
+
+                card.innerHTML = '<div class="ccip-summary-fact-label">' + escapeHtml(fact.Label || '-') + '</div>' +
+                    '<div class="ccip-summary-fact-value">' + renderValueWithDaysSuffix(formattedFact.valueText, 'ccip-days-suffix') + '</div>' +
+                    '<div class="ccip-summary-fact-note">' + escapeHtml(formattedFact.noteText) + '</div>';
+
+                if (metricKey) {
+                    (function (boundMetricKey, boundLabel, boundCard) {
+                        boundCard.addEventListener('click', function (event) {
+                            if (event) {
+                                event.preventDefault();
+                            }
+                            openSummaryIssueLinksPopup(boundMetricKey, boundLabel);
+                        });
+
+                        boundCard.addEventListener('keydown', function (event) {
+                            var key = event && event.key ? String(event.key) : '';
+                            if (key === 'Enter' || key === ' ' || key === 'Spacebar') {
+                                event.preventDefault();
+                                openSummaryIssueLinksPopup(boundMetricKey, boundLabel);
+                            }
+                        });
+                    })(metricKey, fact.Label || 'Summary Metric', card);
+                }
+
+                host.appendChild(card);
+            }
+        }
+
+        function renderCombinedSummaryFacts(snapshot, hostId, summaryCoreId, tptInlineId) {
+            var host = document.getElementById(hostId || 'homeOverallSummaryFacts');
+            if (!host) {
+                return;
+            }
+
+            host.innerHTML = '';
+
+            var summaryCore = document.createElement('div');
+            summaryCore.id = summaryCoreId || (host.id + 'Core');
+            summaryCore.className = 'overall-summary-facts-core';
+            host.appendChild(summaryCore);
+
+            var tptInline = document.createElement('div');
+            tptInline.id = tptInlineId || (host.id + 'TptInline');
+            tptInline.className = 'overall-summary-tpt-inline';
+            host.appendChild(tptInline);
+
+            renderOverallSummaryFacts(snapshot, summaryCore.id);
+            renderOverallTptBoxes((snapshot && snapshot.TptFacts) ? snapshot.TptFacts : [], tptInline.id);
+        }
+
+        function renderOverallCombinedSummaryFacts(snapshot) {
+            renderCombinedSummaryFacts(snapshot, 'homeOverallSummaryFacts', 'homeOverallSummaryFactsCore', 'homeOverallSummaryTptInline');
+        }
+
+        var OEM_DOMAIN_BY_CANONICAL = {
+            lenovo: 'lenovo.com',
+            dell: 'dell.com',
+            hp: 'hp.com',
+            samsung: 'samsung.com',
+            asus: 'asus.com',
+            honor: 'honor.com',
+            microsoft: 'microsoft.com',
+            nec: 'nec.com',
+            acer: 'acer.com',
+            panasonic: 'panasonic.com',
+            msi: 'msi.com',
+            dynabook: 'dynabook.com',
+            fujitsu: 'fujitsu.com',
+            lg: 'lg.com',
+            gigabyte: 'gigabyte.com',
+            intel: 'intel.com',
+            xiaomi: 'xiaomi.com',
+            asrock: 'asrock.com',
+            compal: 'compal.com',
+            mechrevo: 'mechrevo.com',
+            razer: 'razer.com',
+            byd: 'byd.com',
+            emdoor: 'emdoor.com',
+            wiko: 'wikomobile.com',
+            wistron: 'wistron.com'
+        };
+
+        var OEM_ALIAS_TO_CANONICAL = {
+            lenovo: 'lenovo',
+            lenovo_japan: 'lenovo',
+            lenovojapan: 'lenovo',
+            dell: 'dell',
+            hp: 'hp',
+            hewlett_packard: 'hp',
+            hp_hewlett_packard: 'hp',
+            hp_hewlett_packard_: 'hp',
+            samsung: 'samsung',
+            asustek: 'asus',
+            asus: 'asus',
+            asustek_computer: 'asus',
+            honor: 'honor',
+            microsoft_surface: 'microsoft',
+            microsoft: 'microsoft',
+            surface: 'microsoft',
+            nec: 'nec',
+            acer: 'acer',
+            panasonic: 'panasonic',
+            msi_micro_star_international: 'msi',
+            micro_star_international: 'msi',
+            msi: 'msi',
+            dynabook: 'dynabook',
+            fujitsu: 'fujitsu',
+            lg: 'lg',
+            gigabyte: 'gigabyte',
+            intel_internal: 'intel',
+            intel___internal: 'intel',
+            intel: 'intel',
+            xiaomi: 'xiaomi',
+            asrock: 'asrock',
+            compal: 'compal',
+            mechrevo: 'mechrevo',
+            razer: 'razer',
+            byd_company_ltd: 'byd',
+            byd: 'byd',
+            emdoor: 'emdoor',
+            wiko: 'wiko',
+            wistron: 'wistron',
+            lengda: '',
+            unknown: '',
+            unassigned: ''
+        };
+
+        function normalizeOemNameKey(rawName) {
+            var raw = String(rawName || '').toLowerCase().trim();
+            if (!raw) {
+                return '';
+            }
+
+            raw = raw.replace(/&/g, ' and ');
+            raw = raw.replace(/[^a-z0-9]+/g, '_');
+            raw = raw.replace(/^_+|_+$/g, '');
+            raw = raw.replace(/_+/g, '_');
+            return raw;
+        }
+
+        function resolveOemLogoUrl(oemName) {
+            var normalized = normalizeOemNameKey(oemName);
+            if (!normalized) {
+                return '';
+            }
+
+            var canonical = OEM_ALIAS_TO_CANONICAL.hasOwnProperty(normalized)
+                ? OEM_ALIAS_TO_CANONICAL[normalized]
+                : normalized;
+
+            if (!canonical) {
+                return '';
+            }
+
+            var domain = OEM_DOMAIN_BY_CANONICAL[canonical] || '';
+            if (!domain) {
+                return '';
+            }
+
+            return 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain) + '&sz=64';
+        }
+
+        function renderOverallOemNameCell(oemName) {
+            var displayName = String(oemName || 'Unassigned');
+            var safeName = escapeHtml(displayName);
+            var logoUrl = resolveOemLogoUrl(displayName);
+
+            if (!logoUrl) {
+                return '<span class="overall-oem-name-cell"><span class="overall-oem-name-text">' + safeName + '</span></span>';
+            }
+
+            return '<span class="overall-oem-name-cell">' +
+                '<img class="overall-oem-logo" src="' + escapeHtml(logoUrl) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display=\'none\';" />' +
+                '<span class="overall-oem-name-text">' + safeName + '</span>' +
+                '</span>';
+        }
+
+        var OEM_ALIAS_KEYS_SORTED = Object.keys(OEM_ALIAS_TO_CANONICAL).sort(function (left, right) {
+            return String(right || '').length - String(left || '').length;
+        });
+
+        function resolveDesignNameLogoUrl(designName) {
+            var displayName = String(designName || '').trim();
+            if (!displayName) {
+                return '';
+            }
+
+            var directLogoUrl = resolveOemLogoUrl(displayName);
+            if (directLogoUrl) {
+                return directLogoUrl;
+            }
+
+            var normalized = normalizeOemNameKey(displayName);
+            if (!normalized) {
+                return '';
+            }
+
+            var bounded = '_' + normalized + '_';
+            for (var i = 0; i < OEM_ALIAS_KEYS_SORTED.length; i++) {
+                var alias = OEM_ALIAS_KEYS_SORTED[i];
+                var canonical = OEM_ALIAS_TO_CANONICAL[alias];
+                if (!canonical) {
+                    continue;
+                }
+
+                if (bounded.indexOf('_' + alias + '_') < 0) {
+                    continue;
+                }
+
+                var domain = OEM_DOMAIN_BY_CANONICAL[canonical] || '';
+                if (!domain) {
+                    continue;
+                }
+
+                return 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain) + '&sz=64';
+            }
+
+            return '';
+        }
+
+        function renderDesignSummaryNameCell(designName) {
+            var displayName = String(designName == null ? '' : designName);
+            var safeName = escapeHtml(displayName);
+            var logoUrl = resolveDesignNameLogoUrl(displayName);
+
+            if (!logoUrl) {
+                return '<span class="design-summary-name-cell"><span class="design-summary-name-text">' + safeName + '</span></span>';
+            }
+
+            return '<span class="design-summary-name-cell">' +
+                '<img class="design-summary-logo" src="' + escapeHtml(logoUrl) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display=\'none\';" />' +
+                '<span class="design-summary-name-text">' + safeName + '</span>' +
+                '</span>';
+        }
+
+        function renderOverallOemTable(rows) {
+            var host = document.getElementById('homeOverallOemTable');
+            if (!host) {
+                return;
+            }
+
+            var source = rows || [];
+            if (!source.length) {
+                host.innerHTML = '<div class="ccip-empty-state">No OEM/customer summary data available.</div>';
+                return;
+            }
+
+            source.sort(function (left, right) {
+                return (right.OpenIssues || 0) - (left.OpenIssues || 0);
+            });
+
+            var html = '<table class="overall-oem-table"><thead><tr>' +
+                '<th>OEM/Customer</th>' +
+                '<th>Total Issues</th>' +
+                '<th>Open Issues</th>' +
+                '<th>CMF Pending</th>' +
+                '<th>Implemented</th>' +
+                '<th>Closed</th>' +
+                '<th>Average Resolution Time (Days)</th>' +
+                '<th>Trend<br><span style="display:block;font-size:9px;font-weight:700;letter-spacing:0.01em;opacity:0.95;">(vs Last Week)</span></th>' +
+                '</tr></thead><tbody>';
+
+            for (var i = 0; i < source.length; i++) {
+                var row = source[i] || {};
+                var totalIssues = parseInt(row.TotalIssues || 0, 10);
+                var openIssues = parseInt(row.OpenIssues || 0, 10);
+                var cmfPending = parseInt(row.CmfPending || 0, 10);
+                var implemented = parseInt(row.Implemented || 0, 10);
+                var closed = parseInt(row.Closed || 0, 10);
+                var avgResolution = parseFloat(row.AvgResolutionDays || 0);
+                var trendPercent = parseInt(row.TrendPercent || 0, 10);
+                var trendSafe = isNaN(trendPercent) ? 0 : trendPercent;
+                var trendClass = trendSafe > 0 ? 'overall-trend-up' : (trendSafe < 0 ? 'overall-trend-down' : 'overall-trend-flat');
+                var trendAbs = Math.abs(trendSafe);
+                var trendArrow = trendSafe > 0 ? '↑' : (trendSafe < 0 ? '↓' : '');
+                var trendValue = trendSafe > 0
+                    ? ('+' + trendAbs + '%')
+                    : (trendSafe < 0 ? ('-' + trendAbs + '%') : '0%');
+
+                html += '<tr>' +
+                    '<td>' + renderOverallOemNameCell(row.OemName || 'Unassigned') + '</td>' +
+                    '<td><span class="overall-oem-metric-total">' + escapeHtml(String(isNaN(totalIssues) ? 0 : totalIssues)) + '</span></td>' +
+                    '<td><span class="overall-oem-metric-open">' + escapeHtml(String(isNaN(openIssues) ? 0 : openIssues)) + '</span></td>' +
+                    '<td><span class="overall-oem-metric-pending">' + escapeHtml(String(isNaN(cmfPending) ? 0 : cmfPending)) + '</span></td>' +
+                    '<td><span class="overall-oem-metric-implemented">' + escapeHtml(String(isNaN(implemented) ? 0 : implemented)) + '</span></td>' +
+                    '<td><span class="overall-oem-metric-closed">' + escapeHtml(String(isNaN(closed) ? 0 : closed)) + '</span></td>' +
+                    '<td>' + escapeHtml((isNaN(avgResolution) ? 0 : avgResolution).toFixed(1)) + '</td>' +
+                        '<td><span class="overall-oem-trend ' + trendClass + '"><span class="overall-oem-trend-arrow">' + escapeHtml(trendArrow) + '</span><span class="overall-oem-trend-value">' + escapeHtml(trendValue) + '</span></span></td>' +
+                    '</tr>';
+            }
+
+            html += '</tbody></table>';
+            host.innerHTML = html;
+        }
+
+        function readOverallFactNumber(facts, pattern) {
+            var source = facts || [];
+            for (var i = 0; i < source.length; i++) {
+                var fact = source[i] || {};
+                var label = String(fact.Label || '');
+                if (!pattern.test(label)) {
+                    continue;
+                }
+
+                var match = String(fact.Value || '').match(/-?\d+(?:\.\d+)?/);
+                return match ? parseFloat(match[0]) : 0;
+            }
+            return 0;
+        }
+
+        function findTptFactByLabel(facts, pattern) {
+            var source = facts || [];
+            for (var i = 0; i < source.length; i++) {
+                var fact = source[i] || {};
+                if (pattern.test(String(fact.Label || ''))) {
+                    return fact;
+                }
+            }
+            return null;
+        }
+
+        function renderOverallAgeBucketLabel(rawLabel) {
+            var text = String(rawLabel || '-').trim();
+            var match = text.match(/^(.*)\s+(Day|Days)$/i);
+            if (!match) {
+                return '<span class="overall-age-label-main">' + escapeHtml(text) + '</span>';
+            }
+
+            return '<span class="overall-age-label-main">' + escapeHtml(match[1]) + '</span>' +
+                '<span class="overall-age-label-unit">' + escapeHtml(match[2]) + '</span>';
+        }
+
+        function getTptTrendToneClass(text) {
+            var value = String(text || '').trim();
+            if (!value || value.indexOf('0 ') === 0) {
+                return 'overall-tpt-trend-neutral';
+            }
+
+            if (value.charAt(0) === '-') {
+                return 'overall-tpt-trend-better';
+            }
+
+            if (value.charAt(0) === '+') {
+                return 'overall-tpt-trend-worse';
+            }
+
+            return 'overall-tpt-trend-neutral';
+        }
+
+        function buildOverallTptTooltip(kind, useSpecificPlatformCopy) {
+            var lines = [];
+            if (useSpecificPlatformCopy === true) {
+                if (kind === 'disposition') {
+                    lines.push('CMF disposition TPT: CMF decided date - CMF ask date');
+                    return lines.join('\n');
+                }
+                if (kind === 'resolution') {
+                    lines.push('CMF resolution TPT: CMF decided date - Implemented date');
+                    return lines.join('\n');
+                }
+            }
+
+            if (kind === 'disposition') {
+                lines.push('Average of time taken to disposition a CMF after it is asked.');
+                lines.push('Calculated as average days between date_cmf_ask (fallback date_cmf_decided) and date_cmf_decided.');
+            } else if (kind === 'resolution') {
+                lines.push('Average of time taken to resolve a CMF after decision.');
+                lines.push('Calculated as average days between date_cmf_decided (fallback implemented_date) and implemented_date; negative values are treated as 0.');
+            } else if (kind === 'overall') {
+                lines.push('Average of overall cycle time for CMF handling.');
+                lines.push('Calculated as average days_active across scoped CMF records.');
+            } else {
+                lines.push('Turnaround metric in days for the selected scope.');
+            }
+            return lines.join('\n');
+        }
+
+        function renderOverallTptBoxes(tptFacts, hostId) {
+            var host = document.getElementById(hostId || 'homeOverallTptBoxes');
+            if (!host) {
+                return;
+            }
+
+            var renderHostId = String(host.id || hostId || '');
+            var isSpecificPlatformTpt = renderHostId === 'homeSpecificSummaryFactsDashboardTptInline'
+                || renderHostId === 'homeSpecificSummaryFactsCmfTptInline';
+
+            var facts = tptFacts || [];
+            if (!facts.length) {
+                host.innerHTML = '<div class="ccip-empty-state">No TPT metrics available.</div>';
+                return;
+            }
+
+            var dispositionFact = findTptFactByLabel(facts, /cmf\s+disposition\s+tpt/i);
+            var resolutionFact = findTptFactByLabel(facts, /cmf\s+resolution\s+tpt/i);
+            var overallFact = findTptFactByLabel(facts, /cmf\s+overall\s+tpt/i);
+
+            function toDayValue(fact) {
+                var parsed = parseInt(fact && fact.Value ? fact.Value : 0, 10);
+                return isNaN(parsed) ? 0 : parsed;
+            }
+
+            function trendText(fact) {
+                var trend = fact && fact.TrendNote ? String(fact.TrendNote).trim() : '';
+                if (trend) return trend;
+                return '0 days vs last week';
+            }
+
+            var dispositionTrend = trendText(dispositionFact);
+            var resolutionTrend = trendText(resolutionFact);
+            var overallTrend = trendText(overallFact);
+
+            var html = '';
+            html += '<div class="overall-tpt-box" data-tpt-kind="disposition">' +
+                '<div class="overall-tpt-label">DISPOSITION TPT</div>' +
+                '<div class="overall-tpt-value">' + escapeHtml(String(toDayValue(dispositionFact))) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
+                '<div class="overall-tpt-note ' + getTptTrendToneClass(dispositionTrend) + '">' + escapeHtml(dispositionTrend) + '</div>' +
+                '</div>';
+
+            html += '<div class="overall-tpt-box" data-tpt-kind="resolution">' +
+                '<div class="overall-tpt-label">RESOLUTION TPT</div>' +
+                '<div class="overall-tpt-value">' + escapeHtml(String(toDayValue(resolutionFact))) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
+                '<div class="overall-tpt-note ' + getTptTrendToneClass(resolutionTrend) + '">' + escapeHtml(resolutionTrend) + '</div>' +
+                '</div>';
+
+            html += '<div class="overall-tpt-box" data-tpt-kind="overall">' +
+                '<div class="overall-tpt-label">OVERALL TPT</div>' +
+                '<div class="overall-tpt-value">' + escapeHtml(String(toDayValue(overallFact))) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
+                '<div class="overall-tpt-note ' + getTptTrendToneClass(overallTrend) + '">' + escapeHtml(overallTrend) + '</div>' +
+                '</div>';
+
+            host.innerHTML = html;
+
+            var tptBoxes = host.querySelectorAll('.overall-tpt-box[data-tpt-kind]');
+            for (var boxIndex = 0; boxIndex < tptBoxes.length; boxIndex++) {
+                var box = tptBoxes[boxIndex];
+                var kind = box.getAttribute('data-tpt-kind') || '';
+                var tooltip = buildOverallTptTooltip(kind, isSpecificPlatformTpt);
+                box.setAttribute('title', tooltip);
+                box.setAttribute('aria-label', tooltip);
+            }
+        }
+
+        function renderOverallHeatmap(snapshot) {
+            var host = document.getElementById('homeOverallHeatmap');
+            if (!host) {
+                return;
+            }
+
+            function parseOverallHeatmapLosCount(statusTooltipText) {
+                var tooltip = String(statusTooltipText || '');
+                var losMatch = tooltip.match(/LOS:\s*(\d+)/i);
+                if (!losMatch || losMatch.length < 2) {
+                    return 0;
+                }
+
+                var losValue = parseInt(losMatch[1], 10);
+                return isNaN(losValue) ? 0 : Math.max(0, losValue);
+            }
+
+            var platforms = snapshot && snapshot.HeatmapPlatforms ? snapshot.HeatmapPlatforms : [];
+            var rows = snapshot && snapshot.ComponentRiskHeatmap ? snapshot.ComponentRiskHeatmap : [];
+
+            if (!platforms.length || !rows.length) {
+                host.innerHTML = '<div class="ccip-empty-state">No heatmap data available.</div>';
+                return;
+            }
+
+            var overallRiskThresholds = normalizeComponentRiskThresholds(
+                window.CMF_PORTAL && window.CMF_PORTAL.overallRiskThresholds
+                    ? window.CMF_PORTAL.overallRiskThresholds
+                    : null
+            );
+            var applyLosSubtraction = !!(window.CMF_PORTAL && window.CMF_PORTAL.overallRiskSubtractLos === true);
+            if (window.CMF_PORTAL) {
+                window.CMF_PORTAL.overallRiskThresholds = overallRiskThresholds;
+                window.CMF_PORTAL.overallRiskSubtractLos = applyLosSubtraction;
+            }
+
+            var html = '<div class="component-summary-heatmap-layout"><div class="component-summary-heatmap-scroll"><div class="overall-heatmap-board" style="grid-template-columns: 112px repeat(' + platforms.length + ', 46px);">';
+            html += '<div class="overall-heatmap-corner">INGREDIENT</div>';
+            for (var c = 0; c < platforms.length; c++) {
+                html += '<div class="overall-heatmap-platform">' + escapeHtml(platforms[c]) + '</div>';
+            }
+
+            for (var r = 0; r < rows.length; r++) {
+                var row = rows[r] || {};
+                var values = row.Values || [];
+                var statusBreakdowns = row.StatusBreakdowns || [];
+                var ingredientLabel = String(row.Ingredient || 'Unassigned');
+                html += '<div class="overall-heatmap-ingredient">' + escapeHtml(ingredientLabel) + '</div>';
+
+                for (var col = 0; col < platforms.length; col++) {
+                    var platformLabel = String(platforms[col] || '');
+                    var value = parseInt(values[col] || 0, 10);
+                    var normalizedValue = isNaN(value) ? 0 : value;
+                    var statusTooltip = statusBreakdowns.length > col ? String(statusBreakdowns[col] || '') : '';
+                    var losCount = parseOverallHeatmapLosCount(statusTooltip);
+                    var colorBasisValue = applyLosSubtraction ? (normalizedValue - losCount) : normalizedValue;
+                    if (isNaN(colorBasisValue) || colorBasisValue < 0) {
+                        colorBasisValue = 0;
+                    }
+                    var css = getOverallHeatClassFromOpenUniqueByThreshold(colorBasisValue, overallRiskThresholds);
+                    var displayValue = String(normalizedValue);
+                    if (applyLosSubtraction && losCount > 0) {
+                        displayValue += ' (' + String(losCount) + ')';
+                    }
+                    var isClickable = normalizedValue > 0 && !!platformLabel;
+                    var tooltipText = statusTooltip || ('Open Unique: ' + String(normalizedValue));
+                    if (isClickable) {
+                        tooltipText += '\nClick to view individual HSD links.';
+                    }
+
+                    var extraAttrs = ' title="' + escapeHtml(tooltipText) + '" aria-label="' + escapeHtml(tooltipText) + '"';
+                    if (isClickable) {
+                        extraAttrs += ' role="button" tabindex="0" data-heatmap-clickable="1" data-ingredient="' + escapeHtml(ingredientLabel) + '" data-platform-label="' + escapeHtml(platformLabel) + '"';
+                    }
+
+                    html += '<div class="overall-heatmap-tile ' + css + (isClickable ? ' overall-heatmap-clickable' : '') + '"' + extraAttrs + '>' + escapeHtml(displayValue) + '</div>';
+                }
+            }
+
+            html += '</div></div>';
+            var criticalStart = overallRiskThresholds.high;
+            html += '<div class="component-summary-legend">'
+                + '<div class="component-summary-legend-row">'
+                    + '<span class="component-summary-legend-swatch low"></span>'
+                    + '<span class="component-summary-legend-label">Low :</span>'
+                    + '<span class="component-summary-legend-derived">' + String(overallRiskThresholds.low) + '</span>'
+                + '</div>'
+                + '<div class="component-summary-legend-row">'
+                    + '<span class="component-summary-legend-swatch med"></span>'
+                    + '<span class="component-summary-legend-label">Medium &lt;</span>'
+                    + '<input type="number" min="2" step="1" class="component-summary-legend-value component-summary-legend-input" data-threshold="overall-med" value="' + String(overallRiskThresholds.med) + '">'
+                + '</div>'
+                + '<div class="component-summary-legend-row">'
+                    + '<span class="component-summary-legend-swatch high"></span>'
+                    + '<span class="component-summary-legend-label">High &lt;</span>'
+                    + '<input type="number" min="' + String(overallRiskThresholds.med + 1) + '" step="1" class="component-summary-legend-value component-summary-legend-input" data-threshold="overall-high" value="' + String(overallRiskThresholds.high) + '">'
+                + '</div>'
+                + '<div class="component-summary-legend-row">'
+                    + '<span class="component-summary-legend-swatch critical"></span>'
+                    + '<span class="component-summary-legend-label">Critical :</span>'
+                    + '<span class="component-summary-legend-derived">' + String(criticalStart) + '+</span>'
+                + '</div>'
+                + '<div class="component-summary-legend-row component-summary-legend-row-toggle">'
+                    + '<label class="component-summary-legend-toggle">'
+                        + '<span>Subtract LOS</span>'
+                        + '<input type="checkbox" class="component-summary-legend-toggle-input" data-threshold="overall-los-subtract-toggle"' + (applyLosSubtraction ? ' checked' : '') + '>'
+                    + '</label>'
+                + '</div>'
+                + '</div>'
+                + '<div class="component-summary-warning-popup" role="alert" aria-live="assertive"></div>'
+                + '</div>';
+            host.innerHTML = html;
+
+            var clickableTiles = host.querySelectorAll('.overall-heatmap-tile[data-heatmap-clickable="1"]');
+            for (var tileIndex = 0; tileIndex < clickableTiles.length; tileIndex++) {
+                (function (tile) {
+                    if (!tile) {
+                        return;
+                    }
+
+                    tile.addEventListener('click', function (event) {
+                        if (event) {
+                            event.preventDefault();
+                        }
+                        openOverallHeatmapIssueLinksPopup(
+                            tile.getAttribute('data-ingredient') || 'Unassigned',
+                            tile.getAttribute('data-platform-label') || ''
+                        );
+                    });
+
+                    tile.addEventListener('keydown', function (event) {
+                        var key = event && event.key ? String(event.key) : '';
+                        if (key === 'Enter' || key === ' ' || key === 'Spacebar') {
+                            event.preventDefault();
+                            openOverallHeatmapIssueLinksPopup(
+                                tile.getAttribute('data-ingredient') || 'Unassigned',
+                                tile.getAttribute('data-platform-label') || ''
+                            );
+                        }
+                    });
+                })(clickableTiles[tileIndex]);
+            }
+
+            var medInput = host.querySelector('[data-threshold="overall-med"]');
+            var highInput = host.querySelector('[data-threshold="overall-high"]');
+            var losToggleInput = host.querySelector('[data-threshold="overall-los-subtract-toggle"]');
+            var warningPopup = host.querySelector('.component-summary-warning-popup');
+            var warningPopupTimer = null;
+            var lastValidThresholds = {
+                med: overallRiskThresholds.med,
+                high: overallRiskThresholds.high
+            };
+
+            if (losToggleInput) {
+                losToggleInput.addEventListener('change', function () {
+                    if (window.CMF_PORTAL) {
+                        window.CMF_PORTAL.overallRiskSubtractLos = !!losToggleInput.checked;
+                    }
+                    window.setTimeout(function () {
+                        if (!host || !host.isConnected) {
+                            return;
+                        }
+                        renderOverallHeatmap(snapshot);
+                    }, 0);
+                });
+            }
+
+            function showLegendError(message) {
+                if (!warningPopup) {
+                    return;
+                }
+
+                if (warningPopupTimer) {
+                    window.clearTimeout(warningPopupTimer);
+                    warningPopupTimer = null;
+                }
+
+                var text = String(message || '').trim();
+                if (!text) {
+                    warningPopup.textContent = '';
+                    warningPopup.classList.remove('component-summary-warning-popup-visible');
+                    return;
+                }
+
+                warningPopup.textContent = text;
+                warningPopup.classList.add('component-summary-warning-popup-visible');
+                warningPopupTimer = window.setTimeout(function () {
+                    if (!warningPopup) {
+                        return;
+                    }
+                    warningPopup.textContent = '';
+                    warningPopup.classList.remove('component-summary-warning-popup-visible');
+                    warningPopupTimer = null;
+                }, 2400);
+            }
+
+            function setInputInvalidState(input, isInvalid) {
+                if (!input) {
+                    return;
+                }
+                if (isInvalid) {
+                    input.classList.add('component-summary-legend-input-invalid');
+                    return;
+                }
+                input.classList.remove('component-summary-legend-input-invalid');
+            }
+
+            function syncLegendInputMins() {
+                if (medInput) {
+                    medInput.min = '2';
+                }
+                if (highInput) {
+                    var medValue = parseInt(medInput ? medInput.value : lastValidThresholds.med, 10);
+                    var highMin = isNaN(medValue) ? (lastValidThresholds.med + 1) : (medValue + 1);
+                    highInput.min = String(Math.max(3, highMin));
+                }
+            }
+
+            function resetLegendInputsToLastValid() {
+                if (medInput) {
+                    medInput.value = String(lastValidThresholds.med);
+                }
+                if (highInput) {
+                    highInput.value = String(lastValidThresholds.high);
+                }
+                syncLegendInputMins();
+            }
+
+            function validateLegendThresholdInputs() {
+                var medValue = parseInt(medInput ? medInput.value : '', 10);
+                var highValue = parseInt(highInput ? highInput.value : '', 10);
+
+                if (isNaN(medValue) || medValue < 2) {
+                    return {
+                        valid: false,
+                        message: 'Medium must be 2 or greater.',
+                        invalidField: 'med'
+                    };
+                }
+
+                if (isNaN(highValue) || highValue <= medValue) {
+                    return {
+                        valid: false,
+                        message: 'High must be greater than Medium.',
+                        invalidField: 'high'
+                    };
+                }
+
+                return {
+                    valid: true,
+                    med: medValue,
+                    high: highValue
+                };
+            }
+
+            function rerenderOverallHeatmapFromLegendInputs() {
+                setInputInvalidState(medInput, false);
+                setInputInvalidState(highInput, false);
+
+                var validation = validateLegendThresholdInputs();
+                if (!validation.valid) {
+                    showLegendError(validation.message);
+                    if (validation.invalidField === 'med') {
+                        setInputInvalidState(medInput, true);
+                    } else if (validation.invalidField === 'high') {
+                        setInputInvalidState(highInput, true);
+                    }
+                    resetLegendInputsToLastValid();
+                    return;
+                }
+
+                showLegendError('');
+
+                var nextThresholds = normalizeComponentRiskThresholds({
+                    med: validation.med,
+                    high: validation.high
+                });
+
+                lastValidThresholds.med = nextThresholds.med;
+                lastValidThresholds.high = nextThresholds.high;
+                syncLegendInputMins();
+
+                if (window.CMF_PORTAL) {
+                    window.CMF_PORTAL.overallRiskThresholds = nextThresholds;
+                }
+                window.setTimeout(function () {
+                    try {
+                        if (!host || !host.isConnected) {
+                            return;
+                        }
+                        renderOverallHeatmap(snapshot);
+                    } catch (rerenderError) {
+                        console.error('Overall heatmap rerender failed:', rerenderError);
+                        resetLegendInputsToLastValid();
+                        showLegendError('Invalid threshold input.');
+                    }
+                }, 0);
+            }
+
+            var thresholdInputs = [medInput, highInput];
+            for (var inputIndex = 0; inputIndex < thresholdInputs.length; inputIndex++) {
+                var thresholdInput = thresholdInputs[inputIndex];
+                if (!thresholdInput) {
+                    continue;
+                }
+                thresholdInput.addEventListener('input', function () {
+                    showLegendError('');
+                    setInputInvalidState(medInput, false);
+                    setInputInvalidState(highInput, false);
+                    syncLegendInputMins();
+                });
+                thresholdInput.addEventListener('keydown', function (event) {
+                    if (event && event.key === 'Enter') {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (event.target && typeof event.target.dispatchEvent === 'function') {
+                            event.target.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                        if (event.target && typeof event.target.blur === 'function') {
+                            event.target.blur();
+                        }
+                    }
+                });
+                thresholdInput.addEventListener('change', rerenderOverallHeatmapFromLegendInputs);
+            }
+
+            syncLegendInputMins();
+        }
+
+        function renderOverallPendingSummary(snapshot) {
+            var pieHost = document.getElementById('homeOverallPendingPie');
+            var breakdownHost = document.getElementById('homeOverallPendingBreakdown');
+            var ageHost = document.getElementById('homeOverallPendingAgeBuckets');
+            if (!pieHost || !breakdownHost || !ageHost) {
+                return;
+            }
+
+            function parseMetricInt(value) {
+                var raw = String(value == null ? '' : value);
+                if (raw.indexOf(':::OPEN_HSDS:::') >= 0) {
+                    raw = raw.split(':::OPEN_HSDS:::')[0];
+                }
+                var cleaned = raw.replace(/[^\d\-]/g, '');
+                var parsed = parseInt(cleaned, 10);
+                return isNaN(parsed) ? 0 : parsed;
+            }
+
+            var pendingSummary = snapshot && snapshot.PendingSummary ? snapshot.PendingSummary : null;
+            var rows = pendingSummary && pendingSummary.Rows ? pendingSummary.Rows : [];
+            var columns = pendingSummary && pendingSummary.Columns ? pendingSummary.Columns : [];
+            var pendingValueColumnIndex = -1;
+
+            for (var c = 0; c < columns.length; c++) {
+                var header = String(columns[c] || '').toLowerCase();
+                if (header.indexOf('count') >= 0) {
+                    pendingValueColumnIndex = c;
+                    break;
+                }
+            }
+
+            if (pendingValueColumnIndex < 0) {
+                pendingValueColumnIndex = Math.max(1, columns.length - 1);
+            }
+
+            var breakdown = [];
+            for (var i = 0; i < rows.length; i++) {
+                var source = rows[i] || [];
+                var label = source.length > 0 ? String(source[0] || '').trim() : '';
+                if (!label || /^total$/i.test(label)) {
+                    continue;
+                }
+
+                var value = source.length > pendingValueColumnIndex ? parseMetricInt(source[pendingValueColumnIndex]) : 0;
+                breakdown.push({ name: label, value: value });
+            }
+
+            breakdown.sort(function (left, right) {
+                return right.value - left.value;
+            });
+
+            var total = parseMetricInt(snapshot && snapshot.PendingIssues ? snapshot.PendingIssues : 0);
+            if (!total || isNaN(total)) {
+                total = 0;
+                for (var b = 0; b < breakdown.length; b++) {
+                    total += breakdown[b].value;
+                }
+            }
+
+            var bucketRows = snapshot && snapshot.PendingAgeBuckets ? snapshot.PendingAgeBuckets : [];
+            var bucketTotal = 0;
+            for (var bt = 0; bt < bucketRows.length; bt++) {
+                var bucketValue = parseMetricInt(bucketRows[bt] && bucketRows[bt].Value);
+                bucketTotal += bucketValue;
+            }
+            if (total <= 0 && bucketTotal > 0) {
+                total = bucketTotal;
+            }
+
+            var pieColors = ['#2563eb', '#f59e0b', '#22c55e', '#ef4444', '#8b5cf6', '#0ea5e9', '#14b8a6', '#f97316'];
+            var topBreakdown = breakdown;
+
+            if (!topBreakdown.length) {
+                breakdownHost.innerHTML = '<div class="ccip-empty-state">No pending ingredient data.</div>';
+            } else {
+                var breakdownHtml = '';
+                for (var k = 0; k < topBreakdown.length; k++) {
+                    var item = topBreakdown[k];
+                    var pct = total > 0 ? (item.value * 100 / total) : 0;
+                    var dot = pieColors[k % pieColors.length];
+                    breakdownHtml += '<div class="overall-break-row">' +
+                        '<span class="overall-break-left">' +
+                            '<span class="overall-break-dot" style="background:' + dot + ';"></span>' +
+                            '<span class="overall-break-name">' + escapeHtml(item.name) + '</span>' +
+                        '</span>' +
+                        '<span class="overall-break-metrics">' +
+                            '<strong class="overall-break-count">' + escapeHtml(String(item.value)) + '</strong>' +
+                            '<span class="overall-break-pct">(' + escapeHtml(pct.toFixed(1)) + '%)</span>' +
+                        '</span>' +
+                        '</div>';
+                }
+                breakdownHost.innerHTML = breakdownHtml;
+            }
+
+            if (!bucketRows.length) {
+                ageHost.innerHTML = '<div class="ccip-empty-state">No pending age data.</div>';
+            } else {
+                var ageHtml = '';
+                for (var a = 0; a < bucketRows.length; a++) {
+                    var bucket = bucketRows[a] || {};
+                    var count = parseMetricInt(bucket.Value || 0);
+                    var agePct = total > 0 ? ((isNaN(count) ? 0 : count) * 100 / total) : 0;
+                    var agePctClamped = Math.max(0, Math.min(100, agePct));
+                    ageHtml += '<div class="overall-age-row">' +
+                        '<span class="overall-age-label">' + renderOverallAgeBucketLabel(bucket.Name || '-') + '</span>' +
+                        '<span class="overall-age-bar-track"><span class="overall-age-bar-fill" style="width:' + escapeHtml(agePctClamped.toFixed(1)) + '%;"></span></span>' +
+                        '<strong class="overall-age-metrics">' + escapeHtml(String(isNaN(count) ? 0 : count)) + ' (' + escapeHtml(agePct.toFixed(1)) + '%)</strong>' +
+                        '</div>';
+                }
+                ageHost.innerHTML = ageHtml;
+            }
+
+            if (!topBreakdown.length || total <= 0) {
+                if (window.CMF_PORTAL.homeOverallPendingPieChart) {
+                    window.CMF_PORTAL.homeOverallPendingPieChart.dispose();
+                    window.CMF_PORTAL.homeOverallPendingPieChart = null;
+                }
+                pieHost.innerHTML = '<div class="ccip-empty-state">No pending chart data.</div>';
+                return;
+            }
+
+            if (typeof echarts === 'undefined') {
+                return;
+            }
+
+            pieHost.innerHTML = '';
+            if (!window.CMF_PORTAL.homeOverallPendingPieChart) {
+                window.CMF_PORTAL.homeOverallPendingPieChart = echarts.init(pieHost);
+            }
+
+            window.CMF_PORTAL.homeOverallPendingPieChart.setOption({
+                animation: false,
+                tooltip: {
+                    trigger: 'item',
+                    confine: false,
+                    appendToBody: true,
+                    extraCssText: 'z-index: 9999;'
+                },
+                color: pieColors,
+                graphic: [
+                    {
+                        type: 'text',
+                        left: 'center',
+                        top: '36%',
+                        silent: true,
+                        z: 10,
+                        style: {
+                            text: String(total),
+                            fill: '#0f172a',
+                            font: '900 17px Segoe UI',
+                            textAlign: 'center',
+                            textVerticalAlign: 'middle'
+                        }
+                    },
+                    {
+                        type: 'text',
+                        left: 'center',
+                        top: '52.5%',
+                        silent: true,
+                        z: 10,
+                        style: {
+                            text: 'Total\nPending',
+                            fill: '#64748b',
+                            font: '700 10px Segoe UI',
+                            lineHeight: 11,
+                            textAlign: 'center',
+                            textVerticalAlign: 'middle'
+                        }
+                    }
+                ],
+                series: [{
+                    type: 'pie',
+                    radius: ['52%', '84%'],
+                    center: ['50%', '50%'],
+                    itemStyle: {
+                        borderColor: '#ffffff',
+                        borderWidth: 1
+                    },
+                    label: { show: false },
+                    data: topBreakdown.map(function (item) {
+                        return { name: item.name, value: item.value };
+                    })
+                }]
+            }, true);
+
+            window.CMF_PORTAL.homeOverallPendingPieChart.resize();
+        }
+
+        function setHoverWidthLockState(host, enabled) {
+            if (!host) return;
+            if (enabled) {
+                host.classList.add('ccip-hover-width-lock');
+                var comp = Math.max(0, host.offsetWidth - host.clientWidth);
+                host.style.setProperty('--ccip-hover-comp', comp + 'px');
+                if (comp === 0) {
+                    window.requestAnimationFrame(function () {
+                        if (!host.classList.contains('ccip-hover-width-lock')) {
+                            return;
+                        }
+                        var liveComp = Math.max(0, host.offsetWidth - host.clientWidth);
+                        host.style.setProperty('--ccip-hover-comp', liveComp + 'px');
+                    });
+                }
+                return;
+            }
+            host.classList.remove('ccip-hover-width-lock');
+            host.style.removeProperty('--ccip-hover-comp');
+        }
+
+        function ensureHoverWidthLock(host) {
+            if (!host || host.dataset.hoverWidthLockInit === '1') {
+                return;
+            }
+            host.dataset.hoverWidthLockInit = '1';
+            host.addEventListener('mouseenter', function () {
+                setHoverWidthLockState(host, true);
+            });
+            host.addEventListener('mouseleave', function () {
+                setHoverWidthLockState(host, false);
+            });
+            host.addEventListener('focusin', function () {
+                setHoverWidthLockState(host, true);
+            });
+            host.addEventListener('focusout', function () {
+                if (!host.contains(document.activeElement)) {
+                    setHoverWidthLockState(host, false);
+                }
+            });
+        }
+
+        function parseComponentOpenUniqueMetrics(value) {
+            var text = String(value == null ? '' : value).trim();
+            var fullMatch = text.match(/^(\d+)\s*\(\s*(\d+)\s*\)/);
+            if (fullMatch) {
+                return {
+                    openUnique: parseInt(fullMatch[1], 10) || 0,
+                    openUniqueLos: parseInt(fullMatch[2], 10) || 0
+                };
+            }
+
+            var looseMatch = text.match(/^(\d+)/);
+            var openOnly = looseMatch ? parseInt(looseMatch[1], 10) : 0;
+            return {
+                openUnique: isNaN(openOnly) ? 0 : openOnly,
+                openUniqueLos: 0
+            };
+        }
+
+        function getOverallHeatClassFromOpenUnique(value) {
+            return getOverallHeatClassFromOpenUniqueByThreshold(value, null);
+        }
+
+        function getDefaultComponentRiskThresholds() {
+            return {
+                low: 0,
+                med: 2,
+                high: 4
+            };
+        }
+
+        function normalizeComponentRiskThresholds(config) {
+            var defaults = getDefaultComponentRiskThresholds();
+            var source = config || {};
+
+            var med = parseInt(source.med, 10);
+            var high = parseInt(source.high, 10);
+
+            // Backward compatibility for previously saved range-style settings.
+            if (isNaN(med)) {
+                var legacyMedUpper = parseInt(source.medUpper, 10);
+                var legacyMedLower = parseInt(source.medLower, 10);
+                med = !isNaN(legacyMedUpper) ? legacyMedUpper : legacyMedLower;
+            }
+            if (isNaN(high)) {
+                var legacyHighUpper = parseInt(source.highUpper, 10);
+                var legacyHighLower = parseInt(source.highLower, 10);
+                high = !isNaN(legacyHighUpper) ? legacyHighUpper : legacyHighLower;
+            }
+
+            var low = defaults.low;
+            med = isNaN(med) ? defaults.med : med;
+            high = isNaN(high) ? defaults.high : high;
+
+            low = 0;
+            med = Math.max(low + 2, med);
+            high = Math.max(med + 1, high);
+
+            return {
+                low: low,
+                med: med,
+                high: high
+            };
+        }
+
+        function getOverallHeatClassFromOpenUniqueByThreshold(value, thresholdConfig) {
+            var normalized = parseInt(value, 10);
+            if (isNaN(normalized)) {
+                return 'overall-heat-low';
+            }
+
+            var thresholds = normalizeComponentRiskThresholds(thresholdConfig);
+            if (normalized <= thresholds.low) {
+                return 'overall-heat-low';
+            }
+
+            // Medium range: 1 .. (med - 1)
+            if (normalized >= 1 && normalized <= (thresholds.med - 1)) {
+                return 'overall-heat-med';
+            }
+
+            // High range: med .. (high - 1)
+            if (normalized >= thresholds.med && normalized <= (thresholds.high - 1)) {
+                return 'overall-heat-high';
+            }
+
+            // Critical range: >= high
+            return 'overall-heat-critical';
+        }
+
+        function getComponentHeatmapPlatformColumnWidth(platformLabels) {
+            var labels = Array.isArray(platformLabels) ? platformLabels : [];
+            var longestWidth = 0;
+
+            var measureCanvas = document.createElement('canvas');
+            var measureContext = measureCanvas.getContext('2d');
+            if (measureContext) {
+                measureContext.font = '900 9px "Plus Jakarta Sans", "Segoe UI", sans-serif';
+                for (var i = 0; i < labels.length; i++) {
+                    var label = String(labels[i] == null ? '' : labels[i]).trim();
+                    if (!label) {
+                        continue;
+                    }
+                    var textWidth = measureContext.measureText(label).width;
+                    var letterSpacing = Math.max(0, label.length - 1) * 0.18;
+                    longestWidth = Math.max(longestWidth, textWidth + letterSpacing);
+                }
+            } else {
+                for (var j = 0; j < labels.length; j++) {
+                    var fallbackLabel = String(labels[j] == null ? '' : labels[j]).trim();
+                    longestWidth = Math.max(longestWidth, fallbackLabel.length * 6.2);
+                }
+            }
+
+            var padded = Math.ceil(longestWidth + 16);
+            return Math.max(74, Math.min(180, padded));
+        }
+
+        function renderComponentSummaryHeatmap(host, columns, rows, hasMilestoneColumns) {
+            host.classList.add('ccip-component-riskmap-wrap');
+            var componentRiskThresholds = normalizeComponentRiskThresholds(
+                window.CMF_PORTAL && window.CMF_PORTAL.componentRiskThresholds
+                    ? window.CMF_PORTAL.componentRiskThresholds
+                    : null
+            );
+            var applyLosSubtraction = !!(window.CMF_PORTAL && window.CMF_PORTAL.componentRiskSubtractLos === true);
+            if (window.CMF_PORTAL) {
+                window.CMF_PORTAL.componentRiskThresholds = componentRiskThresholds;
+                window.CMF_PORTAL.componentRiskSubtractLos = applyLosSubtraction;
+            }
+
+            var platformLabels = [];
+            var openColumnIndexes = [];
+
+            if (hasMilestoneColumns) {
+                for (var m = 1; m < columns.length; m += 2) {
+                    var openMeta = String(columns[m] || '').split(':::');
+                    var platformLabel = String((openMeta.length > 1 ? openMeta[0] : openMeta[0]) || '').trim();
+                    if (!platformLabel) {
+                        platformLabel = 'Milestone ' + String(platformLabels.length + 1);
+                    }
+                    platformLabels.push(platformLabel);
+                    openColumnIndexes.push(m);
+                }
+            } else if (columns.length >= 2) {
+                platformLabels.push('Open Unique (LOS)');
+                openColumnIndexes.push(1);
+            }
+
+            if (!platformLabels.length || !openColumnIndexes.length) {
+                host.innerHTML = '<div class="ccip-empty-state">No component heatmap data available.</div>';
+                return;
+            }
+
+            var hasRows = false;
+            for (var r = 0; r < rows.length; r++) {
+                var row = rows[r] || [];
+                var rowLabel = row.length > 0 ? String(row[0] || '').trim() : '';
+                if (rowLabel) {
+                    hasRows = true;
+                    break;
+                }
+            }
+
+            if (!hasRows) {
+                host.innerHTML = '<div class="ccip-empty-state">No matching CMF data for this platform.</div>';
+                return;
+            }
+
+            var platformColumnWidthPx = getComponentHeatmapPlatformColumnWidth(platformLabels);
+            var html = '<div class="component-summary-heatmap-layout"><div class="component-summary-heatmap-scroll"><div class="overall-heatmap-board component-summary-heatmap-board" style="grid-template-columns: 112px repeat(' + platformLabels.length + ', ' + platformColumnWidthPx + 'px);">';
+            html += '<div class="overall-heatmap-corner">COMPONENT</div>';
+            for (var c = 0; c < platformLabels.length; c++) {
+                html += '<div class="overall-heatmap-platform">' + escapeHtml(platformLabels[c]) + '</div>';
+            }
+
+            for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+                var currentRow = rows[rowIndex] || [];
+                var componentName = currentRow.length > 0 ? String(currentRow[0] || '').trim() : '';
+                if (!componentName) {
+                    continue;
+                }
+
+                if (/^total$/i.test(componentName)) {
+                    continue;
+                }
+
+                html += '<div class="overall-heatmap-ingredient">' + escapeHtml(componentName) + '</div>';
+
+                for (var platformIndex = 0; platformIndex < openColumnIndexes.length; platformIndex++) {
+                    var openCellIndex = openColumnIndexes[platformIndex];
+                    var openCellValue = currentRow.length > openCellIndex ? currentRow[openCellIndex] : '';
+                    var metrics = parseComponentOpenUniqueMetrics(openCellValue);
+                    var openUnique = isNaN(metrics.openUnique) ? 0 : metrics.openUnique;
+                    var losCount = isNaN(metrics.openUniqueLos) ? 0 : metrics.openUniqueLos;
+                    var colorBasisValue = applyLosSubtraction ? (openUnique - losCount) : openUnique;
+                    if (isNaN(colorBasisValue) || colorBasisValue < 0) {
+                        colorBasisValue = 0;
+                    }
+                    var cssClass = getOverallHeatClassFromOpenUniqueByThreshold(colorBasisValue, componentRiskThresholds);
+                    var displayValue = String(openUnique);
+                    if (applyLosSubtraction && losCount > 0) {
+                        displayValue += ' (' + String(losCount) + ')';
+                    }
+                    var tooltip = 'Open Unique: ' + String(openUnique) + '\nLOS: ' + String(losCount);
+                    html += '<div class="overall-heatmap-tile component-summary-heatmap-tile' + (cssClass ? ' ' + cssClass : '') + '" title="' + escapeHtml(tooltip) + '" aria-label="' + escapeHtml(tooltip) + '">' + escapeHtml(displayValue) + '</div>';
+                }
+            }
+
+            html += '</div></div>';
+            var criticalStart = componentRiskThresholds.high;
+            html += '<div class="component-summary-legend">'
+                + '<div class="component-summary-legend-row">'
+                    + '<span class="component-summary-legend-swatch low"></span>'
+                    + '<span class="component-summary-legend-label">Low :</span>'
+                    + '<span class="component-summary-legend-derived">' + String(componentRiskThresholds.low) + '</span>'
+                + '</div>'
+                + '<div class="component-summary-legend-row">'
+                    + '<span class="component-summary-legend-swatch med"></span>'
+                    + '<span class="component-summary-legend-label">Medium &lt;</span>'
+                    + '<input type="number" min="2" step="1" class="component-summary-legend-value component-summary-legend-input" data-threshold="med" value="' + String(componentRiskThresholds.med) + '">'
+                + '</div>'
+                + '<div class="component-summary-legend-row">'
+                    + '<span class="component-summary-legend-swatch high"></span>'
+                    + '<span class="component-summary-legend-label">High &lt;</span>'
+                    + '<input type="number" min="' + String(componentRiskThresholds.med + 1) + '" step="1" class="component-summary-legend-value component-summary-legend-input" data-threshold="high" value="' + String(componentRiskThresholds.high) + '">'
+                + '</div>'
+                + '<div class="component-summary-legend-row">'
+                    + '<span class="component-summary-legend-swatch critical"></span>'
+                    + '<span class="component-summary-legend-label">Critical :</span>'
+                    + '<span class="component-summary-legend-derived">' + String(criticalStart) + '+</span>'
+                + '</div>'
+                + '<div class="component-summary-legend-row component-summary-legend-row-toggle">'
+                    + '<label class="component-summary-legend-toggle">'
+                        + '<span>Subtract LOS</span>'
+                        + '<input type="checkbox" class="component-summary-legend-toggle-input" data-threshold="component-los-subtract-toggle"' + (applyLosSubtraction ? ' checked' : '') + '>'
+                    + '</label>'
+                + '</div>'
+                + '</div>'
+                + '<div class="component-summary-warning-popup" role="alert" aria-live="assertive"></div>'
+                + '</div>';
+            host.innerHTML = html;
+
+            var medInput = host.querySelector('[data-threshold="med"]');
+            var highInput = host.querySelector('[data-threshold="high"]');
+            var losToggleInput = host.querySelector('[data-threshold="component-los-subtract-toggle"]');
+            var warningPopup = host.querySelector('.component-summary-warning-popup');
+            var warningPopupTimer = null;
+            var lastValidThresholds = {
+                med: componentRiskThresholds.med,
+                high: componentRiskThresholds.high
+            };
+
+            if (losToggleInput) {
+                losToggleInput.addEventListener('change', function () {
+                    if (window.CMF_PORTAL) {
+                        window.CMF_PORTAL.componentRiskSubtractLos = !!losToggleInput.checked;
+                    }
+                    window.setTimeout(function () {
+                        try {
+                            if (!host || !host.isConnected) {
+                                return;
+                            }
+                            renderComponentSummaryHeatmap(host, columns, rows, hasMilestoneColumns);
+                        } catch (toggleRenderError) {
+                            console.error('Component riskmap LOS toggle rerender failed:', toggleRenderError);
+                        }
+                    }, 0);
+                });
+            }
+
+            function showLegendError(message) {
+                if (warningPopup) {
+                    if (warningPopupTimer) {
+                        window.clearTimeout(warningPopupTimer);
+                        warningPopupTimer = null;
+                    }
+
+                    var text = String(message || '').trim();
+                    if (!text) {
+                        warningPopup.textContent = '';
+                        warningPopup.classList.remove('component-summary-warning-popup-visible');
+                        return;
+                    }
+
+                    warningPopup.textContent = text;
+                    warningPopup.classList.add('component-summary-warning-popup-visible');
+                    warningPopupTimer = window.setTimeout(function () {
+                        if (!warningPopup) {
+                            return;
+                        }
+                        warningPopup.textContent = '';
+                        warningPopup.classList.remove('component-summary-warning-popup-visible');
+                        warningPopupTimer = null;
+                    }, 2400);
+                }
+            }
+
+            function setInputInvalidState(input, isInvalid) {
+                if (!input) {
+                    return;
+                }
+                if (isInvalid) {
+                    input.classList.add('component-summary-legend-input-invalid');
+                    return;
+                }
+                input.classList.remove('component-summary-legend-input-invalid');
+            }
+
+            function syncLegendInputMins() {
+                if (medInput) {
+                    medInput.min = '2';
+                }
+                if (highInput) {
+                    var medValue = parseInt(medInput ? medInput.value : lastValidThresholds.med, 10);
+                    var highMin = isNaN(medValue) ? (lastValidThresholds.med + 1) : (medValue + 1);
+                    highInput.min = String(Math.max(3, highMin));
+                }
+            }
+
+            function resetLegendInputsToLastValid() {
+                if (medInput) {
+                    medInput.value = String(lastValidThresholds.med);
+                }
+                if (highInput) {
+                    highInput.value = String(lastValidThresholds.high);
+                }
+                syncLegendInputMins();
+            }
+
+            function validateLegendThresholdInputs() {
+                var medValue = parseInt(medInput ? medInput.value : '', 10);
+                var highValue = parseInt(highInput ? highInput.value : '', 10);
+
+                if (isNaN(medValue) || medValue < 2) {
+                    return {
+                        valid: false,
+                        message: 'Medium must be 2 or greater.',
+                        invalidField: 'med'
+                    };
+                }
+
+                if (isNaN(highValue) || highValue <= medValue) {
+                    return {
+                        valid: false,
+                        message: 'High must be greater than Medium.',
+                        invalidField: 'high'
+                    };
+                }
+
+                return {
+                    valid: true,
+                    med: medValue,
+                    high: highValue
+                };
+            }
+
+            function rerenderComponentRiskmapFromLegendInputs() {
+                setInputInvalidState(medInput, false);
+                setInputInvalidState(highInput, false);
+
+                var validation = validateLegendThresholdInputs();
+                if (!validation.valid) {
+                    showLegendError(validation.message);
+                    if (validation.invalidField === 'med') {
+                        setInputInvalidState(medInput, true);
+                    } else if (validation.invalidField === 'high') {
+                        setInputInvalidState(highInput, true);
+                    }
+                    resetLegendInputsToLastValid();
+                    return;
+                }
+
+                showLegendError('');
+
+                var nextThresholds = normalizeComponentRiskThresholds({
+                    med: validation.med,
+                    high: validation.high
+                });
+
+                lastValidThresholds.med = nextThresholds.med;
+                lastValidThresholds.high = nextThresholds.high;
+                syncLegendInputMins();
+
+                if (window.CMF_PORTAL) {
+                    window.CMF_PORTAL.componentRiskThresholds = nextThresholds;
+                }
+                window.setTimeout(function () {
+                    try {
+                        if (!host || !host.isConnected) {
+                            return;
+                        }
+                        renderComponentSummaryHeatmap(host, columns, rows, hasMilestoneColumns);
+                    } catch (rerenderError) {
+                        console.error('Component riskmap rerender failed:', rerenderError);
+                        resetLegendInputsToLastValid();
+                        showLegendError('Invalid threshold input.');
+                    }
+                }, 0);
+            }
+
+            var thresholdInputs = [medInput, highInput];
+            for (var inputIndex = 0; inputIndex < thresholdInputs.length; inputIndex++) {
+                var thresholdInput = thresholdInputs[inputIndex];
+                if (!thresholdInput) {
+                    continue;
+                }
+                thresholdInput.addEventListener('input', function () {
+                    showLegendError('');
+                    setInputInvalidState(medInput, false);
+                    setInputInvalidState(highInput, false);
+                    syncLegendInputMins();
+                });
+                thresholdInput.addEventListener('keydown', function (event) {
+                    if (event && event.key === 'Enter') {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (event.target && typeof event.target.dispatchEvent === 'function') {
+                            event.target.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                        if (event.target && typeof event.target.blur === 'function') {
+                            event.target.blur();
+                        }
+                    }
+                });
+                thresholdInput.addEventListener('change', rerenderComponentRiskmapFromLegendInputs);
+            }
+
+            syncLegendInputMins();
+        }
+
+        function renderMilestoneSummaryPie(host, tableData) {
+            if (!host) {
+                return;
+            }
+
+            host.classList.add('ccip-milestone-pie-wrap');
+
+            function parseMetricInt(value) {
+                var cleaned = String(value == null ? '' : value).replace(/[^\d\-]/g, '');
+                var parsed = parseInt(cleaned, 10);
+                return isNaN(parsed) ? 0 : parsed;
+            }
+
+            var rows = tableData && tableData.Rows ? tableData.Rows : [];
+            var breakdown = [];
+            for (var i = 0; i < rows.length; i++) {
+                var source = rows[i] || [];
+                var label = source.length > 0 ? String(source[0] || '').trim() : '';
+                if (!label || /^total$/i.test(label)) {
+                    continue;
+                }
+
+                var value = source.length > 1 ? parseMetricInt(source[1]) : 0;
+                breakdown.push({ name: label, value: value });
+            }
+
+            breakdown.sort(function (left, right) {
+                return right.value - left.value;
+            });
+
+            var total = 0;
+            for (var t = 0; t < breakdown.length; t++) {
+                total += breakdown[t].value;
+            }
+
+            if (window.CMF_PORTAL.homeMilestoneSummaryPieChart) {
+                window.CMF_PORTAL.homeMilestoneSummaryPieChart.dispose();
+                window.CMF_PORTAL.homeMilestoneSummaryPieChart = null;
+            }
+
+            if (!breakdown.length || total <= 0) {
+                host.innerHTML = '<div class="ccip-empty-state">No milestone chart data.</div>';
+                return;
+            }
+
+            var pieColors = ['#2563eb', '#f59e0b', '#22c55e', '#ef4444', '#8b5cf6', '#0ea5e9', '#14b8a6', '#f97316'];
+            var breakdownHtml = '';
+            for (var b = 0; b < breakdown.length; b++) {
+                var item = breakdown[b];
+                var pct = total > 0 ? (item.value * 100 / total) : 0;
+                var dot = pieColors[b % pieColors.length];
+                breakdownHtml += '<div class="overall-break-row">' +
+                    '<span class="overall-break-left">' +
+                        '<span class="overall-break-dot" style="background:' + dot + ';"></span>' +
+                        '<span class="overall-break-name">' + escapeHtml(item.name) + '</span>' +
+                    '</span>' +
+                    '<span class="overall-break-metrics">' +
+                        '<strong class="overall-break-count">' + escapeHtml(String(item.value)) + '</strong>' +
+                        '<span class="overall-break-pct">(' + escapeHtml(pct.toFixed(1)) + '%)</span>' +
+                    '</span>' +
+                    '</div>';
+            }
+
+            host.innerHTML =
+                '<div class="milestone-pie-layout">' +
+                    '<div class="milestone-stacked-total">Total CMFs: ' + escapeHtml(String(total)) + '</div>' +
+                    '<div class="milestone-pie-canvas"></div>' +
+                    '<div class="milestone-pie-breakdown">' + breakdownHtml + '</div>' +
+                '</div>';
+
+            var pieHost = host.querySelector('.milestone-pie-canvas');
+            if (!pieHost) {
+                return;
+            }
+
+            if (typeof echarts === 'undefined') {
+                pieHost.innerHTML = '<div class="ccip-empty-state">Chart unavailable.</div>';
+                return;
+            }
+
+            window.CMF_PORTAL.homeMilestoneSummaryPieChart = echarts.init(pieHost);
+            var stackedSeries = breakdown.map(function (item, index) {
+                var pctValue = total > 0 ? (item.value * 100 / total) : 0;
+                return {
+                    name: item.name,
+                    type: 'bar',
+                    stack: 'milestone-total',
+                    data: [pctValue],
+                    barWidth: 24,
+                    itemStyle: {
+                        color: pieColors[index % pieColors.length],
+                        borderColor: '#ffffff',
+                        borderWidth: 1
+                    },
+                    emphasis: { focus: 'series' }
+                };
+            });
+
+            window.CMF_PORTAL.homeMilestoneSummaryPieChart.setOption({
+                animation: false,
+                tooltip: {
+                    trigger: 'item',
+                    confine: false,
+                    appendToBody: true,
+                    extraCssText: 'z-index: 9999;',
+                    formatter: function (params) {
+                        var item = breakdown[params.seriesIndex] || {};
+                        var value = item.value || 0;
+                        var pct = total > 0 ? (value * 100 / total) : 0;
+                        return escapeHtml(String(item.name || '-')) + ': ' + escapeHtml(String(value)) + ' (' + escapeHtml(pct.toFixed(1)) + '%)';
+                    }
+                },
+                color: pieColors,
+                grid: {
+                    left: 0,
+                    right: 0,
+                    top: 8,
+                    bottom: 8,
+                    containLabel: false
+                },
+                xAxis: {
+                    type: 'value',
+                    min: 0,
+                    max: 100,
+                    show: false
+                },
+                yAxis: {
+                    type: 'category',
+                    data: ['Milestones'],
+                    show: false
+                },
+                series: stackedSeries
+            }, true);
+
+            window.CMF_PORTAL.homeMilestoneSummaryPieChart.resize();
+        }
+
+        function applyComponentGroupHeaderSticky(host) {
+            if (!host) {
+                return;
+            }
+
+            var table = host.querySelector('table.ccip-component-summary-table');
+            if (!table) {
+                return;
+            }
+
+            var headerRows = table.querySelectorAll('thead tr');
+            if (!headerRows || headerRows.length < 2) {
+                return;
+            }
+
+            var topCells = headerRows[0].querySelectorAll('th');
+            if (!topCells || topCells.length === 0) {
+                return;
+            }
+
+            var firstCell = topCells[0];
+            var firstWidth = firstCell.getBoundingClientRect().width;
+            if (!firstWidth || !isFinite(firstWidth) || firstWidth <= 0) {
+                firstWidth = 92;
+            }
+
+            firstCell.style.left = '0px';
+            firstCell.style.zIndex = '8';
+
+            var runningLeft = firstWidth;
+            for (var i = 1; i < topCells.length; i++) {
+                var groupCell = topCells[i];
+                if (!groupCell.classList.contains('ccip-component-group-header')) {
+                    continue;
+                }
+
+                groupCell.style.position = 'sticky';
+                groupCell.style.left = runningLeft.toFixed(3) + 'px';
+                groupCell.style.zIndex = '7';
+                groupCell.style.background = '#f2f4f7';
+                runningLeft += groupCell.getBoundingClientRect().width;
+            }
+        }
+
+        function getDesignSummaryColumnIndexes(table) {
+            var result = { swIndex: -1, supportIndex: -1, editIndex: -1 };
+            if (!table || !table.tHead || !table.tHead.rows || !table.tHead.rows.length) {
+                return result;
+            }
+
+            var headerCells = table.tHead.rows[0].cells || [];
+            for (var i = 0; i < headerCells.length; i++) {
+                var rawHeader = String((headerCells[i].textContent || headerCells[i].innerText || '')).trim().toLowerCase();
+                if (rawHeader === 'sw image freeze') {
+                    result.swIndex = i;
+                } else if (rawHeader === 'support model') {
+                    result.supportIndex = i;
+                } else if (rawHeader === 'edit') {
+                    result.editIndex = i;
+                }
+            }
+
+            return result;
+        }
+
+        function buildDesignSummaryEditLinkHtml(designName) {
+            var encodedDesignName = encodeURIComponent(String(designName == null ? '' : designName));
+            return '<a href="javascript:void(0);" class="ccip-design-edit-link" onclick="return openDesignSummaryEdit(this, decodeURIComponent(\'' + encodedDesignName + '\'));">Edit</a>';
+        }
+
+        function restoreDesignSummaryInlineRow(row) {
+            if (!row) {
+                return;
+            }
+
+            var table = row.closest('table');
+            var indexes = getDesignSummaryColumnIndexes(table);
+            if (indexes.swIndex < 0 || indexes.supportIndex < 0 || indexes.editIndex < 0) {
+                return;
+            }
+
+            var swCell = row.cells[indexes.swIndex];
+            var supportCell = row.cells[indexes.supportIndex];
+            var editCell = row.cells[indexes.editIndex];
+            if (!swCell || !supportCell || !editCell) {
+                return;
+            }
+
+            var originalSw = row.getAttribute('data-inline-sw-original') || '';
+            var originalSupport = row.getAttribute('data-inline-support-original') || '';
+            var designName = row.getAttribute('data-design-name') || '';
+
+            swCell.textContent = originalSw;
+            supportCell.textContent = originalSupport;
+            editCell.innerHTML = buildDesignSummaryEditLinkHtml(designName);
+
+            row.classList.remove('ccip-design-row-editing');
+            row.removeAttribute('data-inline-sw-original');
+            row.removeAttribute('data-inline-support-original');
+
+            if (table && table.__cmfInlineEditingRow === row) {
+                table.__cmfInlineEditingRow = null;
+            }
+        }
+
+        function cancelDesignSummaryInlineEdit(triggerElement) {
+            var row = triggerElement && triggerElement.closest ? triggerElement.closest('tr') : null;
+            restoreDesignSummaryInlineRow(row);
+            return false;
+        }
+
+        function saveDesignSummaryInlineEdit(triggerElement, designName) {
+            var row = triggerElement && triggerElement.closest ? triggerElement.closest('tr') : null;
+            if (!row) {
+                return false;
+            }
+
+            var table = row.closest('table');
+            var indexes = getDesignSummaryColumnIndexes(table);
+            if (indexes.swIndex < 0 || indexes.supportIndex < 0) {
+                return false;
+            }
+
+            var design = designName == null ? '' : String(designName);
+            if (!design) {
+                design = row.getAttribute('data-design-name') || '';
+            }
+            design = String(design || '').trim();
+            if (!design || /^total$/i.test(design)) {
+                return false;
+            }
+
+            var swCell = row.cells[indexes.swIndex];
+            var supportCell = row.cells[indexes.supportIndex];
+            var swInput = swCell ? swCell.querySelector('.ccip-design-inline-sw') : null;
+            var supportInput = supportCell ? supportCell.querySelector('.ccip-design-inline-support') : null;
+
+            var hiddenDesign = document.getElementById(window.CMF_PORTAL.ids.hiddenInlineDesignName);
+            var hiddenSw = document.getElementById(window.CMF_PORTAL.ids.hiddenInlineSwImageFreeze);
+            var hiddenSupport = document.getElementById(window.CMF_PORTAL.ids.hiddenInlineSupportModel);
+
+            if (!hiddenDesign || !hiddenSw || !hiddenSupport || typeof __doPostBack !== 'function') {
+                return false;
+            }
+
+            hiddenDesign.value = design;
+            hiddenSw.value = swInput ? swInput.value : '';
+            hiddenSupport.value = supportInput ? supportInput.value : '';
+            __doPostBack('SaveDesignSummaryInline', '');
+            return false;
+        }
+
+        function openDesignSummaryEdit(triggerOrDesignName, designName) {
+            var triggerElement = triggerOrDesignName && triggerOrDesignName.nodeType === 1 ? triggerOrDesignName : null;
+            var design = designName;
+
+            if (!triggerElement && typeof triggerOrDesignName === 'string' && typeof designName === 'undefined') {
+                design = triggerOrDesignName;
+            }
+
+            design = design == null ? '' : String(design);
+            if (!design || /^total$/i.test(design)) {
+                return false;
+            }
+
+            var row = triggerElement && triggerElement.closest ? triggerElement.closest('tr') : null;
+            if (!row) {
+                var host = document.getElementById('homeDesignSummaryTable');
+                var table = host ? host.querySelector('table') : null;
+                var bodyRows = table && table.tBodies && table.tBodies.length ? table.tBodies[0].rows : [];
+                for (var i = 0; i < bodyRows.length; i++) {
+                    var firstCellText = bodyRows[i].cells && bodyRows[i].cells.length
+                        ? String(bodyRows[i].cells[0].textContent || bodyRows[i].cells[0].innerText || '').trim()
+                        : '';
+                    if (firstCellText.toLowerCase() === design.trim().toLowerCase()) {
+                        row = bodyRows[i];
+                        break;
+                    }
+                }
+            }
+
+            if (!row) {
+                return false;
+            }
+
+            var tableRef = row.closest('table');
+            if (!tableRef) {
+                return false;
+            }
+
+            if (tableRef.__cmfInlineEditingRow && tableRef.__cmfInlineEditingRow !== row) {
+                restoreDesignSummaryInlineRow(tableRef.__cmfInlineEditingRow);
+            }
+
+            if (row.classList.contains('ccip-design-row-editing')) {
+                return false;
+            }
+
+            var indexes = getDesignSummaryColumnIndexes(tableRef);
+            if (indexes.swIndex < 0 || indexes.supportIndex < 0 || indexes.editIndex < 0) {
+                return false;
+            }
+
+            var swCell = row.cells[indexes.swIndex];
+            var supportCell = row.cells[indexes.supportIndex];
+            var editCell = row.cells[indexes.editIndex];
+            if (!swCell || !supportCell || !editCell) {
+                return false;
+            }
+
+            var swValue = String(swCell.textContent || '').trim();
+            var supportValue = String(supportCell.textContent || '').trim();
+            var encodedDesignName = encodeURIComponent(design);
+
+            row.setAttribute('data-design-name', design);
+            row.setAttribute('data-inline-sw-original', swValue);
+            row.setAttribute('data-inline-support-original', supportValue);
+
+            swCell.innerHTML = '<textarea class="ccip-design-inline-field ccip-design-inline-sw" rows="2">' + escapeHtml(swValue) + '</textarea>';
+            supportCell.innerHTML = '<textarea class="ccip-design-inline-field ccip-design-inline-support" rows="2">' + escapeHtml(supportValue) + '</textarea>';
+            editCell.innerHTML = '<span class="ccip-design-edit-actions">'
+                + '<a href="javascript:void(0);" class="ccip-design-edit-link" onclick="return saveDesignSummaryInlineEdit(this, decodeURIComponent(\'' + encodedDesignName + '\'));">Save</a>'
+                + '<a href="javascript:void(0);" class="ccip-design-edit-link" onclick="return cancelDesignSummaryInlineEdit(this);">Cancel</a>'
+                + '</span>';
+
+            row.classList.add('ccip-design-row-editing');
+            tableRef.__cmfInlineEditingRow = row;
+
+            var firstInput = swCell.querySelector('.ccip-design-inline-sw');
+            if (firstInput && firstInput.focus) {
+                firstInput.focus();
+                if (firstInput.select) {
+                    firstInput.select();
+                }
+            }
+
+            return false;
+        }
+
+        function exportHomeDesignSummaryToExcel() {
+            if (window.CMF_PORTAL && window.CMF_PORTAL.ids && window.CMF_PORTAL.ids.btnExportToExcelDesignSummary) {
+                __doPostBack(window.CMF_PORTAL.ids.btnExportToExcelDesignSummary, '');
+                return false;
+            }
+
+            var host = document.getElementById('homeDesignSummaryTable');
+            var table = host ? host.querySelector('table') : null;
+            if (!table) {
+                return false;
+            }
+
+            var html = '<html><head><meta charset="utf-8"></head><body>' + table.outerHTML + '</body></html>';
+            var blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel' });
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = 'DesignSummary.xls';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            return false;
+        }
+
+        function renderDashboardLiveTable(hostId, tableData) {
+            var host = document.getElementById(hostId);
+            if (!host) return;
+            var columns = tableData && tableData.Columns ? tableData.Columns : [];
+            var rows = tableData && tableData.Rows ? tableData.Rows : [];
+            var isMilestoneSummaryHost = hostId === 'homeMilestoneSummaryTable';
+
+            if (isMilestoneSummaryHost) {
+                renderMilestoneSummaryPie(host, tableData);
+                return;
+            }
+
+            if (columns.length === 0) {
+                host.innerHTML = '<div class="ccip-empty-state">No dashboard data available.</div>';
+                return;
+            }
+            var isMilestoneSummary = hostId === 'homeMilestoneSummaryTable' && columns.length >= 2;
+            var isPendingSummary = hostId === 'homePendingSummaryTable' && columns.length >= 2;
+            var isDesignSummary = hostId === 'homeDesignSummaryTable' && columns.length >= 2;
+            var hasMilestoneColumns = hostId === 'homeComponentSummaryTable' && columns.length >= 3 && String(columns[1] || '').indexOf(':::') > -1;
+            var isComponentSummary = hostId === 'homeComponentSummaryTable' && columns.length >= 3;
+            var pendingValueColumnIndex = isPendingSummary ? Math.max(1, columns.length - 1) : -1;
+
+            if (isComponentSummary && window.CMF_PORTAL && window.CMF_PORTAL.componentSummaryViewMode === 'heatmap') {
+                renderComponentSummaryHeatmap(host, columns, rows, hasMilestoneColumns);
+                return;
+            }
+
+            if (isComponentSummary) {
+                host.classList.remove('ccip-component-riskmap-wrap');
+            }
+
+            var renderColumns = columns.slice();
+            var tableClasses = 'ccip-live-table'
+                + (isComponentSummary ? ' ccip-component-summary-table' : '')
+                + (isDesignSummary ? ' ccip-design-summary-table' : '')
+                + (isMilestoneSummary ? ' ccip-milestone-summary-table' : '');
+            var html = '<table class="' + tableClasses + '">';
+
+            if (isComponentSummary) {
+                var firstHeader = String(columns[0] || 'Component');
+                var firstColPx = 92;
+                var maxDataHeadingChars = 0;
+
+                if (hasMilestoneColumns) {
+                    for (var h = 1; h < columns.length; h += 2) {
+                        var openMeta = String(columns[h] || '').split(':::');
+                        var implMeta = String(columns[h + 1] || '').split(':::');
+                        var milestoneName = String((openMeta.length > 1 ? openMeta[0] : openMeta[0]) || '');
+                        var openTitleLen = String(openMeta.length > 1 ? openMeta[1] : 'Open').length;
+                        var implTitleLen = String(implMeta.length > 1 ? implMeta[1] : 'Impl/Verified').length;
+                        maxDataHeadingChars = Math.max(
+                            maxDataHeadingChars,
+                            Math.ceil(milestoneName.length / 2),
+                            openTitleLen,
+                            implTitleLen,
+                            'Unique(LOS)+Duplicate(LOS)'.length,
+                            'Unique+Duplicate'.length
+                        );
+                    }
+                } else {
+                    maxDataHeadingChars = Math.max(
+                        'Open'.length,
+                        'Impl/Verified'.length,
+                        'Unique(LOS)+Duplicate(LOS)'.length,
+                        'Unique+Duplicate'.length
+                    );
+                }
+
+                var openColCh = Math.max(14, Math.min(21.6, Math.ceil(maxDataHeadingChars * 0.78) + 0.6));
+                var implColCh = openColCh;
+                var componentDataWidthCh = 0;
+                for (var cw = 1; cw < columns.length; cw++) {
+                    componentDataWidthCh += (cw % 2 === 1) ? openColCh : implColCh;
+                }
+
+                var componentTableDataCh = componentDataWidthCh.toFixed(1);
+                html = '<table class="' + tableClasses + '" style="width:calc(' + firstColPx + 'px + ' + componentTableDataCh + 'ch); min-width:calc(' + firstColPx + 'px + ' + componentTableDataCh + 'ch);">';
+                html += '<colgroup>';
+                html += '<col style="width:' + firstColPx + 'px; min-width:' + firstColPx + 'px; max-width:' + firstColPx + 'px;">';
+                for (var cg = 1; cg < columns.length; cg++) {
+                    var colWidthCh = (cg % 2 === 1) ? openColCh : implColCh;
+                    html += '<col style="width:' + colWidthCh + 'ch; min-width:' + colWidthCh + 'ch;">';
+                }
+                html += '</colgroup>';
+            } else if (isMilestoneSummary) {
+                var milestoneMaxHeadingChars = 0;
+
+                for (var mc = 0; mc < columns.length; mc++) {
+                    milestoneMaxHeadingChars = Math.max(milestoneMaxHeadingChars, String(renderColumns[mc] || '').length);
+                }
+
+                html += '<colgroup>';
+                if (columns.length === 2) {
+                    // Keep first column fixed and let the Count column expand to fill remaining width.
+                    var milestoneFirstColPx = 150;
+                    var uniqueCountHeader = String(renderColumns[1] || 'Unique CMF');
+                    var uniqueCountMinCh = Math.max(12.8, Math.min(15.4, Math.ceil(uniqueCountHeader.length * 0.72) + 0.2));
+                    html = '<table class="' + tableClasses + '" style="width:100%; min-width:100%;">';
+                    html += '<col style="width:' + milestoneFirstColPx + 'px; min-width:' + milestoneFirstColPx + 'px;">';
+                    html += '<col style="width:auto; min-width:' + uniqueCountMinCh + 'ch;">';
+                } else {
+                    var milestoneColPercent = (100 / columns.length).toFixed(4);
+                    for (var mg = 0; mg < columns.length; mg++) {
+                        html += '<col style="width:' + milestoneColPercent + '%;">';
+                    }
+                }
+                html += '</colgroup>';
+            } else if (isPendingSummary && columns.length >= 2) {
+                var pendingFirstColPx = 94;
+                var pendingHeader = String(renderColumns[pendingValueColumnIndex] || 'CMF Pending');
+                var pendingColWidthCh = Math.max(20, Math.min(24.8, Math.ceil(pendingHeader.length * 0.74) + 0.4));
+                var pendingIdstColCh = 0;
+                if (columns.length > 2) {
+                    var idstHeader = String(renderColumns[1] || 'iDST Name');
+                    pendingIdstColCh = Math.max(11.2, Math.min(16.5, Math.ceil(idstHeader.length * 0.72) + 0.4));
+                }
+
+                var pendingTableWidth = 'calc(' + pendingFirstColPx + 'px + ' + pendingIdstColCh + 'ch + ' + pendingColWidthCh + 'ch)';
+                html = '<table class="' + tableClasses + '" style="width:' + pendingTableWidth + '; min-width:' + pendingTableWidth + '; table-layout:auto;">';
+                html += '<colgroup>';
+                html += '<col style="width:' + pendingFirstColPx + 'px; min-width:' + pendingFirstColPx + 'px;">';
+                if (columns.length > 2) {
+                    html += '<col style="width:' + pendingIdstColCh + 'ch; min-width:' + pendingIdstColCh + 'ch;">';
+                }
+                html += '<col style="width:' + pendingColWidthCh + 'ch; min-width:' + pendingColWidthCh + 'ch;">';
+                html += '</colgroup>';
+            } else if (isDesignSummary) {
+                var designOtherColCount = Math.max(1, columns.length - 1);
+                var designBaseWidthPx = host && host.clientWidth > 0 ? host.clientWidth : 0;
+                var designEditColPx = 72;
+                var designMeasureCanvas = document.createElement('canvas');
+                var designMeasureCtx = designMeasureCanvas.getContext('2d');
+                var designHeadingWidthsPx = [];
+                var designHeadingsTotalPx = 0;
+                if (designMeasureCtx) {
+                    designMeasureCtx.font = '700 10px "Plus Jakarta Sans", "Segoe UI", sans-serif';
+                    for (var dh = 1; dh < columns.length; dh++) {
+                        var headerLabel = String(renderColumns[dh] == null ? '' : renderColumns[dh]).trim();
+                        var headerLabelUpper = headerLabel.toUpperCase();
+                        var baseHeaderPx = designMeasureCtx.measureText(headerLabelUpper).width;
+                        // Match table-header styling: 0.02em letter-spacing at 10px => 0.2px between glyphs.
+                        var letterSpacingPx = Math.max(0, headerLabelUpper.length - 1) * 0.2;
+                        var headerWidthPx = Math.max(64, Math.ceil(baseHeaderPx + letterSpacingPx + 16));
+                        designHeadingWidthsPx.push(headerWidthPx);
+                        designHeadingsTotalPx += headerWidthPx;
+                    }
+                } else {
+                    for (var dc = 1; dc < columns.length; dc++) {
+                        var fallbackLabel = String(renderColumns[dc] == null ? '' : renderColumns[dc]).trim();
+                        var fallbackWidthPx = Math.max(64, (fallbackLabel.length * 7) + 16);
+                        designHeadingWidthsPx.push(fallbackWidthPx);
+                        designHeadingsTotalPx += fallbackWidthPx;
+                    }
+                }
+
+                if (designHeadingWidthsPx.length !== designOtherColCount) {
+                    designHeadingWidthsPx = [];
+                    designHeadingsTotalPx = 0;
+                    for (var de = 0; de < designOtherColCount; de++) {
+                        designHeadingWidthsPx.push(72);
+                        designHeadingsTotalPx += 72;
+                    }
+                }
+
+                var designFirstColRatio = 0.28; // 20% reduction from the previous 0.35 split.
+                var designFirstColPx = designBaseWidthPx > 0
+                    ? Math.max(180, Math.floor(designBaseWidthPx * designFirstColRatio))
+                    : 220;
+                var designTableWidthPx = designFirstColPx + designHeadingsTotalPx + designEditColPx;
+
+                html = '<table class="' + tableClasses + '" style="width:' + designTableWidthPx + 'px; min-width:' + designTableWidthPx + 'px; table-layout:fixed;">';
+                html += '<colgroup>';
+                html += '<col style="width:' + designFirstColPx.toFixed(3) + 'px; min-width:' + designFirstColPx.toFixed(3) + 'px;">';
+                for (var dg = 0; dg < designOtherColCount; dg++) {
+                    var colPx = Math.max(64, designHeadingWidthsPx[dg]);
+                    html += '<col style="width:' + colPx.toFixed(3) + 'px; min-width:' + colPx.toFixed(3) + 'px;">';
+                }
+                html += '<col style="width:' + designEditColPx.toFixed(3) + 'px; min-width:' + designEditColPx.toFixed(3) + 'px; max-width:' + designEditColPx.toFixed(3) + 'px;">';
+                html += '</colgroup>';
+            }
+
+            html += '<thead>';
+
+            if (hasMilestoneColumns) {
+                html += '<tr>' +
+                    '<th rowspan="2">' + escapeHtml(columns[0] || 'Ingredient') + '</th>';
+
+                for (var m = 1; m < columns.length; m += 2) {
+                    var openMeta = String(columns[m] || '').split(':::');
+                    var milestoneName = (openMeta.length > 1 ? openMeta[0] : openMeta[0]) || ('Milestone ' + Math.floor((m + 1) / 2));
+                    html += '<th class="ccip-component-group-header" colspan="2">' + escapeHtml(milestoneName) + '</th>';
+                }
+
+                html += '</tr><tr>';
+                for (var m2 = 1; m2 < columns.length; m2 += 2) {
+                    var openParts = String(columns[m2] || '').split(':::');
+                    var implParts = String(columns[m2 + 1] || '').split(':::');
+                    var openTitle = openParts.length > 1 ? openParts[1] : 'Open';
+                    var implTitle = implParts.length > 1 ? implParts[1] : 'Impl/Verified';
+                    html += '<th class="ccip-component-sub-header">' +
+                        escapeHtml(openTitle) +
+                        '<span class="ccip-header-format">Unique(LOS)+Duplicate(LOS)</span></th>';
+                    html += '<th class="ccip-component-sub-header">' +
+                        escapeHtml(implTitle) +
+                        '<span class="ccip-header-format">Unique+Duplicate</span></th>';
+                }
+                html += '</tr>';
+            } else if (isComponentSummary) {
+                html += '<tr>' +
+                    '<th>' + escapeHtml(columns[0] || 'Ingredient') + '</th>' +
+                    '<th>Open<span class="ccip-header-format">Unique(LOS)+Duplicate(LOS)</span></th>' +
+                    '<th>Impl/Verified<span class="ccip-header-format">Unique+Duplicate</span></th>' +
+                    '</tr>';
+            } else if (isDesignSummary) {
+                html += '<tr>';
+                for (var c = 0; c < columns.length; c++) {
+                    html += '<th>' + escapeHtml(renderColumns[c]) + '</th>';
+                }
+                html += '<th class="ccip-design-edit-col">Edit</th>';
+                html += '</tr>';
+            } else {
+                html += '<tr>';
+                for (var c = 0; c < columns.length; c++) {
+                    html += '<th>' + escapeHtml(renderColumns[c]) + '</th>';
+                }
+                html += '</tr>';
+            }
+
+            html += '</thead><tbody>';
+            if (rows.length === 0) {
+                html += '<tr><td colspan="' + columns.length + '">No matching CMF data for this platform.</td></tr>';
+            } else {
+                for (var r = 0; r < rows.length; r++) {
+                    var row = rows[r] || [];
+                    var rowLabel = row.length > 0 ? String(row[0] || '') : '';
+                    var isTotalRow = /^total/i.test(rowLabel);
+                    html += '<tr' + (isTotalRow ? ' class="ccip-live-total"' : '') + '>';
+                    for (var i = 0; i < columns.length; i++) {
+                        if (isPendingSummary && i === pendingValueColumnIndex) {
+                            html += '<td class="ccip-pending-summary-links-col">' + buildPendingSummaryCellHtml(row[i], isTotalRow) + '</td>';
+                        } else if (isDesignSummary && i === 0) {
+                            html += '<td>' + renderDesignSummaryNameCell(row[i]) + '</td>';
+                        } else {
+                            html += '<td>' + escapeHtml(row[i] == null ? '' : row[i]) + '</td>';
+                        }
+                    }
+
+                    if (isDesignSummary) {
+                        if (isTotalRow) {
+                            html += '<td class="ccip-design-edit-col"></td>';
+                        } else {
+                            var editDesignName = row.length > 0 ? String(row[0] || '') : '';
+                            var encodedDesignName = encodeURIComponent(editDesignName);
+                            html += '<td class="ccip-design-edit-col">'
+                                + '<a href="javascript:void(0);" class="ccip-design-edit-link" '
+                                + 'onclick="return openDesignSummaryEdit(this, decodeURIComponent(\'' + encodedDesignName + '\'));">Edit</a>'
+                                + '</td>';
+                        }
+                    }
+
+                    html += '</tr>';
+                }
+            }
+            html += '</tbody></table>';
+            host.innerHTML = html;
+
+            if (isComponentSummary && hasMilestoneColumns) {
+                applyComponentGroupHeaderSticky(host);
+            }
+
+            if (hostId === 'homeDesignSummaryTable') {
+                ensureHoverWidthLock(host);
+            }
+
+        }
+
+        var PENDING_SUMMARY_LINKS_DELIMITER = ':::OPEN_HSDS:::';
+
+        function buildPendingSummaryCellHtml(rawValue, isTotalRow) {
+            var value = rawValue == null ? '' : String(rawValue);
+            if (isTotalRow || value.indexOf(PENDING_SUMMARY_LINKS_DELIMITER) < 0) {
+                return escapeHtml(value);
+            }
+
+            var parts = value.split(PENDING_SUMMARY_LINKS_DELIMITER);
+            var countText = escapeHtml(parts[0] || '0');
+            var csv = parts.length > 1 ? String(parts[1] || '') : '';
+            var ids = csv.split(',');
+            var links = [];
+            var seen = {};
+
+            for (var i = 0; i < ids.length; i++) {
+                var token = String(ids[i] || '').trim();
+                if (!token) continue;
+                var safeId = token.replace(/[^0-9]/g, '');
+                if (!safeId || seen[safeId]) continue;
+                seen[safeId] = true;
+                links.push('<a class="pending-id-link ccip-pending-summary-link" href="https://hsdes.intel.com/appstore/article/#/' + encodeURIComponent(safeId) + '" target="_blank" rel="noopener noreferrer">#' + escapeHtml(safeId) + '</a>');
+            }
+
+            if (!links.length) {
+                return countText;
+            }
+
+            return '<span class="ccip-pending-summary-cell"><span class="ccip-pending-summary-count">' + countText + '</span><span>|</span><span>' + links.join(', ') + '</span></span>';
+        }
+
+        function getTextById(id) {
+            var node = id ? document.getElementById(id) : null;
+            if (!node) return '0';
+            return (node.textContent || node.innerText || '0').trim();
+        }
+
+        function renderInteractiveIssuePendingSidebars() {
+            var issueTotal = getTextById(window.CMF_PORTAL.ids.lblIssueTotal);
+            var issueProgress = getTextById(window.CMF_PORTAL.ids.lblIssueInProgress);
+            var issueStale = getTextById(window.CMF_PORTAL.ids.lblIssueStale);
+            var pendingTotal = getTextById(window.CMF_PORTAL.ids.lblPendingSightings);
+            var pendingQualify = getTextById(window.CMF_PORTAL.ids.lblQualifyForCmf);
+            var pendingDup = getTextById(window.CMF_PORTAL.ids.lblLikelyDuplicate);
+            var pendingMissing = getTextById(window.CMF_PORTAL.ids.lblIncompleteSysScope);
+
+            var issueTotalNode = document.getElementById('issueSideTotal');
+            var issueProgressNode = document.getElementById('issueSideProgress');
+            var issueStaleNode = document.getElementById('issueSideStale');
+            if (issueTotalNode) issueTotalNode.textContent = issueTotal;
+            if (issueProgressNode) issueProgressNode.textContent = issueProgress;
+            if (issueStaleNode) issueStaleNode.textContent = issueStale;
+
+            var pendingTotalNode = document.getElementById('pendingSideTotal');
+            var pendingQualifyNode = document.getElementById('pendingSideQualify');
+            var pendingDupNode = document.getElementById('pendingSideDup');
+            var pendingMissNode = document.getElementById('pendingSideMissing');
+            if (pendingTotalNode) pendingTotalNode.textContent = pendingTotal;
+            if (pendingQualifyNode) pendingQualifyNode.textContent = pendingQualify;
+            if (pendingDupNode) pendingDupNode.textContent = pendingDup;
+            if (pendingMissNode) pendingMissNode.textContent = pendingMissing;
+        }
+
+        function isElementVisible(element) {
+            if (!element) return false;
+            var style = window.getComputedStyle ? window.getComputedStyle(element) : null;
+            if (style && (style.display === 'none' || style.visibility === 'hidden')) {
+                return false;
+            }
+            return element.offsetParent !== null || (style && style.position === 'fixed');
+        }
+
+        function normalizeIssuePendingShellDom() {
+            var issueShell = document.getElementById('issueTabShell');
+            var pendingShell = document.getElementById('pendingTabShell');
+            if (!issueShell) return;
+
+            var issueMain = issueShell.querySelector('.issue-tab-main');
+            var issueSide = issueShell.querySelector('.issue-side-panel')
+                || document.querySelector('#mainDataWrapper .issue-side-panel')
+                || document.querySelector('.issue-side-panel');
+            var pendingMain = pendingShell ? pendingShell.querySelector('.pending-tab-main') : null;
+            var pendingSide = pendingShell
+                ? (pendingShell.querySelector('.pending-side-panel')
+                    || document.querySelector('#mainDataWrapper .pending-side-panel')
+                    || document.querySelector('.pending-side-panel'))
+                : null;
+
+            if (issueMain && issueSide && issueSide.parentElement !== issueShell) {
+                issueShell.insertBefore(issueSide, issueMain.nextSibling);
+            }
+
+            if (pendingShell && pendingMain && pendingSide && pendingSide.parentElement !== pendingShell) {
+                pendingShell.insertBefore(pendingSide, pendingMain.nextSibling);
+            }
+
+            if (pendingShell && issueShell.parentElement && pendingShell.parentElement !== issueShell.parentElement) {
+                issueShell.parentElement.insertBefore(pendingShell, issueShell.nextSibling);
+            }
+        }
+
+        function syncIssuePendingSidePanelVisibility() {
+            normalizeIssuePendingShellDom();
+            var issueShell = document.getElementById('issueTabShell');
+            var pendingShell = document.getElementById('pendingTabShell');
+            var issueSide = issueShell ? issueShell.querySelector('.issue-side-panel') : null;
+            var pendingSide = pendingShell ? pendingShell.querySelector('.pending-side-panel') : null;
+
+            var issuePane = document.getElementById(window.CMF_PORTAL.ids.paneIssueList);
+            var pendingPane = document.getElementById(window.CMF_PORTAL.ids.paneCmfPending);
+            var activeViewTitle = document.getElementById(window.CMF_PORTAL.ids.activeViewTitle);
+            var issueHeader = document.getElementById(window.CMF_PORTAL.ids.issueListHeaderPanel);
+            var pendingHeader = document.getElementById(window.CMF_PORTAL.ids.cmfPendingHeaderPanel);
+            var issueGrid = document.getElementById(window.CMF_PORTAL.ids.overallRequestDetails);
+            var pendingGrid = document.getElementById(window.CMF_PORTAL.ids.gridViewCmfPending);
+            var issueMain = issueShell ? issueShell.querySelector('.issue-tab-main') : null;
+            var pendingMain = pendingShell ? pendingShell.querySelector('.pending-tab-main') : null;
+            var issueGridWrap = issueGrid ? issueGrid.closest('.issue-grid-scroll') : null;
+            var pendingGridWrap = pendingGrid ? pendingGrid.closest('.cmf-pending-grid-wrap') : null;
+
+            var issueActive = isElementVisible(issuePane) || isElementVisible(issueHeader) || isElementVisible(issueGrid) || isElementVisible(issueMain);
+            var pendingActive = isElementVisible(pendingPane) || isElementVisible(pendingHeader) || isElementVisible(pendingGrid) || isElementVisible(pendingMain);
+
+            var activeText = activeViewTitle ? (activeViewTitle.textContent || activeViewTitle.innerText || '').toLowerCase() : '';
+            var activeTab = (window.CMF_PORTAL.activeFocusedTab || '').toLowerCase();
+            if (activeTab === 'pending' || activeText.indexOf('pending') >= 0) {
+                pendingActive = true;
+                issueActive = false;
+            } else if (activeTab === 'issue' || activeText.indexOf('issue') >= 0) {
+                issueActive = true;
+                pendingActive = false;
+            } else if (activeTab && activeTab !== 'pending' && activeTab !== 'issue') {
+                issueActive = false;
+                pendingActive = false;
+            }
+
+            if (!issueActive && !pendingActive && (!activeTab || activeTab === 'pending' || activeTab === 'issue')) {
+                var issueWasVisible = !!(issueShell && issueShell.style.display === 'grid');
+                var pendingWasVisible = !!(pendingShell && pendingShell.style.display === 'grid');
+                if (pendingWasVisible) {
+                    pendingActive = true;
+                } else if (issueWasVisible) {
+                    issueActive = true;
+                } else {
+                    issueActive = true;
+                }
+            }
+
+            if (issueActive && pendingActive) {
+                if (activeTab === 'pending' || activeText.indexOf('pending') >= 0) {
+                    issueActive = false;
+                } else {
+                    pendingActive = false;
+                }
+            }
+
+            if (issueShell) {
+                issueShell.style.display = issueActive ? 'grid' : 'none';
+                issueShell.classList.toggle('portal-view-hidden', !issueActive);
+                issueShell.classList.toggle('side-hidden', !issueActive);
+            }
+            if (pendingShell) {
+                pendingShell.style.display = pendingActive ? 'grid' : 'none';
+                pendingShell.classList.toggle('portal-view-hidden', !pendingActive);
+                pendingShell.classList.toggle('side-hidden', !pendingActive);
+            }
+
+            if (issueSide) {
+                issueSide.style.display = issueActive ? 'grid' : 'none';
+                issueSide.classList.toggle('portal-view-hidden', !issueActive);
+            }
+
+            if (pendingSide) {
+                pendingSide.style.display = pendingActive ? 'grid' : 'none';
+                pendingSide.classList.toggle('portal-view-hidden', !pendingActive);
+            }
+
+            if (issueGridWrap) {
+                issueGridWrap.style.display = issueActive ? '' : 'none';
+                issueGridWrap.classList.toggle('portal-view-hidden', !issueActive);
+            }
+
+            if (pendingGridWrap) {
+                pendingGridWrap.style.display = pendingActive ? '' : 'none';
+                pendingGridWrap.classList.toggle('portal-view-hidden', !pendingActive);
+            }
+
+            populateCmfPendingFilterOptions();
+            filterPortalVisibleTables();
+        }
+
+        function isReportsViewActive() {
+            var activeViewTitle = document.getElementById(window.CMF_PORTAL.ids.activeViewTitle);
+            var text = activeViewTitle ? (activeViewTitle.textContent || activeViewTitle.innerText || '') : '';
+            return text.toLowerCase().indexOf('report') >= 0;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            window.CMF_PORTAL.currentPlatform = getCurrentPlatformValue();
+            window.CMF_PORTAL.currentDashboardPlatform = '<%= ResolveDashboardPlatformSelection() %>';
+            window.CMF_PORTAL.availablePlatforms = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(AvailablePlatformTablesJson) %>');
+            window.CMF_PORTAL.platformChipOptions = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(AvailablePlatformChipOptionsJson) %>');
+            window.CMF_PORTAL.overallExcludedPlatforms = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(OverallExcludedPlatformsJson) %>');
+            window.CMF_PORTAL.homeDashboardSnapshot = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(string.IsNullOrWhiteSpace(HomeDashboardSnapshotJson) ? "null" : HomeDashboardSnapshotJson) %>');
+            renderPlatformChipRails();
+            applyPlatformChipVisibility();
+            syncActivePlatformChip();
+            bindOverallTrendRangeSelector();
+            bindSpecificTrendRangeSelector();
+            var issueGrid = document.getElementById(window.CMF_PORTAL.ids.overallRequestDetails);
+            if (isElementVisible(issueGrid)) {
+                setTimeout(function () { syncIssueHorizontalScroll(0); }, 60);
+            }
+            if (isReportsViewActive()) {
+                bindReportsPromptEnterHandler();
+                initReportsFormatTemplate();
+            }
+            initCollapsibleSections();
+            initMainMenuTooltips();
+            initPortalNavPostbackFallback();
+            renderHomeDashboard();
+            renderInteractiveIssuePendingSidebars();
+            syncIssuePendingSidePanelVisibility();
+            syncGlobalSearchVisibility();
+            bindGlobalSearchShortcut();
+            applyTableOnlyScroll();
+            scheduleInitColumnHideButtons(80);
+        });
+
+        if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) {
+            Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function () {
+                window.CMF_PORTAL.currentPlatform = getCurrentPlatformValue();
+                window.CMF_PORTAL.currentDashboardPlatform = '<%= ResolveDashboardPlatformSelection() %>';
+                window.CMF_PORTAL.availablePlatforms = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(AvailablePlatformTablesJson) %>');
+                window.CMF_PORTAL.platformChipOptions = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(AvailablePlatformChipOptionsJson) %>');
+                window.CMF_PORTAL.overallExcludedPlatforms = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(OverallExcludedPlatformsJson) %>');
+                window.CMF_PORTAL.homeDashboardSnapshot = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(string.IsNullOrWhiteSpace(HomeDashboardSnapshotJson) ? "null" : HomeDashboardSnapshotJson) %>');
+                renderPlatformChipRails();
+                applyPlatformChipVisibility();
+                syncActivePlatformChip();
+                bindOverallTrendRangeSelector();
+                bindSpecificTrendRangeSelector();
+                var issueGrid = document.getElementById(window.CMF_PORTAL.ids.overallRequestDetails);
+                if (isElementVisible(issueGrid)) {
+                    setTimeout(function () { syncIssueHorizontalScroll(0); }, 60);
+                }
+                if (isReportsViewActive()) {
+                    bindReportsPromptEnterHandler();
+                    initReportsFormatTemplate();
+                }
+                initCollapsibleSections();
+                initMainMenuTooltips();
+                initPortalNavPostbackFallback();
+                renderHomeDashboard();
+                renderInteractiveIssuePendingSidebars();
+                syncIssuePendingSidePanelVisibility();
+                syncGlobalSearchVisibility();
+                bindGlobalSearchShortcut();
+                applyTableOnlyScroll();
+                scheduleInitColumnHideButtons(0);
+            });
+        }
+
+        // ── Column hide buttons ──────────────────────────────────────────────
+        var CMF_HIDDEN_COLS_KEY = 'cmf_hidden_cols';
+        var CMF_COLHIDE_TIMER = null;
+
+        function scheduleInitColumnHideButtons(delay) {
+            if (CMF_COLHIDE_TIMER) {
+                clearTimeout(CMF_COLHIDE_TIMER);
+            }
+            CMF_COLHIDE_TIMER = setTimeout(function () {
+                CMF_COLHIDE_TIMER = null;
+                initColumnHideButtons();
+            }, typeof delay === 'number' ? delay : 0);
+        }
+
+        function initColumnHideButtons() {
+            var grid = document.getElementById('<%= overall_request_details.ClientID %>');
+            if (!grid) return;
+            if (!isElementVisible(grid)) return;
+            // Select every header cell that carries a field-* class, regardless of thead/tbody structure
+            var headers = grid.querySelectorAll('th[class*="field-"]');
+            if (!headers || headers.length === 0) return;
+            var stamp = headers.length + ':' + (grid.rows ? grid.rows.length : 0);
+            var existingButtons = grid.querySelectorAll('.col-hide-btn').length;
+            if (grid.getAttribute('data-colhide-stamp') === stamp && existingButtons >= headers.length) {
+                restoreHiddenColumns();
+                return;
+            }
+            headers.forEach(function (th) {
+                if (th.querySelector('.col-hide-btn')) return; // already injected
+                var fieldClass = [].slice.call(th.classList).find(function (c) { return c.indexOf('field-') === 0; });
+                if (!fieldClass) return;
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'col-hide-btn';
+                btn.innerHTML = '&#x2715;';
+                btn.title = 'Hide column';
+                btn.setAttribute('data-field', fieldClass);
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    hideColumnByClass(fieldClass);
+                });
+                // Place beside the label text, inside filter container if present
+                var target = th.querySelector('.filter-header-text') || th;
+                target.appendChild(btn);
+            });
+            grid.setAttribute('data-colhide-stamp', stamp);
+            restoreHiddenColumns();
+        }
+
+        function hideColumnByClass(fieldClass) {
+            document.querySelectorAll('.' + fieldClass).forEach(function (el) {
+                el.classList.add('hidden');
+            });
+            var hidden = JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]');
+            if (hidden.indexOf(fieldClass) === -1) {
+                hidden.push(fieldClass);
+                localStorage.setItem(CMF_HIDDEN_COLS_KEY, JSON.stringify(hidden));
+            }
+            var btn = document.getElementById('btnShowAllColumns');
+            if (btn) btn.style.display = '';
+        }
+
+        function restoreHiddenColumns() {
+            var hidden = JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]');
+            hidden.forEach(function (fieldClass) {
+                document.querySelectorAll('.' + fieldClass).forEach(function (el) {
+                    el.classList.add('hidden');
+                });
+            });
+            var btn = document.getElementById('btnShowAllColumns');
+            if (btn) btn.style.display = hidden.length > 0 ? '' : 'none';
+        }
+
+        function showAllColumns() {
+            var hidden = JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]');
+            hidden.forEach(function (fieldClass) {
+                document.querySelectorAll('.' + fieldClass).forEach(function (el) {
+                    el.classList.remove('hidden');
+                });
+            });
+            localStorage.removeItem(CMF_HIDDEN_COLS_KEY);
+            var btn = document.getElementById('btnShowAllColumns');
+            if (btn) btn.style.display = 'none';
+        }
+
+        function filterGridRowsByQuery(grid, query) {
+            if (!grid) return;
+            var rows = grid.querySelectorAll('tbody tr');
+            rows.forEach(function (row) {
+                var text = (row.textContent || row.innerText || '').toLowerCase();
+                row.style.display = (!query || text.indexOf(query) !== -1) ? '' : 'none';
+            });
+        }
+
+        function filterPortalVisibleTables() {
+            var input = document.getElementById('globalPortalSearch');
+            var query = input ? (input.value || '').trim().toLowerCase() : '';
+            var clearBtn = document.getElementById('globalSearchClear');
+            var activeTab = (window.CMF_PORTAL.activeFocusedTab || '').toLowerCase();
+
+            if (activeTab !== 'issue') {
+                if (clearBtn) clearBtn.style.display = 'none';
+                return;
+            }
+
+            if (clearBtn) {
+                clearBtn.style.display = query ? 'inline-flex' : 'none';
+            }
+        }
+
+        var issueGlobalSearchTimer = null;
+
+        function scheduleIssueGlobalSearch() {
+            var input = document.getElementById('globalPortalSearch');
+            var query = input ? (input.value || '').trim() : '';
+            var clearBtn = document.getElementById('globalSearchClear');
+            var activeTab = (window.CMF_PORTAL.activeFocusedTab || '').toLowerCase();
+
+            if (clearBtn) {
+                clearBtn.style.display = query ? 'inline-flex' : 'none';
+            }
+
+            if (activeTab !== 'issue') {
+                return;
+            }
+
+            if (issueGlobalSearchTimer) {
+                clearTimeout(issueGlobalSearchTimer);
+            }
+
+            issueGlobalSearchTimer = setTimeout(function () {
+                var hidden = document.getElementById('<%= hfIssueGlobalSearch.ClientID %>');
+                if (hidden) {
+                    hidden.value = query;
+                }
+                __doPostBack('<%= btnIssueGlobalSearchApply.UniqueID %>', '');
+            }, 450);
+        }
+
+        function clearGlobalPortalSearch() {
+            var input = document.getElementById('globalPortalSearch');
+            if (!input) return;
+            input.value = '';
+            scheduleIssueGlobalSearch();
+            input.focus();
+        }
+
+        function filterIssueTable() {
+            filterPortalVisibleTables();
+        }
+
+        function clearIssueSearch() {
+            clearGlobalPortalSearch();
+        }
+
+        function bindGlobalSearchShortcut() {
+            if (window.CMF_PORTAL.globalSearchShortcutBound) return;
+            document.addEventListener('keydown', function (event) {
+                if ((event.ctrlKey || event.metaKey) && String(event.key || '').toLowerCase() === 'k') {
+                    var input = document.getElementById('globalPortalSearch');
+                    if (input) {
+                        event.preventDefault();
+                        input.focus();
+                        input.select();
+                    }
+                }
+            });
+            window.CMF_PORTAL.globalSearchShortcutBound = true;
+        }
+
+        function syncGlobalSearchVisibility() {
+            var shell = document.querySelector('.global-search-shell');
+            var input = document.getElementById('globalPortalSearch');
+            var clearBtn = document.getElementById('globalSearchClear');
+            var activeTab = (window.CMF_PORTAL.activeFocusedTab || '').toLowerCase();
+            var showSearch = activeTab === 'issue';
+            if (shell) shell.style.display = showSearch ? 'flex' : 'none';
+            if (!showSearch) {
+                if (input) input.value = '';
+                if (clearBtn) clearBtn.style.display = 'none';
+            }
+        }
+
+        function applyTableOnlyScroll() {
+            var issueWrap = document.querySelector('.issue-grid-scroll');
+            var issueInner = document.getElementById('issue-grid-inner');
+            var issueTable = document.getElementById(window.CMF_PORTAL.ids.overallRequestDetails);
+            var pendingWrap = document.querySelector('.cmf-pending-grid-wrap');
+
+            if (issueWrap) {
+                issueWrap.style.setProperty('max-height', 'none', 'important');
+                issueWrap.style.setProperty('min-height', '0', 'important');
+                issueWrap.style.setProperty('overflow', 'hidden', 'important');
+                issueWrap.style.setProperty('scrollbar-gutter', 'stable', 'important');
+            }
+
+            if (issueInner) {
+                issueInner.style.setProperty('width', '100%', 'important');
+                issueInner.style.setProperty('max-width', '100%', 'important');
+                issueInner.style.setProperty('max-height', 'min(62vh, 620px)', 'important');
+                issueInner.style.setProperty('min-height', '0', 'important');
+                issueInner.style.setProperty('overflow-x', 'auto', 'important');
+                issueInner.style.setProperty('overflow-y', 'auto', 'important');
+                issueInner.style.setProperty('scrollbar-gutter', 'stable both-edges', 'important');
+            }
+
+            if (issueTable) {
+                issueTable.style.setProperty('width', 'max-content', 'important');
+                issueTable.style.setProperty('min-width', '2200px', 'important');
+                issueTable.style.setProperty('max-width', 'none', 'important');
+            }
+
+            if (pendingWrap) {
+                pendingWrap.style.setProperty('max-height', 'min(64vh, 640px)', 'important');
+                pendingWrap.style.setProperty('min-height', '0', 'important');
+                pendingWrap.style.setProperty('overflow-x', 'auto', 'important');
+                pendingWrap.style.setProperty('overflow-y', 'auto', 'important');
+                pendingWrap.style.setProperty('scrollbar-gutter', 'stable', 'important');
+            }
+        }
+
+        if (window.Sys && Sys.Application) {
+            Sys.Application.add_load(function () {
+                applyTableOnlyScroll();
+                syncGlobalSearchVisibility();
+                populateCmfPendingFilterOptions();
+                syncIssueHorizontalScroll(0);
+                scheduleInitColumnHideButtons(0);
+            });
+        }
+        // ────────────────────────────────────────────────────────────────────
+
+        function getPlatformDisplayLabel(platformValue) {
+            var value = String(platformValue || '').trim();
+            if (!value) return 'Current platform';
+
+            var aliases = window.CMF_PORTAL && window.CMF_PORTAL.platformAliasMap ? window.CMF_PORTAL.platformAliasMap : {};
+            for (var label in aliases) {
+                if (Object.prototype.hasOwnProperty.call(aliases, label) && aliases[label] === value) {
+                    return label.replace(/-/g, '_').toUpperCase();
+                }
+            }
+
+            return value
+                .replace(/^CMF_/i, '')
+                .replace(/_ALL_COMPONENTS_TABLE$/i, '')
+                .replace(/-/g, '_')
+                .toUpperCase();
+        }
+
+        function renderImpactSummarySkeleton() {
+            return '<div class="ai-skeleton-loader cmf-impact-skeleton" aria-label="Generating impact summary">' +
+                '<div class="ai-skeleton-line" style="width: 94%;"></div>' +
+                '<div class="ai-skeleton-line" style="width: 88%;"></div>' +
+                '<div class="ai-skeleton-line" style="width: 72%;"></div>' +
+                '<div class="ai-skeleton-line" style="width: 90%; margin-top: 8px;"></div>' +
+                '<div class="ai-skeleton-line" style="width: 84%;"></div>' +
+                '<div class="ai-skeleton-line" style="width: 66%;"></div>' +
+                '</div>';
+        }
+
+        function renderIssueDescriptionSkeleton() {
+                return '<div class="ai-skeleton-loader cmf-impact-skeleton" aria-label="Generating issue description">' +
+                '<div class="ai-skeleton-line" style="width: 92%;"></div>' +
+                '<div class="ai-skeleton-line" style="width: 76%; margin-top: 8px;"></div>' +
+                '</div>';
+            }
+
+        function renderIssueDescriptionText(text) {
+            var source = normalizeIssueDescriptionBullets(text || '');
+            var lines = source.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+                .split('\n')
+                .map(function (line) { return line.trim(); })
+                .filter(Boolean);
+            if (!lines.length) return 'No description available.';
+
+            var parsedLines = lines.map(function (line) {
+                var isBullet = /^\s*(?:[-*•]|\d+[.)])\s+/.test(line);
+                return {
+                    isBullet: isBullet,
+                    text: line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '').trim()
+                };
+            }).filter(function (item) { return item.text; });
+
+            var bullets = [];
+            var markedBullets = parsedLines.filter(function (item) { return item.isBullet; });
+            if (markedBullets.length >= 2) {
+                bullets = markedBullets.map(function (item) { return item.text; }).slice(0, 3);
+            } else if (parsedLines.length >= 4) {
+                bullets = parsedLines.slice(1, 4).map(function (item) { return item.text; });
+            } else {
+                bullets = parsedLines.map(function (item) { return item.text; }).slice(0, 3);
+            }
+
+            if (bullets.length < 3) {
+                var sentenceParts = parsedLines.map(function (item) { return item.text; }).join(' ').match(/[^.!?]+[.!?]+/g) || [];
+                for (var i = 0; i < sentenceParts.length && bullets.length < 3; i++) {
+                    var sentence = sentenceParts[i].trim();
+                    if (sentence && bullets.indexOf(sentence) < 0) bullets.push(sentence);
+                }
+            }
+
+            var html = '<ul>';
+            for (var j = 0; j < bullets.length && j < 3; j++) {
+                html += '<li>' + escapeHtml(bullets[j]) + '</li>';
+            }
+            return html + '</ul>';
+        }
+
+        function normalizeIssueDescriptionBullets(text) {
+            return String(text || '')
+                .replace(/\s+([-*•])\s+/g, '\n$1 ')
+                .replace(/\s+(\d+[.)])\s+/g, '\n$1 ');
+        }
+
+        function renderAssistantRichText(text) {
+            var html = escapeHtml(text || '');
+            html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            html = html.replace(/~~(.+?)~~/g, '<u>$1</u>');
+            return html;
+        }
+
+        function normalizeImpactFixLine(line) {
+            var match = String(line || '').match(/^(?:Fix\s*(?:requested\s*)?by|Must\s*fix\s*for|Requested\s*fix(?:\s*(?:timing|by))?|Needed\s*by)\s*:\s*(.+)$/i);
+            if (!match) return '';
+            var timing = match[1].replace(/[.;]\s*$/, '').trim();
+            return timing ? 'Fix By: ' + timing : '';
+        }
+
+        function renderImpactSummaryText(text) {
+            var lines = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+                .replace(/\s+([-*•])\s+/g, '\n$1 ')
+                .replace(/\s+(\d+[.)])\s+/g, '\n$1 ')
+                .replace(/\s+((?:Fix\s*(?:requested\s*)?by|Must\s*fix\s*for|Requested\s*fix(?:\s*(?:timing|by))?|Needed\s*by)\s*:)\s*/ig, '\n$1 ')
+                .split('\n')
+                .map(function (line) { return line.trim(); })
+                .filter(Boolean);
+            if (!lines.length) return 'No impact summary available.';
+
+            var fixLine = '';
+            var bullets = [];
+            lines.forEach(function (line) {
+                var cleanLine = line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '').trim();
+                var normalizedFixLine = normalizeImpactFixLine(cleanLine);
+                if (normalizedFixLine) {
+                    fixLine = normalizedFixLine;
+                } else if (cleanLine) {
+                    bullets.push(cleanLine);
+                }
+            });
+
+            if (!bullets.length && !fixLine) bullets = lines;
+
+            var html = bullets.length ? '<ul class="cmf-assistant-impact-list">' + bullets.map(function (line) {
+                return '<li>' + renderAssistantRichText(line) + '</li>';
+            }).join('') + '</ul>' : '';
+
+            if (fixLine) {
+                html += '<div class="cmf-assistant-fix-line"><strong>' + renderAssistantRichText(fixLine) + '</strong></div>';
+            }
+
+            return html;
         }
 
         function renderMergedCmfRecommendation(result, payload) {
@@ -13761,34 +21067,6 @@ td:nth-child(odd), th:nth-child(odd) {
             return text.replace(/[,:;\-\s]+$/g, '').trim() || 'Not identified from available evidence.';
         }
 
-        function renderCmfRecommendationHighlights(reasoningText, ruleScores) {
-            var text = String(reasoningText || '').trim();
-            if (!text) return '<div class="cmf-rec-reasoning-card">No AI reasoning provided.</div>';
-
-            var normalized = text.replace(/\r/g, '\n').replace(/\n{2,}/g, '\n').trim();
-            var impactMatch = normalized.match(/(?:^|\n)\s*(?:ISSUE\s+IMPACT|DECISION\s+IMPACT)\s*:\s*([\s\S]*)$/i);
-            var impactText = impactMatch ? impactMatch[1].replace(/^[-*]\s*/gm, '').trim() : '';
-            var reasonText = impactMatch ? normalized.substring(0, impactMatch.index).trim() : normalized;
-            reasonText = reasonText.replace(/^\s*(?:REASONING|AI\s+REASONING)\s*:\s*/i, '').replace(/^[-*]\s*/gm, '').trim();
-
-            var bullets = reasonText.split(/\n+|(?:^|\s)[-•]\s+/).map(function (item) {
-                return item.replace(/^\d+[\.)]\s*/, '').trim();
-            }).filter(function (item) { return item.length > 0; }).slice(0, 4);
-            if (bullets.length === 0 && reasonText) bullets = [firstCompleteSentence(reasonText, 420)];
-            var firstImpact = firstCompleteSentence(impactText, 260);
-
-            var html = '<div class="cmf-rec-reasoning-card">';
-            html += '<div><strong>Reason:</strong></div>';
-            html += '<ul class="cmf-rec-reason-list">';
-            for (var i = 0; i < bullets.length; i++) {
-                html += '<li>' + escapeHtml(trimToCompleteSentence(bullets[i], 240)) + '</li>';
-            }
-            html += '</ul>';
-            if (firstImpact) html += '<div><strong>Impact:</strong> ' + escapeHtml(firstImpact) + '</div>';
-            html += renderCmfCriterionScores(ruleScores || []);
-            return html + '</div>';
-        }
-
         function renderCmfCriterionScores(ruleScores) {
             if (!ruleScores || !ruleScores.length) return '';
             var html = '<div style="margin-top:14px;"><strong>Scoring Criteria:</strong><div style="display:grid; gap:8px; margin-top:8px;">';
@@ -13816,167 +21094,6 @@ td:nth-child(odd), th:nth-child(odd) {
             var sentence = sentences[0].trim();
             if (sentence.length <= maxLength) return sentence;
             return trimToCompleteSentence(sentence, maxLength);
-        }
-
-        function trimToCompleteSentence(text, maxLength) {
-            var value = String(text || '').trim();
-            if (!value || value.length <= maxLength) return value;
-            var clipped = value.substring(0, maxLength).trim();
-            var boundary = Math.max(clipped.lastIndexOf('.'), clipped.lastIndexOf('!'), clipped.lastIndexOf('?'));
-            if (boundary >= 80) return clipped.substring(0, boundary + 1).trim();
-            return clipped.replace(/\s+\S*$/, '').replace(/[,:;\-\s]+$/, '').trim() + '.';
-        }
-
-        function renderCmfDecisionDetailsLoading(cpId) {
-            return '<div class="cmf-decision-details-shell"><div class="cmf-decision-card"><h4>Context</h4><div class="ai-loading-banner">&#10024; Generating CMF decision details, please wait...</div></div></div>';
-        }
-
-        function renderCmfDecisionDetails(rawText, cpId) {
-            var parsed = parseCmfDecisionDetails(rawText || '');
-            var score = parsed.score;
-            var scoreText = typeof score === 'number' ? score + '%' : '--';
-            return '<div class="cmf-decision-details-shell">' +
-                '<section class="cmf-decision-card"><h4>Context</h4>' + renderCmfBriefList(parsed.context) + '</section>' +
-                '<section class="cmf-decision-card"><h4>HSD Information Quality</h4>' +
-                    '<div class="cmf-quality-meter-row"><div class="cmf-quality-score-ring" style="--score:' + escapeHtml(typeof score === 'number' ? score : 0) + '"><span>' + escapeHtml(scoreText) + '</span></div><div class="cmf-quality-caption">Quality score reflects how complete the HSD and row details are for a CMF decision.</div></div>' +
-                    '<div class="cmf-quality-columns"><div class="cmf-quality-column missing"><div class="cmf-quality-column-title">Missing/Incomplete Details</div>' + renderCmfBriefList(parsed.missing) + '</div><div class="cmf-quality-column strengths"><div class="cmf-quality-column-title">Key Strengths</div>' + renderCmfBriefList(parsed.strengths) + '</div></div>' +
-                '</section>' +
-                '<section class="cmf-decision-card"><h4>Evidence Signals</h4>' + renderCmfBriefList(parsed.evidence) + '</section>' +
-                '<section class="cmf-decision-card"><h4>Reviewer Attention</h4>' + renderCmfBriefList(parsed.attention) + '</section>' +
-            '</div>';
-        }
-
-        function parseCmfDecisionDetails(rawText) {
-            var text = String(rawText || '').replace(/\r/g, '\n');
-            var lines = text.split('\n');
-            var parsed = { context: [], missing: [], strengths: [], evidence: [], attention: [], score: null };
-            var section = 'context';
-            for (var i = 0; i < lines.length; i++) {
-                var line = lines[i].trim();
-                if (!line) continue;
-                var heading = line.replace(/^#+\s*/, '').replace(/:$/, '').trim().toLowerCase();
-                if (heading === 'context' || heading === 'cmf decision context') { section = 'context'; continue; }
-                if (heading === 'hsd information quality') { section = 'quality'; continue; }
-                if (heading === 'evidence signals') { section = 'evidence'; continue; }
-                if (heading === 'reviewer attention') { section = 'attention'; continue; }
-                var scoreMatch = line.match(/quality\s*score\s*:\s*(\d{1,3})|score\s*:\s*(\d{1,3})/i);
-                if (scoreMatch) {
-                    parsed.score = Math.max(0, Math.min(100, parseInt(scoreMatch[1] || scoreMatch[2], 10)));
-                    continue;
-                }
-                if (/^missing\/incomplete details\s*:/i.test(line)) {
-                    section = 'missing';
-                    addCmfDetailItems(parsed.missing, line.replace(/^missing\/incomplete details\s*:/i, ''));
-                    continue;
-                }
-                if (/^key strengths\s*:/i.test(line)) {
-                    section = 'strengths';
-                    addCmfDetailItems(parsed.strengths, line.replace(/^key strengths\s*:/i, ''));
-                    continue;
-                }
-                line = line.replace(/^[-*]\s*/, '').trim();
-                if (section === 'quality') {
-                    parsed.context.push(line);
-                } else if (section === 'missing') {
-                    addCmfDetailItems(parsed.missing, line);
-                } else if (section === 'strengths') {
-                    addCmfDetailItems(parsed.strengths, line);
-                } else if (section === 'evidence') {
-                    parsed.evidence.push(line);
-                } else if (section === 'attention') {
-                    parsed.attention.push(line);
-                } else {
-                    parsed.context.push(line);
-                }
-            }
-            if (typeof parsed.score !== 'number') parsed.score = estimateCmfQualityScore(parsed);
-            if (!parsed.context.length) parsed.context.push('No context returned by the model.');
-            if (!parsed.missing.length) parsed.missing.push('None called out by the model.');
-            if (!parsed.strengths.length) parsed.strengths.push('Limited strengths available.');
-            if (!parsed.evidence.length) parsed.evidence.push('No evidence signals returned by the model.');
-            if (!parsed.attention.length) parsed.attention.push('Review the CMF recommendation after checking HSD quality.');
-            return parsed;
-        }
-
-        function addCmfDetailItems(target, text) {
-            var clean = String(text || '').replace(/^[-*]\s*/, '').trim();
-            if (!clean) return;
-            var parts = clean.split(/;|,(?=\s*[A-Za-z])/);
-            for (var i = 0; i < parts.length; i++) {
-                var item = parts[i].trim();
-                if (item) target.push(item);
-            }
-        }
-
-        function estimateCmfQualityScore(parsed) {
-            var score = 50 + Math.min(25, (parsed.strengths || []).length * 10) - Math.min(25, (parsed.missing || []).length * 8);
-            return Math.max(20, Math.min(90, score));
-        }
-
-        function renderCmfBriefList(items) {
-            var list = items && items.length ? items : ['No detail available.'];
-            var html = '<ul>';
-            for (var i = 0; i < list.length && i < 4; i++) {
-                html += '<li>' + escapeHtml(sanitizeCmfDisplaySentence(list[i], 320)) + '</li>';
-            }
-            return html + '</ul>';
-        }
-
-        function closeCmfRecDrawer() {
-            var drawerBg = document.getElementById('cmfRecDrawerBg');
-            var drawer = document.getElementById('cmfRecDrawer');
-            if (!drawerBg || !drawer) {
-                return;
-            }
-
-            drawerBg.classList.remove('show');
-            drawer.classList.remove('show');
-        }
-
-        function showCmfPlaceholderAction(actionName) {
-            if (/approve/i.test(actionName)) {
-                showPortalToast('Review the AI recommendation and quality score before approving CMF tagging.');
-                return;
-            }
-            if (/commit/i.test(actionName)) {
-                showPortalToast('Commit is gated until a generated recommendation is reviewed in this drawer.');
-                return;
-            }
-            showPortalToast(actionName + ' is routed through the active portal workflow.');
-        }
-
-        function focusReportsAssistant(promptText) {
-            var reportsLink = document.getElementById('lnkNavReports');
-            var input = document.getElementById('reportsPromptInput');
-            if (input) {
-                input.value = promptText || input.value || '';
-                input.focus();
-                return false;
-            }
-            if (reportsLink) reportsLink.click();
-            return false;
-        }
-
-        function focusFirstRowAiSummary() {
-            var btn = document.querySelector('.status-cell-wrap .ai-summary-btn');
-            if (btn) {
-                btn.focus();
-                btn.click();
-                return false;
-            }
-            showPortalToast('No Issue List rows are available for AI summary.');
-            return false;
-        }
-
-        function focusFirstPendingRecommendation() {
-            var btn = document.querySelector('.pending-ai-rec-btn');
-            if (btn) {
-                btn.focus();
-                btn.click();
-                return false;
-            }
-            showPortalToast('No CMF Pending rows are available for recommendation.');
-            return false;
         }
 
         function filterCmfPendingRows() {
@@ -14020,12 +21137,12 @@ td:nth-child(odd), th:nth-child(odd) {
                 for (var j = 0; j < descriptionContainers.length; j++) {
                     var container = descriptionContainers[j];
                     var dataContainer = container.closest('.sighting-details-panel').querySelector('.sighting-data-container');
-                    
+
                     if (dataContainer) {
                         var cpId = dataContainer.getAttribute('data-sighting-id');
                         var title = dataContainer.getAttribute('data-title');
                         var component = dataContainer.getAttribute('data-component');
-                        
+
                         // Only load if not already loaded
                         if (container.getAttribute('data-loaded') !== 'true') {
                             loadSingleSightingDescription(cpId, title, component, container);
@@ -14079,7 +21196,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var drawer = document.getElementById('cmfRecDrawer');
             var headingNode = document.getElementById('cmfRecHeading');
             var recNode = document.getElementById('cmfRecRecommendation');
-            var evidenceNode = document.getElementById('cmfRecEvidence');
+            var evidenceNode = document.getElementById('cmfDecisionDetailsBody');
             var qualityNode = document.getElementById('cmfRecQuality');
             if (!drawerBg || !drawer || !evidenceNode) return;
 
@@ -14187,1248 +21304,7 @@ td:nth-child(odd), th:nth-child(odd) {
             }
             filterCmfPendingRows();
         }
-
-        function appendReportsChatMessage(role, text, imageUrl, reportUrl) {
-            var chatLog = document.getElementById('reportsChatLog');
-            if (!chatLog) {
-                return;
-            }
-
-            var messageRow = document.createElement('div');
-            messageRow.style.display = 'flex';
-            messageRow.style.justifyContent = role === 'user' ? 'flex-end' : 'flex-start';
-            messageRow.style.marginBottom = '10px';
-
-            var bubble = document.createElement('div');
-            bubble.style.maxWidth = '80%';
-            bubble.style.padding = '10px 12px';
-            bubble.style.borderRadius = '10px';
-            bubble.style.whiteSpace = 'pre-wrap';
-            bubble.style.fontSize = '13px';
-            bubble.style.lineHeight = '1.4';
-
-            if (role === 'user') {
-                bubble.style.background = '#0068b5';
-                bubble.style.color = '#fff';
-                bubble.textContent = text || '';
-            } else {
-                bubble.style.background = '#eef4fb';
-                bubble.style.color = '#12344d';
-                bubble.style.border = '1px solid #d6e2ef';
-                bubble.style.whiteSpace = 'normal';
-                var markdownHtml = renderMarkdown(text || '');
-                bubble.innerHTML = markdownHtml;
-                bubble.className = 'markdown-content';
-            }
-            messageRow.appendChild(bubble);
-            chatLog.appendChild(messageRow);
-
-            if (role !== 'user' && imageUrl) {
-                var imageWrap = document.createElement('div');
-                imageWrap.style.margin = '6px 0 12px 0';
-                var image = document.createElement('img');
-                image.src = imageUrl;
-                image.alt = 'Generated analytics chart';
-                image.style.maxWidth = '100%';
-                image.style.border = '1px solid #d6e2ef';
-                image.style.borderRadius = '8px';
-                image.style.background = '#fff';
-                imageWrap.appendChild(image);
-                chatLog.appendChild(imageWrap);
-            }
-
-            if (role !== 'user' && reportUrl) {
-                var linkWrap = document.createElement('div');
-                linkWrap.style.margin = '0 0 12px 0';
-                var link = document.createElement('a');
-                link.href = reportUrl;
-                link.target = '_blank';
-                link.textContent = 'Download generated report';
-                link.style.fontSize = '13px';
-                linkWrap.appendChild(link);
-                chatLog.appendChild(linkWrap);
-            }
-
-            chatLog.scrollTop = chatLog.scrollHeight;
-        }
-
-        function sendReportsPrompt() {
-            var input = document.getElementById('reportsPromptInput');
-            var sendButton = document.getElementById('reportsPromptSend');
-            if (!input || !sendButton) {
-                return;
-            }
-
-            var prompt = (input.value || '').trim();
-            if (!prompt) {
-                return;
-            }
-
-            appendReportsChatMessage('user', prompt);
-            input.value = '';
-            sendButton.disabled = true;
-            sendButton.textContent = 'Running...';
-
-            var payload = {
-                prompt: prompt,
-                platform: getCurrentPlatformValue()
-            };
-
-            fetch('CMF_Web_portal.aspx/GetReportsAssistantResponse', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json; charset=utf-8'
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(function (response) {
-                return response.json();
-            })
-            .then(function (data) {
-                var result = data && data.d ? data.d : data;
-                if (!result || result.Success !== true) {
-                    appendReportsChatMessage('assistant', (result && result.Message) ? result.Message : 'Unable to process this analytics request right now.');
-                    return;
-                }
-
-                appendReportsChatMessage('assistant', result.Message || 'Completed.', result.ImageUrl || '', result.ReportUrl || '');
-            })
-            .catch(function () {
-                appendReportsChatMessage('assistant', 'Error while calling reports assistant service.');
-            })
-            .finally(function () {
-                sendButton.disabled = false;
-                sendButton.textContent = 'Send';
-            });
-        }
-
-        function sendReportsQuickPrompt(prompt) {
-            var input = document.getElementById('reportsPromptInput');
-            if (!input) {
-                return;
-            }
-
-            input.value = prompt;
-            sendReportsPrompt();
-        }
-
-        function saveReportsFormatTemplate() {
-            try {
-                var textarea = document.getElementById('reportsFormatTemplate');
-                if (textarea && textarea.readOnly) {
-                    showPortalToast('Click Edit format before saving changes.');
-                    return;
-                }
-                var payload = { template: textarea ? (textarea.value || '') : '', platform: '', fileName: 'manual-template.md' };
-                fetch('CMF_Web_portal.aspx/SaveReportsTemplate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                    body: JSON.stringify(payload)
-                })
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    var res = data && data.d ? data.d : data;
-                    if (res && res.Success) {
-                        setReportsTemplateEditMode(false);
-                        showPortalToast('Report format saved to server.');
-                    } else {
-                        showPortalToast('Failed to save template: ' + (res && res.Message ? res.Message : 'unknown'));
-                    }
-                })
-                .catch(function () { showPortalToast('Failed to save report template.'); });
-            } catch (ignore) {
-                showPortalToast('Failed to save report template.');
-            }
-        }
-
-        function generateReportsFromTemplate() {
-            // Request server to generate using the saved global template across all CMF data.
-            var payload = { platform: '' };
-            var btn = document.querySelector('.reports-format-actions button[onclick*="generateReportsFromTemplate"]');
-            if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
-            fetch('CMF_Web_portal.aspx/GenerateReportFromTemplate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                body: JSON.stringify(payload)
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                var res = data && data.d ? data.d : data;
-                if (!res || res.Success !== true) {
-                    appendReportsChatMessage('assistant', (res && res.Message) ? res.Message : 'Unable to generate report from template.');
-                } else {
-                    appendReportsChatMessage('assistant', res.Message || 'Report generated.', res.ImageUrl || '', res.ReportUrl || '');
-                }
-            })
-            .catch(function () { appendReportsChatMessage('assistant', 'Error while generating report from template.'); })
-            .finally(function () { if (btn) { btn.disabled = false; btn.textContent = 'Generate from format'; } });
-        }
-
-        function uploadReportsFormat(event) {
-            var file = event && event.target && event.target.files && event.target.files[0];
-            if (!file) return;
-            var label = document.getElementById('reportsFormatName');
-            var reader = new FileReader();
-            reader.onload = function () {
-                var content = reader.result || '';
-                var payload = { template: content, platform: '', fileName: file.name };
-                fetch('CMF_Web_portal.aspx/SaveReportsTemplate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                    body: JSON.stringify(payload)
-                })
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    var res = data && data.d ? data.d : data;
-                    if (res && res.Success) {
-                        var textarea = document.getElementById('reportsFormatTemplate');
-                        if (textarea) { textarea.value = content; }
-                        setReportsTemplateEditMode(false);
-                        if (label) { label.style.display = 'inline'; label.textContent = file.name + ' uploaded'; }
-                        showPortalToast('Report template uploaded to server.');
-                    } else {
-                        showPortalToast('Failed to upload template: ' + (res && res.Message ? res.Message : 'unknown'));
-                    }
-                })
-                .catch(function () { showPortalToast('Failed to upload report template.'); });
-            };
-            reader.readAsText(file);
-        }
-
-        function initReportsFormatTemplate() {
-            try {
-                var textarea = document.getElementById('reportsFormatTemplate');
-                setReportsTemplateEditMode(false);
-                // Try load server-saved template first
-                fetch('CMF_Web_portal.aspx/GetSavedTemplate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                    body: JSON.stringify({ platform: getCurrentPlatformValue() })
-                })
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    var res = data && data.d ? data.d : data;
-                    if (res && res.Success && textarea) {
-                        textarea.value = res.Message || textarea.value;
-                        setReportsTemplateEditMode(false);
-                        return;
-                    }
-                    var saved = localStorage.getItem('cmf.reports.formatTemplate');
-                    if (textarea && saved) { textarea.value = saved; }
-                })
-                .catch(function () {
-                    var saved = localStorage.getItem('cmf.reports.formatTemplate');
-                    if (textarea && saved) { textarea.value = saved; }
-                });
-            } catch (ignore) {
-            }
-        }
-
-        function setReportsTemplateEditMode(isEditing) {
-            var textarea = document.getElementById('reportsFormatTemplate');
-            var editBtn = document.getElementById('reportsFormatEditBtn');
-            var saveBtn = document.getElementById('reportsFormatSaveBtn');
-            if (textarea) {
-                textarea.readOnly = !isEditing;
-                textarea.classList.toggle('is-readonly', !isEditing);
-            }
-            if (editBtn) editBtn.style.display = isEditing ? 'none' : '';
-            if (saveBtn) saveBtn.disabled = !isEditing;
-        }
-
-        function bindReportsPromptEnterHandler() {
-            var input = document.getElementById('reportsPromptInput');
-            if (!input || input.dataset.boundEnter === '1') {
-                return;
-            }
-
-            input.addEventListener('keydown', function (event) {
-                if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault();
-                    sendReportsPrompt();
-                }
-            });
-            input.dataset.boundEnter = '1';
-        }
-
-        function getCollapsibleConfig() {
-            return {
-                mainMenu: {
-                    bodyId: 'mainMenuSectionBody',
-                    buttonId: 'mainMenuToggleBtn',
-                    storageKey: 'cmf.collapsible.mainMenu',
-                    containerId: 'mainMenuSidebar',
-                    shellId: 'portalLayoutShell',
-                    reopenButtonId: 'mainMenuReopenBtn'
-                },
-                issueFilters: {
-                    bodyId: 'issueTopFilterBody',
-                    buttonId: 'issueFiltersToggleBtn',
-                    storageKey: 'cmf.collapsible.issueFilters.inline',
-                    defaultCollapsed: false
-                }
-            };
-        }
-
-        function setCollapsibleSection(sectionName, collapsed, persistState) {
-            var config = getCollapsibleConfig()[sectionName];
-            if (!config) {
-                return;
-            }
-
-            var body = document.getElementById(config.bodyId);
-            var button = document.getElementById(config.buttonId);
-            var container = config.containerId ? document.getElementById(config.containerId) : null;
-            var shell = config.shellId ? document.getElementById(config.shellId) : null;
-            var reopenButton = config.reopenButtonId ? document.getElementById(config.reopenButtonId) : null;
-
-            if (body) {
-                if (collapsed) {
-                    body.classList.add('is-collapsed');
-                } else {
-                    body.classList.remove('is-collapsed');
-                }
-            }
-
-            if (button) {
-                button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-                var label = button.querySelector('.toggle-label');
-                if (label) {
-                    label.textContent = sectionName === 'mainMenu' ? (collapsed ? '>>' : '<<') : (collapsed ? 'Show' : 'Hide');
-                }
-                if (sectionName === 'mainMenu') {
-                    button.title = collapsed ? 'Expand menu labels' : 'Collapse menu labels';
-                    button.setAttribute('aria-label', collapsed ? 'Expand menu labels' : 'Collapse menu labels');
-                }
-            }
-
-            if (container) {
-                if (collapsed) {
-                    container.classList.add('is-collapsed');
-                } else {
-                    container.classList.remove('is-collapsed');
-                }
-            }
-
-            if (shell) {
-                if (collapsed) {
-                    shell.classList.add('main-menu-collapsed');
-                } else {
-                    shell.classList.remove('main-menu-collapsed');
-                }
-            }
-
-            if (reopenButton) {
-                reopenButton.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-            }
-
-            if (sectionName === 'mainMenu' && window.CMF_PORTAL && window.CMF_PORTAL.homeTrendChart) {
-                setTimeout(function () {
-                    try { window.CMF_PORTAL.homeTrendChart.resize(); } catch (ignore) { }
-                }, 220);
-            }
-
-            if (persistState) {
-                try {
-                    localStorage.setItem(config.storageKey, collapsed ? '1' : '0');
-                } catch (ignore) {
-                }
-            }
-        }
-
-        function toggleCollapsibleSection(sectionName) {
-            var config = getCollapsibleConfig()[sectionName];
-            if (!config) {
-                return;
-            }
-
-            var body = document.getElementById(config.bodyId);
-            var collapsed = body ? !body.classList.contains('is-collapsed') : false;
-            setCollapsibleSection(sectionName, collapsed, true);
-        }
-
-        function initCollapsibleSections() {
-            var all = getCollapsibleConfig();
-            for (var sectionName in all) {
-                if (!Object.prototype.hasOwnProperty.call(all, sectionName)) {
-                    continue;
-                }
-
-                var cfg = all[sectionName];
-                var initialCollapsed = !!cfg.defaultCollapsed;
-                try {
-                    var storedState = localStorage.getItem(cfg.storageKey);
-                    if (storedState !== null) {
-                        initialCollapsed = storedState === '1';
-                    }
-                } catch (ignore) {
-                }
-                setCollapsibleSection(sectionName, initialCollapsed, false);
-            }
-        }
-
-        function initMainMenuTooltips() {
-            var links = document.querySelectorAll('#mainMenuSidebar .portal-nav-link');
-            for (var i = 0; i < links.length; i++) {
-                var textNode = links[i].querySelector('span');
-                var label = textNode ? (textNode.textContent || '').trim() : '';
-                if (label) {
-                    links[i].setAttribute('title', label);
-                    links[i].setAttribute('aria-label', label);
-                }
-            }
-        }
-
-        function syncIssueHorizontalScroll(attempt) {
-            var host = document.getElementById('issue-grid-inner');
-            var proxy = document.getElementById('issue-scroll-proxy');
-            var proxyInner = document.getElementById('issue-scroll-proxy-inner');
-            var table = document.getElementById(window.CMF_PORTAL.ids.overallRequestDetails);
-
-            if (!host || !table) {
-                return;
-            }
-
-            host.style.overflowX = 'auto';
-            host.style.overflowY = 'auto';
-            host.style.maxHeight = 'min(62vh, 620px)';
-            host.style.width = '100%';
-            host.style.maxWidth = '100%';
-
-            // Enforce width at runtime in case later CSS rules collapse the table width.
-            table.style.width = 'max-content';
-            table.style.minWidth = '2200px';
-            table.style.maxWidth = 'none';
-
-            var targetWidth = Math.max(table.scrollWidth || 0, table.offsetWidth || 0, 2200);
-            if (proxyInner) {
-                proxyInner.style.width = targetWidth + 'px';
-            }
-
-            // If layout is not ready yet (e.g., after async update while hidden), retry a few times.
-            if (host.clientWidth > 0 && targetWidth <= host.clientWidth && (attempt || 0) < 6) {
-                setTimeout(function () { syncIssueHorizontalScroll((attempt || 0) + 1); }, 80);
-            }
-
-            if (!proxy) {
-                return;
-            }
-
-            var syncLock = false;
-            host.onscroll = function () {
-                if (syncLock) return;
-                syncLock = true;
-                proxy.scrollLeft = host.scrollLeft;
-                syncLock = false;
-            };
-
-            proxy.onscroll = function () {
-                if (syncLock) return;
-                syncLock = true;
-                host.scrollLeft = proxy.scrollLeft;
-                syncLock = false;
-            };
-
-            proxy.scrollLeft = host.scrollLeft;
-            proxy.style.display = 'none';
-        }
-
-        function renderHomeDashboard() {
-            var homePanel = document.getElementById(window.CMF_PORTAL.ids.homeWelcomePanel);
-            var cmfPanel = document.getElementById(window.CMF_PORTAL.ids.homeCmfSummaryPanel);
-            var homeVisible = homePanel && isElementVisible(homePanel);
-            var cmfVisible = cmfPanel && isElementVisible(cmfPanel);
-            if (!homeVisible && !cmfVisible) {
-                return;
-            }
-
-            var snapshot = window.CMF_PORTAL.homeDashboardSnapshot;
-            if (!snapshot) {
-                return;
-            }
-
-            renderHomePortalHealth(snapshot);
-            renderHomePredictedBlockers(snapshot);
-            renderHomeExecutiveSummary(snapshot);
-            renderHomeSummaryFacts(snapshot);
-            renderDashboardLiveTable('homeMilestoneSummaryTable', snapshot.MilestoneSummary);
-            renderDashboardLiveTable('homeComponentSummaryTable', snapshot.ComponentSummary);
-            renderDashboardLiveTable('homePendingSummaryTable', snapshot.PendingSummary);
-
-            var trendHost = document.getElementById('homeTrendChart');
-            if (!trendHost || typeof echarts === 'undefined') {
-                return;
-            }
-
-            var trend = snapshot.Trend || [];
-            var snapshotKey = [
-                window.CMF_PORTAL.currentPlatform || '',
-                trend.length,
-                getTextById(window.CMF_PORTAL.ids.lblIssueTotal),
-                getTextById(window.CMF_PORTAL.ids.lblPendingSightings)
-            ].join('|');
-
-            if (window.CMF_PORTAL.lastHomeDashboardKey === snapshotKey && window.CMF_PORTAL.homeTrendChart) {
-                return;
-            }
-
-            if (!window.CMF_PORTAL.homeTrendChart) {
-                window.CMF_PORTAL.homeTrendChart = echarts.init(trendHost);
-            }
-
-            window.CMF_PORTAL.homeTrendChart.setOption({
-                animation: false,
-                color: ['#ef4444', '#16a34a'],
-                tooltip: { trigger: 'axis' },
-                legend: {
-                    top: 0,
-                    left: 0,
-                    icon: 'circle',
-                    itemWidth: 7,
-                    itemHeight: 7,
-                    textStyle: { color: '#475467', fontSize: 10 }
-                },
-                grid: { left: 56, right: 34, top: 52, bottom: 42, containLabel: true },
-                xAxis: {
-                    type: 'category',
-                    name: 'Work Week',
-                    nameLocation: 'middle',
-                    nameGap: 24,
-                    data: trend.map(function (item) {
-                        return item.WeekLabel;
-                    }),
-                    boundaryGap: false,
-                    axisLine: {
-                        lineStyle: {
-                            color: '#e4e7ec'
-                        }
-                    },
-                    axisLabel: {
-                        color: '#667085',
-                        fontSize: 10
-                    },
-                    nameTextStyle: {
-                        fontSize: 10,
-                        fontWeight: 600
-                    }
-                },
-                yAxis: {
-                    type: 'value',
-                    name: 'Number of Issues',
-                    nameLocation: 'middle',
-                    nameGap: 42,
-                    axisLine: {
-                        show: false
-                    },
-                    splitLine: {
-                        lineStyle: {
-                            color: '#eef2f7'
-                        }
-                    },
-                    axisLabel: {
-                        color: '#667085',
-                        fontSize: 10
-                    },
-                    nameTextStyle: {
-                        fontSize: 10,
-                        fontWeight: 600
-                    }
-                },
-                series: [
-                    {
-                        name: 'Open Issues',
-                        type: 'line',
-                        smooth: true,
-                        data: trend.map(function (item) { return item.NewIssues; }),
-                        lineStyle: { width: 2 },
-                        symbol: 'circle',
-                        symbolSize: 4
-                    },
-                    {
-                        name: 'Closed Issues',
-                        type: 'line',
-                        smooth: true,
-                        data: trend.map(function (item) { return item.ResolvedIssues; }),
-                        lineStyle: { width: 2 },
-                        symbol: 'circle',
-                        symbolSize: 4,
-                        areaStyle: { color: 'rgba(22,163,74,0.12)' }
-                    }
-                ]
-            }, true);
-
-            window.CMF_PORTAL.lastHomeDashboardKey = snapshotKey;
-            window.CMF_PORTAL.homeTrendChart.resize();
-        }
-
-        function renderHomeExecutiveSummary(snapshot) {
-            var host = document.getElementById('homeExecutiveSummary');
-            if (!host) return;
-            var platform = snapshot.PlatformLabel || 'selected platform';
-            var summaryKey = [
-                window.CMF_PORTAL.currentPlatform || '',
-                snapshot.ActiveIssues || 0,
-                snapshot.NeedsAttention || 0,
-                snapshot.ClosedIssues || 0,
-                snapshot.StaleIssues || 0,
-                snapshot.ProgramReadinessScore || 0,
-                snapshot.TopRisk || '',
-                (snapshot.PredictedBlockers || []).join('|')
-            ].join('|');
-
-            if (window.CMF_PORTAL.lastExecutiveSummaryKey === summaryKey) {
-                return;
-            }
-
-            window.CMF_PORTAL.lastExecutiveSummaryKey = summaryKey;
-            host.textContent = 'Generating AI executive summary...';
-
-            fetch('CMF_Web_portal.aspx/GetHomeExecutiveSummary', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                body: JSON.stringify({
-                    platformLabel: platform,
-                    snapshotContext: buildHomeExecutiveSummaryContext(snapshot)
-                })
-            })
-            .then(function (response) { return response.json(); })
-            .then(function (data) {
-                var result = data && data.d ? data.d : data;
-                if (!result || result.Success !== true || !result.Summary) {
-                    host.textContent = (result && result.Message) ? result.Message : 'Unable to generate AI executive summary at this time.';
-                    return;
-                }
-                if (typeof renderMarkdown === 'function') {
-                    host.innerHTML = renderMarkdown(result.Summary);
-                } else {
-                    host.textContent = result.Summary;
-                }
-            })
-            .catch(function () {
-                host.textContent = 'Unable to generate AI executive summary at this time.';
-            });
-        }
-
-        function buildHomeExecutiveSummaryContext(snapshot) {
-            var lines = [];
-            lines.push('Platform: ' + (snapshot.PlatformLabel || 'selected platform'));
-            lines.push('Current workload only. Issue buckets: total=' + String(snapshot.ActiveIssues || 0) + ', open=' + String(snapshot.NeedsAttention || 0) + ', implemented=' + String(snapshot.StaleIssues || 0) + ', closed=' + String(snapshot.ClosedIssues || 0));
-            lines.push('Operational metrics: resolved_last_7_days=' + String(snapshot.ResolvedThisWeek || 0) + ', average_resolution_days=' + String(snapshot.AverageResolutionDays || 0) + ', customer_impacted_rows=' + String(snapshot.CustomersAffected || 0));
-            lines.push('AI portal health: readiness_score=' + String(snapshot.ProgramReadinessScore || 0) + ', risk_level=' + (snapshot.ProgramRiskLevel || 'unknown') + ', top_risk=' + (snapshot.TopRisk || 'none') + ', risk_concentration=' + (snapshot.RiskConcentration || '0%'));
-            lines.push('Predicted blockers: ' + ((snapshot.PredictedBlockers || []).join('; ') || 'none'));
-            lines.push('CMF summary facts: ' + summarizeFactsForAi(snapshot.SummaryFacts));
-            lines.push('CMF TPT facts: ' + summarizeFactsForAi(snapshot.TptFacts));
-            lines.push('Milestone CMF summary: ' + summarizeTableForAi(snapshot.MilestoneSummary, 5));
-            lines.push('Component CMF summary: ' + summarizeTableForAi(snapshot.ComponentSummary, 6));
-            lines.push('Pending CMF summary: ' + summarizeTableForAi(snapshot.PendingSummary, 4));
-            return lines.join('\n');
-        }
-
-        function summarizeFactsForAi(facts) {
-            facts = facts || [];
-            var parts = [];
-            for (var i = 0; i < facts.length; i++) {
-                parts.push((facts[i].Label || '-') + '=' + (facts[i].Value || '0') + (facts[i].Note ? ' (' + facts[i].Note + ')' : ''));
-            }
-            return parts.join(', ') || 'none';
-        }
-
-        function summarizeTableForAi(tableData, maxRows) {
-            if (!tableData || !tableData.Columns || !tableData.Rows) return 'none';
-            var rows = [];
-            for (var r = 0; r < tableData.Rows.length && r < maxRows; r++) {
-                var cells = [];
-                for (var c = 0; c < tableData.Columns.length; c++) {
-                    cells.push(tableData.Columns[c] + '=' + (tableData.Rows[r][c] == null ? '' : tableData.Rows[r][c]));
-                }
-                rows.push(cells.join(', '));
-            }
-            return rows.join(' | ') || 'none';
-        }
-
-        function renderHomePortalHealth(snapshot) {
-            var scoreNode = document.getElementById('homePortalHealthScore');
-            var riskNode = document.getElementById('homePortalHealthRisk');
-            var weeklyNode = document.getElementById('homeWeeklyChanges');
-            var concentrationNode = document.getElementById('homePortalRiskConcentration');
-            var blockersNode = document.getElementById('homePortalBlockers');
-            if (scoreNode) scoreNode.textContent = String(snapshot.ProgramReadinessScore || 0);
-            if (riskNode) riskNode.textContent = snapshot.ProgramRiskLevel || 'No risk data';
-            if (weeklyNode) {
-                weeklyNode.innerHTML = '';
-                var weeklyChanges = snapshot.WeeklyChanges || [];
-                if (weeklyChanges.length === 0) weeklyChanges = ['No weekly changes are available yet.'];
-                for (var weeklyIndex = 0; weeklyIndex < weeklyChanges.length && weeklyIndex < 4; weeklyIndex++) {
-                    var changeItem = document.createElement('li');
-                    changeItem.textContent = weeklyChanges[weeklyIndex];
-                    weeklyNode.appendChild(changeItem);
-                }
-            }
-            if (concentrationNode) concentrationNode.textContent = snapshot.RiskConcentration || '0%';
-            if (blockersNode) {
-                blockersNode.innerHTML = '';
-                var blockers = snapshot.PredictedBlockers || [];
-                if (blockers.length === 0) blockers = ['Predicting blockers from current workload...'];
-                for (var i = 0; i < blockers.length && i < 4; i++) {
-                    var item = document.createElement('li');
-                    item.textContent = blockers[i];
-                    blockersNode.appendChild(item);
-                }
-            }
-        }
-
-        function renderHomePredictedBlockers(snapshot) {
-            var blockersNode = document.getElementById('homePortalBlockers');
-            if (!blockersNode) return;
-
-            var blockerKey = [
-                window.CMF_PORTAL.currentPlatform || '',
-                snapshot.ActiveIssues || 0,
-                snapshot.NeedsAttention || 0,
-                snapshot.StaleIssues || 0,
-                snapshot.ClosedIssues || 0,
-                snapshot.TopRisk || '',
-                snapshot.RiskConcentration || '',
-                (snapshot.PredictedBlockers || []).join('|')
-            ].join('|');
-
-            if (window.CMF_PORTAL.lastPredictedBlockersKey === blockerKey) {
-                return;
-            }
-
-            window.CMF_PORTAL.lastPredictedBlockersKey = blockerKey;
-
-            fetch('CMF_Web_portal.aspx/GetHomePredictedBlockers', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                body: JSON.stringify({
-                    platformLabel: snapshot.PlatformLabel || 'selected platform',
-                    snapshotContext: buildHomeExecutiveSummaryContext(snapshot)
-                })
-            })
-            .then(function (response) { return response.json(); })
-            .then(function (data) {
-                var result = data && data.d ? data.d : data;
-                if (!result || result.Success !== true || !result.Summary) {
-                    return;
-                }
-
-                var lines = result.Summary
-                    .replace(/<[^>]+>/g, '')
-                    .split(/\r?\n|\s*[-•]\s+/)
-                    .map(function (line) { return line.replace(/^\d+[\.)]\s*/, '').trim(); })
-                    .filter(function (line) { return line.length > 0; })
-                    .slice(0, 3);
-
-                if (lines.length === 0) {
-                    lines = [result.Summary.trim()];
-                }
-
-                blockersNode.innerHTML = '';
-                for (var i = 0; i < lines.length; i++) {
-                    var item = document.createElement('li');
-                    item.textContent = lines[i];
-                    blockersNode.appendChild(item);
-                }
-            })
-            .catch(function () { });
-        }
-
-        function renderHomeSummaryFacts(snapshot) {
-            var host = document.getElementById('homeDashboardSummaryFacts');
-            if (!host) return;
-            var facts = [].concat(snapshot.SummaryFacts || [], snapshot.TptFacts || []);
-            host.innerHTML = '';
-            for (var i = 0; i < facts.length; i++) {
-                var fact = facts[i] || {};
-                var card = document.createElement('div');
-                card.className = 'ccip-summary-fact';
-                card.innerHTML = '<div class="ccip-summary-fact-label">' + escapeHtml(fact.Label || '-') + '</div>' +
-                    '<div class="ccip-summary-fact-value">' + escapeHtml(fact.Value || '0') + '</div>' +
-                    '<div class="ccip-summary-fact-note">' + escapeHtml(fact.Note || '') + '</div>';
-                host.appendChild(card);
-            }
-        }
-
-        function renderDashboardLiveTable(hostId, tableData) {
-            var host = document.getElementById(hostId);
-            if (!host) return;
-            var columns = tableData && tableData.Columns ? tableData.Columns : [];
-            var rows = tableData && tableData.Rows ? tableData.Rows : [];
-            if (columns.length === 0) {
-                host.innerHTML = '<div class="ccip-empty-state">No dashboard data available.</div>';
-                return;
-            }
-            var html = '<table class="ccip-live-table"><thead><tr>';
-            for (var c = 0; c < columns.length; c++) {
-                html += '<th>' + escapeHtml(columns[c]) + '</th>';
-            }
-            html += '</tr></thead><tbody>';
-            if (rows.length === 0) {
-                html += '<tr><td colspan="' + columns.length + '">No matching CMF data for this platform.</td></tr>';
-            } else {
-                for (var r = 0; r < rows.length; r++) {
-                    var row = rows[r] || [];
-                    var rowLabel = row.length > 0 ? String(row[0] || '') : '';
-                    html += '<tr' + (/^total/i.test(rowLabel) ? ' class="ccip-live-total"' : '') + '>';
-                    for (var i = 0; i < columns.length; i++) {
-                        html += '<td>' + escapeHtml(row[i] == null ? '' : row[i]) + '</td>';
-                    }
-                    html += '</tr>';
-                }
-            }
-            html += '</tbody></table>';
-            host.innerHTML = html;
-        }
-
-        function getTextById(id) {
-            var node = id ? document.getElementById(id) : null;
-            if (!node) return '0';
-            return (node.textContent || node.innerText || '0').trim();
-        }
-
-        function renderInteractiveIssuePendingSidebars() {
-            var issueTotal = getTextById(window.CMF_PORTAL.ids.lblIssueTotal);
-            var issueProgress = getTextById(window.CMF_PORTAL.ids.lblIssueInProgress);
-            var issueStale = getTextById(window.CMF_PORTAL.ids.lblIssueStale);
-            var pendingTotal = getTextById(window.CMF_PORTAL.ids.lblPendingSightings);
-            var pendingQualify = getTextById(window.CMF_PORTAL.ids.lblQualifyForCmf);
-            var pendingDup = getTextById(window.CMF_PORTAL.ids.lblLikelyDuplicate);
-            var pendingMissing = getTextById(window.CMF_PORTAL.ids.lblIncompleteSysScope);
-
-            var issueTotalNode = document.getElementById('issueSideTotal');
-            var issueProgressNode = document.getElementById('issueSideProgress');
-            var issueStaleNode = document.getElementById('issueSideStale');
-            if (issueTotalNode) issueTotalNode.textContent = issueTotal;
-            if (issueProgressNode) issueProgressNode.textContent = issueProgress;
-            if (issueStaleNode) issueStaleNode.textContent = issueStale;
-
-            var pendingTotalNode = document.getElementById('pendingSideTotal');
-            var pendingQualifyNode = document.getElementById('pendingSideQualify');
-            var pendingDupNode = document.getElementById('pendingSideDup');
-            var pendingMissNode = document.getElementById('pendingSideMissing');
-            if (pendingTotalNode) pendingTotalNode.textContent = pendingTotal;
-            if (pendingQualifyNode) pendingQualifyNode.textContent = pendingQualify;
-            if (pendingDupNode) pendingDupNode.textContent = pendingDup;
-            if (pendingMissNode) pendingMissNode.textContent = pendingMissing;
-        }
-
-        function isElementVisible(element) {
-            if (!element) return false;
-            var style = window.getComputedStyle ? window.getComputedStyle(element) : null;
-            if (style && (style.display === 'none' || style.visibility === 'hidden')) {
-                return false;
-            }
-            return element.offsetParent !== null || (style && style.position === 'fixed');
-        }
-
-        function normalizeIssuePendingShellDom() {
-            var issueShell = document.getElementById('issueTabShell');
-            var pendingShell = document.getElementById('pendingTabShell');
-            if (!issueShell) return;
-
-            var issueMain = issueShell.querySelector('.issue-tab-main');
-            var issueSide = issueShell.querySelector('.issue-side-panel')
-                || document.querySelector('#mainDataWrapper .issue-side-panel')
-                || document.querySelector('.issue-side-panel');
-            var pendingMain = pendingShell ? pendingShell.querySelector('.pending-tab-main') : null;
-            var pendingSide = pendingShell
-                ? (pendingShell.querySelector('.pending-side-panel')
-                    || document.querySelector('#mainDataWrapper .pending-side-panel')
-                    || document.querySelector('.pending-side-panel'))
-                : null;
-
-            if (issueMain && issueSide && issueSide.parentElement !== issueShell) {
-                issueShell.insertBefore(issueSide, issueMain.nextSibling);
-            }
-
-            if (pendingShell && pendingMain && pendingSide && pendingSide.parentElement !== pendingShell) {
-                pendingShell.insertBefore(pendingSide, pendingMain.nextSibling);
-            }
-
-            if (pendingShell && issueShell.parentElement && pendingShell.parentElement !== issueShell.parentElement) {
-                issueShell.parentElement.insertBefore(pendingShell, issueShell.nextSibling);
-            }
-        }
-
-        function syncIssuePendingSidePanelVisibility() {
-            normalizeIssuePendingShellDom();
-            var issueShell = document.getElementById('issueTabShell');
-            var pendingShell = document.getElementById('pendingTabShell');
-            var issueSide = issueShell ? issueShell.querySelector('.issue-side-panel') : null;
-            var pendingSide = pendingShell ? pendingShell.querySelector('.pending-side-panel') : null;
-
-            var issuePane = document.getElementById(window.CMF_PORTAL.ids.paneIssueList);
-            var pendingPane = document.getElementById(window.CMF_PORTAL.ids.paneCmfPending);
-            var activeViewTitle = document.getElementById(window.CMF_PORTAL.ids.activeViewTitle);
-            var issueHeader = document.getElementById(window.CMF_PORTAL.ids.issueListHeaderPanel);
-            var pendingHeader = document.getElementById(window.CMF_PORTAL.ids.cmfPendingHeaderPanel);
-            var issueGrid = document.getElementById(window.CMF_PORTAL.ids.overallRequestDetails);
-            var pendingGrid = document.getElementById(window.CMF_PORTAL.ids.gridViewCmfPending);
-            var issueMain = issueShell ? issueShell.querySelector('.issue-tab-main') : null;
-            var pendingMain = pendingShell ? pendingShell.querySelector('.pending-tab-main') : null;
-            var issueGridWrap = issueGrid ? issueGrid.closest('.issue-grid-scroll') : null;
-            var pendingGridWrap = pendingGrid ? pendingGrid.closest('.cmf-pending-grid-wrap') : null;
-
-            var issueActive = isElementVisible(issuePane) || isElementVisible(issueHeader) || isElementVisible(issueGrid) || isElementVisible(issueMain);
-            var pendingActive = isElementVisible(pendingPane) || isElementVisible(pendingHeader) || isElementVisible(pendingGrid) || isElementVisible(pendingMain);
-
-            var activeText = activeViewTitle ? (activeViewTitle.textContent || activeViewTitle.innerText || '').toLowerCase() : '';
-            var activeTab = (window.CMF_PORTAL.activeFocusedTab || '').toLowerCase();
-            if (activeTab === 'pending' || activeText.indexOf('pending') >= 0) {
-                pendingActive = true;
-                issueActive = false;
-            } else if (activeTab === 'issue' || activeText.indexOf('issue') >= 0) {
-                issueActive = true;
-                pendingActive = false;
-            } else if (activeTab && activeTab !== 'pending' && activeTab !== 'issue') {
-                issueActive = false;
-                pendingActive = false;
-            }
-
-            if (!issueActive && !pendingActive && (!activeTab || activeTab === 'pending' || activeTab === 'issue')) {
-                var issueWasVisible = !!(issueShell && issueShell.style.display === 'grid');
-                var pendingWasVisible = !!(pendingShell && pendingShell.style.display === 'grid');
-                if (pendingWasVisible) {
-                    pendingActive = true;
-                } else if (issueWasVisible) {
-                    issueActive = true;
-                } else {
-                    issueActive = true;
-                }
-            }
-
-            if (issueActive && pendingActive) {
-                if (activeTab === 'pending' || activeText.indexOf('pending') >= 0) {
-                    issueActive = false;
-                } else {
-                    pendingActive = false;
-                }
-            }
-
-            if (issueShell) {
-                issueShell.style.display = issueActive ? 'grid' : 'none';
-                issueShell.classList.toggle('portal-view-hidden', !issueActive);
-                issueShell.classList.toggle('side-hidden', !issueActive);
-            }
-            if (pendingShell) {
-                pendingShell.style.display = pendingActive ? 'grid' : 'none';
-                pendingShell.classList.toggle('portal-view-hidden', !pendingActive);
-                pendingShell.classList.toggle('side-hidden', !pendingActive);
-            }
-
-            if (issueSide) {
-                issueSide.style.display = issueActive ? 'grid' : 'none';
-                issueSide.classList.toggle('portal-view-hidden', !issueActive);
-            }
-
-            if (pendingSide) {
-                pendingSide.style.display = pendingActive ? 'grid' : 'none';
-                pendingSide.classList.toggle('portal-view-hidden', !pendingActive);
-            }
-
-            if (issueGridWrap) {
-                issueGridWrap.style.display = issueActive ? '' : 'none';
-                issueGridWrap.classList.toggle('portal-view-hidden', !issueActive);
-            }
-
-            if (pendingGridWrap) {
-                pendingGridWrap.style.display = pendingActive ? '' : 'none';
-                pendingGridWrap.classList.toggle('portal-view-hidden', !pendingActive);
-            }
-
-            populateCmfPendingFilterOptions();
-            filterPortalVisibleTables();
-        }
-
-        function isReportsViewActive() {
-            var activeViewTitle = document.getElementById(window.CMF_PORTAL.ids.activeViewTitle);
-            var text = activeViewTitle ? (activeViewTitle.textContent || activeViewTitle.innerText || '') : '';
-            return text.toLowerCase().indexOf('report') >= 0;
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            window.CMF_PORTAL.currentPlatform = getCurrentPlatformValue();
-            window.CMF_PORTAL.homeDashboardSnapshot = <%= string.IsNullOrWhiteSpace(HomeDashboardSnapshotJson) ? "null" : HomeDashboardSnapshotJson %>;
-            syncActivePlatformChip();
-            var issueGrid = document.getElementById(window.CMF_PORTAL.ids.overallRequestDetails);
-            if (isElementVisible(issueGrid)) {
-                setTimeout(function () { syncIssueHorizontalScroll(0); }, 60);
-            }
-            if (isReportsViewActive()) {
-                bindReportsPromptEnterHandler();
-                initReportsFormatTemplate();
-            }
-            initCollapsibleSections();
-            initMainMenuTooltips();
-            initPortalNavPostbackFallback();
-            renderHomeDashboard();
-            renderInteractiveIssuePendingSidebars();
-            syncIssuePendingSidePanelVisibility();
-            syncGlobalSearchVisibility();
-            bindGlobalSearchShortcut();
-            applyTableOnlyScroll();
-            scheduleInitColumnHideButtons(80);
-        });
-
-        if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) {
-            Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function () {
-                window.CMF_PORTAL.currentPlatform = getCurrentPlatformValue();
-                window.CMF_PORTAL.homeDashboardSnapshot = <%= string.IsNullOrWhiteSpace(HomeDashboardSnapshotJson) ? "null" : HomeDashboardSnapshotJson %>;
-                syncActivePlatformChip();
-                var issueGrid = document.getElementById(window.CMF_PORTAL.ids.overallRequestDetails);
-                if (isElementVisible(issueGrid)) {
-                    setTimeout(function () { syncIssueHorizontalScroll(0); }, 60);
-                }
-                if (isReportsViewActive()) {
-                    bindReportsPromptEnterHandler();
-                    initReportsFormatTemplate();
-                }
-                initCollapsibleSections();
-                initMainMenuTooltips();
-                initPortalNavPostbackFallback();
-                renderHomeDashboard();
-                renderInteractiveIssuePendingSidebars();
-                syncIssuePendingSidePanelVisibility();
-                syncGlobalSearchVisibility();
-                bindGlobalSearchShortcut();
-                applyTableOnlyScroll();
-                scheduleInitColumnHideButtons(0);
-            });
-        }
-
-        // ── Column hide buttons ──────────────────────────────────────────────
-        var CMF_HIDDEN_COLS_KEY = 'cmf_hidden_cols';
-        var CMF_COLHIDE_TIMER = null;
-
-        function scheduleInitColumnHideButtons(delay) {
-            if (CMF_COLHIDE_TIMER) {
-                clearTimeout(CMF_COLHIDE_TIMER);
-            }
-            CMF_COLHIDE_TIMER = setTimeout(function () {
-                CMF_COLHIDE_TIMER = null;
-                initColumnHideButtons();
-            }, typeof delay === 'number' ? delay : 0);
-        }
-
-        function initColumnHideButtons() {
-            var grid = document.getElementById('<%= overall_request_details.ClientID %>');
-            if (!grid) return;
-            if (!isElementVisible(grid)) return;
-            // Select every header cell that carries a field-* class, regardless of thead/tbody structure
-            var headers = grid.querySelectorAll('th[class*="field-"]');
-            if (!headers || headers.length === 0) return;
-            var stamp = headers.length + ':' + (grid.rows ? grid.rows.length : 0);
-            var existingButtons = grid.querySelectorAll('.col-hide-btn').length;
-            if (grid.getAttribute('data-colhide-stamp') === stamp && existingButtons >= headers.length) {
-                restoreHiddenColumns();
-                return;
-            }
-            headers.forEach(function (th) {
-                if (th.querySelector('.col-hide-btn')) return; // already injected
-                var fieldClass = [].slice.call(th.classList).find(function (c) { return c.indexOf('field-') === 0; });
-                if (!fieldClass) return;
-                var btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'col-hide-btn';
-                btn.innerHTML = '&#x2715;';
-                btn.title = 'Hide column';
-                btn.setAttribute('data-field', fieldClass);
-                btn.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    hideColumnByClass(fieldClass);
-                });
-                // Place beside the label text, inside filter container if present
-                var target = th.querySelector('.filter-header-text') || th;
-                target.appendChild(btn);
-            });
-            grid.setAttribute('data-colhide-stamp', stamp);
-            restoreHiddenColumns();
-        }
-
-        function hideColumnByClass(fieldClass) {
-            document.querySelectorAll('.' + fieldClass).forEach(function (el) {
-                el.classList.add('hidden');
-            });
-            var hidden = JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]');
-            if (hidden.indexOf(fieldClass) === -1) {
-                hidden.push(fieldClass);
-                localStorage.setItem(CMF_HIDDEN_COLS_KEY, JSON.stringify(hidden));
-            }
-            var btn = document.getElementById('btnShowAllColumns');
-            if (btn) btn.style.display = '';
-        }
-
-        function restoreHiddenColumns() {
-            var hidden = JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]');
-            hidden.forEach(function (fieldClass) {
-                document.querySelectorAll('.' + fieldClass).forEach(function (el) {
-                    el.classList.add('hidden');
-                });
-            });
-            var btn = document.getElementById('btnShowAllColumns');
-            if (btn) btn.style.display = hidden.length > 0 ? '' : 'none';
-        }
-
-        function showAllColumns() {
-            var hidden = JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]');
-            hidden.forEach(function (fieldClass) {
-                document.querySelectorAll('.' + fieldClass).forEach(function (el) {
-                    el.classList.remove('hidden');
-                });
-            });
-            localStorage.removeItem(CMF_HIDDEN_COLS_KEY);
-            var btn = document.getElementById('btnShowAllColumns');
-            if (btn) btn.style.display = 'none';
-        }
-
-        function filterGridRowsByQuery(grid, query) {
-            if (!grid) return;
-            var rows = grid.querySelectorAll('tbody tr');
-            rows.forEach(function (row) {
-                var text = (row.textContent || row.innerText || '').toLowerCase();
-                row.style.display = (!query || text.indexOf(query) !== -1) ? '' : 'none';
-            });
-        }
-
-        function filterPortalVisibleTables() {
-            var input = document.getElementById('globalPortalSearch');
-            var query = input ? (input.value || '').trim().toLowerCase() : '';
-            var clearBtn = document.getElementById('globalSearchClear');
-            var activeTab = (window.CMF_PORTAL.activeFocusedTab || '').toLowerCase();
-
-            if (activeTab !== 'issue') {
-                if (clearBtn) clearBtn.style.display = 'none';
-                return;
-            }
-
-            if (clearBtn) {
-                clearBtn.style.display = query ? 'inline-flex' : 'none';
-            }
-        }
-
-        var issueGlobalSearchTimer = null;
-
-        function scheduleIssueGlobalSearch() {
-            var input = document.getElementById('globalPortalSearch');
-            var query = input ? (input.value || '').trim() : '';
-            var clearBtn = document.getElementById('globalSearchClear');
-            var activeTab = (window.CMF_PORTAL.activeFocusedTab || '').toLowerCase();
-
-            if (clearBtn) {
-                clearBtn.style.display = query ? 'inline-flex' : 'none';
-            }
-
-            if (activeTab !== 'issue') {
-                return;
-            }
-
-            if (issueGlobalSearchTimer) {
-                clearTimeout(issueGlobalSearchTimer);
-            }
-
-            issueGlobalSearchTimer = setTimeout(function () {
-                var hidden = document.getElementById('<%= hfIssueGlobalSearch.ClientID %>');
-                if (hidden) {
-                    hidden.value = query;
-                }
-                __doPostBack('<%= btnIssueGlobalSearchApply.UniqueID %>', '');
-            }, 450);
-        }
-
-        function clearGlobalPortalSearch() {
-            var input = document.getElementById('globalPortalSearch');
-            if (!input) return;
-            input.value = '';
-            scheduleIssueGlobalSearch();
-            input.focus();
-        }
-
-        function filterIssueTable() {
-            filterPortalVisibleTables();
-        }
-
-        function clearIssueSearch() {
-            clearGlobalPortalSearch();
-        }
-
-        function bindGlobalSearchShortcut() {
-            if (window.CMF_PORTAL.globalSearchShortcutBound) return;
-            document.addEventListener('keydown', function (event) {
-                if ((event.ctrlKey || event.metaKey) && String(event.key || '').toLowerCase() === 'k') {
-                    var input = document.getElementById('globalPortalSearch');
-                    if (input) {
-                        event.preventDefault();
-                        input.focus();
-                        input.select();
-                    }
-                }
-            });
-            window.CMF_PORTAL.globalSearchShortcutBound = true;
-        }
-
-        function syncGlobalSearchVisibility() {
-            var shell = document.querySelector('.global-search-shell');
-            var input = document.getElementById('globalPortalSearch');
-            var clearBtn = document.getElementById('globalSearchClear');
-            var activeTab = (window.CMF_PORTAL.activeFocusedTab || '').toLowerCase();
-            var showSearch = activeTab === 'issue';
-            if (shell) shell.style.display = showSearch ? 'flex' : 'none';
-            if (!showSearch) {
-                if (input) input.value = '';
-                if (clearBtn) clearBtn.style.display = 'none';
-            }
-        }
-
-        function applyTableOnlyScroll() {
-            var issueWrap = document.querySelector('.issue-grid-scroll');
-            var issueInner = document.getElementById('issue-grid-inner');
-            var issueTable = document.getElementById(window.CMF_PORTAL.ids.overallRequestDetails);
-            var pendingWrap = document.querySelector('.cmf-pending-grid-wrap');
-
-            if (issueWrap) {
-                issueWrap.style.setProperty('max-height', 'none', 'important');
-                issueWrap.style.setProperty('min-height', '0', 'important');
-                issueWrap.style.setProperty('overflow', 'hidden', 'important');
-                issueWrap.style.setProperty('scrollbar-gutter', 'stable', 'important');
-            }
-
-            if (issueInner) {
-                issueInner.style.setProperty('width', '100%', 'important');
-                issueInner.style.setProperty('max-width', '100%', 'important');
-                issueInner.style.setProperty('max-height', 'min(62vh, 620px)', 'important');
-                issueInner.style.setProperty('min-height', '0', 'important');
-                issueInner.style.setProperty('overflow-x', 'auto', 'important');
-                issueInner.style.setProperty('overflow-y', 'auto', 'important');
-                issueInner.style.setProperty('scrollbar-gutter', 'stable both-edges', 'important');
-            }
-
-            if (issueTable) {
-                issueTable.style.setProperty('width', 'max-content', 'important');
-                issueTable.style.setProperty('min-width', '2200px', 'important');
-                issueTable.style.setProperty('max-width', 'none', 'important');
-            }
-
-            if (pendingWrap) {
-                pendingWrap.style.setProperty('max-height', 'min(64vh, 640px)', 'important');
-                pendingWrap.style.setProperty('min-height', '0', 'important');
-                pendingWrap.style.setProperty('overflow-x', 'auto', 'important');
-                pendingWrap.style.setProperty('overflow-y', 'auto', 'important');
-                pendingWrap.style.setProperty('scrollbar-gutter', 'stable', 'important');
-            }
-        }
-
-        if (window.Sys && Sys.Application) {
-            Sys.Application.add_load(function () {
-                applyTableOnlyScroll();
-                syncGlobalSearchVisibility();
-                populateCmfPendingFilterOptions();
-                syncIssueHorizontalScroll(0);
-                scheduleInitColumnHideButtons(0);
-            });
-        }
-        // ────────────────────────────────────────────────────────────────────
-    </script>
+</script>
     <script src="Scripts/cmf-portal-main.js?v=20260805-ai-recommendation-fix"></script>
 
 
@@ -15437,6 +21313,9 @@ td:nth-child(odd), th:nth-child(odd) {
 <body>
     <form id="form1" runat="server">
     <asp:HiddenField ID="HiddenModalDesign" runat="server" />
+    <asp:HiddenField ID="HiddenInlineDesignName" runat="server" />
+    <asp:HiddenField ID="HiddenInlineSwImageFreeze" runat="server" />
+    <asp:HiddenField ID="HiddenInlineSupportModel" runat="server" />
     <asp:HiddenField ID="HiddenDriverName" runat="server" />
     <asp:HiddenField ID="HiddenComponentName" runat="server" />
     <asp:HiddenField ID="HiddenIssueType" runat="server" />
@@ -15554,112 +21433,164 @@ Submit
                                         <p class="ccip-dash-sub">Here is what is happening with your critical issues today on <%: HomeDashboardPlatformLabel %> in <asp:Label ID="lblWelcomeMode" runat="server" /> mode.</p>
                                     </div>
                                     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                                        <div class="ccip-dash-updated">Updated <span class="ccip-updated-value"><asp:Label ID="lblHomeDashboardGeneratedAt" runat="server" /></span></div>
+                                        <div class="ccip-dash-updated">Updated  <asp:Label ID="lblHomeDashboardGeneratedAt" runat="server" /></div>
                                         <asp:HyperLink ID="lnkPlatformDashboardHome" runat="server" Target="_blank" CssClass="ccip-link-btn" Visible="false">Open platform dashboard</asp:HyperLink>
                                     </div>
                                 </div>
 
-                                <div class="platform-chip-rail" role="tablist" aria-label="Dashboard platform switch" style="margin-bottom:14px;">
-                                    <button type="button" class="platform-chip" data-platform="CMF_NVL_H_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_NVL_H_ALL_COMPONENTS_TABLE')">NVL-H</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_NVL_S_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_NVL_S_ALL_COMPONENTS_TABLE')">NVL-S</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_PTL_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_PTL_ALL_COMPONENTS_TABLE')">PTL</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_LNL_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_LNL_ALL_COMPONENTS_TABLE')">LNL</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_ARL_S_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_ARL_S_ALL_COMPONENTS_TABLE')">ARL-S</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_ARL_H_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_ARL_H_ALL_COMPONENTS_TABLE')">ARL-H</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_ARL_U_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_ARL_U_ALL_COMPONENTS_TABLE')">ARL-U</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_ARL_HX_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_ARL_HX_ALL_COMPONENTS_TABLE')">ARL-Hx</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_ARL_Refresh_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_ARL_Refresh_ALL_COMPONENTS_TABLE')">ARL-Refresh</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_GNR_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_GNR_ALL_COMPONENTS_TABLE')">GNR</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_WCL_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_WCL_ALL_COMPONENTS_TABLE')">WCL</button>
-                                </div>
+                                <div class="platform-chip-rail" data-chip-source="server" role="tablist" aria-label="Dashboard platform switch" style="margin-bottom:14px;"></div>
 
                                 <asp:Label ID="lblHomeAiNewTodayValue" runat="server" style="display:none;" />
                                 <asp:Label ID="lblHomeAiClosedTodayValue" runat="server" style="display:none;" />
 
-                                <div class="ccip-dashboard-overview">
-                                    <div class="ccip-dashboard-left">
-                                        <div class="ccip-kpi-row dashboard-kpis-left">
-                                            <div class="ccip-kpi kpi-red">
-                                                <div class="ccip-kpi-head"><div class="ccip-kpi-title">Total CMF Issues</div><div class="ccip-kpi-icon"><i class="fas fa-list-check" aria-hidden="true"></i></div></div>
-                                                <div class="ccip-kpi-value"><asp:Label ID="lblHomeActiveIssuesValue" runat="server" /></div>
-                                                <div class="ccip-kpi-note">Current platform workload</div>
+                                <section id="homeOverallLayoutV2" class="overall-layout-v2" aria-label="Overall dashboard layout" style="display:none;">
+                                    <section class="overall-row overall-row-summary">
+                                        <article class="overall-card overall-summary-card">
+                                            <div class="overall-card-head">
+                                                <h4 class="overall-card-title"><i class="fas fa-table-list" aria-hidden="true"></i> CMF Summary</h4>
                                             </div>
-                                            <div class="ccip-kpi kpi-orange">
-                                                <div class="ccip-kpi-head"><div class="ccip-kpi-title">Open CMF Issues</div><div class="ccip-kpi-icon"><i class="fas fa-spinner" aria-hidden="true"></i></div></div>
-                                                <div class="ccip-kpi-value"><asp:Label ID="lblHomeNeedsAttentionValue" runat="server" /></div>
-                                                <div class="ccip-kpi-note">Open status</div>
-                                            </div>
-                                            <div class="ccip-kpi kpi-green">
-                                                <div class="ccip-kpi-head"><div class="ccip-kpi-title">Closed CMF Issues</div><div class="ccip-kpi-icon"><i class="fas fa-circle-check" aria-hidden="true"></i></div></div>
-                                                <div class="ccip-kpi-value"><asp:Label ID="lblHomeResolvedThisWeekValue" runat="server" /></div>
-                                                <div class="ccip-kpi-note">Complete or rejected</div>
-                                            </div>
-                                            <div class="ccip-kpi kpi-blue">
-                                                <div class="ccip-kpi-head"><div class="ccip-kpi-title">Implemented CMF Issues</div><div class="ccip-kpi-icon"><i class="fas fa-clock" aria-hidden="true"></i></div></div>
-                                                <div class="ccip-kpi-value"><asp:Label ID="lblHomeResolutionDaysValue" runat="server" /></div>
-                                                <div class="ccip-kpi-note">Implemented or verified</div>
-                                            </div>
-                                            <div class="ccip-kpi kpi-purple" style="display:none;">
-                                                <div class="ccip-kpi-head"><div class="ccip-kpi-title">Customers Affected</div><div class="ccip-kpi-icon"><i class="fas fa-users" aria-hidden="true"></i></div></div>
-                                                <div class="ccip-kpi-value"><asp:Label ID="lblHomeCustomersAffectedValue" runat="server" /></div>
-                                                <div class="ccip-kpi-note">Medium-to-critical active rows</div>
-                                            </div>
-                                        </div>
-                                        <section class="ccip-card ccip-trend-card-inline">
-                                            <div class="ccip-card-head">
-                                                <h3 class="ccip-card-mini-title"><i class="fas fa-chart-line" aria-hidden="true" style="color:#3b82f6; margin-right:6px;"></i>Issue Trend by Work Week</h3>
-                                            </div>
-                                            <div id="homeTrendChart" class="ccip-trend-chart"></div>
-                                        </section>
+                                            <div id="homeOverallSummaryFacts" class="overall-summary-facts"></div>
+                                        </article>
+                                    </section>
 
-                                    </div>
-                                    <div class="ccip-dashboard-right-stack">
-                                        <aside class="ccip-ai-health-card">
-                                            <div class="ccip-ai-health-head"><span><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> AI Program Health</span></div>
-                                            <div class="ccip-ai-health-grid">
-                                                <div class="ccip-health-score"><div id="homePortalHealthScore" class="ccip-health-score-value">--</div><div class="ccip-health-score-label">Program Readiness</div><div id="homePortalHealthRisk" class="ccip-health-risk">--</div></div>
-                                                <div class="ccip-health-weekly"><div class="ccip-health-label">What Changed This Week?</div><ul id="homeWeeklyChanges" class="ccip-health-list"></ul></div>
-                                                <div class="ccip-health-risk-compact"><div class="ccip-health-label">Risks Concentrated In</div><div id="homePortalRiskConcentration" class="ccip-health-value large">-</div></div>
-                                                <div class="ccip-health-blockers"><div class="ccip-health-label">Predicted Blockers</div><ul id="homePortalBlockers" class="ccip-health-list"></ul></div>
-                                                <div class="ccip-ai-health-summary">
-                                                    <h3 class="ccip-cmf-summary-title"><i class="fas fa-file-lines" aria-hidden="true"></i> AI Executive Summary</h3>
-                                                    <div id="homeExecutiveSummary" class="ccip-executive-summary-body">Building executive summary...</div>
+                                    <section class="overall-row overall-row-second">
+                                        <article class="overall-card overall-trend-card">
+                                            <div class="overall-card-head">
+                                                <h4 class="overall-card-title"><i class="fas fa-chart-line" aria-hidden="true" style="color:#3b82f6; margin-right:6px;"></i>Issue Trend by Work Week</h4>
+                                                <div class="overall-trend-range">
+                                                    <select id="homeOverallTrendRange" class="overall-trend-range-select" aria-label="Issue trend time range">
+                                                        <option value="6" selected="selected">Last 6 Weeks</option>
+                                                        <option value="12">Last 12 Weeks</option>
+                                                    </select>
                                                 </div>
                                             </div>
-                                        </aside>
+                                            <div id="homeOverallTrendChart" class="overall-trend-chart"></div>
+                                        </article>
 
-                                    </div>
-                                </div>
+                                        <article class="overall-card overall-pending-card">
+                                            <div class="overall-card-head">
+                                                <h4 class="overall-card-title"><i class="fas fa-hourglass-half" aria-hidden="true" style="margin-right:6px;"></i>CMF Pending Summary</h4>
+                                            </div>
+                                            <div class="overall-pending-body">
+                                                <div class="overall-pending-top">
+                                                    <div id="homeOverallPendingPie" class="overall-pending-pie"></div>
+                                                    <div id="homeOverallPendingBreakdown" class="overall-pending-breakdown"></div>
+                                                </div>
+                                                <div class="overall-pending-bottom">
+                                                    <div class="overall-age-title">Pending Age Bucket</div>
+                                                    <div id="homeOverallPendingAgeBuckets" class="overall-age-buckets"></div>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    </section>
 
-                                <section class="ccip-cmf-summary-section" aria-label="CMF Summary KPI Cards">
-                                    <h3 class="ccip-cmf-summary-title"><i class="fas fa-table-list" aria-hidden="true"></i> CMF Summary</h3>
-                                    <div class="ccip-summary-facts" id="homeDashboardSummaryFacts"></div>
+                                    <article class="overall-card overall-ai-card overall-ai-span-card">
+                                        <div class="overall-card-head">
+                                            <h4 class="overall-card-title"><i class="fas fa-wand-magic-sparkles" aria-hidden="true" style="margin-right:6px;"></i>AI Insights</h4>
+                                            <span class="ccip-ai-beta">Beta</span>
+                                        </div>
+                                        <div class="overall-ai-blank"></div>
+                                    </article>
+
+                                    <section class="overall-row overall-row-third">
+                                        <article class="overall-card overall-oem-card">
+                                            <div class="overall-card-head">
+                                                <h4 class="overall-card-title"><i class="fas fa-building" aria-hidden="true" style="margin-right:6px;"></i>Overall OEM Specific Data</h4>
+                                            </div>
+                                            <div id="homeOverallOemTable" class="overall-oem-table-wrap"></div>
+                                        </article>
+
+                                        <article class="overall-card overall-heatmap-card">
+                                            <div class="overall-card-head">
+                                                <h4 class="overall-card-title"><i class="fas fa-th-large" aria-hidden="true" style="margin-right:6px;"></i>Ingredient Risk Heatmap</h4>
+                                            </div>
+                                            <div id="homeOverallHeatmap" class="overall-heatmap-wrap"></div>
+                                        </article>
+                                    </section>
                                 </section>
 
-                                <div class="ccip-main-grid ccip-dashboard-tables-grid">
-                                    <div class="ccip-col ccip-col-center">
-                                        <section class="ccip-card">
-                                            <div class="ccip-card-head">
-                                                <h3 class="ccip-card-mini-title"><i class="fas fa-table" aria-hidden="true" style="color:#1d4ed8; margin-right:6px;"></i>Milestone CMF Summary</h3>
+                                <div id="homeLegacyTopLayout" class="ccip-specific-top-layout">
+                                    <section id="homeLegacySummarySection" class="overall-row overall-row-summary ccip-specific-summary-row" aria-label="CMF Summary KPI Cards">
+                                        <article class="overall-card overall-summary-card">
+                                            <div class="overall-card-head">
+                                                <h4 class="overall-card-title"><i class="fas fa-table-list" aria-hidden="true"></i> CMF Summary</h4>
                                             </div>
-                                            <div id="homeMilestoneSummaryTable" class="ccip-live-table-wrap"></div>
-                                        </section>
+                                            <div id="homeSpecificSummaryFactsDashboard" class="overall-summary-facts"></div>
+                                        </article>
+                                    </section>
 
-                                        <section class="ccip-card">
-                                            <div class="ccip-card-head">
-                                                <h3 class="ccip-card-mini-title"><i class="fas fa-clipboard-list" aria-hidden="true" style="color:#0f766e; margin-right:6px;"></i>CMF Pending Count</h3>
+                                    <div id="homeLegacyOverview" class="ccip-dashboard-overview">
+                                        <div class="ccip-dashboard-left">
+                                            <div style="display:none;" aria-hidden="true">
+                                                <asp:Label ID="lblHomeActiveIssuesValue" runat="server" />
+                                                <asp:Label ID="lblHomeNeedsAttentionValue" runat="server" />
+                                                <asp:Label ID="lblHomeResolvedThisWeekValue" runat="server" />
+                                                <asp:Label ID="lblHomeResolutionDaysValue" runat="server" />
+                                                <asp:Label ID="lblHomeCustomersAffectedValue" runat="server" />
                                             </div>
-                                            <div id="homePendingSummaryTable" class="ccip-live-table-wrap"></div>
-                                        </section>
+                                            <section class="ccip-card ccip-trend-card-inline overall-card overall-trend-card">
+                                                <div class="overall-card-head">
+                                                    <h4 class="overall-card-title"><i class="fas fa-chart-line" aria-hidden="true" style="color:#3b82f6; margin-right:6px;"></i>Issue Trend by Work Week</h4>
+                                                    <div class="overall-trend-range">
+                                                        <select id="homeSpecificTrendRange" class="overall-trend-range-select" aria-label="Issue trend time range">
+                                                            <option value="6" selected="selected">Last 6 Weeks</option>
+                                                            <option value="12">Last 12 Weeks</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div id="homeTrendChart" class="overall-trend-chart"></div>
+                                            </section>
+
+                                            <section class="ccip-card ccip-component-summary-card ccip-inline-summary-card ccip-component-slot">
+                                                <div class="ccip-card-head">
+                                                    <h3 class="ccip-card-mini-title"><i class="fas fa-table" aria-hidden="true" style="color:#1d4ed8; margin-right:6px;"></i>Milestone CMF Summary</h3>
+                                                </div>
+                                                <div id="homeMilestoneSummaryTable" class="ccip-live-table-wrap"></div>
+                                            </section>
+
+                                        </div>
+                                    </div>
+
+                                    <aside id="homeLegacyAiHealthCard" class="overall-card overall-ai-card overall-ai-span-card">
+                                        <div class="overall-card-head ccip-ai-health-head">
+                                            <span><i class="fas fa-wand-magic-sparkles" aria-hidden="true" style="margin-right:6px;"></i>AI Program Health</span>
+                                            <span class="ccip-ai-beta">Beta</span>
+                                        </div>
+                                        <div class="overall-ai-blank"></div>
+                                    </aside>
+                                </div>
+
+                                <div id="homeLegacyTablesGrid" class="ccip-main-grid ccip-dashboard-tables-grid">
+                                    <div class="ccip-col ccip-col-center">
+                                        <div class="ccip-summary-canvas">
+                                            <div class="ccip-inline-side-stack">
+                                                <section class="ccip-card ccip-milestone-summary-card ccip-inline-summary-card">
+                                                    <div class="ccip-card-head">
+                                                        <h3 class="ccip-card-mini-title"><i class="fas fa-layer-group" aria-hidden="true" style="color:#f97316; margin-right:6px;"></i>COMPONENT OPEN CMF</h3>
+                                                    </div>
+                                                    <div id="homeComponentSummaryTable" class="ccip-live-table-wrap"></div>
+                                                </section>
+
+                                                <section class="ccip-card ccip-inline-summary-card ccip-pending-summary-card">
+                                                    <div class="ccip-card-head">
+                                                        <h3 class="ccip-card-mini-title"><i class="fas fa-clipboard-list" aria-hidden="true" style="color:#0f766e; margin-right:6px;"></i>CMF Pending Count</h3>
+                                                    </div>
+                                                    <div id="homePendingSummaryTable" class="ccip-live-table-wrap"></div>
+                                                </section>
+                                            </div>
+
+                                            <section class="ccip-card ccip-design-summary-card">
+                                                <div class="ccip-card-head">
+                                                    <h3 class="ccip-card-mini-title"><i class="fas fa-diagram-project" aria-hidden="true" style="color:#0e7490; margin-right:6px;"></i>DESIGN SUMMARY</h3>
+                                                    <a href="javascript:void(0);" class="ccip-card-link" onclick="openPopup(); return false;">Import Excel</a>
+                                                </div>
+                                                <div id="homeDesignSummaryTable" class="ccip-live-table-wrap"></div>
+                                            </section>
+                                        </div>
+
                                     </div>
 
                                     <div class="ccip-col ccip-col-right">
-                                        <section class="ccip-card">
-                                            <div class="ccip-card-head">
-                                                <h3 class="ccip-card-mini-title"><i class="fas fa-layer-group" aria-hidden="true" style="color:#f97316; margin-right:6px;"></i>Component CMF Summary</h3>
-                                            </div>
-                                            <div id="homeComponentSummaryTable" class="ccip-live-table-wrap"></div>
-                                        </section>
                                     </div>
                                 </div>
 
@@ -15676,39 +21607,31 @@ Submit
                                     <div class="ccip-dash-updated">Updated <asp:Label ID="lblCmfSummaryGeneratedAt" runat="server" /></div>
                                 </div>
 
-                                <div class="platform-chip-rail" role="tablist" aria-label="CMF Summary platform switch" style="margin-bottom:14px;">
-                                    <button type="button" class="platform-chip" data-platform="CMF_NVL_H_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_NVL_H_ALL_COMPONENTS_TABLE')">NVL-H</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_NVL_S_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_NVL_S_ALL_COMPONENTS_TABLE')">NVL-S</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_PTL_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_PTL_ALL_COMPONENTS_TABLE')">PTL</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_LNL_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_LNL_ALL_COMPONENTS_TABLE')">LNL</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_ARL_S_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_ARL_S_ALL_COMPONENTS_TABLE')">ARL-S</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_ARL_H_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_ARL_H_ALL_COMPONENTS_TABLE')">ARL-H</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_ARL_U_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_ARL_U_ALL_COMPONENTS_TABLE')">ARL-U</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_ARL_HX_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_ARL_HX_ALL_COMPONENTS_TABLE')">ARL-Hx</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_ARL_Refresh_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_ARL_Refresh_ALL_COMPONENTS_TABLE')">ARL-Refresh</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_GNR_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_GNR_ALL_COMPONENTS_TABLE')">GNR</button>
-                                    <button type="button" class="platform-chip" data-platform="CMF_WCL_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_WCL_ALL_COMPONENTS_TABLE')">WCL</button>
-                                </div>
+                                <div class="platform-chip-rail" data-chip-source="server" role="tablist" aria-label="CMF Summary platform switch" style="margin-bottom:14px;"></div>
 
-                                <section class="ccip-cmf-summary-section" aria-label="CMF Summary KPI Cards">
-                                    <h3 class="ccip-cmf-summary-title"><i class="fas fa-table-list" aria-hidden="true"></i> CMF Summary</h3>
-                                    <div class="ccip-summary-facts" id="homeDashboardSummaryFacts"></div>
+                                <section class="overall-row overall-row-summary ccip-specific-summary-row" aria-label="CMF Summary KPI Cards">
+                                    <article class="overall-card overall-summary-card">
+                                        <div class="overall-card-head">
+                                            <h4 class="overall-card-title"><i class="fas fa-table-list" aria-hidden="true"></i> CMF Summary</h4>
+                                        </div>
+                                        <div id="homeSpecificSummaryFactsCmf" class="overall-summary-facts"></div>
+                                    </article>
                                 </section>
 
                                 <div class="ccip-main-grid ccip-dashboard-tables-grid">
                                     <div class="ccip-col ccip-col-center">
-                                        <section class="ccip-card">
+                                        <section class="ccip-card ccip-milestone-summary-card">
+                                            <div class="ccip-card-head">
+                                                <h3 class="ccip-card-mini-title"><i class="fas fa-layer-group" aria-hidden="true" style="color:#f97316; margin-right:6px;"></i>COMPONENT OPEN CMF</h3>
+                                            </div>
+                                            <div id="homeComponentSummaryTable" class="ccip-live-table-wrap"></div>
+                                        </section>
+
+                                        <section class="ccip-card ccip-component-summary-card">
                                             <div class="ccip-card-head">
                                                 <h3 class="ccip-card-mini-title"><i class="fas fa-table" aria-hidden="true" style="color:#1d4ed8; margin-right:6px;"></i>Milestone CMF Summary</h3>
                                             </div>
                                             <div id="homeMilestoneSummaryTable" class="ccip-live-table-wrap"></div>
-                                        </section>
-
-                                        <section class="ccip-card">
-                                            <div class="ccip-card-head">
-                                                <h3 class="ccip-card-mini-title"><i class="fas fa-layer-group" aria-hidden="true" style="color:#f97316; margin-right:6px;"></i>Component CMF Summary</h3>
-                                            </div>
-                                            <div id="homeComponentSummaryTable" class="ccip-live-table-wrap"></div>
                                         </section>
                                     </div>
 
@@ -15720,6 +21643,14 @@ Submit
                                             <div id="homePendingSummaryTable" class="ccip-live-table-wrap"></div>
                                         </section>
                                     </div>
+
+                                    <section class="ccip-card ccip-design-summary-card">
+                                        <div class="ccip-card-head">
+                                            <h3 class="ccip-card-mini-title"><i class="fas fa-diagram-project" aria-hidden="true" style="color:#0e7490; margin-right:6px;"></i>DESIGN SUMMARY</h3>
+                                            <a href="javascript:void(0);" class="ccip-card-link" onclick="openPopup(); return false;">Import Excel</a>
+                                        </div>
+                                        <div id="homeDesignSummaryTable" class="ccip-live-table-wrap"></div>
+                                    </section>
                                 </div>
                             </div>
                         </asp:Panel>
@@ -15830,36 +21761,15 @@ Submit
                     OnSelectedIndexChanged="ddlTables_SelectedIndexChanged"
                     CssClass="dropdown"
                     Style="display:none;">
-                    <asp:ListItem Text="NVL-H" Value="CMF_NVL_H_ALL_COMPONENTS_TABLE" />
-                    <asp:ListItem Text="NVL-S" Value="CMF_NVL_S_ALL_COMPONENTS_TABLE" />
-                    <asp:ListItem Text="PTL" Value="CMF_PTL_ALL_COMPONENTS_TABLE" />
-                    <asp:ListItem Text="LNL" Value="CMF_LNL_ALL_COMPONENTS_TABLE" />
-                    <asp:ListItem Text="ARL-S" Value="CMF_ARL_S_ALL_COMPONENTS_TABLE" />
-                    <asp:ListItem Text="ARL-H" Value="CMF_ARL_H_ALL_COMPONENTS_TABLE" />
-                    <asp:ListItem Text="ARL-U" Value="CMF_ARL_U_ALL_COMPONENTS_TABLE" />
-                    <asp:ListItem Text="ARL-Hx" Value="CMF_ARL_HX_ALL_COMPONENTS_TABLE" />
-                    <asp:ListItem Text="GNR" Value="CMF_GNR_ALL_COMPONENTS_TABLE" />
-                    <asp:ListItem Text="WCL" Value="CMF_WCL_ALL_COMPONENTS_TABLE" />
-                    <asp:ListItem Text="ARL-Refresh" Value="CMF_ARL_Refresh_ALL_COMPONENTS_TABLE" />
                 </asp:DropDownList>
 
                 <div class="platform-switcher-modern" style="display:none;">
-                    <div class="platform-chip-rail" role="tablist" aria-label="Quick platform switch">
-                        <button type="button" class="platform-chip" data-platform="CMF_NVL_H_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_NVL_H_ALL_COMPONENTS_TABLE')">NVL-H</button>
-                        <button type="button" class="platform-chip" data-platform="CMF_NVL_S_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_NVL_S_ALL_COMPONENTS_TABLE')">NVL-S</button>
-                        <button type="button" class="platform-chip" data-platform="CMF_PTL_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_PTL_ALL_COMPONENTS_TABLE')">PTL</button>
-                        <button type="button" class="platform-chip" data-platform="CMF_LNL_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_LNL_ALL_COMPONENTS_TABLE')">LNL</button>
-                        <button type="button" class="platform-chip" data-platform="CMF_ARL_S_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_ARL_S_ALL_COMPONENTS_TABLE')">ARL-S</button>
-                        <button type="button" class="platform-chip" data-platform="CMF_ARL_H_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_ARL_H_ALL_COMPONENTS_TABLE')">ARL-H</button>
-                        <button type="button" class="platform-chip" data-platform="CMF_ARL_U_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_ARL_U_ALL_COMPONENTS_TABLE')">ARL-U</button>
-                        <button type="button" class="platform-chip" data-platform="CMF_ARL_HX_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_ARL_HX_ALL_COMPONENTS_TABLE')">ARL-Hx</button>
-                        <button type="button" class="platform-chip" data-platform="CMF_ARL_Refresh_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_ARL_Refresh_ALL_COMPONENTS_TABLE')">ARL-Refresh</button>
-                        <button type="button" class="platform-chip" data-platform="CMF_GNR_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_GNR_ALL_COMPONENTS_TABLE')">GNR</button>
-                        <button type="button" class="platform-chip" data-platform="CMF_WCL_ALL_COMPONENTS_TABLE" onclick="applyQuickPlatform('CMF_WCL_ALL_COMPONENTS_TABLE')">WCL</button>
-                    </div>
+                    <div class="platform-chip-rail" data-chip-source="server" role="tablist" aria-label="Quick platform switch"></div>
                 </div>
 
                 <asp:HiddenField ID="hfQuickPlatform" runat="server" />
+                <asp:HiddenField ID="hfQuickPlatformSourceTab" runat="server" />
+                <asp:HiddenField ID="hfOverallExcludedPlatforms" runat="server" />
                 <asp:LinkButton ID="btnQuickPlatformApply" runat="server" OnClick="btnQuickPlatformApply_Click" Style="display:none;" />
 
                 <div class="portal-view-row" style="display:none;">
@@ -15971,17 +21881,40 @@ Submit
                     <div id="cmfRecSightingRow" class="ai-summary-meta-row" style="display:none"><strong>Sighting ID:</strong> <span id="cmfRecCpId">-</span></div>
                     <span id="cmfRecComponent" style="display:none">-</span>
                     <div id="cmfRecQuality" class="ai-summary-meta-row" style="display:none">Evidence quality: --</div>
-                    
+
                     <div id="cmfRecReasoningSection" class="cmf-rec-section" style="display:none">
                         <div id="cmfRecEvidence" class="ai-summary-body">-</div>
                     </div>
                     <div id="cmfDecisionDetailsBody" class="cmf-rec-hidden"></div>
-                    
+
                     <div id="cmfRecActions" class="cmf-rec-placeholder-actions" style="display:none">
                         <button type="button" class="cmf-rec-placeholder-btn primary" onclick="showCmfPlaceholderAction('Approve CMF Tag')">Approve CMF Tag</button>
                         <button type="button" class="cmf-rec-placeholder-btn" onclick="showCmfPlaceholderAction('Commit Auto-fill')">Commit Auto-fill</button>
                     </div>
                 </aside>
+
+                <div id="summaryIssuesPopupBackdrop" class="summary-issues-popup-backdrop" onclick="closeSummaryIssueLinksPopup()"></div>
+                <section id="summaryIssuesPopup" class="summary-issues-popup" role="dialog" aria-modal="true" aria-label="CMF issue links">
+                    <div class="summary-issues-popup-head">
+                        <h3 id="summaryIssuesPopupTitle" class="summary-issues-popup-title">CMF Issues</h3>
+                        <button type="button" class="summary-issues-popup-close" onclick="closeSummaryIssueLinksPopup()" aria-label="Close">&times;</button>
+                    </div>
+                    <div class="summary-issues-popup-controls">
+                        <div class="summary-issues-popup-filter-stack">
+                            <label for="summaryIssuesGroupBy">Group by</label>
+                            <select id="summaryIssuesGroupBy"></select>
+                            <label for="summaryIssuesSortBy">Sort by</label>
+                            <select id="summaryIssuesSortBy"></select>
+                            <label for="summaryIssuesShowOpen" id="summaryIssuesTrendStatusLabel">Show issues</label>
+                            <div id="summaryIssuesTrendStatusChecks" class="summary-issues-popup-checkers">
+                                <label><input type="checkbox" id="summaryIssuesShowOpen" checked="checked" />Open</label>
+                                <label><input type="checkbox" id="summaryIssuesShowClosed" checked="checked" />Closed</label>
+                            </div>
+                        </div>
+                        <span id="summaryIssuesPopupMeta" class="summary-issues-popup-meta"></span>
+                    </div>
+                    <div id="summaryIssuesPopupBody" class="summary-issues-popup-body"></div>
+                </section>
 
 
 
@@ -16193,7 +22126,7 @@ Submit
                         </div>
                         <!-- MODIFY YOUR GRIDVIEW TO ADD DATA-FIELD ATTRIBUTES -->
                         <div id="issue-grid-inner" class="issue-grid-inner">
-                        
+
 <asp:GridView ID="overall_request_details" CssClass="table-primary" runat="server" AutoGenerateColumns="False"
     EmptyDataText="No Open CMFs" OnRowEditing="overall_request_details_RowEditing"
     OnRowUpdating="overall_request_details_RowUpdating" OnRowCancelingEdit="overall_request_details_RowCancelingEdit"
@@ -16203,7 +22136,7 @@ Submit
     <PagerSettings Visible="false" />
 
     <Columns>
-   
+
         <asp:TemplateField HeaderText="#" ItemStyle-Width="50px" HeaderStyle-Width="50px"
             ItemStyle-CssClass="field-sno" HeaderStyle-CssClass="field-sno">
             <ItemTemplate>
@@ -16301,7 +22234,7 @@ Submit
             <ItemTemplate><%# CreateDuplicateLinks(Eval("DuplicateDetails")) %></ItemTemplate>
         </asp:TemplateField>
 
-      
+
         <asp:TemplateField HeaderText="RVP Repro" ItemStyle-CssClass="field-rvp_repro" HeaderStyle-CssClass="field-rvp_repro">
             <HeaderTemplate>
                 <div class="filter-header-container">
@@ -16332,7 +22265,7 @@ Submit
             </EditItemTemplate>
         </asp:TemplateField>
 
-        
+
         <asp:TemplateField HeaderText="LOS" ItemStyle-CssClass="field-los" HeaderStyle-CssClass="field-los">
             <HeaderTemplate>
                 <div class="filter-header-container">
@@ -16351,11 +22284,11 @@ Submit
             </EditItemTemplate>
         </asp:TemplateField>
 
-        
+
         <asp:BoundField DataField="processor" HeaderText="Processor" ReadOnly="True"
             ItemStyle-CssClass="field-processor" HeaderStyle-CssClass="field-processor" Visible="false" />
 
-        
+
     <asp:TemplateField HeaderText="Impact" ItemStyle-CssClass="field-impact_processor" HeaderStyle-CssClass="field-impact_processor">
         <ItemTemplate><%# RenderImpactWithProcessor(Eval("impact"), Eval("processor")) %></ItemTemplate>
             <EditItemTemplate>
@@ -16364,7 +22297,7 @@ Submit
             </EditItemTemplate>
         </asp:TemplateField>
 
-       
+
         <asp:TemplateField HeaderText="Days Open" ItemStyle-CssClass="daysopen-column field-days_open" HeaderStyle-CssClass="field-days_open">
             <ItemTemplate><%# RenderDaysOpen(Eval("days_active")) %></ItemTemplate>
         </asp:TemplateField>
@@ -16376,13 +22309,13 @@ Submit
             ItemStyle-CssClass="field-progress" HeaderStyle-CssClass="field-progress" />
 
     </Columns>
-    
+
 <EmptyDataTemplate>
     <div class="empty-data-container">
         <table class="table-primary" style="width:100%">
             <thead>
                 <tr>
-                    
+
                     <th style="width:50px;" class="field-sno">S.No</th>
 
                     <th class="field-sightingid">SightingID | Promoted ID</th>
@@ -16434,7 +22367,7 @@ Submit
                     </th>
 
                     <th class="field-imagefreeze">ImageFreeze</th>
-                    
+
                     <th class="field-duplicatedetails">Duplicate Details</th>
 
                     <th class="field-rvp_repro">
@@ -16463,7 +22396,7 @@ Submit
                         </div>
                     </th>
 
-                    
+
                     <th class="field-los" style="width:100px;">
                         <div class="filter-header-container">
                             <div class="filter-header-text">LOS</div>
@@ -16477,21 +22410,21 @@ Submit
                         </div>
                     </th>
 
-                   
+
                     <th class="field-processor">Processor</th>
 
-                   
+
                     <th class="field-impact">Impact</th>
 
-                    
+
                     <th class="field-days_open">Days_Open</th>
 
-                    
+
                     <th class="field-closed_reason">Closed Reason / Fixed Version</th>
 
                     <th class="field-progress">Progress</th>
 
-                   
+
                 </tr>
             </thead>
             <tbody>
@@ -16505,7 +22438,7 @@ Submit
     </div>
 </EmptyDataTemplate>
 
-  
+
 </asp:GridView>
                         </div>
                     </div>
@@ -16538,7 +22471,6 @@ Submit
                                 <asp:Label ID="lblIssuePageStatus" runat="server" />
                             </div>
                         </asp:Panel>
-                    </div>
                     </div>
 
                     <!-- CMF PENDING LIST HEADER PANEL - INSIDE mainDataWrapper -->
@@ -16614,10 +22546,49 @@ Submit
                                             <ItemTemplate><%# RenderPendingRecommendationCell(Eval("cp_id"), Eval("title"), Eval("component"), Eval("component_group"), Eval("cmf_request"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner")) %></ItemTemplate>
                                         </asp:TemplateField>
 
-                                    </Columns> 
+                                    </Columns>
                                 </asp:GridView>
                             </div>
                         </div>
+                        
+                        <aside class="pending-side-panel" aria-label="CMF pending assistant panel">
+                            <section class="interactive-side-card">
+                                <div class="interactive-side-head">
+                                    <h3 class="interactive-side-title"><i class="fas fa-brain" aria-hidden="true" style="color:#7c3aed; margin-right:6px;"></i>Pending AI Queue</h3>
+                                </div>
+                                <p class="interactive-side-sub">Recommendation engine snapshots for current platform selection.</p>
+                                <button type="button" class="interactive-side-btn" onclick="focusFirstPendingRecommendation(); return false;">Open Recommendation Flow</button>
+                            </section>
+
+                            <section class="interactive-side-card">
+                                <div class="interactive-side-head"><h3 class="interactive-side-title">Quick Insights</h3></div>
+                                <ul class="interactive-chip-list">
+                                    <li><span>Qualification candidates</span><span class="interactive-chip" id="pendingSideQualify">0</span></li>
+                                    <li><span>Potential duplicates</span><span class="interactive-chip" id="pendingSideDup">0</span></li>
+                                    <li><span>Missing debug evidence</span><span class="interactive-chip" id="pendingSideMissing">0</span></li>
+                                </ul>
+                            </section>
+
+                            <section class="interactive-side-card">
+                                <div class="interactive-side-head"><h3 class="interactive-side-title">Shortcuts</h3></div>
+                                <div class="interactive-shortcuts">
+                                    <button type="button" class="interactive-shortcut-btn" onclick="focusFirstPendingRecommendation(); return false;">Top Priority First</button>
+                                    <button type="button" class="interactive-shortcut-btn" onclick="showPortalToast('Use shared platform dropdown above to switch context.')">Switch Platform</button>
+                                    <button type="button" class="interactive-shortcut-btn" onclick="focusFirstPendingRecommendation(); return false;">Review Scores</button>
+                                    <button type="button" class="interactive-shortcut-btn" onclick="focusReportsAssistant('Generate a CMF pending backlog report for all platforms'); return false;">Export Pending</button>
+                                </div>
+                            </section>
+
+                            <section class="interactive-side-card">
+                                <div class="interactive-side-head"><h3 class="interactive-side-title">Actions</h3></div>
+                                <div class="interactive-shortcuts">
+                                    <button type="button" class="interactive-shortcut-btn" onclick="focusFirstPendingRecommendation(); return false;">Prioritize High Score</button>
+                                    <button type="button" class="interactive-shortcut-btn" onclick="focusFirstPendingRecommendation(); return false;">Commit Auto-fill</button>
+                                    <button type="button" class="interactive-shortcut-btn" onclick="focusReportsAssistant('Generate a CMF backlog sharing report for all platforms'); return false;">Export Backlog</button>
+                                    <button type="button" class="interactive-shortcut-btn" onclick="showPortalToast('Switch platform in the shared filter bar.')">Switch Platform</button>
+                                </div>
+                            </section>
+                        </aside>
                     </div>
 
                     </div>
@@ -17030,20 +23001,26 @@ Target="_blank" />
                                                         <ItemTemplate>
                                                             <asp:Label ID="lblTotal" runat="server" Text='<%# Eval("Total") %>'></asp:Label><br />
                                                         </ItemTemplate>
-                                                        <ItemStyle Width="33%" />
+                                                        <ItemStyle Width="20%" />
+                                                    </asp:TemplateField>
+                                                    <asp:TemplateField HeaderText="Open">
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="lblOpen" runat="server" Text='<%# Eval("Open") %>'></asp:Label>
+                                                        </ItemTemplate>
+                                                        <ItemStyle Width="20%" />
                                                     </asp:TemplateField>
                                                     <asp:TemplateField HeaderText="Closed">
                                                         <ItemTemplate>
                                                             <asp:Label ID="lblClosed" runat="server" Text='<%# Eval("Closed") %>'></asp:Label>
                                                         </ItemTemplate>
-                                                        <ItemStyle Width="33%" />
+                                                        <ItemStyle Width="20%" />
                                                     </asp:TemplateField>
                                                     <asp:TemplateField HeaderText="Implemented">
                                                         <ItemTemplate>
                                                             <asp:Label ID="lblImplementedCountAndDup" runat="server" Text='<%# Eval("ImplementedCountAndDup") %>'></asp:Label><br />
                                                             <asp:Label ID="lblImplementedComponents" runat="server" Text='<%# Eval("ImplementedComponentsOnly") %>'></asp:Label>
                                                         </ItemTemplate>
-                                                        <ItemStyle Width="33%" />
+                                                        <ItemStyle Width="70%" />
                                                     </asp:TemplateField>
                                                 </Columns>
                                             </asp:GridView>
@@ -17075,7 +23052,8 @@ Target="_blank" />
        <asp:TemplateField HeaderText="Unique CMF Count">
           <ItemTemplate>
             <a href="javascript:void(0)"
-               onclick='showDriverIssues("<%# HttpUtility.JavaScriptStringEncode(Convert.ToString(Eval("Driver") ?? "")) %>"); return false;'
+                    data-driver='<%# HttpUtility.HtmlAttributeEncode(Convert.ToString(Eval("Driver") ?? "")) %>'
+                    onclick='showDriverIssues(this.getAttribute("data-driver")); return false;'
                style="font-weight: bold; text-decoration: none;"
                class="btn btn-link p-0">
               <%# Eval("CMFCount") %>
@@ -17095,7 +23073,7 @@ Target="_blank" />
 
 
                                         <div class="gridview-container3">
-                                            <asp:GridView ID="GridView_cmf_summary" CssClass="table-primary7" runat="server" AutoGenerateColumns="False" EmptyDataText="No Open CMFs" Visible="true" DataKeyNames="Component">
+                                            <asp:GridView ID="GridView_cmf_summary" CssClass="table-primary7" runat="server" AutoGenerateColumns="False" EmptyDataText="No Open CMFs" Visible="true" DataKeyNames="Component" OnRowCreated="GridView_cmf_summary_RowCreated">
                                                 <Columns>
                                                     <asp:BoundField DataField="Component" HeaderText="Component_Open_CMFs" SortExpression="Component" ReadOnly="True" ItemStyle-Width="25%"/>
                                                     <asp:BoundField DataField="Driver_issues" HeaderText="Driver_issues" SortExpression="Driver_issues" ReadOnly="True" ItemStyle-Width="25%"/>
@@ -17147,4 +23125,3 @@ Target="_blank" />
 
 </body>
 </html>
-
