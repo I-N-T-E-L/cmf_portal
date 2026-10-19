@@ -20,6 +20,8 @@ try:
 except ImportError:
     plt = None
 
+_PLATFORM_ALIAS_CACHE = None
+
 
 def _fail(message):
     print(json.dumps({"success": False, "message": message, "image_file": "", "report_file": ""}))
@@ -45,17 +47,98 @@ def _contains_any(text, candidates):
     return any(candidate in value for candidate in candidates)
 
 
+def _contains_whole_alias(text, alias):
+    if not text or not alias:
+        return False
+    escaped = re.escape((alias or "").strip().lower()).replace(r"\ ", r"[\s_-]+")
+    if not escaped:
+        return False
+    return re.search(r"(?<![a-z0-9])" + escaped + r"(?![a-z0-9])", text, flags=re.IGNORECASE) is not None
+
+
+def _normalize_codes(raw_codes):
+    values = raw_codes if isinstance(raw_codes, list) else [raw_codes]
+    normalized = []
+    for value in values:
+        code = _canonical_platform_code(value)
+        if code and code not in normalized:
+            normalized.append(code)
+    return normalized
+
+
+def _load_platform_alias_payload():
+    global _PLATFORM_ALIAS_CACHE
+    if _PLATFORM_ALIAS_CACHE is not None:
+        return _PLATFORM_ALIAS_CACHE
+
+    payload = {
+        "alias_to_codes": {},
+        "group_alias_to_codes": {},
+    }
+
+    raw = (os.environ.get("CMF_PLATFORM_ALIAS_MAP_JSON", "") or "").strip()
+    if raw:
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict):
+                alias_map = parsed.get("alias_to_codes")
+                if isinstance(alias_map, dict):
+                    for alias, codes in alias_map.items():
+                        normalized_alias = (alias or "").strip().lower()
+                        normalized_codes = _normalize_codes(codes)
+                        if normalized_alias and normalized_codes:
+                            payload["alias_to_codes"][normalized_alias] = normalized_codes
+
+                group_map = parsed.get("group_alias_to_codes")
+                if isinstance(group_map, dict):
+                    for alias, codes in group_map.items():
+                        normalized_alias = (alias or "").strip().lower()
+                        normalized_codes = _normalize_codes(codes)
+                        if normalized_alias and normalized_codes:
+                            payload["group_alias_to_codes"][normalized_alias] = normalized_codes
+        except Exception:
+            payload = {
+                "alias_to_codes": {},
+                "group_alias_to_codes": {},
+            }
+
+    _PLATFORM_ALIAS_CACHE = payload
+    return _PLATFORM_ALIAS_CACHE
+
+
+def _platform_keywords():
+    payload = _load_platform_alias_payload()
+    keywords = []
+
+    for alias, codes in payload["group_alias_to_codes"].items():
+        if alias and alias not in keywords:
+            keywords.append(alias)
+        for code in codes:
+            if code and code not in keywords:
+                keywords.append(code)
+
+    for alias, codes in payload["alias_to_codes"].items():
+        if alias and alias not in keywords:
+            keywords.append(alias)
+        for code in codes:
+            if code and code not in keywords:
+                keywords.append(code)
+
+    return keywords
+
+
 def _validate_cmf_prompt(prompt, context):
     prompt_lower = (prompt or "").strip().lower()
     if not prompt_lower:
         return False, "Please enter a CMF-related question."
 
+    dynamic_platform_keywords = _platform_keywords()
     portal_keywords = [
         "cmf", "issue", "issues", "sighting", "defect", "status", "owner", "component", "driver",
         "platform", "milestone", "customer", "resolved", "implemented", "verified", "closed", "open",
         "pending", "chart", "report", "analytics", "trend", "summary", "stale", "days", "count",
-        "ptl", "lnl", "arl", "gnr", "wcl", "nvl",
     ]
+    portal_keywords.extend(dynamic_platform_keywords)
     non_portal_keywords = [
         "song", "movie", "weather", "recipe", "travel", "joke", "poem", "celebrity",
         "football", "basketball", "cricket", "stock price", "bitcoin", "horoscope",
@@ -94,23 +177,23 @@ def _extract_platform_tokens(text):
     if not value:
         return []
 
-    candidates = re.findall(r"\b(?:panther[\s_-]?lake|ptl|lunar[\s_-]?lake|lnl|gnr|wildcat[\s_-]?lake|wcl|arl[\s_-]?(?:s|h|u|hx|refresh)|nova[\s_-]?lake|novalake|nvl(?:[\s_-]?(?:s|h|u))?)\b", value)
+    payload = _load_platform_alias_payload()
+    group_alias_to_codes = payload["group_alias_to_codes"]
+    alias_to_codes = payload["alias_to_codes"]
+
     normalized = []
-    for candidate in candidates:
-        canonical = _canonical_platform_code(candidate)
-        if canonical in {"nova_lake", "novalake", "nvl"}:
-            for nvl_token in ["nvl_s", "nvl_h", "nvl_u"]:
-                if nvl_token not in normalized:
-                    normalized.append(nvl_token)
-            continue
-        if canonical in {"panther_lake", "pantherlake"}:
-            canonical = "ptl"
-        elif canonical in {"lunar_lake", "lunarlake"}:
-            canonical = "lnl"
-        elif canonical in {"wildcat_lake", "wildcatlake"}:
-            canonical = "wcl"
-        if canonical and canonical not in normalized:
-            normalized.append(canonical)
+    for alias, codes in group_alias_to_codes.items():
+        if _contains_whole_alias(value, alias):
+            for code in codes:
+                if code and code not in normalized:
+                    normalized.append(code)
+
+    for alias, codes in alias_to_codes.items():
+        if _contains_whole_alias(value, alias):
+            for code in codes:
+                if code and code not in normalized:
+                    normalized.append(code)
+
     return normalized
 
 
@@ -1219,7 +1302,7 @@ def _deterministic_rag_answer(df, prompt, retrieved_df, pd, go, output_dir, fall
             lines.append(f"- total issues in scope: {len(df)}")
             return "\n".join(lines), image_file
 
-    if _is_count_question(prompt) and (_contains_any(prompt_lower, ["platform", "nvl", "arl", "ptl", "lnl", "gnr", "wcl"]) or requested_platforms):
+    if _is_count_question(prompt) and (_contains_any(prompt_lower, ["platform", "platforms"]) or requested_platforms):
         platform_counts = _count_by_platform(df, requested_platforms, fallback_platform)
         lines = ["Exact count from current CMF dataset:"]
         for name, count in platform_counts:
@@ -1572,7 +1655,7 @@ def _call_github_model(prompt, context_block):
     system_msg = (
         "You are a CMF (Continuous Manufacturing Framework) analytics assistant. Your role is to analyze issue data and provide actionable insights.\n"
         "\nCONTEXT:\n"
-        "- You analyze issues, bugs, and defects from CMF platforms (PTL, LNL, ARL, GNR, WCL, NVL, etc.)\n"
+        "- You analyze issues, bugs, and defects from configured CMF platform datasets\n"
         "- Data includes: issue IDs, titles, status, components, drivers, owners, platforms, and dates\n"
         "\nREQUIRED RULES:\n"
         "1. RELEVANCE: Only answer questions about CMF issues, platforms, data analysis, and trends\n"
@@ -2018,7 +2101,7 @@ def main():
         prompt_lower = (args.prompt or "").lower()
         force_deterministic = (
             (_contains_any(prompt_lower, ["platform", "platforms"]) and _is_followup_prompt(args.prompt))
-            or (_is_count_question(args.prompt) and _contains_any(prompt_lower, ["platform", "nvl", "arl", "ptl", "lnl", "gnr", "wcl"]))
+            or (_is_count_question(args.prompt) and _contains_any(prompt_lower, ["platform", "platforms"]))
         )
         
         # Get model answer with improved prompting
