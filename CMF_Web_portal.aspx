@@ -21610,7 +21610,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 pendingWrap.style.setProperty('min-height', '0', 'important');
                 pendingWrap.style.setProperty('overflow-x', 'auto', 'important');
                 pendingWrap.style.setProperty('overflow-y', 'auto', 'important');
-                pendingWrap.style.setProperty('scrollbar-gutter', 'stable', 'important');
+                pendingWrap.style.setProperty('scrollbar-gutter', 'auto', 'important');
             }
         }
 
@@ -23480,7 +23480,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var rows = table.querySelectorAll('tbody tr');
             for (var i = 0; i < rows.length; i++) {
                 if (!rows[i].querySelector('.pending-id-actions')) continue;
-                var rowText = (rows[i].innerText || '').toLowerCase();
+                var rowText = (rows[i].textContent || '').toLowerCase();
                 var rowComponent = extractPendingFieldValue(rows[i], 'component').toLowerCase();
                 var rowOwner = extractPendingFieldValue(rows[i], 'owner').toLowerCase();
                 var rowCustomer = extractPendingFieldValue(rows[i], 'customer').toLowerCase();
@@ -23518,9 +23518,91 @@ td:nth-child(odd), th:nth-child(odd) {
                 if (emptyState) emptyState.hidden = matches.length !== 0;
             }
 
+            formatPendingLongCells();
             // Load sighting descriptions for visible rows
             loadSightingDescriptions();
         }
+
+        function formatPendingLongCells() {
+            var cells = document.querySelectorAll('#GridView_cmf_pending td.pending-field-title, #GridView_cmf_pending td.pending-field-impact, #GridView_cmf_pending td.pending-field-why');
+            cells.forEach(function (cell) {
+                var text = cell.querySelector('.pending-cell-text');
+                if (!text) {
+                    var value = cell.textContent;
+                    cell.textContent = '';
+                    var content = document.createElement('div');
+                    content.className = 'pending-cell-content';
+                    text = document.createElement('span');
+                    text.className = 'pending-cell-text';
+                    text.textContent = value;
+                    var info = document.createElement('button');
+                    info.type = 'button';
+                    info.className = 'pending-cell-info';
+                    info.setAttribute('aria-label', 'Show complete ' + cell.closest('table').rows[0].cells[cell.cellIndex].textContent.trim());
+                    info.innerHTML = '<i class="fas fa-circle-info" aria-hidden="true"></i>';
+                    info.addEventListener('mouseenter', showPendingCellTooltip);
+                    info.addEventListener('focus', showPendingCellTooltip);
+                    info.addEventListener('click', showPendingCellTooltip);
+                    info.addEventListener('mouseleave', scheduleHidePendingCellTooltip);
+                    info.addEventListener('blur', hidePendingCellTooltip);
+                    content.appendChild(text);
+                    content.appendChild(info);
+                    cell.appendChild(content);
+                }
+                if (!cell.getClientRects().length) return;
+                var button = cell.querySelector('.pending-cell-info');
+                button.hidden = true;
+                cell.querySelector('.pending-cell-content').classList.remove('has-overflow');
+                var clipped = text.scrollHeight > text.clientHeight + 1;
+                button.hidden = !clipped;
+                cell.querySelector('.pending-cell-content').classList.toggle('has-overflow', clipped);
+            });
+        }
+
+        var pendingCellTooltipCloseTimer = null;
+
+        function scheduleHidePendingCellTooltip() {
+            clearTimeout(pendingCellTooltipCloseTimer);
+            pendingCellTooltipCloseTimer = setTimeout(hidePendingCellTooltip, 180);
+        }
+
+        function showPendingCellTooltip(event) {
+            hidePendingCellTooltip();
+            var button = event.currentTarget;
+            var tooltip = document.createElement('div');
+            tooltip.id = 'pendingCellTooltip';
+            tooltip.className = 'pending-cell-tooltip';
+            tooltip.setAttribute('role', 'tooltip');
+            tooltip.textContent = button.parentElement.querySelector('.pending-cell-text').textContent;
+            tooltip.addEventListener('mouseenter', function () { clearTimeout(pendingCellTooltipCloseTimer); });
+            tooltip.addEventListener('mouseleave', scheduleHidePendingCellTooltip);
+            document.body.appendChild(tooltip);
+            button.setAttribute('aria-describedby', tooltip.id);
+            var rect = button.getBoundingClientRect();
+            var width = tooltip.getBoundingClientRect().width;
+            tooltip.style.left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8)) + 'px';
+            var height = tooltip.getBoundingClientRect().height;
+            tooltip.style.top = (rect.top >= height + 12 ? rect.top - height - 8 : Math.min(rect.bottom + 8, window.innerHeight - height - 8)) + 'px';
+        }
+
+        function hidePendingCellTooltip() {
+            clearTimeout(pendingCellTooltipCloseTimer);
+            var tooltip = document.getElementById('pendingCellTooltip');
+            if (tooltip) tooltip.remove();
+            document.querySelectorAll('.pending-cell-info[aria-describedby]').forEach(function (button) { button.removeAttribute('aria-describedby'); });
+        }
+
+        window.addEventListener('resize', function () {
+            hidePendingCellTooltip();
+            formatPendingLongCells();
+        });
+        document.addEventListener('scroll', function (event) {
+            var tooltip = document.getElementById('pendingCellTooltip');
+            if (tooltip && !tooltip.contains(event.target)) hidePendingCellTooltip();
+        }, true);
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') hidePendingCellTooltip();
+        });
 
         function changeCmfPendingPage(offset) {
             var pager = document.getElementById('cmfPendingPager');
@@ -25012,7 +25094,7 @@ Submit
                                                 </div>
                                             </ItemTemplate>
                                         </asp:TemplateField>
-                                        <asp:BoundField DataField="title" HeaderText="Issue Title" />
+                                        <asp:BoundField DataField="title" HeaderText="Issue Title" ItemStyle-CssClass="pending-field-title" />
                                         <asp:BoundField DataField="component" HeaderText="Component Name" ItemStyle-CssClass="pending-field-component" />
                                         <asp:BoundField DataField="component_group" HeaderText="Component Group" />
                                         <asp:BoundField DataField="customer_owner" HeaderText="Customer Owner" ItemStyle-CssClass="pending-field-owner" />
@@ -25025,12 +25107,12 @@ Submit
                                         <asp:BoundField DataField="date_cmf_ask" HeaderText="CMF Ask Date" DataFormatString="{0:dd-MMM-yyyy}" HtmlEncode="true" ItemStyle-CssClass="pending-field-date" />
                                         <asp:BoundField DataField="impact" HeaderText="Impact" ItemStyle-CssClass="pending-field-impact" />
                                         <asp:BoundField DataField="cmf_request" HeaderText="CMF Request" />
-                                        <asp:BoundField DataField="why_cmf_change" HeaderText="Why CMF Change" />
+                                        <asp:BoundField DataField="why_cmf_change" HeaderText="Why CMF Change" ItemStyle-CssClass="pending-field-why" />
                                         <asp:BoundField DataField="pending_reason" HeaderText="Pending Reason" />
                                     </Columns>
                                 </asp:GridView>
+                                <div id="cmfPendingFilterEmpty" class="portal-table-empty" hidden>No matching issues</div>
                             </div>
-                            <div id="cmfPendingFilterEmpty" class="portal-table-empty" hidden>No matching issues</div>
                             <div id="cmfPendingPager" class="portal-table-footer" data-page="0">
                                 <label for="cmfPendingPageSize">Rows per page<select id="cmfPendingPageSize" onchange="filterCmfPendingRows()"><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></label>
                                 <span id="cmfPendingPageStatus" role="status" aria-live="polite"></span>

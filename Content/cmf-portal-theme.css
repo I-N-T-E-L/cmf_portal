@@ -575,6 +575,63 @@ body #pendingTabShell .cmf-pending-grid-wrap {
     box-shadow: none !important;
 }
 
+#pendingTabShell .pending-cell-content {
+    position: relative;
+    min-width: 0;
+}
+
+#pendingTabShell .pending-cell-content.has-overflow {
+    padding-right: 17px;
+}
+
+#pendingTabShell .pending-cell-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    max-height: 5.8em;
+    overflow: hidden;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+#pendingTabShell .pending-cell-info {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 15px;
+    height: 16px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #0069d0;
+    font-size: 12px;
+    line-height: 16px;
+    cursor: help;
+}
+
+#pendingTabShell .pending-cell-info[hidden] {
+    display: none;
+}
+
+body .pending-cell-tooltip {
+    position: fixed;
+    z-index: 11000;
+    width: max-content;
+    max-width: min(460px, calc(100vw - 16px));
+    max-height: min(360px, calc(100vh - 32px));
+    overflow: auto;
+    padding: 12px 14px;
+    border: 1px solid #cddbea;
+    border-radius: 4px;
+    background: #fff;
+    color: #20344d;
+    box-shadow: 0 4px 16px rgba(20, 45, 70, .16);
+    font: 12px/1.5 "Segoe UI", Tahoma, sans-serif;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
 body .portal-main-workspace .table-primary {
     border: 0 !important;
     border-radius: 0 !important;
