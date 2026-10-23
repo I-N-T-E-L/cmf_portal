@@ -13218,6 +13218,204 @@ td:nth-child(odd), th:nth-child(odd) {
         }
     }
 
+    #pendingTabShell {
+        font-family: "Segoe UI", Tahoma, sans-serif !important;
+        color: #233044;
+    }
+
+    #pendingTabShell .cmf-pending-page-title,
+    #pendingTabShell .cmf-pending-page-desc,
+    #pendingTabShell input,
+    #pendingTabShell select,
+    #pendingTabShell button {
+        font-family: "Segoe UI", Tahoma, sans-serif !important;
+        letter-spacing: 0 !important;
+    }
+
+    #pendingTabShell .cmf-pending-page-title {
+        font-weight: 600 !important;
+        color: #182b45 !important;
+    }
+
+    #sharedFilterPanel.cmf-pending-controls-docked {
+        display: none !important;
+    }
+
+    #pendingTabShell #cmfPendingExternalLinks .issue-external-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    #pendingTabShell #cmfPendingExternalLinks a {
+        padding: 5px 8px !important;
+        border: 0 !important;
+        border-radius: 4px !important;
+        background: transparent !important;
+        color: #0068b5 !important;
+        font: 400 11px "Segoe UI", Tahoma, sans-serif !important;
+    }
+
+    #pendingTabShell .cmf-pending-actions {
+        flex-wrap: wrap !important;
+    }
+
+    #pendingTabShell .pending-tab-main .cmf-pending-filter-card {
+        grid-template-columns: repeat(5, minmax(0, 1fr)) auto !important;
+        gap: 8px !important;
+        padding: 10px !important;
+        box-shadow: none !important;
+        border-radius: 4px 4px 0 0 !important;
+    }
+
+    #pendingTabShell .cmf-pending-searchbox {
+        grid-column: 1 / -1;
+        grid-row: 1;
+    }
+
+    #pendingTabShell #cmfPendingPlatformSlot .overview-platform-filter {
+        min-width: 0 !important;
+        width: 100%;
+        gap: 4px;
+    }
+
+    #pendingTabShell #cmfPendingPlatformSlot label {
+        font: 400 11px "Segoe UI", Tahoma, sans-serif;
+        margin: 0;
+    }
+
+    #pendingTabShell #cmfPendingPlatformSlot select {
+        min-width: 0;
+        width: 100%;
+        height: 30px;
+        margin: 0;
+        padding: 3px 6px;
+        font-size: 11px;
+    }
+
+    #pendingTabShell .cmf-pending-filter-select,
+    #pendingTabShell .cmf-pending-filter-btn {
+        font-weight: 400 !important;
+    }
+
+    #pendingTabShell .cmf-pending-grid-wrap {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+    }
+
+    #pendingTabShell #GridView_cmf_pending.cmf-pending-columns {
+        width: 100% !important;
+        min-width: 0 !important;
+        table-layout: fixed !important;
+        font-family: "Segoe UI", Tahoma, sans-serif !important;
+        border-collapse: collapse !important;
+        border-radius: 4px !important;
+        box-shadow: none !important;
+    }
+
+    #GridView_cmf_pending.cmf-pending-columns th,
+    #GridView_cmf_pending.cmf-pending-columns td {
+        width: 7.142857% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        padding: 7px 4px !important;
+        text-align: left !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        word-break: normal !important;
+        border: 1px solid #e4eaf3 !important;
+        letter-spacing: 0 !important;
+    }
+
+    #GridView_cmf_pending.cmf-pending-columns th {
+        background: #edf2f8 !important;
+        font-size: 10px !important;
+        font-weight: 600 !important;
+    }
+
+    #GridView_cmf_pending.cmf-pending-columns td {
+        background: #fff !important;
+        font-size: 11px !important;
+        font-weight: 400 !important;
+        color: #344054 !important;
+        line-height: 1.4 !important;
+        vertical-align: middle !important;
+    }
+
+    #GridView_cmf_pending.cmf-pending-columns tr:nth-child(even) td {
+        background: #f8fafc !important;
+    }
+
+    #GridView_cmf_pending.cmf-pending-columns tr {
+        border: 1px solid #e4eaf3 !important;
+    }
+
+    #GridView_cmf_pending .pending-rvp-status {
+        display: inline-block;
+        max-width: 100%;
+        padding: 3px 6px;
+        border-radius: 12px;
+        background: #edf0f4;
+        color: #546174;
+        font-size: 11px;
+        line-height: 1.3;
+    }
+
+    #GridView_cmf_pending .pending-rvp-status[data-rvp="yes" i] {
+        background: #d9f2e4;
+        color: #16833b;
+    }
+
+    #GridView_cmf_pending .pending-rvp-status[data-rvp="no" i] {
+        background: #fbe2e4;
+        color: #cc353d;
+    }
+
+    #GridView_cmf_pending .pending-id-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    #GridView_cmf_pending .pending-ai-rec-cell {
+        width: auto !important;
+        justify-content: flex-start !important;
+    }
+
+    #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex: none !important;
+        width: 28px !important;
+        min-width: 28px !important;
+        max-width: 28px !important;
+        height: 28px !important;
+        min-height: 28px !important;
+        padding: 0 !important;
+        border: 1px solid #006fe6 !important;
+        border-radius: 4px !important;
+        background: #0075ee !important;
+        color: #fff !important;
+    }
+
+    #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-label,
+    #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-confidence {
+        display: none !important;
+    }
+
+    @media (max-width: 900px) {
+        #pendingTabShell #GridView_cmf_pending.cmf-pending-columns {
+            min-width: 980px !important;
+        }
+
+        #pendingTabShell .pending-tab-main .cmf-pending-filter-card {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+    }
+
     #GridView_cmf_pending {
         min-width: 1040px !important;
         border: 1px solid #e4eaf3 !important;
@@ -19806,6 +20004,27 @@ td:nth-child(odd), th:nth-child(odd) {
             }
         }
 
+        function syncPendingPlatformControls(pendingActive, issueActive) {
+            var panel = document.getElementById('sharedFilterPanel');
+            var platformSlot = document.getElementById('cmfPendingPlatformSlot');
+            var linksSlot = document.getElementById('cmfPendingExternalLinks');
+            if (!panel || !platformSlot || !linksSlot) return;
+
+            var platform = document.querySelector('#sharedFilterPanel .overview-platform-filter, #cmfPendingPlatformSlot .overview-platform-filter, #issuePlatformSlot .overview-platform-filter');
+            var links = document.querySelector('#sharedFilterPanel .issue-external-links, #cmfPendingExternalLinks .issue-external-links, #issueExternalLinks .issue-external-links');
+            var targetPlatform = pendingActive ? platformSlot : document.getElementById('issuePlatformSlot');
+            var targetLinks = pendingActive ? linksSlot : document.getElementById('issueExternalLinks');
+            if ((pendingActive || issueActive) && targetPlatform && targetLinks) {
+                if (platform) targetPlatform.appendChild(platform);
+                if (links) targetLinks.appendChild(links);
+                panel.classList.add('cmf-pending-controls-docked');
+            } else {
+                if (platform) panel.appendChild(platform);
+                if (links) panel.appendChild(links);
+                panel.classList.remove('cmf-pending-controls-docked');
+            }
+        }
+
         function syncIssuePendingSidePanelVisibility() {
             normalizeIssuePendingShellDom();
             var issueShell = document.getElementById('issueTabShell');
@@ -19892,8 +20111,10 @@ td:nth-child(odd), th:nth-child(odd) {
                 pendingGridWrap.classList.toggle('portal-view-hidden', !pendingActive);
             }
 
+            syncPendingPlatformControls(pendingActive, issueActive);
             populateCmfPendingFilterOptions();
             filterPortalVisibleTables();
+            if (pendingActive) filterCmfPendingRows();
         }
 
         function isReportsViewActive() {
@@ -20068,7 +20289,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var clearBtn = document.getElementById('globalSearchClear');
             var activeTab = (window.CMF_PORTAL.activeFocusedTab || '').toLowerCase();
 
-            if (activeTab !== 'issue') {
+            if (activeTab !== 'issue' && activeTab !== 'pending') {
                 if (clearBtn) clearBtn.style.display = 'none';
                 return;
             }
@@ -20088,6 +20309,13 @@ td:nth-child(odd), th:nth-child(odd) {
 
             if (clearBtn) {
                 clearBtn.style.display = query ? 'inline-flex' : 'none';
+            }
+
+            if (activeTab === 'pending') {
+                var pendingSearch = document.getElementById('cmfPendingClientSearch');
+                if (pendingSearch) pendingSearch.value = query;
+                filterCmfPendingRows();
+                return;
             }
 
             if (activeTab !== 'issue') {
@@ -20143,8 +20371,13 @@ td:nth-child(odd), th:nth-child(odd) {
             var input = document.getElementById('globalPortalSearch');
             var clearBtn = document.getElementById('globalSearchClear');
             var activeTab = (window.CMF_PORTAL.activeFocusedTab || '').toLowerCase();
-            var showSearch = activeTab === 'issue';
+            var showSearch = activeTab === 'issue' || activeTab === 'pending';
             if (shell) shell.style.display = showSearch ? 'flex' : 'none';
+            if (activeTab === 'pending' && input) {
+                var pendingSearch = document.getElementById('cmfPendingClientSearch');
+                input.value = pendingSearch ? pendingSearch.value : '';
+                if (clearBtn) clearBtn.style.display = input.value ? 'inline-flex' : 'none';
+            }
             if (!showSearch) {
                 if (input) input.value = '';
                 if (clearBtn) clearBtn.style.display = 'none';
@@ -22039,7 +22272,7 @@ td:nth-child(odd), th:nth-child(odd) {
             return trimToCompleteSentence(sentence, maxLength);
         }
 
-        function filterCmfPendingRows() {
+        function filterCmfPendingRows(pageIndex) {
             var input = document.getElementById('cmfPendingClientSearch');
             var table = document.getElementById('GridView_cmf_pending');
             if (!input || !table) return;
@@ -22048,23 +22281,73 @@ td:nth-child(odd), th:nth-child(odd) {
             var owner = getPendingFilterValue('cmfPendingOwnerFilter');
             var customer = getPendingFilterValue('cmfPendingCustomerFilter');
             var idst = getPendingFilterValue('cmfPendingIdstFilter');
+            var repro = getPendingFilterValue('cmfPendingRvpFilter');
+            var from = getPendingFilterValue('cmfPendingDateFrom');
+            var to = getPendingFilterValue('cmfPendingDateTo');
+            var matches = [];
             var rows = table.querySelectorAll('tbody tr');
             for (var i = 0; i < rows.length; i++) {
+                if (!rows[i].querySelector('.pending-id-actions')) continue;
                 var rowText = (rows[i].innerText || '').toLowerCase();
-                var rowComponent = extractPendingFieldValue(rows[i].innerText || '', 'component').toLowerCase();
-                var rowOwner = extractPendingFieldValue(rows[i].innerText || '', 'owner').toLowerCase();
-                var rowCustomer = extractPendingFieldValue(rows[i].innerText || '', 'customer').toLowerCase();
-                var rowIdst = extractPendingFieldValue(rows[i].innerText || '', 'idst').toLowerCase();
+                var rowComponent = extractPendingFieldValue(rows[i], 'component').toLowerCase();
+                var rowOwner = extractPendingFieldValue(rows[i], 'owner').toLowerCase();
+                var rowCustomer = extractPendingFieldValue(rows[i], 'customer').toLowerCase();
+                var rowIdst = extractPendingFieldValue(rows[i], 'idst').toLowerCase();
                 var matchesQuery = !query || rowText.indexOf(query) >= 0;
                 var matchesComponent = !component || rowComponent === component;
                 var matchesOwner = !owner || rowOwner === owner;
                 var matchesCustomer = !customer || rowCustomer === customer;
                 var matchesIdst = !idst || rowIdst === idst;
-                rows[i].style.display = matchesQuery && matchesComponent && matchesOwner && matchesCustomer && matchesIdst ? '' : 'none';
+                var reproNode = rows[i].querySelector('.pending-rvp-status');
+                var rowRepro = reproNode ? (reproNode.getAttribute('data-rvp') || '').toLowerCase() : '';
+                var dateNode = rows[i].querySelector('.pending-field-date');
+                var rowDate = dateNode ? Date.parse(dateNode.textContent.trim()) : NaN;
+                var matchesDate = (!from && !to) || (!isNaN(rowDate) && (!from || rowDate >= Date.parse(from + 'T00:00:00')) && (!to || rowDate <= Date.parse(to + 'T23:59:59')));
+                rows[i].style.display = 'none';
+                var matchesFilters = matchesQuery && matchesComponent && matchesOwner && matchesCustomer && matchesIdst && (!repro || rowRepro === repro) && matchesDate;
+                rows[i].setAttribute('data-pending-filter-match', matchesFilters ? '1' : '0');
+                if (matchesFilters) matches.push(rows[i]);
+            }
+
+            var sizeControl = document.getElementById('cmfPendingPageSize');
+            var pageSize = sizeControl ? parseInt(sizeControl.value, 10) : 10;
+            var pageCount = Math.max(1, Math.ceil(matches.length / pageSize));
+            var currentPage = Math.max(0, Math.min(typeof pageIndex === 'number' ? pageIndex : 0, pageCount - 1));
+            var start = currentPage * pageSize;
+            for (var visibleIndex = start; visibleIndex < Math.min(start + pageSize, matches.length); visibleIndex++) matches[visibleIndex].style.display = '';
+            var pager = document.getElementById('cmfPendingPager');
+            if (pager) {
+                pager.setAttribute('data-page', currentPage);
+                document.getElementById('cmfPendingPageStatus').textContent = matches.length ? 'Showing ' + (start + 1) + '\u2013' + Math.min(start + pageSize, matches.length) + ' of ' + matches.length + ' issues' : 'No matching issues';
+                document.getElementById('cmfPendingPageNumber').textContent = (currentPage + 1) + ' / ' + pageCount;
+                document.getElementById('cmfPendingPagePrev').disabled = currentPage === 0;
+                document.getElementById('cmfPendingPageNext').disabled = currentPage === pageCount - 1;
+                var emptyState = document.getElementById('cmfPendingFilterEmpty');
+                if (emptyState) emptyState.hidden = matches.length !== 0;
             }
 
             // Load sighting descriptions for visible rows
             loadSightingDescriptions();
+        }
+
+        function changeCmfPendingPage(offset) {
+            var pager = document.getElementById('cmfPendingPager');
+            filterCmfPendingRows((parseInt(pager.getAttribute('data-page'), 10) || 0) + offset);
+        }
+
+        function preparePendingViewExport() {
+            var pager = document.getElementById('cmfPendingPager');
+            filterCmfPendingRows(pager ? parseInt(pager.getAttribute('data-page'), 10) || 0 : 0);
+            var rows = document.querySelectorAll('#GridView_cmf_pending tr[data-pending-filter-match="1"]');
+            var ids = Array.from(rows).map(function (row) {
+                return row.querySelector('.pending-id-actions a').textContent.trim();
+            });
+            if (!ids.length) {
+                showPortalToast('No matching issues to export.');
+                return false;
+            }
+            document.getElementById('<%= hfPendingExportIds.ClientID %>').value = JSON.stringify(ids);
+            return true;
         }
 
         function loadSightingDescriptions() {
@@ -22172,7 +22455,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var rows = Array.from(document.querySelectorAll('#GridView_cmf_pending tbody tr')).filter(function (row) { return getComputedStyle(row).display !== 'none'; }).slice(0, 20);
             return rows.map(function (row, index) {
                 var text = row.innerText || '';
-                return 'Sighting ' + (index + 1) + ': component=' + extractPendingFieldValue(text, 'component') + '; customer=' + extractPendingFieldValue(text, 'customer') + '; owner=' + extractPendingFieldValue(text, 'owner') + '; idst=' + extractPendingFieldValue(text, 'idst') + '; repro=' + extractPendingFieldValue(text, 'reproducibility') + '; impact=' + extractPendingFieldValue(text, 'impact') + '.';
+                return 'Sighting ' + (index + 1) + ': component=' + extractPendingFieldValue(row, 'component') + '; customer=' + extractPendingFieldValue(row, 'customer') + '; owner=' + extractPendingFieldValue(row, 'owner') + '; idst=' + extractPendingFieldValue(row, 'idst') + '; repro=' + extractPendingFieldValue(row, 'reproducibility') + '; impact=' + extractPendingFieldValue(row, 'impact') + '.';
             }).join('\n');
         }
 
@@ -22202,7 +22485,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 var rows = table.querySelectorAll('tbody tr');
                 for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
                     var text = rows[rowIndex].innerText || '';
-                    var value = extractPendingFieldValue(text, filter.field);
+                    var value = extractPendingFieldValue(rows[rowIndex], filter.field);
                     if (value && values.indexOf(value) === -1) {
                         values.push(value);
                     }
@@ -22223,6 +22506,10 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function extractPendingFieldValue(text, field) {
+            if (text && text.querySelector) {
+                var cell = text.querySelector('.pending-field-' + field);
+                return cell ? (cell.textContent || '').trim() : '';
+            }
             var lines = (text || '').split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
             for (var i = 0; i < lines.length; i++) {
                 var line = lines[i];
@@ -22240,7 +22527,11 @@ td:nth-child(odd), th:nth-child(odd) {
         function resetCmfPendingClientFilters() {
             var input = document.getElementById('cmfPendingClientSearch');
             if (input) input.value = '';
-            var selects = ['cmfPendingComponentFilter', 'cmfPendingOwnerFilter', 'cmfPendingCustomerFilter', 'cmfPendingIdstFilter'];
+            var globalInput = document.getElementById('globalPortalSearch');
+            if (globalInput) globalInput.value = '';
+            var clearButton = document.getElementById('globalSearchClear');
+            if (clearButton) clearButton.style.display = 'none';
+            var selects = ['cmfPendingComponentFilter', 'cmfPendingOwnerFilter', 'cmfPendingCustomerFilter', 'cmfPendingIdstFilter', 'cmfPendingRvpFilter', 'cmfPendingDateFrom', 'cmfPendingDateTo'];
             for (var i = 0; i < selects.length; i++) {
                 var select = document.getElementById(selects[i]);
                 if (select) select.value = '';
@@ -22250,6 +22541,7 @@ td:nth-child(odd), th:nth-child(odd) {
 </script>
     <script src="Scripts/cmf-portal-main.js?v=20260805-ai-recommendation-fix"></script>
 
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261023-schema" />
 
 </head>
 
@@ -22263,15 +22555,17 @@ td:nth-child(odd), th:nth-child(odd) {
     <asp:HiddenField ID="HiddenComponentName" runat="server" />
     <asp:HiddenField ID="HiddenIssueType" runat="server" />
     <asp:HiddenField ID="hfIssueGlobalSearch" runat="server" />
+    <asp:HiddenField ID="hfPendingExportIds" runat="server" />
     <asp:LinkButton ID="btnIssueGlobalSearchApply" runat="server" OnClick="btnIssueGlobalSearchApply_Click" Style="display:none;" />
 <!-- You already have HiddenDriverName -->
     <asp:HiddenField ID="dw_trigger" runat="server" />
 
     <!-- Header -->
-    <header>
+    <header class="portal-app-header">
         <!-- Convert to ASP.NET DropDownList -->
 
-
+        <a class="portal-brand" href="CMF_Web_portal.aspx" aria-label="CMF Portal home"><span class="portal-brand-mark">intel</span><span>CMF Portal</span></a>
+        <span class="portal-work-week" title="Current work week">WW'<%= System.Globalization.CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(DateTime.Now, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday).ToString("00") %></span>
         <div class="header-title" runat="server" id="headerTitle">CMF Live Dashboard</div>
         <div class="global-search-shell" role="search">
             <i class="fas fa-search" aria-hidden="true"></i>
@@ -22354,11 +22648,11 @@ Submit
                             <asp:Label ID="lblActiveViewTitle" runat="server" Text="Issue List" />
                         </div>
                         <div id="mainMenuSectionBody" class="collapsible-body">
-                            <asp:LinkButton ID="lnkNavHome" runat="server" CssClass="portal-nav-link" OnClick="btnShowHomeDashboard_Click"><i class="fas fa-chart-pie" aria-hidden="true"></i><span>Dashboard</span></asp:LinkButton>
+                            <asp:LinkButton ID="lnkNavHome" runat="server" CssClass="portal-nav-link" OnClick="btnShowHomeDashboard_Click" aria-label="Dashboard" ToolTip="Dashboard"><i class="fas fa-chart-pie" aria-hidden="true"></i><span>Dashboard</span></asp:LinkButton>
                             <asp:LinkButton ID="lnkNavCmfSummary" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView3_Click" Visible="false"><i class="fas fa-table-list" aria-hidden="true"></i><span>CMF Summary</span></asp:LinkButton>
-                            <asp:LinkButton ID="lnkNavIssueList" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView1_Click"><i class="fas fa-fire" aria-hidden="true"></i><span>Issue List</span></asp:LinkButton>
-                            <asp:LinkButton ID="lnkNavPendingList" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView4_Click"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>CMF Pending</span></asp:LinkButton>
-                            <asp:LinkButton ID="lnkNavReports" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView8_Click"><i class="fas fa-chart-line" aria-hidden="true"></i><span>Reports &amp; Analytics</span></asp:LinkButton>
+                            <asp:LinkButton ID="lnkNavIssueList" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView1_Click" aria-label="Issue List" ToolTip="Issue List"><i class="fas fa-fire" aria-hidden="true"></i><span>Issue List</span></asp:LinkButton>
+                            <asp:LinkButton ID="lnkNavPendingList" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView4_Click" aria-label="CMF Pending List" ToolTip="CMF Pending List"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>CMF Pending</span></asp:LinkButton>
+                            <asp:LinkButton ID="lnkNavReports" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView8_Click" aria-label="Reports and Analytics" ToolTip="Reports and Analytics"><i class="fas fa-chart-line" aria-hidden="true"></i><span>Reports &amp; Analytics</span></asp:LinkButton>
                             <asp:LinkButton ID="lnkNavConfigRules" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView9_Click" Visible="false"><i class="fas fa-sliders-h" aria-hidden="true"></i><span>Rules</span></asp:LinkButton>
                         </div>
                     </aside>
@@ -22983,6 +23277,7 @@ Submit
                         <div class="issue-page-hd">
                             <div class="issue-page-hd-top">
                                 <h1 class="issue-page-title">Issue List</h1>
+                                <div id="issueExternalLinks"></div>
                             </div>
                             <p class="issue-page-desc">
                                 Review active issues, understand their current status, and identify what needs attention next.
@@ -23024,6 +23319,7 @@ Submit
                             </div>
                             <div id="issueTopFilterBody" class="collapsible-body">
                                 <div class="issue-top-filter-grid">
+                                    <div id="issuePlatformSlot" class="issue-top-filter-item"></div>
                                     <div class="issue-top-filter-item"><span>Milestone</span><asp:DropDownList ID="ddlMilestoneTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlMilestoneHeader_SelectedIndexChanged" CssClass="header-dropdown" /></div>
                                     <div class="issue-top-filter-item"><span>Owner</span><asp:DropDownList ID="ddlOwnerTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlOwnerHeader_SelectedIndexChanged" CssClass="header-dropdown" /></div>
                                     <div class="issue-top-filter-item"><span>RVP Repro</span><asp:DropDownList ID="ddlRvpReproTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlRvpReproHeader_SelectedIndexChanged" CssClass="header-dropdown" /></div>
@@ -23432,15 +23728,15 @@ Submit
                         <div class="pending-tab-main">
                             <div class="cmf-pending-page-hd">
                                 <div>
-                                    <div class="cmf-pending-breadcrumb"><asp:LinkButton ID="lnkPendingBreadcrumbHome" runat="server" OnClick="btnShowHomeDashboard_Click">Home</asp:LinkButton> <span>›</span> CMF Pending List</div>
+                                    <asp:LinkButton ID="lnkPendingBreadcrumbHome" runat="server" OnClick="btnShowHomeDashboard_Click" Visible="false">Home</asp:LinkButton>
                                     <div class="cmf-pending-page-hd-top">
                                         <div>
                                             <h1 class="cmf-pending-page-title">CMF Pending List</h1>
                                             <p class="cmf-pending-page-desc">Track and manage all pending CMFs and recommended dispositions.</p>
                                         </div>
                                         <div class="cmf-pending-actions">
-                                            <button type="button" class="cmf-pending-action-btn" onclick="openCmfPendingInsights();"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span>AI Insights</span></button>
-                                            <button type="button" class="cmf-pending-action-btn primary" onclick="showPortalToast('Use Export to Excel from the left navigation for the active portal export workflow.');"><i class="fas fa-download" aria-hidden="true"></i><span>Export</span></button>
+                                            <div id="cmfPendingExternalLinks"></div>
+                                            <asp:LinkButton ID="btnPendingViewExport" runat="server" CssClass="cmf-pending-action-btn primary" CausesValidation="false" OnClientClick="if (!preparePendingViewExport()) return false;" OnClick="btnExportToExcel_Click_cmf_pending" ToolTip="Export all issues matching the current filters to Excel"><i class="fas fa-download" aria-hidden="true"></i><span>Export</span></asp:LinkButton>
                                         </div>
                                     </div>
                                 </div>
@@ -23468,40 +23764,52 @@ Submit
                             </div>
 
                             <div class="cmf-pending-filter-card" aria-label="CMF pending list filters">
+                                <div id="cmfPendingPlatformSlot"></div>
                                 <div class="cmf-pending-searchbox"><i class="fas fa-search" aria-hidden="true"></i><input type="text" id="cmfPendingClientSearch" placeholder="Search by ID, title, customer, component..." oninput="filterCmfPendingRows()" /></div>
-                                <select id="cmfPendingComponentFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()" aria-label="Filter CMF Pending by component"><option value="">All Components</option></select>
-                                <select id="cmfPendingOwnerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()" aria-label="Filter CMF Pending by owner"><option value="">All Owners</option></select>
-                                <select id="cmfPendingCustomerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()" aria-label="Filter CMF Pending by customer"><option value="">All Customers</option></select>
-                                <select id="cmfPendingIdstFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()" aria-label="Filter CMF Pending by iDST"><option value="">All iDST</option></select>
+                                <label class="portal-filter-field" for="cmfPendingCustomerFilter">Customer<select id="cmfPendingCustomerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All Customers</option></select></label>
+                                <label class="portal-filter-field" for="cmfPendingRvpFilter">RVP Repro<select id="cmfPendingRvpFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+                                <label class="portal-filter-field" for="cmfPendingIdstFilter">iDST<select id="cmfPendingIdstFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All iDST</option></select></label>
+                                <fieldset class="portal-filter-field portal-date-filter"><legend>CMF Ask Date</legend><div><input type="date" id="cmfPendingDateFrom" aria-label="CMF Ask Date from" onchange="filterCmfPendingRows()" /><span aria-hidden="true">to</span><input type="date" id="cmfPendingDateTo" aria-label="CMF Ask Date to" onchange="filterCmfPendingRows()" /></div></fieldset>
+                                <label class="portal-filter-field" for="cmfPendingComponentFilter">Component<select id="cmfPendingComponentFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All Components</option></select></label>
+                                <label class="portal-filter-field" for="cmfPendingOwnerFilter">Owner<select id="cmfPendingOwnerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All Owners</option></select></label>
                                 <button type="button" class="cmf-pending-filter-btn" onclick="resetCmfPendingClientFilters()"><i class="fas fa-rotate-left" aria-hidden="true"></i><span>Reset</span></button>
                             </div>
 
                             <!-- CMF PENDING LIST GRIDVIEW - INSIDE mainDataWrapper -->
                             <div class="gridview-container cmf-pending-grid-wrap" id="cmfPendingGridContainer" runat="server">
-                                <asp:GridView ID="GridView_cmf_pending" CssClass="table-primary" runat="server" AutoGenerateColumns="False" EmptyDataText="No Open CMFs" Visible="false">
+                                <asp:GridView ID="GridView_cmf_pending" CssClass="table-primary cmf-pending-columns" runat="server" AutoGenerateColumns="False" DataKeyNames="cp_id,repro_on_rvp" EmptyDataText="No Open CMFs" Visible="false">
                                     <Columns>
-                                        <asp:TemplateField HeaderText="Issue Details" ItemStyle-Width="285px" HeaderStyle-Width="285px">
-                                            <ItemTemplate><%# RenderPendingIssueDetailsWithRecommendation(Eval("cp_id"), Eval("title"), Eval("cmf_request"), Eval("component"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner")) %></ItemTemplate>
+                                        <asp:TemplateField HeaderText="Issue ID">
+                                            <ItemTemplate>
+                                                <div class="pending-id-actions">
+                                                    <asp:HyperLink runat="server" Text='<%# Eval("cp_id") %>' NavigateUrl='<%# "https://hsdes.intel.com/appstore/article/#/" + HttpUtility.UrlEncode(Convert.ToString(Eval("cp_id"))) %>' Target="_blank" rel="noopener noreferrer" />
+                                                    <%# RenderPendingRecommendationCell(Eval("cp_id"), Eval("title"), Eval("component"), Eval("component_group"), Eval("cmf_request"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner")) %>
+                                                </div>
+                                            </ItemTemplate>
                                         </asp:TemplateField>
-
-                                        <asp:TemplateField HeaderText="Customer / Owner" ItemStyle-Width="160px" HeaderStyle-Width="160px">
-                                            <ItemTemplate><%# RenderPendingCustomer(Eval("customer_detail"), Eval("customer_owner")) %></ItemTemplate>
+                                        <asp:BoundField DataField="title" HeaderText="Issue Title" />
+                                        <asp:BoundField DataField="component" HeaderText="Component Name" ItemStyle-CssClass="pending-field-component" />
+                                        <asp:BoundField DataField="component_group" HeaderText="Component Group" />
+                                        <asp:BoundField DataField="customer_owner" HeaderText="Customer Owner" ItemStyle-CssClass="pending-field-owner" />
+                                        <asp:BoundField DataField="customer_detail" HeaderText="Customer Details" ItemStyle-CssClass="pending-field-customer" />
+                                        <asp:BoundField DataField="idst" HeaderText="iDST Lead" ItemStyle-CssClass="pending-field-idst" />
+                                        <asp:TemplateField HeaderText="RVP Repro">
+                                            <ItemTemplate><span class="pending-rvp-status" data-rvp="<%#: Convert.ToString(Eval("repro_on_rvp")).Trim() %>"><%#: Eval("repro_on_rvp") %></span></ItemTemplate>
                                         </asp:TemplateField>
-
-                                        <asp:TemplateField HeaderText="Evidence" ItemStyle-Width="190px" HeaderStyle-Width="190px">
-                                            <ItemTemplate><%# RenderPendingEvidence(Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility")) %></ItemTemplate>
-                                        </asp:TemplateField>
-
-                                        <asp:TemplateField HeaderText="Impact" ItemStyle-Width="210px" HeaderStyle-Width="210px">
-                                            <ItemTemplate><%# RenderPendingAskImpact(Eval("cp_id"), Eval("title"), Eval("component"), Eval("date_cmf_ask"), Eval("cmf_request"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner")) %></ItemTemplate>
-                                        </asp:TemplateField>
-
-                                        <asp:TemplateField HeaderText="AI CMF Assistant" ItemStyle-Width="150px" HeaderStyle-Width="150px">
-                                            <ItemTemplate><%# RenderPendingRecommendationCell(Eval("cp_id"), Eval("title"), Eval("component"), Eval("component_group"), Eval("cmf_request"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner")) %></ItemTemplate>
-                                        </asp:TemplateField>
-
+                                        <asp:BoundField DataField="reproducibility" HeaderText="Repro Rate" ItemStyle-CssClass="pending-field-reproducibility" />
+                                        <asp:BoundField DataField="date_cmf_ask" HeaderText="CMF Ask Date" DataFormatString="{0:dd-MMM-yyyy}" HtmlEncode="true" ItemStyle-CssClass="pending-field-date" />
+                                        <asp:BoundField DataField="impact" HeaderText="Impact" ItemStyle-CssClass="pending-field-impact" />
+                                        <asp:BoundField DataField="cmf_request" HeaderText="CMF Request" />
+                                        <asp:BoundField DataField="why_cmf_change" HeaderText="Why CMF Change" />
+                                        <asp:BoundField DataField="pending_reason" HeaderText="Pending Reason" />
                                     </Columns>
                                 </asp:GridView>
+                            </div>
+                            <div id="cmfPendingFilterEmpty" class="portal-table-empty" hidden>No matching issues</div>
+                            <div id="cmfPendingPager" class="portal-table-footer" data-page="0">
+                                <label for="cmfPendingPageSize">Rows per page<select id="cmfPendingPageSize" onchange="filterCmfPendingRows()"><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></label>
+                                <span id="cmfPendingPageStatus" role="status" aria-live="polite"></span>
+                                <nav aria-label="CMF Pending pages"><button type="button" id="cmfPendingPagePrev" onclick="changeCmfPendingPage(-1)" aria-label="Previous page" title="Previous page"><i class="fas fa-chevron-left" aria-hidden="true"></i></button><span id="cmfPendingPageNumber">1 / 1</span><button type="button" id="cmfPendingPageNext" onclick="changeCmfPendingPage(1)" aria-label="Next page" title="Next page"><i class="fas fa-chevron-right" aria-hidden="true"></i></button></nav>
                             </div>
                         </div>
                         

@@ -28,6 +28,7 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using System.Web.Script.Serialization;
 using System.Xml.Linq;
+using Spreadsheet = DocumentFormat.OpenXml.Spreadsheet;
 
 public class CMFIssueCountTemplate : ITemplate
 {
@@ -928,6 +929,7 @@ FROM " + tableName);
     customer_detail,
     date_cmf_ask,
     cmf_request,
+    why_cmf_change,
     impact,
     status,
     '" + tableName + @"' AS source_platform
@@ -2326,6 +2328,10 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         if (ScriptManager1 != null && lnkPendingBreadcrumbHome != null)
         {
             ScriptManager1.RegisterPostBackControl(lnkPendingBreadcrumbHome);
+        }
+        if (ScriptManager1 != null && btnPendingViewExport != null)
+        {
+            ScriptManager1.RegisterPostBackControl(btnPendingViewExport);
         }
         RegisterActiveTabClientState();
         base.OnPreRender(e);
@@ -9614,41 +9620,94 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
     // Export to Excel for CMF Pending List
     protected void btnExportToExcel_Click_cmf_pending(object sender, EventArgs e)
     {
-        // Set the response properties for the Excel download
-        Response.ContentType = "application/vnd.ms-excel";
-        Response.AddHeader("Content-Disposition", "attachment;filename=CMFPendingList.xls");
-        Response.Charset = "";
-        Response.Buffer = true;
+        HashSet<string> selectedIds = null;
+        if (sender == btnPendingViewExport)
+        {
+            try
+            {
+                var ids = new JavaScriptSerializer().Deserialize<List<string>>(hfPendingExportIds.Value);
+                if (ids == null || ids.Count == 0) return;
+                selectedIds = new HashSet<string>(ids, StringComparer.Ordinal);
+            }
+            catch (ArgumentException)
+            {
+                return;
+            }
+            catch (InvalidOperationException)
+            {
+                return;
+            }
+        }
+
+        BindGridView_cmf_pending();
+        byte[] workbookBytes;
+        using (var stream = new MemoryStream())
+        {
+            using (var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook))
+            {
+                var workbookPart = document.AddWorkbookPart();
+                workbookPart.Workbook = new Spreadsheet.Workbook();
+                var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+                var sheetData = new Spreadsheet.SheetData();
+                var columns = new Spreadsheet.Columns();
+                for (int columnIndex = 0; columnIndex < GridView_cmf_pending.Columns.Count; columnIndex++)
+                {
+                    columns.Append(new Spreadsheet.Column
+                    {
+                        Min = (uint)columnIndex + 1,
+                        Max = (uint)columnIndex + 1,
+                        Width = columnIndex == 1 || columnIndex == 10 ? 60 : 24,
+                        CustomWidth = true
+                    });
+                }
+                worksheetPart.Worksheet = new Spreadsheet.Worksheet(columns, sheetData);
+                var sheets = workbookPart.Workbook.AppendChild(new Spreadsheet.Sheets());
+                sheets.Append(new Spreadsheet.Sheet { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "CMF Pending List" });
+                var headerRow = new Spreadsheet.Row();
+                foreach (DataControlField column in GridView_cmf_pending.Columns)
+                {
+                    headerRow.Append(CreatePendingExportCell(column.HeaderText));
+                }
+                sheetData.Append(headerRow);
+
+                foreach (GridViewRow gridRow in GridView_cmf_pending.Rows)
+                {
+                    var keys = GridView_cmf_pending.DataKeys[gridRow.RowIndex];
+                    string issueId = Convert.ToString(keys.Values["cp_id"], CultureInfo.InvariantCulture);
+                    if (selectedIds != null && !selectedIds.Contains(issueId)) continue;
+                    var exportRow = new Spreadsheet.Row();
+                    for (int columnIndex = 0; columnIndex < GridView_cmf_pending.Columns.Count; columnIndex++)
+                    {
+                        string value = columnIndex == 0 ? issueId : columnIndex == 7
+                            ? Convert.ToString(keys.Values["repro_on_rvp"], CultureInfo.InvariantCulture)
+                            : HttpUtility.HtmlDecode(gridRow.Cells[columnIndex].Text).Replace("\u00a0", " ");
+                        exportRow.Append(CreatePendingExportCell(value));
+                    }
+                    sheetData.Append(exportRow);
+                }
+                worksheetPart.Worksheet.Save();
+                workbookPart.Workbook.Save();
+            }
+            workbookBytes = stream.ToArray();
+        }
+
         Response.Clear();
-
-        // Temporarily disable paging for the export
-        GridView_cmf_pending.AllowPaging = false;
-
-        // Hide the last column for export
-        //if (GridView_cmf_pending.Columns.Count > 0)
-        //{
-        //    GridView_cmf_pending.Columns[GridView_cmf_pending.Columns.Count - 1].Visible = false;
-        //}
-
-        // Create a StringWriter to capture the HTML output
-        StringWriter sw = new StringWriter();
-        HtmlTextWriter hw = new HtmlTextWriter(sw);
-
-        // Render the GridView to the StringWriter
-        GridView_cmf_pending.RenderControl(hw);
-
-        // Get the HTML string and remove hyperlinks
-        string htmlOutput = sw.ToString();
-        string cleanedOutput = RemoveHyperlinksFromHtml(htmlOutput);
-
-        // Write the cleaned content to the Response output stream
-        Response.Output.Write(cleanedOutput);
-
-        // End the response to download the Excel file
+        Response.Buffer = true;
+        Response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        Response.AddHeader("Content-Disposition", "attachment;filename=CMFPendingList_" + DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture) + ".xlsx");
+        Response.Cache.SetCacheability(HttpCacheability.NoCache);
+        Response.Cache.SetNoStore();
+        Response.BinaryWrite(workbookBytes);
         Response.End();
+    }
 
-        // Re-enable the visibility of the last column after the export
-        GridView_cmf_pending.Columns[GridView_cmf_pending.Columns.Count - 1].Visible = true;
+    private static Spreadsheet.Cell CreatePendingExportCell(string value)
+    {
+        return new Spreadsheet.Cell
+        {
+            DataType = Spreadsheet.CellValues.InlineString,
+            InlineString = new Spreadsheet.InlineString(new Spreadsheet.Text(value ?? string.Empty) { Space = SpaceProcessingModeValues.Preserve })
+        };
     }
 
     // Export to Excel for OEM Summary
@@ -11355,7 +11414,14 @@ firstPatternCaseStatements +
                 d.customer_detail, 
                 d.date_cmf_ask, 
                 d.cmf_request, 
-                d.impact 
+                d.impact,
+                CASE WHEN d.cmf_request = 'cmf_incomplete' THEN ISNULL(NULLIF(d.why_cmf_change, ''), 'NA') ELSE 'NA' END AS why_cmf_change,
+                CASE
+                    WHEN d.cmf_request = 'cmf_ask' THEN 'iDST'
+                    WHEN d.cmf_request = 'cmf_incomplete' THEN 'CE'
+                    WHEN d.cmf_request = 'cmf_ok' AND ISNULL(a.sysdebug, '') NOT LIKE '%customer_must_fix%' THEN 'CMF CHAIR'
+                    ELSE 'NA'
+                END AS pending_reason
             FROM pending_source AS d
             LEFT JOIN issue_source AS a
                 ON d.cp_id = a.cp_id
@@ -11379,7 +11445,14 @@ firstPatternCaseStatements +
                 d.customer_detail, 
                 d.date_cmf_ask, 
                 d.cmf_request, 
-                d.impact 
+                d.impact,
+                CASE WHEN d.cmf_request = 'cmf_incomplete' THEN ISNULL(NULLIF(d.why_cmf_change, ''), 'NA') ELSE 'NA' END AS why_cmf_change,
+                CASE
+                    WHEN d.cmf_request = 'cmf_ask' THEN 'iDST'
+                    WHEN d.cmf_request = 'cmf_incomplete' THEN 'CE'
+                    WHEN d.cmf_request = 'cmf_ok' AND ISNULL(a.sysdebug, '') NOT LIKE '%customer_must_fix%' THEN 'CMF CHAIR'
+                    ELSE 'NA'
+                END AS pending_reason
             FROM " + designTable + @" AS d
             JOIN " + allComponentsTable + @" AS a ON d.cp_id = a.cp_id
             WHERE d.status NOT IN ('complete', 'rejected')
