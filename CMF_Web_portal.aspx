@@ -3262,6 +3262,55 @@ body {
 #homeLegacyTopLayout #homeLegacySummarySection {
     grid-column: 1;
     grid-row: 1;
+    width: 1130px;
+    min-width: 1130px;
+    max-width: 1130px;
+    display: flex !important;
+    flex-direction: row;
+    gap: 10px;
+    align-items: stretch;
+}
+
+#homeLegacyTopLayout #homeLegacySummarySection .overall-summary-side-card {
+    flex: 0 0 var(--cmf-summary-side-card-width);
+    width: var(--cmf-summary-side-card-width) !important;
+    min-width: var(--cmf-summary-side-card-width) !important;
+    max-width: var(--cmf-summary-side-card-width) !important;
+    min-height: 162px;
+    display: flex;
+    flex-direction: column;
+}
+
+#homeLegacyTopLayout #homeLegacySummarySection .overall-summary-side-card .overall-card-head {
+    margin-bottom: 0;
+}
+
+#homeLegacyTopLayout #homeLegacySummarySection .overall-summary-side-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #667085;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#homeLegacyTopLayout #homeLegacySummarySection .overall-summary-card {
+    flex: 1 1 auto;
+    width: auto !important;
+    min-width: 0;
+}
+
+#homeLegacyTopLayout #homeSpecificSummaryFactsDashboard.overall-summary-facts,
+#homeLegacyTopLayout #homeSpecificSummaryFactsCmf.overall-summary-facts {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    justify-content: center;
+    align-items: stretch;
+    overflow-x: hidden;
+    overflow-y: hidden;
 }
 
 #homeLegacyTopLayout #homeLegacyOverview {
@@ -3367,7 +3416,7 @@ body {
     --ccip-third-milestone-width: 502px;
     --ccip-third-pending-width: calc(100% - var(--ccip-third-design-width) - var(--ccip-third-milestone-width) - (2 * var(--ccip-third-grid-gap)));
     display: grid;
-    grid-template-columns: var(--ccip-third-design-width) var(--ccip-third-milestone-width) var(--ccip-third-pending-width);
+    grid-template-columns: var(--ccip-third-milestone-width) var(--ccip-third-pending-width) var(--ccip-third-design-width);
     gap: var(--ccip-third-grid-gap);
     width: 100%;
     min-width: 0;
@@ -3398,7 +3447,7 @@ body {
 }
 
 #homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card {
-    grid-column: 1;
+    grid-column: 3;
     grid-row: 1;
     align-self: start;
     display: flex;
@@ -3420,7 +3469,7 @@ body {
 }
 
 #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card {
-    grid-column: 3;
+    grid-column: 2;
     grid-row: 1;
     display: flex;
     flex-direction: column;
@@ -3435,7 +3484,7 @@ body {
 }
 
 #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card.ccip-milestone-summary-card {
-    grid-column: 2;
+    grid-column: 1;
     grid-row: 1;
     width: var(--ccip-third-milestone-width);
     min-width: var(--ccip-third-milestone-width);
@@ -3951,6 +4000,22 @@ body {
     border-color: #93c5fd;
 }
 
+.ccip-design-metric-link {
+    color: #1d4ed8;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.ccip-design-metric-link:hover {
+    color: #1e40af;
+    text-decoration: underline;
+}
+
+.ccip-design-metric-link.is-total {
+    color: #1d4ed8;
+}
+
 .ccip-design-edit-actions {
     display: inline-flex;
     align-items: center;
@@ -4207,7 +4272,7 @@ body {
 #homeLegacyTablesGrid .ccip-live-table .ccip-component-sub-header,
 #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table .ccip-component-sub-header,
 #homeCmfSummaryPanel .ccip-live-table .ccip-component-sub-header {
-    border-top: 1px solid #d9dde5;
+    border-top: 0;
 }
 
 #homeLegacyTablesGrid .ccip-live-table.ccip-component-summary-table tbody td:first-child,
@@ -4620,6 +4685,13 @@ body {
     background: transparent;
     box-shadow: none;
     padding: 0;
+    display: flex !important;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 10px;
+    width: var(--cmf-summary-main-width);
+    min-width: var(--cmf-summary-main-width);
+    max-width: var(--cmf-summary-main-width);
 }
 
 #homeOverallLayoutV2 .overall-row-summary .overall-summary-card {
@@ -4628,10 +4700,36 @@ body {
     box-shadow: 0 8px 20px rgba(16, 24, 40, 0.04);
     border-radius: 10px;
     padding: 9px;
-    width: 1130px;
-    min-width: 1130px;
-    max-width: 1130px;
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
     justify-self: start;
+}
+
+#homeOverallLayoutV2 .overall-row-summary .overall-summary-side-card {
+    flex: 0 0 var(--cmf-summary-side-card-width);
+    width: var(--cmf-summary-side-card-width);
+    min-width: var(--cmf-summary-side-card-width);
+    max-width: var(--cmf-summary-side-card-width);
+    min-height: 162px;
+    display: flex;
+    flex-direction: column;
+}
+
+#homeOverallLayoutV2 .overall-row-summary .overall-summary-side-card .overall-card-head {
+    margin-bottom: 0;
+}
+
+#homeOverallLayoutV2 .overall-row-summary .overall-summary-side-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 0;
+    color: #667085;
+    font-size: 12px;
+    font-weight: 700;
 }
 
 .overall-summary-card {
@@ -4655,57 +4753,89 @@ body {
     height: 100%;
 }
 
+#homeOverallLayoutV2,
+#homeLegacyTopLayout,
+#homeCmfSummaryPanel {
+    --cmf-summary-inner-card-width: 115px;
+    --cmf-summary-side-card-width: calc(var(--cmf-summary-inner-card-width) + 20px);
+    --cmf-summary-main-width: calc(1130px - var(--cmf-summary-side-card-width) - 10px);
+}
+
 #homeOverallSummaryFacts.overall-summary-facts,
 #homeSpecificSummaryFactsDashboard.overall-summary-facts,
 #homeSpecificSummaryFactsCmf.overall-summary-facts {
     display: grid;
-    grid-template-columns: auto auto;
+    grid-template-columns: repeat(auto-fit, minmax(var(--cmf-summary-inner-card-width), 1fr));
     gap: 6px;
     align-items: stretch;
-    justify-content: center;
+    justify-content: stretch;
     overflow-x: auto;
+    overflow-y: hidden;
+}
+
+#homeOverallLayoutV2 #homeOverallSummaryFacts.overall-summary-facts {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    justify-content: center;
+    align-items: stretch;
+    overflow-x: hidden;
+    overflow-y: hidden;
+}
+
+#homeLegacyTopLayout #homeSpecificSummaryFactsDashboard.overall-summary-facts,
+#homeLegacyTopLayout #homeSpecificSummaryFactsCmf.overall-summary-facts,
+#homeCmfSummaryPanel #homeSpecificSummaryFactsCmf.overall-summary-facts {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    justify-content: center;
+    align-items: stretch;
+    overflow-x: hidden;
     overflow-y: hidden;
 }
 
 #homeOverallSummaryFacts .overall-summary-facts-core,
 #homeSpecificSummaryFactsDashboard .overall-summary-facts-core,
 #homeSpecificSummaryFactsCmf .overall-summary-facts-core {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 6px;
-    min-width: max-content;
-    align-items: stretch;
-    justify-content: start;
+    display: contents;
 }
 
 #homeOverallSummaryFacts .overall-summary-tpt-inline,
 #homeSpecificSummaryFactsDashboard .overall-summary-tpt-inline,
 #homeSpecificSummaryFactsCmf .overall-summary-tpt-inline {
-    display: grid;
-    grid-template-columns: repeat(3, 117px);
-    gap: 6px;
-    align-items: stretch;
-    justify-content: end;
-    min-width: max-content;
+    display: contents;
 }
 
 #homeOverallSummaryFacts .overall-summary-fact,
 #homeSpecificSummaryFactsDashboard .overall-summary-fact,
 #homeSpecificSummaryFactsCmf .overall-summary-fact {
-    flex: 0 0 117px;
-    width: 117px;
-    min-width: 117px;
-    max-width: 117px;
+    flex: 0 0 var(--cmf-summary-inner-card-width);
+    width: var(--cmf-summary-inner-card-width);
+    min-width: var(--cmf-summary-inner-card-width);
+    max-width: var(--cmf-summary-inner-card-width);
+    height: 117px;
+    min-height: 117px;
+    max-height: 117px;
+}
+
+#homeOverallSummaryFacts .overall-tpt-box,
+#homeSpecificSummaryFactsDashboard .overall-tpt-box,
+#homeSpecificSummaryFactsCmf .overall-tpt-box {
+    flex: 0 0 var(--cmf-summary-inner-card-width);
+    width: var(--cmf-summary-inner-card-width);
+    min-width: var(--cmf-summary-inner-card-width);
+    max-width: var(--cmf-summary-inner-card-width);
     height: 117px;
     min-height: 117px;
     max-height: 117px;
 }
 
 .overall-summary-facts .overall-summary-fact {
-    flex: 1 1 0;
-    width: auto;
-    min-width: 0;
-    max-width: none;
+    flex: 0 0 var(--cmf-summary-inner-card-width);
+    width: var(--cmf-summary-inner-card-width);
+    min-width: var(--cmf-summary-inner-card-width);
+    max-width: var(--cmf-summary-inner-card-width);
     height: 100%;
     min-height: 100%;
     max-height: 100%;
@@ -4753,6 +4883,26 @@ body {
     line-height: 1.2;
     margin-top: 0;
     align-self: end;
+}
+
+.overall-summary-side-facts {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: stretch;
+    width: 100%;
+    overflow: hidden;
+    margin-top: 12px;
+}
+
+.overall-summary-side-facts .overall-summary-fact {
+    flex: 0 0 var(--cmf-summary-inner-card-width) !important;
+    width: var(--cmf-summary-inner-card-width) !important;
+    min-width: var(--cmf-summary-inner-card-width) !important;
+    max-width: var(--cmf-summary-inner-card-width) !important;
+    height: 117px !important;
+    min-height: 117px !important;
+    max-height: 117px !important;
 }
 
 .overall-summary-fact.tone-total {
@@ -4932,16 +5082,16 @@ body {
 .overall-oem-table td:nth-child(2) { width: 11%; }
 
 .overall-oem-table th:nth-child(3),
-.overall-oem-table td:nth-child(3) { width: 10%; }
+.overall-oem-table td:nth-child(3) { width: 9%; }
 
 .overall-oem-table th:nth-child(4),
-.overall-oem-table td:nth-child(4) { width: 11%; }
+.overall-oem-table td:nth-child(4) { width: 10%; }
 
 .overall-oem-table th:nth-child(5),
 .overall-oem-table td:nth-child(5) { width: 10%; }
 
 .overall-oem-table th:nth-child(6),
-.overall-oem-table td:nth-child(6) { width: 9%; }
+.overall-oem-table td:nth-child(6) { width: 11%; }
 
 .overall-oem-table th:nth-child(7),
 .overall-oem-table td:nth-child(7) { width: 15%; }
@@ -4987,11 +5137,32 @@ body {
     font-weight: 800;
 }
 
+.overall-oem-metric-link {
+    color: #1d4ed8 !important;
+    font-weight: 700 !important;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.overall-oem-metric-link:hover {
+    color: #1e40af !important;
+    text-decoration: underline;
+}
+
 .overall-oem-name-cell {
     display: inline-flex;
     align-items: center;
     gap: 7px;
     min-width: 0;
+
+.overall-oem-name-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.overall-oem-name-link:hover {
+    text-decoration: underline;
+}
 }
 
 .overall-oem-logo {
@@ -5115,6 +5286,14 @@ body {
     white-space: nowrap;
 }
 
+.overall-tpt-value.overall-tpt-value-good {
+    color: #067647;
+}
+
+.overall-tpt-value.overall-tpt-value-bad {
+    color: #b42318;
+}
+
 .overall-tpt-value-unit {
     font-size: 16px;
     line-height: 1;
@@ -5148,6 +5327,48 @@ body {
     color: #b42318;
     background: #fef3f2;
     border: 1px solid #fecdca;
+}
+
+.overall-tpt-legend {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #475467;
+}
+
+.overall-tpt-legend-threshold {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.overall-tpt-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.overall-tpt-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 23, 42, 0.25);
+    flex: 0 0 auto;
+}
+
+.overall-tpt-legend-dot-good {
+    background: #067647;
+}
+
+.overall-tpt-legend-dot-bad {
+    background: #b42318;
 }
 
 .overall-heatmap-wrap {
@@ -5494,7 +5715,7 @@ body {
     min-height: 0;
     height: 100%;
     box-sizing: border-box;
-    padding-bottom: 8px;
+    padding-bottom: 0;
 }
 
 .overall-pending-top {
@@ -5705,6 +5926,50 @@ body {
 .overall-break-count {
     color: #111827;
     font-weight: 900;
+}
+
+.overall-break-count-link {
+    color: #1d4ed8;
+    text-decoration: none;
+    font-weight: 800;
+}
+
+.overall-break-name-link {
+    color: #1d4ed8;
+    text-decoration: none;
+    font-weight: 800;
+}
+
+.overall-break-count-link:hover,
+.overall-break-count-link:focus,
+.overall-break-name-link:hover,
+.overall-break-name-link:focus {
+    color: #1e40af;
+    text-decoration: underline;
+}
+
+.ccip-component-summary-link {
+    color: #1d4ed8;
+    text-decoration: none;
+    font-weight: 800;
+}
+
+.ccip-component-summary-link:hover,
+.ccip-component-summary-link:focus {
+    color: #1e40af;
+    text-decoration: underline;
+}
+
+.ccip-pending-summary-count-link {
+    color: #1d4ed8;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.ccip-pending-summary-count-link:hover,
+.ccip-pending-summary-count-link:focus {
+    color: #1e40af;
+    text-decoration: underline;
 }
 
 .overall-break-pct {
@@ -6097,7 +6362,7 @@ form,
     min-width: 0;
     max-width: 100%;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(260px, .45fr);
+    grid-template-columns: var(--cmf-summary-side-card-width) var(--cmf-summary-main-width) 700px;
     grid-template-rows: auto auto auto;
     gap: 10px;
 }
@@ -6110,22 +6375,106 @@ form,
 
 .overall-row-second {
     grid-template-columns: 660px minmax(0, 1fr) !important;
-    width: 1130px;
-    min-width: 1130px;
-    max-width: 1130px;
+    width: var(--cmf-summary-main-width);
+    min-width: var(--cmf-summary-main-width);
+    max-width: var(--cmf-summary-main-width);
     justify-self: start;
 }
 
 .overall-row-summary {
     grid-template-columns: 840px 390px !important;
-    width: 1130px;
-    min-width: 1130px;
-    max-width: 1130px;
+    width: var(--cmf-summary-main-width);
+    min-width: var(--cmf-summary-main-width);
+    max-width: var(--cmf-summary-main-width);
     justify-self: start;
 }
 
 #homeOverallLayoutV2 .overall-row-summary {
     grid-template-columns: 1fr !important;
+}
+
+#homeOverallLayoutV2 > .overall-row-summary {
+    display: flex !important;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 10px;
+}
+
+#homeOverallLayoutV2 > .overall-row-summary > .overall-summary-side-card {
+    display: none !important;
+}
+
+#homeOverallLayoutV2 > .overall-summary-side-card.overall-summary-side-span {
+    flex: 0 0 var(--cmf-summary-side-card-width) !important;
+    width: var(--cmf-summary-side-card-width) !important;
+    min-width: var(--cmf-summary-side-card-width) !important;
+    max-width: var(--cmf-summary-side-card-width) !important;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    grid-column: 1 !important;
+    grid-row: 1 / span 2 !important;
+}
+
+#homeOverallLayoutV2 > .overall-row-summary > .overall-summary-card {
+    flex: 1 1 auto;
+    width: auto !important;
+    min-width: 0;
+}
+
+#homeOverallLayoutV2 > .overall-row-summary .overall-summary-side-card .overall-card-head {
+    margin-bottom: 0;
+}
+
+#homeOverallLayoutV2 > .overall-summary-side-card.overall-summary-side-span .overall-card-head {
+    margin-bottom: 0;
+}
+
+#homeOverallLayoutV2 > .overall-row-summary .overall-summary-side-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 0;
+    color: #667085;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#homeOverallLayoutV2 > .overall-summary-side-card.overall-summary-side-span .overall-summary-side-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-bottom: 0;
+    color: #667085;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#homeOverallLayoutV2 #homeOverallSummaryFacts.overall-summary-facts {
+    display: flex !important;
+    flex-wrap: nowrap;
+    gap: 6px;
+    justify-content: center;
+    align-items: stretch;
+    overflow-x: hidden;
+    overflow-y: hidden;
+}
+
+#homeLegacyTopLayout #homeSpecificSummaryFactsDashboard.overall-summary-facts,
+#homeLegacyTopLayout #homeSpecificSummaryFactsCmf.overall-summary-facts,
+#homeCmfSummaryPanel #homeSpecificSummaryFactsCmf.overall-summary-facts {
+    display: flex !important;
+    flex-wrap: nowrap;
+    gap: 6px;
+    justify-content: center;
+    align-items: stretch;
+    overflow-x: hidden;
+    overflow-y: hidden;
 }
 
 .overall-row-summary > .overall-card {
@@ -6151,17 +6500,17 @@ form,
 }
 
 .overall-layout-v2 > .overall-row-summary {
-    grid-column: 1 !important;
+    grid-column: 2 !important;
     grid-row: 1 !important;
 }
 
 .overall-layout-v2 > .overall-row-second {
-    grid-column: 1 !important;
+    grid-column: 2 !important;
     grid-row: 2 !important;
 }
 
 .overall-layout-v2 > .overall-ai-span-card {
-    grid-column: 2 !important;
+    grid-column: 3 !important;
     grid-row: 1 / span 2 !important;
     min-height: 0 !important;
     max-height: none !important;
@@ -6641,6 +6990,73 @@ form,
     z-index: 1050;
 }
 
+#btnExportDesignDetailsModal0 {
+    position: absolute;
+    top: 10px;
+    right: 50px;
+    z-index: 1050;
+    background-color: #138a3d !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+
+#btnExportDesignDetailsModal0:hover {
+    background-color: #0e6f31 !important;
+}
+
+/* Unified popup export button layout + style */
+.modal-title-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+}
+
+.modal-title-container .modal-title {
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#detailsModal .modal-header .export-btn,
+#detailsModal0 .modal-header .export-btn,
+#detailsModal2 .modal-header .export-btn,
+#detailsModal3 .modal-header .export-btn,
+#detailsModalDrivers .modal-header .export-btn,
+#detailsModalDrivers1 .modal-header .export-btn {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    z-index: auto !important;
+    margin-left: auto !important;
+    margin-right: 8px !important;
+    background: #16a34a !important;
+    border: 1px solid #16a34a !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.26) !important;
+}
+
+#detailsModal .modal-header .export-btn:hover,
+#detailsModal0 .modal-header .export-btn:hover,
+#detailsModal2 .modal-header .export-btn:hover,
+#detailsModal3 .modal-header .export-btn:hover,
+#detailsModalDrivers .modal-header .export-btn:hover,
+#detailsModalDrivers1 .modal-header .export-btn:hover {
+    background: #15803d !important;
+    border-color: #15803d !important;
+}
+
+#detailsModal .modal-header .export-btn:focus,
+#detailsModal0 .modal-header .export-btn:focus,
+#detailsModal2 .modal-header .export-btn:focus,
+#detailsModal3 .modal-header .export-btn:focus,
+#detailsModalDrivers .modal-header .export-btn:focus,
+#detailsModalDrivers1 .modal-header .export-btn:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(187, 247, 208, 0.95), 0 0 0 4px rgba(22, 163, 74, 0.35) !important;
+}
+
             /* Modern Buttons */
 .modern-button2 {
     background-color: green; /* Intel's blue */
@@ -6981,6 +7397,24 @@ td:nth-child(odd), th:nth-child(odd) {
     border-bottom: none !important;
 }
 
+.overall-oem-table tbody tr.overall-oem-total-row td {
+    background: #f8fafc;
+    font-weight: 800;
+    border-top: 2px solid #cbd5e1;
+    border-bottom: 1px solid #d9dde5 !important;
+}
+
+.overall-oem-total-label {
+    color: #1f2937;
+    font-weight: 900;
+    letter-spacing: 0.01em;
+}
+
+.overall-oem-total-trend {
+    color: #475467;
+    font-weight: 700;
+}
+
 /* First row within .table-primary2 */
 .table-primary2 tr:first-child {
     background-color: #ffebcc; /* Mild yellow background for the first row */
@@ -7185,6 +7619,177 @@ td:nth-child(odd), th:nth-child(odd) {
   padding: 0.5rem; /* Reduce padding for smaller text in scaled grid */
 }
 
+/* Design Summary details popup: fit dialog to table width and center table */
+#detailsModal0 .modal-dialog.custom-modal-dialog {
+    width: max-content;
+    max-width: calc(100vw - 40px);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#detailsModal0 .modal-content {
+    width: max-content;
+    max-width: 100%;
+}
+
+#detailsModal0 .modal-body.custom-modal-body {
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+#detailsModal0 .gridview-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+}
+
+#detailsModal0 .custom-gridview {
+    transform: none;
+    transform-origin: top center;
+    width: max-content;
+    min-width: 0;
+    margin: 0 auto;
+}
+
+/* OEM details popup: fit dialog to table width and center table */
+#detailsModal3 .modal-dialog.custom-modal-dialog {
+    width: max-content;
+    max-width: calc(100vw - 40px);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#detailsModal3 .modal-content {
+    width: max-content;
+    max-width: 100%;
+}
+
+#detailsModal3 .modal-body.custom-modal-body {
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+#detailsModal3 .gridview-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+}
+
+#detailsModal3 .gridview-container > div {
+    width: max-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#detailsModal3 .custom-gridview {
+    transform: none;
+    transform-origin: top center;
+    width: max-content;
+    min-width: 0;
+    margin: 0 auto;
+}
+
+/* Milestone issue popups: fit dialog to table width and center table */
+#detailsModalDrivers .modal-dialog.custom-modal-dialog,
+#detailsModalDrivers1 .modal-dialog.custom-modal-dialog {
+    width: max-content;
+    max-width: calc(100vw - 40px);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#detailsModalDrivers .modal-content,
+#detailsModalDrivers1 .modal-content {
+    width: max-content;
+    max-width: 100%;
+}
+
+#detailsModalDrivers .modal-body.custom-modal-body,
+#detailsModalDrivers1 .modal-body.custom-modal-body {
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+#detailsModalDrivers .gridview-container,
+#detailsModalDrivers1 .gridview-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+}
+
+#detailsModalDrivers .gridview-container > div,
+#detailsModalDrivers1 .gridview-container > div {
+    width: max-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#detailsModalDrivers .custom-gridview,
+#detailsModalDrivers1 .custom-gridview {
+    transform: none;
+    transform-origin: top center;
+    width: max-content;
+    min-width: 0;
+    margin: 0 auto;
+}
+
+/* Summary metric issue popup (Total/Open/Closed/Implemented): fit dialog to table width */
+#detailsModalSummaryMetrics .modal-dialog.custom-modal-dialog {
+    width: max-content;
+    max-width: calc(100vw - 40px);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#detailsModalSummaryMetrics .modal-content {
+    width: max-content;
+    max-width: 100%;
+}
+
+#detailsModalSummaryMetrics .modal-body.custom-modal-body {
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+#detailsModalSummaryMetrics .gridview-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+}
+
+#detailsModalSummaryMetrics .gridview-container > div {
+    width: max-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#detailsModalSummaryMetrics .custom-gridview {
+    transform: none;
+    transform-origin: top center;
+    width: max-content;
+    min-width: 0;
+    margin: 0 auto;
+}
+
+/* Keep clickable numeric fields centered in summary metric detail table. */
+#detailsModalSummaryMetrics #GridView_summaryMetricIssues th:nth-child(3),
+#detailsModalSummaryMetrics #GridView_summaryMetricIssues td:nth-child(3),
+#detailsModalSummaryMetrics #GridView_summaryMetricIssues th:nth-child(4),
+#detailsModalSummaryMetrics #GridView_summaryMetricIssues td:nth-child(4),
+#detailsModalSummaryMetrics #GridView_summaryMetricIssues th:nth-child(20),
+#detailsModalSummaryMetrics #GridView_summaryMetricIssues td:nth-child(20) {
+    text-align: center;
+}
+
+#detailsModalSummaryMetrics #GridView_summaryMetricIssues td:nth-child(3) a {
+    display: inline-block;
+    text-align: center;
+}
+
 .summary-issues-popup-backdrop {
     position: fixed;
     inset: 0;
@@ -7316,6 +7921,18 @@ td:nth-child(odd), th:nth-child(odd) {
     text-align: right;
 }
 
+.summary-issues-popup-meta-link {
+    color: #1d4ed8;
+    text-decoration: none;
+    font-weight: 800;
+}
+
+.summary-issues-popup-meta-link:hover,
+.summary-issues-popup-meta-link:focus {
+    color: #1e40af;
+    text-decoration: underline;
+}
+
 .summary-issues-popup-meta-idst {
     display: block;
     margin-top: 2px;
@@ -7352,18 +7969,31 @@ td:nth-child(odd), th:nth-child(odd) {
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.02em;
-    margin-bottom: 6px;
+    margin-bottom: 0;
 }
 
 .summary-issues-group-count {
     margin-left: auto;
     text-transform: none;
     letter-spacing: 0;
-    text-align: right;
+    text-align: center;
     color: #475467;
     font-size: 12px;
     font-weight: 800;
     white-space: nowrap;
+    min-width: 96px;
+}
+
+.summary-issues-group-count-link {
+    color: #1d4ed8;
+    text-decoration: none;
+    font-weight: 800;
+}
+
+.summary-issues-group-count-link:hover,
+.summary-issues-group-count-link:focus {
+    color: #1e40af;
+    text-decoration: underline;
 }
 
 .summary-issues-group-links {
@@ -13600,10 +14230,56 @@ td:nth-child(odd), th:nth-child(odd) {
         box-sizing: border-box !important;
     }
 
-    html,
-    body {
-        overflow-x: hidden !important;
-    }
+    <script type="text/javascript">
+        window.CMF_PORTAL = window.CMF_PORTAL || {};
+        window.CMF_PORTAL.ids = window.CMF_PORTAL.ids || {};
+        window.CMF_PORTAL.ids.hfSelectedValues = '<%= hfSelectedValues.ClientID %>';
+        window.CMF_PORTAL.ids.exportBtn = '<%= exportBtn.ClientID %>';
+        window.CMF_PORTAL.ids.driverCollectorhf = '<%= driverCollectorhf.ClientID %>';
+        window.CMF_PORTAL.ids.hiddenComponentName = '<%= HiddenComponentName.ClientID %>';
+        window.CMF_PORTAL.ids.hiddenDriverName = '<%= HiddenDriverName.ClientID %>';
+        window.CMF_PORTAL.ids.hiddenIssueType = '<%= HiddenIssueType.ClientID %>';
+        window.CMF_PORTAL.ids.hiddenModalDesign = '<%= HiddenModalDesign.ClientID %>';
+        window.CMF_PORTAL.ids.hiddenModalDriver = '<%= HiddenModalDriver.ClientID %>';
+        window.CMF_PORTAL.ids.hiddenInlineDesignName = '<%= HiddenInlineDesignName.ClientID %>';
+        window.CMF_PORTAL.ids.hiddenInlineSwImageFreeze = '<%= HiddenInlineSwImageFreeze.ClientID %>';
+        window.CMF_PORTAL.ids.hiddenInlineSupportModel = '<%= HiddenInlineSupportModel.ClientID %>';
+        window.CMF_PORTAL.ids.ddlTables = '<%= ddlTables.ClientID %>';
+        window.CMF_PORTAL.ids.ddlSharedPlatform = '<%= ddlSharedPlatform.ClientID %>';
+        window.CMF_PORTAL.ids.hfQuickPlatform = '<%= hfQuickPlatform.ClientID %>';
+        window.CMF_PORTAL.ids.hfQuickPlatformSourceTab = '<%= hfQuickPlatformSourceTab.ClientID %>';
+        window.CMF_PORTAL.ids.hfOverallExcludedPlatforms = '<%= hfOverallExcludedPlatforms.ClientID %>';
+        window.CMF_PORTAL.ids.btnQuickPlatformApply = '<%= btnQuickPlatformApply.UniqueID %>';
+        window.CMF_PORTAL.ids.btnShowGridView2 = '<%= btnShowGridView2.UniqueID %>';
+        window.CMF_PORTAL.ids.btnExportToExcelDesignSummary = '<%= btnExportToExcel_des_summary.UniqueID %>';
+        window.CMF_PORTAL.ids.overallRequestDetails = '<%= overall_request_details.ClientID %>';
+        window.CMF_PORTAL.ids.gridViewDesignSummaryModal0 = '<%= GridView_design_summary_modal0.ClientID %>';
+        window.CMF_PORTAL.ids.gridViewSummaryMetricIssues = '<%= GridView_summaryMetricIssues.ClientID %>';
+        window.CMF_PORTAL.ids.gridViewDesignSummary = '<%= GridView_design_summary.ClientID %>';
+        window.CMF_PORTAL.ids.gridViewComponentSummary = '<%= GridView_component_summary.ClientID %>';
+        window.CMF_PORTAL.ids.gridViewCmfSummary = '<%= GridView_cmf_summary.ClientID %>';
+        window.CMF_PORTAL.ids.gridViewComp = '<%= GridView_comp.ClientID %>';
+        window.CMF_PORTAL.ids.gridViewCmfPending = '<%= GridView_cmf_pending.ClientID %>';
+        window.CMF_PORTAL.ids.homeWelcomePanel = '<%= homeWelcomePanel.ClientID %>';
+        window.CMF_PORTAL.ids.homeCmfSummaryPanel = '<%= homeCmfSummaryPanel.ClientID %>';
+        window.CMF_PORTAL.ids.paneIssueList = '<%= pane3.ClientID %>';
+        window.CMF_PORTAL.ids.paneCmfPending = '<%= pane4.ClientID %>';
+        window.CMF_PORTAL.ids.activeViewTitle = '<%= lblActiveViewTitle.ClientID %>';
+        window.CMF_PORTAL.ids.issueListHeaderPanel = '<%= issueListHeaderPanel.ClientID %>';
+        window.CMF_PORTAL.ids.cmfPendingHeaderPanel = '<%= cmf_pending_header_panel.ClientID %>';
+        window.CMF_PORTAL.ids.lblIssueTotal = '<%= lblIssueTotal.ClientID %>';
+        window.CMF_PORTAL.ids.lblIssueInProgress = '<%= lblIssueInProgress.ClientID %>';
+        window.CMF_PORTAL.ids.lblIssueStale = '<%= lblIssueStale.ClientID %>';
+        window.CMF_PORTAL.ids.lblPendingSightings = '<%= lblPendingSightings.ClientID %>';
+        window.CMF_PORTAL.ids.lblQualifyForCmf = '<%= lblQualifyForCmf.ClientID %>';
+        window.CMF_PORTAL.ids.lblLikelyDuplicate = '<%= lblLikelyDuplicate.ClientID %>';
+        window.CMF_PORTAL.ids.lblIncompleteSysScope = '<%= lblIncompleteSysScope.ClientID %>';
+        window.CMF_PORTAL.currentPlatform = '<%= ResolvePlatformTable(Session["selectedPlatform"] as string ?? ddlTables.SelectedValue) %>';
+        window.CMF_PORTAL.currentDashboardPlatform = '<%= ResolveDashboardPlatformSelection() %>';
+        window.CMF_PORTAL.overallPlatformTable = '<%= CmfPlatformCatalog.OverallPlatformTableName %>';
+        window.CMF_PORTAL.availablePlatforms = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(AvailablePlatformTablesJson) %>');
+        window.CMF_PORTAL.platformChipOptions = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(AvailablePlatformChipOptionsJson) %>');
+        window.CMF_PORTAL.overallExcludedPlatforms = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(OverallExcludedPlatformsJson) %>');
 
     .portal-layout-shell,
     .portal-main-workspace,
@@ -17001,6 +17677,9 @@ td:nth-child(odd), th:nth-child(odd) {
             host.innerHTML = '';
             for (var i = 0; i < facts.length; i++) {
                 var fact = facts[i] || {};
+                if (!shouldRenderOverallSummaryFact(fact)) {
+                    continue;
+                }
                 var formattedFact = formatSummaryFactValueAndNote(fact.Value, fact.Note);
                 var card = document.createElement('div');
                 card.className = 'ccip-summary-fact';
@@ -17030,6 +17709,11 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             return 'tone-total';
+        }
+
+        function shouldRenderOverallSummaryFact(fact) {
+            var normalized = String((fact && fact.Label) || '').toLowerCase();
+            return normalized.indexOf('avg resolution') < 0;
         }
 
         function buildOverallSummaryFactTooltip(fact) {
@@ -17243,6 +17927,23 @@ td:nth-child(odd), th:nth-child(odd) {
             if (backdrop) backdrop.classList.remove('visible');
         }
 
+        function openPendingSummaryDetailsFromSummaryPopup(groupName, idsCsv) {
+            closeSummaryIssueLinksPopup();
+            return showPendingSummaryIssues(groupName, idsCsv);
+        }
+
+        function openSummaryMetricDetailsFromSummaryPopup(metricLabel, groupName, idsCsv) {
+            closeSummaryIssueLinksPopup();
+
+            var payload =
+                encodeURIComponent(String(metricLabel || 'Summary Metric')) + '||' +
+                encodeURIComponent(String(groupName || 'Unassigned')) + '||' +
+                encodeURIComponent(String(idsCsv || ''));
+
+            __doPostBack('ShowSummaryMetricIssues', payload);
+            return false;
+        }
+
         function renderSummaryIssueLinks(result) {
             var body = document.getElementById('summaryIssuesPopupBody');
             var meta = document.getElementById('summaryIssuesPopupMeta');
@@ -17313,7 +18014,7 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             if (!result || result.Success !== true) {
-                body.innerHTML = '<div class="summary-issues-popup-empty">' + escapeHtml((result && result.Message) ? result.Message : 'Unable to load issue links.') + '</div>';
+                body.innerHTML = '<div class="summary-issues-popup-empty">' + escapeHtml((result && result.Message) ? result.Message : 'Unable to load issues.') + '</div>';
                 return;
             }
 
@@ -17350,10 +18051,21 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             var html = '';
+            var isPendingSummaryMetric = String(popupState.metricKey || '').toLowerCase() === 'pending';
+            var canOpenSummaryMetricDetails =
+                !isPendingSummaryMetric &&
+                String(popupState.sourceType || 'summary').toLowerCase() === 'summary';
+            var metricLabelForDetails = String(popupState.metricLabel || popupState.metricKey || 'Summary Metric');
+            var pendingMetricIds = [];
+            var pendingMetricSeen = {};
+            var summaryMetricIds = [];
+            var summaryMetricSeen = {};
             for (var i = 0; i < sortedGroups.length; i++) {
                 var group = sortedGroups[i] || {};
                 var ids = group.HsdIds || [];
-                var links = [];
+                var issueCount = 0;
+                var normalizedIds = [];
+                var seenIds = {};
                 for (var j = 0; j < ids.length; j++) {
                     var rawId = String(ids[j] || '').trim();
                     if (!rawId) {
@@ -17365,16 +18077,59 @@ td:nth-child(odd), th:nth-child(odd) {
                         continue;
                     }
 
-                    links.push('<a href="https://hsdes.intel.com/appstore/article/#/' + encodeURIComponent(safeId) + '" target="_blank" rel="noopener noreferrer">#' + escapeHtml(safeId) + '</a>');
+                    if (seenIds[safeId]) {
+                        continue;
+                    }
+
+                    seenIds[safeId] = true;
+                    normalizedIds.push(safeId);
+
+                    if (isPendingSummaryMetric && !pendingMetricSeen[safeId]) {
+                        pendingMetricSeen[safeId] = true;
+                        pendingMetricIds.push(safeId);
+                    }
+
+                    if (canOpenSummaryMetricDetails && !summaryMetricSeen[safeId]) {
+                        summaryMetricSeen[safeId] = true;
+                        summaryMetricIds.push(safeId);
+                    }
+
+                    issueCount += 1;
+                }
+
+                var countText = String(issueCount) + ' issues';
+                var countHtml = '<span class="summary-issues-group-count">' + escapeHtml(countText) + '</span>';
+                if (isPendingSummaryMetric && normalizedIds.length > 0) {
+                    var encodedGroupName = encodeURIComponent(String(group.GroupName || 'Pending Summary'));
+                    var encodedIds = encodeURIComponent(normalizedIds.join(','));
+                    countHtml = '<span class="summary-issues-group-count"><a href="javascript:void(0);" class="summary-issues-group-count-link" onclick="return openPendingSummaryDetailsFromSummaryPopup(decodeURIComponent(\'' + encodedGroupName + '\'), decodeURIComponent(\'' + encodedIds + '\'))">' + escapeHtml(countText) + '</a></span>';
+                } else if (canOpenSummaryMetricDetails && normalizedIds.length > 0) {
+                    var encodedMetricLabel = encodeURIComponent(metricLabelForDetails);
+                    var encodedSummaryGroup = encodeURIComponent(String(group.GroupName || 'Unassigned'));
+                    var encodedSummaryIds = encodeURIComponent(normalizedIds.join(','));
+                    countHtml = '<span class="summary-issues-group-count"><a href="javascript:void(0);" class="summary-issues-group-count-link" onclick="return openSummaryMetricDetailsFromSummaryPopup(decodeURIComponent(\'' + encodedMetricLabel + '\'), decodeURIComponent(\'' + encodedSummaryGroup + '\'), decodeURIComponent(\'' + encodedSummaryIds + '\'))">' + escapeHtml(countText) + '</a></span>';
                 }
 
                 html += '<section class="summary-issues-group">';
-                html += '<div class="summary-issues-group-title"><span class="summary-issues-group-name">' + escapeHtml(group.GroupName || 'Unassigned') + '</span><span class="summary-issues-group-count">Issues: ' + String(links.length) + '</span></div>';
-                html += '<div class="summary-issues-group-links">' + (links.length ? links.join(', ') : 'No HSD links') + '</div>';
+                html += '<div class="summary-issues-group-title"><span class="summary-issues-group-name">' + escapeHtml(group.GroupName || 'Unassigned') + '</span>' + countHtml + '</div>';
                 html += '</section>';
             }
 
             body.innerHTML = html;
+
+            if (isPendingSummaryMetric && pendingMetricIds.length > 0) {
+                var encodedMetaIds = encodeURIComponent(pendingMetricIds.join(','));
+                var metaLinkHtml = '<a href="javascript:void(0);" class="summary-issues-popup-meta-link" onclick="return openPendingSummaryDetailsFromSummaryPopup(\'Total Pending\', decodeURIComponent(\'' + encodedMetaIds + '\'))">' + escapeHtml(String(totalIssues) + ' issues') + '</a>';
+                var metaExtraText = metaParts.length > 1 ? (' • ' + escapeHtml(metaParts.slice(1).join(' • '))) : '';
+                meta.innerHTML = metaLinkHtml + metaExtraText;
+            } else if (canOpenSummaryMetricDetails && summaryMetricIds.length > 0) {
+                var encodedSummaryMetaMetric = encodeURIComponent(metricLabelForDetails);
+                var encodedSummaryMetaGroup = encodeURIComponent('All Groups');
+                var encodedSummaryMetaIds = encodeURIComponent(summaryMetricIds.join(','));
+                var summaryMetaLinkHtml = '<a href="javascript:void(0);" class="summary-issues-popup-meta-link" onclick="return openSummaryMetricDetailsFromSummaryPopup(decodeURIComponent(\'' + encodedSummaryMetaMetric + '\'), decodeURIComponent(\'' + encodedSummaryMetaGroup + '\'), decodeURIComponent(\'' + encodedSummaryMetaIds + '\'))">' + escapeHtml(String(totalIssues) + ' issues') + '</a>';
+                var summaryMetaExtraText = metaParts.length > 1 ? (' • ' + escapeHtml(metaParts.slice(1).join(' • '))) : '';
+                meta.innerHTML = summaryMetaLinkHtml + summaryMetaExtraText;
+            }
         }
 
         function loadSummaryIssueLinks(metricKey, metricLabel, groupBy) {
@@ -17396,7 +18151,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 title.textContent = 'CMF Issues • ' + String(metricLabel || metricKey || 'Summary Metric').toUpperCase();
             }
 
-            body.innerHTML = '<div class="summary-issues-popup-empty">Loading issue links...</div>';
+            body.innerHTML = '<div class="summary-issues-popup-empty">Loading issues...</div>';
 
             var endpoint = 'CMF_Web_portal.aspx/GetSummaryCardIssueLinks';
             var payload = {
@@ -17572,14 +18327,22 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             var facts = snapshot && snapshot.SummaryFacts ? snapshot.SummaryFacts : [];
-            if (!facts.length) {
+            var visibleFacts = [];
+            for (var factIndex = 0; factIndex < facts.length; factIndex++) {
+                var candidateFact = facts[factIndex] || {};
+                if (shouldRenderOverallSummaryFact(candidateFact)) {
+                    visibleFacts.push(candidateFact);
+                }
+            }
+
+            if (!visibleFacts.length) {
                 host.innerHTML = '<div class="ccip-empty-state">No summary data available.</div>';
                 return;
             }
 
             host.innerHTML = '';
-            for (var i = 0; i < facts.length; i++) {
-                var fact = facts[i] || {};
+            for (var i = 0; i < visibleFacts.length; i++) {
+                var fact = visibleFacts[i] || {};
                 var formattedFact = formatSummaryFactValueAndNote(fact.Value, fact.Note);
                 var card = document.createElement('div');
                 card.className = 'ccip-summary-fact overall-summary-fact ' + getOverallSummaryToneClass(fact.Label);
@@ -17592,8 +18355,8 @@ td:nth-child(odd), th:nth-child(odd) {
                     card.className += ' ccip-summary-clickable';
                     card.setAttribute('role', 'button');
                     card.setAttribute('tabindex', '0');
-                    card.setAttribute('title', tooltip + '\nClick to view individual HSD links.');
-                    card.setAttribute('aria-label', (fact.Label || 'Summary metric') + '. ' + tooltip + '. Click to view individual HSD links grouped by selection.');
+                    card.setAttribute('title', tooltip + '\nClick to view issue counts by group.');
+                    card.setAttribute('aria-label', (fact.Label || 'Summary metric') + '. ' + tooltip + '. Click to view issue counts grouped by selection.');
                 }
 
                 card.innerHTML = '<div class="ccip-summary-fact-label">' + escapeHtml(fact.Label || '-') + '</div>' +
@@ -17830,6 +18593,27 @@ td:nth-child(odd), th:nth-child(odd) {
                 '</span>';
         }
 
+        function buildDesignSummaryMetricLinkHtml(designName, columnName, valueText) {
+            var normalizedDesign = String(designName == null ? '' : designName).trim();
+            var normalizedColumn = String(columnName == null ? '' : columnName).trim();
+            var normalizedValue = String(valueText == null ? '' : valueText).trim();
+
+            if (!normalizedDesign || !normalizedColumn || !normalizedValue) {
+                return escapeHtml(normalizedValue);
+            }
+
+            var encodedDesign = encodeURIComponent(normalizedDesign);
+            var encodedColumn = encodeURIComponent(normalizedColumn);
+            var totalClass = /^total$/i.test(normalizedDesign) ? ' is-total' : '';
+            var baseClass = 'ccip-design-metric-link' + totalClass;
+
+            if (/^impl\s*\/\s*verified$/i.test(normalizedColumn)) {
+                return '<a href="javascript:void(0);" class="' + baseClass + '" onclick="return showImplementedVerifiedDetailsModal(decodeURIComponent(\'' + encodedDesign + '\'));">' + escapeHtml(normalizedValue) + '</a>';
+            }
+
+            return '<a href="javascript:void(0);" class="' + baseClass + '" onclick="return showDriverDetailsModal(decodeURIComponent(\'' + encodedDesign + '\'), decodeURIComponent(\'' + encodedColumn + '\'));">' + escapeHtml(normalizedValue) + '</a>';
+        }
+
         function renderOverallOemTable(rows) {
             var host = document.getElementById('homeOverallOemTable');
             if (!host) {
@@ -17849,16 +18633,40 @@ td:nth-child(odd), th:nth-child(odd) {
             var html = '<table class="overall-oem-table"><thead><tr>' +
                 '<th>OEM/Customer</th>' +
                 '<th>Total Issues</th>' +
+                '<th>Closed</th>' +
+                '<th>Implemented</th>' +
                 '<th>Open Issues</th>' +
                 '<th>CMF Pending</th>' +
-                '<th>Implemented</th>' +
-                '<th>Closed</th>' +
                 '<th>Average Resolution Time (Days)</th>' +
                 '<th>Trend<br><span style="display:block;font-size:9px;font-weight:700;letter-spacing:0.01em;opacity:0.95;">(vs Last Week)</span></th>' +
                 '</tr></thead><tbody>';
 
+            function buildOverallOemMetricLinkHtml(oemName, metricKey, metricClass, value) {
+                var safeOem = String(oemName || 'Unassigned');
+                var safeMetric = String(metricKey || 'total');
+                var safeValue = String(value == null ? '' : value);
+                var encodedToken = encodeURIComponent(safeOem + '||' + safeMetric);
+                return '<a href="javascript:void(0);" class="overall-oem-metric-link ' + metricClass + '" onclick="return showDetailsModal3(decodeURIComponent(\'' + encodedToken + '\'));">' + escapeHtml(safeValue) + '</a>';
+            }
+
+            function buildOverallOemNameLinkHtml(oemName) {
+                var safeOem = String(oemName || 'Unassigned');
+                var encodedToken = encodeURIComponent(safeOem + '||total');
+                return '<a href="javascript:void(0);" class="overall-oem-name-link" onclick="return showDetailsModal3(decodeURIComponent(\'' + encodedToken + '\'));">' + renderOverallOemNameCell(safeOem) + '</a>';
+            }
+
+            var totals = {
+                totalIssues: 0,
+                openIssues: 0,
+                cmfPending: 0,
+                implemented: 0,
+                closed: 0,
+                weightedResolutionNumerator: 0
+            };
+
             for (var i = 0; i < source.length; i++) {
                 var row = source[i] || {};
+                var oemName = String(row.OemName || 'Unassigned');
                 var totalIssues = parseInt(row.TotalIssues || 0, 10);
                 var openIssues = parseInt(row.OpenIssues || 0, 10);
                 var cmfPending = parseInt(row.CmfPending || 0, 10);
@@ -17874,17 +18682,48 @@ td:nth-child(odd), th:nth-child(odd) {
                     ? ('+' + trendAbs + '%')
                     : (trendSafe < 0 ? ('-' + trendAbs + '%') : '0%');
 
+                var safeTotalIssues = isNaN(totalIssues) ? 0 : totalIssues;
+                var safeOpenIssues = isNaN(openIssues) ? 0 : openIssues;
+                var safeCmfPending = isNaN(cmfPending) ? 0 : cmfPending;
+                var safeImplemented = isNaN(implemented) ? 0 : implemented;
+                var safeClosed = isNaN(closed) ? 0 : closed;
+                var safeAvgResolution = isNaN(avgResolution) ? 0 : avgResolution;
+
+                totals.totalIssues += safeTotalIssues;
+                totals.openIssues += safeOpenIssues;
+                totals.cmfPending += safeCmfPending;
+                totals.implemented += safeImplemented;
+                totals.closed += safeClosed;
+                totals.weightedResolutionNumerator += (safeAvgResolution * safeTotalIssues);
+
                 html += '<tr>' +
-                    '<td>' + renderOverallOemNameCell(row.OemName || 'Unassigned') + '</td>' +
-                    '<td><span class="overall-oem-metric-total">' + escapeHtml(String(isNaN(totalIssues) ? 0 : totalIssues)) + '</span></td>' +
-                    '<td><span class="overall-oem-metric-open">' + escapeHtml(String(isNaN(openIssues) ? 0 : openIssues)) + '</span></td>' +
-                    '<td><span class="overall-oem-metric-pending">' + escapeHtml(String(isNaN(cmfPending) ? 0 : cmfPending)) + '</span></td>' +
-                    '<td><span class="overall-oem-metric-implemented">' + escapeHtml(String(isNaN(implemented) ? 0 : implemented)) + '</span></td>' +
-                    '<td><span class="overall-oem-metric-closed">' + escapeHtml(String(isNaN(closed) ? 0 : closed)) + '</span></td>' +
-                    '<td>' + escapeHtml((isNaN(avgResolution) ? 0 : avgResolution).toFixed(1)) + '</td>' +
+                    '<td>' + buildOverallOemNameLinkHtml(oemName) + '</td>' +
+                    '<td>' + buildOverallOemMetricLinkHtml(oemName, 'total', 'overall-oem-metric-total', safeTotalIssues) + '</td>' +
+                    '<td>' + buildOverallOemMetricLinkHtml(oemName, 'closed', 'overall-oem-metric-closed', safeClosed) + '</td>' +
+                    '<td>' + buildOverallOemMetricLinkHtml(oemName, 'implemented', 'overall-oem-metric-implemented', safeImplemented) + '</td>' +
+                    '<td>' + buildOverallOemMetricLinkHtml(oemName, 'open', 'overall-oem-metric-open', safeOpenIssues) + '</td>' +
+                    '<td>' + buildOverallOemMetricLinkHtml(oemName, 'pending', 'overall-oem-metric-pending', safeCmfPending) + '</td>' +
+                    '<td>' + escapeHtml(safeAvgResolution.toFixed(1)) + '</td>' +
                         '<td><span class="overall-oem-trend ' + trendClass + '"><span class="overall-oem-trend-arrow">' + escapeHtml(trendArrow) + '</span><span class="overall-oem-trend-value">' + escapeHtml(trendValue) + '</span></span></td>' +
                     '</tr>';
             }
+
+            var totalAvgResolution = totals.totalIssues > 0
+                ? (totals.weightedResolutionNumerator / totals.totalIssues)
+                : 0;
+
+            var overallOemTotalToken = '__all_oems__';
+
+            html += '<tr class="overall-oem-total-row">' +
+                '<td><span class="overall-oem-total-label">Total</span></td>' +
+                '<td>' + buildOverallOemMetricLinkHtml(overallOemTotalToken, 'total', 'overall-oem-metric-total', totals.totalIssues) + '</td>' +
+                '<td>' + buildOverallOemMetricLinkHtml(overallOemTotalToken, 'closed', 'overall-oem-metric-closed', totals.closed) + '</td>' +
+                '<td>' + buildOverallOemMetricLinkHtml(overallOemTotalToken, 'implemented', 'overall-oem-metric-implemented', totals.implemented) + '</td>' +
+                '<td>' + buildOverallOemMetricLinkHtml(overallOemTotalToken, 'open', 'overall-oem-metric-open', totals.openIssues) + '</td>' +
+                '<td>' + buildOverallOemMetricLinkHtml(overallOemTotalToken, 'pending', 'overall-oem-metric-pending', totals.cmfPending) + '</td>' +
+                '<td>' + escapeHtml(totalAvgResolution.toFixed(1)) + '</td>' +
+                '<td><span class="overall-oem-total-trend">-</span></td>' +
+                '</tr>';
 
             html += '</tbody></table>';
             host.innerHTML = html;
@@ -17942,6 +18781,39 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             return 'overall-tpt-trend-neutral';
+        }
+
+        function getLegacyTptThreshold(kind) {
+            if (kind === 'disposition') {
+                return 2;
+            }
+
+            if (kind === 'resolution') {
+                return 18;
+            }
+
+            return 21;
+        }
+
+        function getLegacyTptValueToneClass(kind, value) {
+            var numeric = parseInt(value, 10);
+            if (isNaN(numeric)) {
+                numeric = 0;
+            }
+
+            return numeric > getLegacyTptThreshold(kind)
+                ? 'overall-tpt-value-bad'
+                : 'overall-tpt-value-good';
+        }
+
+        function buildTptColorLegend(kind) {
+            var threshold = getLegacyTptThreshold(kind);
+            var thresholdText = String(threshold);
+            return '<div class="overall-tpt-legend" aria-label="Color legend: green icon, less than or equal to ' + thresholdText + ' days, greater than ' + thresholdText + ' days, red icon">' +
+                '<span class="overall-tpt-legend-dot overall-tpt-legend-dot-good" aria-hidden="true"></span>' +
+                '<span class="overall-tpt-legend-threshold">&lt;= ' + thresholdText + ' days &gt;</span>' +
+                '<span class="overall-tpt-legend-dot overall-tpt-legend-dot-bad" aria-hidden="true"></span>' +
+                '</div>';
         }
 
         function buildOverallTptTooltip(kind, useSpecificPlatformCopy) {
@@ -18003,27 +18875,27 @@ td:nth-child(odd), th:nth-child(odd) {
                 return '0 days vs last week';
             }
 
-            var dispositionTrend = trendText(dispositionFact);
-            var resolutionTrend = trendText(resolutionFact);
-            var overallTrend = trendText(overallFact);
+            var dispositionDays = toDayValue(dispositionFact);
+            var resolutionDays = toDayValue(resolutionFact);
+            var overallDays = toDayValue(overallFact);
 
             var html = '';
             html += '<div class="overall-tpt-box" data-tpt-kind="disposition">' +
                 '<div class="overall-tpt-label">DISPOSITION TPT</div>' +
-                '<div class="overall-tpt-value">' + escapeHtml(String(toDayValue(dispositionFact))) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
-                '<div class="overall-tpt-note ' + getTptTrendToneClass(dispositionTrend) + '">' + escapeHtml(dispositionTrend) + '</div>' +
+                '<div class="overall-tpt-value ' + getLegacyTptValueToneClass('disposition', dispositionDays) + '">' + escapeHtml(String(dispositionDays)) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
+                buildTptColorLegend('disposition') +
                 '</div>';
 
             html += '<div class="overall-tpt-box" data-tpt-kind="resolution">' +
                 '<div class="overall-tpt-label">RESOLUTION TPT</div>' +
-                '<div class="overall-tpt-value">' + escapeHtml(String(toDayValue(resolutionFact))) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
-                '<div class="overall-tpt-note ' + getTptTrendToneClass(resolutionTrend) + '">' + escapeHtml(resolutionTrend) + '</div>' +
+                '<div class="overall-tpt-value ' + getLegacyTptValueToneClass('resolution', resolutionDays) + '">' + escapeHtml(String(resolutionDays)) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
+                buildTptColorLegend('resolution') +
                 '</div>';
 
             html += '<div class="overall-tpt-box" data-tpt-kind="overall">' +
                 '<div class="overall-tpt-label">OVERALL TPT</div>' +
-                '<div class="overall-tpt-value">' + escapeHtml(String(toDayValue(overallFact))) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
-                '<div class="overall-tpt-note ' + getTptTrendToneClass(overallTrend) + '">' + escapeHtml(overallTrend) + '</div>' +
+                '<div class="overall-tpt-value ' + getLegacyTptValueToneClass('overall', overallDays) + '">' + escapeHtml(String(overallDays)) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
+                buildTptColorLegend('overall') +
                 '</div>';
 
             host.innerHTML = html;
@@ -18105,7 +18977,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     var isClickable = normalizedValue > 0 && !!platformLabel;
                     var tooltipText = statusTooltip || ('Open Unique: ' + String(normalizedValue));
                     if (isClickable) {
-                        tooltipText += '\nClick to view individual HSD links.';
+                        tooltipText += '\nClick to view issue counts by group.';
                     }
 
                     var extraAttrs = ' title="' + escapeHtml(tooltipText) + '" aria-label="' + escapeHtml(tooltipText) + '"';
@@ -18375,6 +19247,55 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
+            function normalizePendingSummaryIdsCsv(rawCsv) {
+                var tokens = String(rawCsv == null ? '' : rawCsv).split(',');
+                var seen = {};
+                var normalized = [];
+
+                for (var index = 0; index < tokens.length; index++) {
+                    var safeId = String(tokens[index] || '').replace(/[^0-9]/g, '').trim();
+                    if (!safeId || seen[safeId]) {
+                        continue;
+                    }
+
+                    seen[safeId] = true;
+                    normalized.push(safeId);
+                }
+
+                return normalized.join(',');
+            }
+
+            function parsePendingSummaryRowCell(rawValue) {
+                var valueText = String(rawValue == null ? '' : rawValue);
+                var count = parseMetricInt(valueText);
+                var idsCsv = '';
+                var delimiter = (typeof PENDING_SUMMARY_LINKS_DELIMITER === 'string' && PENDING_SUMMARY_LINKS_DELIMITER)
+                    ? PENDING_SUMMARY_LINKS_DELIMITER
+                    : ':::OPEN_HSDS:::';
+
+                if (valueText.indexOf(delimiter) >= 0) {
+                    var parts = valueText.split(delimiter);
+                    idsCsv = normalizePendingSummaryIdsCsv(parts.length > 1 ? parts[1] : '');
+                }
+
+                return {
+                    count: count,
+                    idsCsv: idsCsv
+                };
+            }
+
+            function buildPendingSummaryBreakdownLinkHtml(ingredientName, idsCsv, text, cssClass) {
+                var safeText = String(text == null ? '' : text);
+                var normalizedIdsCsv = normalizePendingSummaryIdsCsv(idsCsv);
+                if (!normalizedIdsCsv) {
+                    return escapeHtml(safeText);
+                }
+
+                var encodedIngredient = encodeURIComponent(String(ingredientName == null ? '' : ingredientName));
+                var encodedIds = encodeURIComponent(normalizedIdsCsv);
+                return '<a href="javascript:void(0);" class="' + cssClass + '" onclick="return showPendingSummaryIssues(decodeURIComponent(\'' + encodedIngredient + '\'), decodeURIComponent(\'' + encodedIds + '\'));">' + escapeHtml(safeText) + '</a>';
+            }
+
             function parseMetricInt(value) {
                 var raw = String(value == null ? '' : value);
                 if (raw.indexOf(':::OPEN_HSDS:::') >= 0) {
@@ -18403,6 +19324,8 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             var breakdown = [];
+            var pendingSummaryTotalIds = [];
+            var pendingSummaryTotalIdSeen = {};
             for (var i = 0; i < rows.length; i++) {
                 var source = rows[i] || [];
                 var label = source.length > 0 ? String(source[0] || '').trim() : '';
@@ -18410,9 +19333,28 @@ td:nth-child(odd), th:nth-child(odd) {
                     continue;
                 }
 
-                var value = source.length > pendingValueColumnIndex ? parseMetricInt(source[pendingValueColumnIndex]) : 0;
-                breakdown.push({ name: label, value: value });
+                var pendingCell = source.length > pendingValueColumnIndex ? source[pendingValueColumnIndex] : 0;
+                var pendingCellData = parsePendingSummaryRowCell(pendingCell);
+                if (pendingCellData.idsCsv) {
+                    var totalTokens = String(pendingCellData.idsCsv).split(',');
+                    for (var totalTokenIndex = 0; totalTokenIndex < totalTokens.length; totalTokenIndex++) {
+                        var totalSafeId = String(totalTokens[totalTokenIndex] || '').replace(/[^0-9]/g, '').trim();
+                        if (!totalSafeId || pendingSummaryTotalIdSeen[totalSafeId]) {
+                            continue;
+                        }
+
+                        pendingSummaryTotalIdSeen[totalSafeId] = true;
+                        pendingSummaryTotalIds.push(totalSafeId);
+                    }
+                }
+                breakdown.push({
+                    name: label,
+                    value: pendingCellData.count,
+                    idsCsv: pendingCellData.idsCsv
+                });
             }
+
+            var pendingSummaryTotalIdsCsv = pendingSummaryTotalIds.join(',');
 
             breakdown.sort(function (left, right) {
                 return right.value - left.value;
@@ -18447,13 +19389,14 @@ td:nth-child(odd), th:nth-child(odd) {
                     var item = topBreakdown[k];
                     var pct = total > 0 ? (item.value * 100 / total) : 0;
                     var dot = pieColors[k % pieColors.length];
+                    var countHtml = buildPendingSummaryBreakdownLinkHtml(item.name, item.idsCsv, String(item.value), 'overall-break-count-link');
                     breakdownHtml += '<div class="overall-break-row">' +
                         '<span class="overall-break-left">' +
                             '<span class="overall-break-dot" style="background:' + dot + ';"></span>' +
                             '<span class="overall-break-name">' + escapeHtml(item.name) + '</span>' +
                         '</span>' +
                         '<span class="overall-break-metrics">' +
-                            '<strong class="overall-break-count">' + escapeHtml(String(item.value)) + '</strong>' +
+                            '<strong class="overall-break-count">' + countHtml + '</strong>' +
                             '<span class="overall-break-pct">(' + escapeHtml(pct.toFixed(1)) + '%)</span>' +
                         '</span>' +
                         '</div>';
@@ -18468,12 +19411,16 @@ td:nth-child(odd), th:nth-child(odd) {
                 for (var a = 0; a < bucketRows.length; a++) {
                     var bucket = bucketRows[a] || {};
                     var count = parseMetricInt(bucket.Value || 0);
+                    var safeCount = isNaN(count) ? 0 : count;
                     var agePct = total > 0 ? ((isNaN(count) ? 0 : count) * 100 / total) : 0;
                     var agePctClamped = Math.max(0, Math.min(100, agePct));
+                    var bucketLabel = String(bucket.Name || '-');
+                    var encodedBucketLabel = encodeURIComponent(bucketLabel);
+                    var countLinkHtml = '<a href="javascript:void(0);" class="ccip-pending-summary-count-link" onclick="return showPendingAgeBucketIssues(decodeURIComponent(\'' + encodedBucketLabel + '\'))">' + escapeHtml(String(safeCount)) + '</a>';
                     ageHtml += '<div class="overall-age-row">' +
-                        '<span class="overall-age-label">' + renderOverallAgeBucketLabel(bucket.Name || '-') + '</span>' +
+                        '<span class="overall-age-label">' + renderOverallAgeBucketLabel(bucketLabel) + '</span>' +
                         '<span class="overall-age-bar-track"><span class="overall-age-bar-fill" style="width:' + escapeHtml(agePctClamped.toFixed(1)) + '%;"></span></span>' +
-                        '<strong class="overall-age-metrics">' + escapeHtml(String(isNaN(count) ? 0 : count)) + ' (' + escapeHtml(agePct.toFixed(1)) + '%)</strong>' +
+                        '<strong class="overall-age-metrics">' + countLinkHtml + ' (' + escapeHtml(agePct.toFixed(1)) + '%)</strong>' +
                         '</div>';
                 }
                 ageHost.innerHTML = ageHtml;
@@ -18511,12 +19458,18 @@ td:nth-child(odd), th:nth-child(odd) {
                         type: 'text',
                         left: 'center',
                         top: '36%',
-                        silent: true,
+                        silent: !pendingSummaryTotalIdsCsv,
+                        cursor: pendingSummaryTotalIdsCsv ? 'pointer' : 'default',
+                        onclick: pendingSummaryTotalIdsCsv
+                            ? function () {
+                                showPendingSummaryIssues('Total Pending', pendingSummaryTotalIdsCsv);
+                            }
+                            : null,
                         z: 10,
                         style: {
                             text: String(total),
-                            fill: '#0f172a',
-                            font: '900 17px Segoe UI',
+                            fill: '#1d4ed8',
+                            font: '900 14px Segoe UI',
                             textAlign: 'center',
                             textVerticalAlign: 'middle'
                         }
@@ -18530,8 +19483,8 @@ td:nth-child(odd), th:nth-child(odd) {
                         style: {
                             text: 'Total\nPending',
                             fill: '#64748b',
-                            font: '700 10px Segoe UI',
-                            lineHeight: 11,
+                            font: '700 8px Segoe UI',
+                            lineHeight: 9,
                             textAlign: 'center',
                             textVerticalAlign: 'middle'
                         }
@@ -18539,6 +19492,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 ],
                 series: [{
                     type: 'pie',
+                    cursor: 'pointer',
                     radius: ['52%', '84%'],
                     center: ['50%', '50%'],
                     itemStyle: {
@@ -18547,10 +19501,56 @@ td:nth-child(odd), th:nth-child(odd) {
                     },
                     label: { show: false },
                     data: topBreakdown.map(function (item) {
-                        return { name: item.name, value: item.value };
+                        return { name: item.name, value: item.value, idsCsv: item.idsCsv || '' };
                     })
                 }]
             }, true);
+
+            window.CMF_PORTAL.homeOverallPendingPieChart.off('click');
+            window.CMF_PORTAL.homeOverallPendingPieChart.on('click', function (params) {
+                if (!params || params.componentType !== 'series') {
+                    return;
+                }
+
+                var payload = params.data || {};
+                var idsCsv = normalizePendingSummaryIdsCsv(payload.idsCsv || '');
+                if (!idsCsv) {
+                    return;
+                }
+
+                var ingredientName = String(payload.name || params.name || 'Pending Summary').trim();
+                showPendingSummaryIssues(ingredientName, idsCsv);
+            });
+
+            if (window.CMF_PORTAL.homeOverallPendingPieCenterClickHandler) {
+                window.CMF_PORTAL.homeOverallPendingPieChart.getZr().off('click', window.CMF_PORTAL.homeOverallPendingPieCenterClickHandler);
+                window.CMF_PORTAL.homeOverallPendingPieCenterClickHandler = null;
+            }
+
+            if (pendingSummaryTotalIdsCsv) {
+                var centerClickHandler = function (event) {
+                    if (!event) {
+                        return;
+                    }
+
+                    var x = typeof event.offsetX === 'number' ? event.offsetX : 0;
+                    var y = typeof event.offsetY === 'number' ? event.offsetY : 0;
+                    var centerX = pieHost.clientWidth / 2;
+                    var centerY = pieHost.clientHeight / 2;
+                    var innerRadius = Math.min(pieHost.clientWidth, pieHost.clientHeight) * 0.52 / 2;
+                    var dx = x - centerX;
+                    var dy = y - centerY;
+                    var distance = Math.sqrt((dx * dx) + (dy * dy));
+
+                    // Clicks inside the donut hole correspond to the center total label area.
+                    if (distance <= innerRadius) {
+                        showPendingSummaryIssues('Total Pending', pendingSummaryTotalIdsCsv);
+                    }
+                };
+
+                window.CMF_PORTAL.homeOverallPendingPieChart.getZr().on('click', centerClickHandler);
+                window.CMF_PORTAL.homeOverallPendingPieCenterClickHandler = centerClickHandler;
+            }
 
             window.CMF_PORTAL.homeOverallPendingPieChart.resize();
         }
@@ -19040,6 +20040,17 @@ td:nth-child(odd), th:nth-child(odd) {
                 return isNaN(parsed) ? 0 : parsed;
             }
 
+            function buildMilestoneBreakCountLinkHtml(milestoneName, countValue) {
+                var name = String(milestoneName == null ? '' : milestoneName).trim();
+                var count = String(countValue == null ? '' : countValue);
+                if (!name) {
+                    return escapeHtml(count);
+                }
+
+                var encodedName = encodeURIComponent(name);
+                return '<a href="javascript:void(0);" class="overall-break-count-link" onclick="return showDriverIssues(decodeURIComponent(\'' + encodedName + '\'));">' + escapeHtml(count) + '</a>';
+            }
+
             var rows = tableData && tableData.Rows ? tableData.Rows : [];
             var breakdown = [];
             for (var i = 0; i < rows.length; i++) {
@@ -19084,7 +20095,7 @@ td:nth-child(odd), th:nth-child(odd) {
                         '<span class="overall-break-name">' + escapeHtml(item.name) + '</span>' +
                     '</span>' +
                     '<span class="overall-break-metrics">' +
-                        '<strong class="overall-break-count">' + escapeHtml(String(item.value)) + '</strong>' +
+                        '<strong class="overall-break-count">' + buildMilestoneBreakCountLinkHtml(item.name, item.value) + '</strong>' +
                         '<span class="overall-break-pct">(' + escapeHtml(pct.toFixed(1)) + '%)</span>' +
                     '</span>' +
                     '</div>';
@@ -19114,6 +20125,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     name: item.name,
                     type: 'bar',
                     stack: 'milestone-total',
+                    cursor: 'pointer',
                     data: [pctValue],
                     barWidth: 24,
                     itemStyle: {
@@ -19161,6 +20173,18 @@ td:nth-child(odd), th:nth-child(odd) {
                 series: stackedSeries
             }, true);
 
+            window.CMF_PORTAL.homeMilestoneSummaryPieChart.off('click');
+            window.CMF_PORTAL.homeMilestoneSummaryPieChart.on('click', function (params) {
+                var milestoneName = params && params.seriesName
+                    ? String(params.seriesName || '').trim()
+                    : '';
+                if (!milestoneName || typeof showDriverIssues !== 'function') {
+                    return;
+                }
+
+                showDriverIssues(milestoneName);
+            });
+
             window.CMF_PORTAL.homeMilestoneSummaryPieChart.resize();
         }
 
@@ -19193,18 +20217,18 @@ td:nth-child(odd), th:nth-child(odd) {
             firstCell.style.left = '0px';
             firstCell.style.zIndex = '8';
 
-            var runningLeft = firstWidth;
             for (var i = 1; i < topCells.length; i++) {
                 var groupCell = topCells[i];
                 if (!groupCell.classList.contains('ccip-component-group-header')) {
                     continue;
                 }
 
+                // Keep vertical sticky behavior from base table header CSS.
+                // Do not pin group headers horizontally; they must slide with their two sub-columns.
                 groupCell.style.position = 'sticky';
-                groupCell.style.left = runningLeft.toFixed(3) + 'px';
-                groupCell.style.zIndex = '7';
+                groupCell.style.left = '';
+                groupCell.style.zIndex = '3';
                 groupCell.style.background = '#f2f4f7';
-                runningLeft += groupCell.getBoundingClientRect().width;
             }
         }
 
@@ -19435,6 +20459,59 @@ td:nth-child(odd), th:nth-child(odd) {
             var rows = tableData && tableData.Rows ? tableData.Rows : [];
             var isMilestoneSummaryHost = hostId === 'homeMilestoneSummaryTable';
 
+            function getComponentSummaryMilestoneFromColumn(columnLabel) {
+                var text = String(columnLabel == null ? '' : columnLabel);
+                if (!text) {
+                    return '';
+                }
+
+                var parts = text.split(':::');
+                if (parts.length > 1) {
+                    return String(parts[0] || '').trim();
+                }
+
+                var milestoneSelect = document.querySelector("[id$='ddlMilestoneTop'], [id$='ddlMilestoneHeader']");
+                if (milestoneSelect && milestoneSelect.options && milestoneSelect.selectedIndex >= 0) {
+                    var selectedText = String(milestoneSelect.options[milestoneSelect.selectedIndex].text || '').trim();
+                    if (selectedText && !/^all$/i.test(selectedText)) {
+                        return selectedText;
+                    }
+                }
+
+                return '';
+            }
+
+            function hasPositiveComponentMetricValue(rawValue) {
+                var text = String(rawValue == null ? '' : rawValue);
+                var matches = text.match(/\d+/g);
+                if (!matches || !matches.length) {
+                    return false;
+                }
+
+                var total = 0;
+                for (var idx = 0; idx < matches.length; idx++) {
+                    total += parseInt(matches[idx], 10) || 0;
+                }
+                return total > 0;
+            }
+
+            function buildComponentSummaryMetricLinkHtml(componentName, milestoneName, issueType, value) {
+                var safeComponent = String(componentName == null ? '' : componentName).trim();
+                var safeMilestone = String(milestoneName == null ? '' : milestoneName).trim();
+                var safeIssueType = String(issueType == null ? '' : issueType).trim();
+                var valueText = String(value == null ? '' : value);
+
+                if (!safeComponent || !safeMilestone || !safeIssueType || !hasPositiveComponentMetricValue(valueText)) {
+                    return escapeHtml(valueText);
+                }
+
+                var encodedComponent = encodeURIComponent(safeComponent);
+                var encodedMilestone = encodeURIComponent(safeMilestone);
+                var encodedIssueType = encodeURIComponent(safeIssueType);
+
+                return '<a href="javascript:void(0);" class="ccip-component-summary-link" onclick="return showCMFIssues(decodeURIComponent(\'' + encodedComponent + '\'), decodeURIComponent(\'' + encodedMilestone + '\'), decodeURIComponent(\'' + encodedIssueType + '\'));">' + escapeHtml(valueText) + '</a>';
+            }
+
             if (isMilestoneSummaryHost) {
                 renderMilestoneSummaryPie(host, tableData);
                 return;
@@ -19450,10 +20527,46 @@ td:nth-child(odd), th:nth-child(odd) {
             var hasMilestoneColumns = hostId === 'homeComponentSummaryTable' && columns.length >= 3 && String(columns[1] || '').indexOf(':::') > -1;
             var isComponentSummary = hostId === 'homeComponentSummaryTable' && columns.length >= 3;
             var pendingValueColumnIndex = isPendingSummary ? Math.max(1, columns.length - 1) : -1;
+            var pendingSummaryAggregateIdsCsv = '';
 
             if (isComponentSummary && window.CMF_PORTAL && window.CMF_PORTAL.componentSummaryViewMode === 'heatmap') {
                 renderComponentSummaryHeatmap(host, columns, rows, hasMilestoneColumns);
                 return;
+            }
+
+            if (isPendingSummary && pendingValueColumnIndex >= 0) {
+                var pendingIdSeen = {};
+                var pendingIdList = [];
+
+                for (var pendingRowIndex = 0; pendingRowIndex < rows.length; pendingRowIndex++) {
+                    var pendingRow = rows[pendingRowIndex] || [];
+                    var pendingLabel = pendingRow.length > 0 ? String(pendingRow[0] || '') : '';
+                    if (/^total$/i.test(pendingLabel)) {
+                        continue;
+                    }
+
+                    var pendingRawValue = pendingRow.length > pendingValueColumnIndex
+                        ? String(pendingRow[pendingValueColumnIndex] == null ? '' : pendingRow[pendingValueColumnIndex])
+                        : '';
+
+                    if (pendingRawValue.indexOf(PENDING_SUMMARY_LINKS_DELIMITER) < 0) {
+                        continue;
+                    }
+
+                    var pendingParts = pendingRawValue.split(PENDING_SUMMARY_LINKS_DELIMITER);
+                    var pendingCsv = pendingParts.length > 1 ? String(pendingParts[1] || '') : '';
+                    var pendingIds = pendingCsv.split(',');
+                    for (var pendingIdIndex = 0; pendingIdIndex < pendingIds.length; pendingIdIndex++) {
+                        var pendingSafeId = String(pendingIds[pendingIdIndex] || '').replace(/[^0-9]/g, '').trim();
+                        if (!pendingSafeId || pendingIdSeen[pendingSafeId]) {
+                            continue;
+                        }
+                        pendingIdSeen[pendingSafeId] = true;
+                        pendingIdList.push(pendingSafeId);
+                    }
+                }
+
+                pendingSummaryAggregateIdsCsv = pendingIdList.join(',');
             }
 
             if (isComponentSummary) {
@@ -19539,7 +20652,7 @@ td:nth-child(odd), th:nth-child(odd) {
             } else if (isPendingSummary && columns.length >= 2) {
                 var pendingFirstColPx = 94;
                 var pendingHeader = String(renderColumns[pendingValueColumnIndex] || 'CMF Pending');
-                var pendingColWidthCh = Math.max(20, Math.min(24.8, Math.ceil(pendingHeader.length * 0.74) + 0.4));
+                var pendingColWidthCh = Math.max(10, Math.min(16, Math.ceil(pendingHeader.length * 0.72) + 0.4));
                 var pendingIdstColCh = 0;
                 if (columns.length > 2) {
                     var idstHeader = String(renderColumns[1] || 'iDST Name');
@@ -19665,12 +20778,21 @@ td:nth-child(odd), th:nth-child(odd) {
                     var row = rows[r] || [];
                     var rowLabel = row.length > 0 ? String(row[0] || '') : '';
                     var isTotalRow = /^total/i.test(rowLabel);
+                    var designName = isDesignSummary && row.length > 0 ? String(row[0] || '').trim() : '';
                     html += '<tr' + (isTotalRow ? ' class="ccip-live-total"' : '') + '>';
                     for (var i = 0; i < columns.length; i++) {
                         if (isPendingSummary && i === pendingValueColumnIndex) {
-                            html += '<td class="ccip-pending-summary-links-col">' + buildPendingSummaryCellHtml(row[i], isTotalRow) + '</td>';
+                            var totalRowIds = isTotalRow ? pendingSummaryAggregateIdsCsv : '';
+                            html += '<td class="ccip-pending-summary-links-col">' + buildPendingSummaryCellHtml(row[i], isTotalRow, row[0], totalRowIds) + '</td>';
                         } else if (isDesignSummary && i === 0) {
                             html += '<td>' + renderDesignSummaryNameCell(row[i]) + '</td>';
+                        } else if (isDesignSummary && i >= 3) {
+                            html += '<td>' + buildDesignSummaryMetricLinkHtml(designName, renderColumns[i], row[i]) + '</td>';
+                        } else if (isComponentSummary && i > 0) {
+                            var issueType = (i % 2 === 1) ? 'OpenCombined' : 'ImplementedCombined';
+                            var milestoneName = getComponentSummaryMilestoneFromColumn(columns[i]);
+                            var componentName = String(rowLabel || '').trim();
+                            html += '<td>' + buildComponentSummaryMetricLinkHtml(componentName, milestoneName, issueType, row[i]) + '</td>';
                         } else {
                             html += '<td>' + escapeHtml(row[i] == null ? '' : row[i]) + '</td>';
                         }
@@ -19707,33 +20829,103 @@ td:nth-child(odd), th:nth-child(odd) {
 
         var PENDING_SUMMARY_LINKS_DELIMITER = ':::OPEN_HSDS:::';
 
-        function buildPendingSummaryCellHtml(rawValue, isTotalRow) {
+        function getPendingIssueModalContextFromUi() {
+            var groupingLabel = 'Component';
+            var sortingLabel = 'by Count';
+
+            var state = window.CMF_PORTAL && window.CMF_PORTAL.summaryIssuesPopupState
+                ? window.CMF_PORTAL.summaryIssuesPopupState
+                : null;
+
+            if (state && String(state.metricKey || '').toLowerCase() === 'pending') {
+                var groupByKey = String(state.groupBy || 'ingredient').toLowerCase();
+                var sortByKey = normalizeSummaryIssueSortBy(state.sortBy || 'alphabetical');
+
+                groupingLabel = getSummaryIssueGroupByLabel(groupByKey) || 'Ingredient';
+                sortingLabel = sortByKey === 'hsdcount' ? 'by Count' : 'Alphabetically';
+            }
+
+            return {
+                grouping: String(groupingLabel || 'Component'),
+                sorting: String(sortingLabel || 'by Count')
+            };
+        }
+
+        function showPendingSummaryIssues(ingredientName, idsCsv) {
+            var ingredient = String(ingredientName == null ? '' : ingredientName).trim();
+            var ids = String(idsCsv == null ? '' : idsCsv)
+                .split(',')
+                .map(function (token) {
+                    return String(token || '').replace(/[^\d]/g, '');
+                })
+                .filter(function (token) {
+                    return token.length > 0;
+                });
+
+            if (!ids.length) {
+                return false;
+            }
+
+            var modalContext = getPendingIssueModalContextFromUi();
+            var payload = encodeURIComponent(ingredient)
+                + '||' + encodeURIComponent(ids.join(','))
+                + '||' + encodeURIComponent(modalContext.grouping)
+                + '||' + encodeURIComponent(modalContext.sorting);
+            __doPostBack('ShowPendingSummaryIssues', payload);
+            return false;
+        }
+
+        function showPendingAgeBucketIssues(bucketLabel) {
+            var bucket = String(bucketLabel == null ? '' : bucketLabel).trim();
+            if (!bucket) {
+                return false;
+            }
+
+            __doPostBack('ShowPendingAgeBucketIssues', encodeURIComponent(bucket));
+            return false;
+        }
+
+        function buildPendingSummaryCellHtml(rawValue, isTotalRow, ingredientName, totalRowIdsCsv) {
             var value = rawValue == null ? '' : String(rawValue);
-            if (isTotalRow || value.indexOf(PENDING_SUMMARY_LINKS_DELIMITER) < 0) {
+            var countText = value;
+            var normalizedIds = [];
+
+            if (isTotalRow) {
+                var totalCsv = String(totalRowIdsCsv == null ? '' : totalRowIdsCsv);
+                var totalIds = totalCsv.split(',');
+                var totalSeen = {};
+                for (var totalIndex = 0; totalIndex < totalIds.length; totalIndex++) {
+                    var totalSafeId = String(totalIds[totalIndex] || '').replace(/[^0-9]/g, '').trim();
+                    if (!totalSafeId || totalSeen[totalSafeId]) {
+                        continue;
+                    }
+                    totalSeen[totalSafeId] = true;
+                    normalizedIds.push(totalSafeId);
+                }
+            } else if (value.indexOf(PENDING_SUMMARY_LINKS_DELIMITER) >= 0) {
+                var parts = value.split(PENDING_SUMMARY_LINKS_DELIMITER);
+                countText = parts[0] || '0';
+                var csv = parts.length > 1 ? String(parts[1] || '') : '';
+                var ids = csv.split(',');
+                var seen = {};
+
+                for (var i = 0; i < ids.length; i++) {
+                    var token = String(ids[i] || '').trim();
+                    if (!token) continue;
+                    var safeId = token.replace(/[^0-9]/g, '');
+                    if (!safeId || seen[safeId]) continue;
+                    seen[safeId] = true;
+                    normalizedIds.push(safeId);
+                }
+            }
+
+            if (!normalizedIds.length) {
                 return escapeHtml(value);
             }
 
-            var parts = value.split(PENDING_SUMMARY_LINKS_DELIMITER);
-            var countText = escapeHtml(parts[0] || '0');
-            var csv = parts.length > 1 ? String(parts[1] || '') : '';
-            var ids = csv.split(',');
-            var links = [];
-            var seen = {};
-
-            for (var i = 0; i < ids.length; i++) {
-                var token = String(ids[i] || '').trim();
-                if (!token) continue;
-                var safeId = token.replace(/[^0-9]/g, '');
-                if (!safeId || seen[safeId]) continue;
-                seen[safeId] = true;
-                links.push('<a class="pending-id-link ccip-pending-summary-link" href="https://hsdes.intel.com/appstore/article/#/' + encodeURIComponent(safeId) + '" target="_blank" rel="noopener noreferrer">#' + escapeHtml(safeId) + '</a>');
-            }
-
-            if (!links.length) {
-                return countText;
-            }
-
-            return '<span class="ccip-pending-summary-cell"><span class="ccip-pending-summary-count">' + countText + '</span><span>|</span><span>' + links.join(', ') + '</span></span>';
+            var encodedIngredient = encodeURIComponent(String(ingredientName == null ? '' : ingredientName));
+            var encodedIds = encodeURIComponent(normalizedIds.join(','));
+            return '<a href="javascript:void(0);" class="ccip-pending-summary-count-link" onclick="return showPendingSummaryIssues(decodeURIComponent(\'' + encodedIngredient + '\'), decodeURIComponent(\'' + encodedIds + '\'));">' + escapeHtml(countText) + '</a>';
         }
 
         function getTextById(id) {
@@ -22248,7 +23440,7 @@ td:nth-child(odd), th:nth-child(odd) {
             filterCmfPendingRows();
         }
 </script>
-    <script src="Scripts/cmf-portal-main.js?v=20260805-ai-recommendation-fix"></script>
+    <script src="Scripts/cmf-portal-main.js?v=20261023-popup-export-all"></script>
 
 
 </head>
@@ -22387,7 +23579,29 @@ Submit
                                 <asp:Label ID="lblHomeAiClosedTodayValue" runat="server" style="display:none;" />
 
                                 <section id="homeOverallLayoutV2" class="overall-layout-v2" aria-label="Overall dashboard layout" style="display:none;">
+                                    <article class="overall-card overall-summary-side-card overall-summary-side-span" aria-label="Q.Links section">
+                                        <div class="overall-card-head">
+                                            <h4 class="overall-card-title"><i class="fas fa-layer-group" aria-hidden="true"></i> Q.Links</h4>
+                                        </div>
+                                        <div class="overall-summary-side-body">
+                                            <div class="overall-summary-facts overall-summary-side-facts" aria-hidden="true">
+                                                <div class="ccip-summary-fact overall-summary-fact tone-total overall-summary-fact-blank" aria-hidden="true"></div>
+                                            </div>
+                                        </div>
+                                    </article>
+
                                     <section class="overall-row overall-row-summary">
+                                        <article class="overall-card overall-summary-side-card" aria-label="Reserved summary section">
+                                            <div class="overall-card-head">
+                                                <h4 class="overall-card-title"><i class="fas fa-layer-group" aria-hidden="true"></i> Q.Links</h4>
+                                            </div>
+                                            <div class="overall-summary-side-body">
+                                                <div class="overall-summary-facts overall-summary-side-facts" aria-hidden="true">
+                                                    <div class="ccip-summary-fact overall-summary-fact tone-total overall-summary-fact-blank" aria-hidden="true"></div>
+                                                </div>
+                                            </div>
+                                        </article>
+
                                         <article class="overall-card overall-summary-card">
                                             <div class="overall-card-head">
                                                 <h4 class="overall-card-title"><i class="fas fa-table-list" aria-hidden="true"></i> CMF Summary</h4>
@@ -22454,6 +23668,17 @@ Submit
 
                                 <div id="homeLegacyTopLayout" class="ccip-specific-top-layout">
                                     <section id="homeLegacySummarySection" class="overall-row overall-row-summary ccip-specific-summary-row" aria-label="CMF Summary KPI Cards">
+                                        <article class="overall-card overall-summary-side-card" aria-label="Reserved summary section">
+                                            <div class="overall-card-head">
+                                                <h4 class="overall-card-title"><i class="fas fa-layer-group" aria-hidden="true"></i> Q.Links</h4>
+                                            </div>
+                                            <div class="overall-summary-side-body">
+                                                <div class="overall-summary-facts overall-summary-side-facts" aria-hidden="true">
+                                                    <div class="ccip-summary-fact overall-summary-fact tone-total overall-summary-fact-blank" aria-hidden="true"></div>
+                                                </div>
+                                            </div>
+                                        </article>
+
                                         <article class="overall-card overall-summary-card">
                                             <div class="overall-card-head">
                                                 <h4 class="overall-card-title"><i class="fas fa-table-list" aria-hidden="true"></i> CMF Summary</h4>
@@ -22848,7 +24073,7 @@ Submit
                 </aside>
 
                 <div id="summaryIssuesPopupBackdrop" class="summary-issues-popup-backdrop" onclick="closeSummaryIssueLinksPopup()"></div>
-                <section id="summaryIssuesPopup" class="summary-issues-popup" role="dialog" aria-modal="true" aria-label="CMF issue links">
+                <section id="summaryIssuesPopup" class="summary-issues-popup" role="dialog" aria-modal="true" aria-label="CMF issues by group">
                     <div class="summary-issues-popup-head">
                         <h3 id="summaryIssuesPopupTitle" class="summary-issues-popup-title">CMF Issues</h3>
                         <button type="button" class="summary-issues-popup-close" onclick="closeSummaryIssueLinksPopup()" aria-label="Close">&times;</button>
@@ -23675,7 +24900,10 @@ Submit
   <div class="modal-dialog custom-modal-dialog" role="document"> <!-- Custom class for modal -->
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Issue List</h5>
+                <div class="modal-title-container">
+                    <h5 class="modal-title">Issue List</h5>
+                    <button type="button" id="btnExportDesignDetailsModal0" class="modern-button2 export-btn" onclick="return exportDesignDetailsModal0ToExcel();">Export to Excel</button>
+                </div>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span>&times;</span>
         </button>
@@ -23827,7 +25055,7 @@ Target="_blank" />
 
       <div class="modal-header">
         <div class="modal-title-container">
-          <h5 class="modal-title">Issue List (by Milestone) — <asp:Label ID="lblDriverName1" runat="server" /></h5>
+                    <h5 class="modal-title"><asp:Label ID="lblDriverName1" runat="server" /></h5>
         <asp:Button ID="btnExportDriverIssues1" runat="server"
             Text="Export to Excel"
             CssClass="modern-button1 export-btn"
@@ -23848,16 +25076,25 @@ Target="_blank" />
                         EmptyDataText="No issues for this driver">
             <Columns>
             
-              <asp:HyperLinkField DataTextField="cp_id"
-                                  HeaderText="Sighting ID"
-                                  DataNavigateUrlFields="cp_id"
+                            <asp:HyperLinkField DataTextField="id"
+                                                                    HeaderText="ID"
+                                                                    DataNavigateUrlFields="id"
                                   DataNavigateUrlFormatString="https://hsdes.intel.com/appstore/article/#/{0}"
                                   Target="_blank" />
                 
               <asp:BoundField DataField="title" HeaderText="Title" />
+                            <asp:BoundField DataField="customer_detail" HeaderText="Customer Detail" />
               <asp:BoundField DataField="component" HeaderText="Component" />
+                            <asp:BoundField DataField="component_group" HeaderText="Component Group" />
+                            <asp:BoundField DataField="idst" HeaderText="iDST" />
+                            <asp:BoundField DataField="customer_owner" HeaderText="Customer Owner" />
+                            <asp:BoundField DataField="repro_on_rvp" HeaderText="RVP Repro" />
+                            <asp:BoundField DataField="reproducibility" HeaderText="Reproducibility" />
+                            <asp:BoundField DataField="date_cmf_ask" HeaderText="Date CMF Ask" />
                 <asp:BoundField DataField="cmf_request" HeaderText="CMF Request" />
-             <asp:BoundField DataField="los" HeaderText="LOS" />
+                            <asp:BoundField DataField="why_cmf_change" HeaderText="Why CMF Change" />
+                            <asp:BoundField DataField="pending_reason" HeaderText="Pending Reason" />
+                            <asp:BoundField DataField="justification" HeaderText="Justification" />
               <%-- Add more columns if you want, e.g. status/component --%>
             </Columns>
           </asp:GridView>
@@ -23866,6 +25103,64 @@ Target="_blank" />
 
     </div>
   </div>
+</div>
+
+<div class="modal fade" id="detailsModalSummaryMetrics" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog custom-modal-dialog" role="document">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <div class="modal-title-container">
+                    <h5 class="modal-title"><asp:Label ID="lblSummaryMetricIssuesTitle" runat="server" /></h5>
+                    <button type="button" id="btnExportSummaryMetricIssues" class="modern-button2 export-btn" onclick="return exportSummaryMetricIssuesToExcel();">Export to Excel</button>
+                </div>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body custom-modal-body">
+                <div class="gridview-container">
+                    <asp:GridView ID="GridView_summaryMetricIssues"
+                                                runat="server"
+                                                CssClass="table-primary custom-gridview"
+                                                AutoGenerateColumns="False"
+                                                EmptyDataText="No issues found for this group.">
+                        <Columns>
+                            <asp:BoundField DataField="Milestone" HeaderText="Milestone" />
+                            <asp:BoundField DataField="Progress" HeaderText="Progress" />
+                            <asp:HyperLinkField DataTextField="SightingID"
+                                                                    HeaderText="SightingID"
+                                                                    DataNavigateUrlFields="SightingID"
+                                                                    DataNavigateUrlFormatString="https://hsdes.intel.com/appstore/article/#/{0}"
+                                                                    Target="_blank"
+                                                                    HeaderStyle-HorizontalAlign="Center"
+                                                                    ItemStyle-HorizontalAlign="Center" />
+                            <asp:BoundField DataField="PromotedID" HeaderText="Promoted ID" />
+                            <asp:BoundField DataField="CustomerDetail" HeaderText="Customer Detail" />
+                            <asp:BoundField DataField="ImageFreeze" HeaderText="ImageFreeze" />
+                            <asp:BoundField DataField="DuplicateDetails" HeaderText="Duplicate ID | Customer Detail | ImageFreezeDate" />
+                            <asp:BoundField DataField="CustomerCompany" HeaderText="Customer Company" />
+                            <asp:BoundField DataField="Title" HeaderText="Title" />
+                            <asp:BoundField DataField="Component" HeaderText="Component" />
+                            <asp:BoundField DataField="Ingredient" HeaderText="Ingredient" />
+                            <asp:BoundField DataField="Owner" HeaderText="Owner" />
+                            <asp:BoundField DataField="PromotedOwner" HeaderText="Promoted_Owner" />
+                            <asp:BoundField DataField="RvpRepro" HeaderText="RVP Repro" />
+                            <asp:BoundField DataField="Status" HeaderText="Status" />
+                            <asp:BoundField DataField="Idst" HeaderText="iDST" />
+                            <asp:BoundField DataField="Los" HeaderText="LOS" />
+                            <asp:BoundField DataField="Processor" HeaderText="Processor" />
+                            <asp:BoundField DataField="Impact" HeaderText="Impact" />
+                            <asp:BoundField DataField="DaysOpen" HeaderText="Days_Open" />
+                            <asp:BoundField DataField="ClosedDetails" HeaderText="Closed Reason / Fixed Version" />
+                        </Columns>
+                    </asp:GridView>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </div>
 
 <!-- Bootstrap Modal -->
