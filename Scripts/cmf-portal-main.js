@@ -668,6 +668,52 @@ function showTotalImplementedVerifiedModal(design) {
             __doPostBack('ExportToExcel3', design);
         }
 
+        function exportGridViewTableToExcel(gridId, filePrefix) {
+            var table = gridId ? document.getElementById(gridId) : null;
+            if (!table) {
+                return false;
+            }
+
+            var html = '<html><head><meta charset="utf-8"></head><body>' + table.outerHTML + '</body></html>';
+            var blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel' });
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+
+            var stamp = new Date();
+            var safePrefix = String(filePrefix || 'Export').replace(/\s+/g, '_');
+            var fileName = safePrefix + '_'
+                + stamp.getFullYear()
+                + String(stamp.getMonth() + 1).padStart(2, '0')
+                + String(stamp.getDate()).padStart(2, '0')
+                + '_'
+                + String(stamp.getHours()).padStart(2, '0')
+                + String(stamp.getMinutes()).padStart(2, '0')
+                + String(stamp.getSeconds()).padStart(2, '0')
+                + '.xls';
+
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            return false;
+        }
+
+        function exportDesignDetailsModal0ToExcel() {
+            var gridId = window.CMF_PORTAL && window.CMF_PORTAL.ids
+                ? window.CMF_PORTAL.ids.gridViewDesignSummaryModal0
+                : '';
+            return exportGridViewTableToExcel(gridId, 'DesignSummary_Details');
+        }
+
+        function exportSummaryMetricIssuesToExcel() {
+            var gridId = window.CMF_PORTAL && window.CMF_PORTAL.ids
+                ? window.CMF_PORTAL.ids.gridViewSummaryMetricIssues
+                : '';
+            return exportGridViewTableToExcel(gridId, 'SummaryMetric_IssueList');
+        }
+
         function addSummaryRowToGridView(gridViewId) {
             const grid = document.getElementById(gridViewId);
             if (!grid) {
@@ -738,3 +784,85 @@ function showTotalImplementedVerifiedModal(design) {
             });
             toast.show();
         }
+
+        function getModalTableEntryCount(modalElement) {
+            if (!modalElement) {
+                return 0;
+            }
+
+            var table = modalElement.querySelector('.gridview-container table');
+            if (!table) {
+                return 0;
+            }
+
+            var rows = Array.prototype.slice.call(table.querySelectorAll('tr'));
+            var count = 0;
+
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var cells = row.querySelectorAll('td');
+                if (!cells || cells.length === 0) {
+                    continue;
+                }
+
+                // GridView "no data" rows are typically a single merged cell.
+                if (cells.length === 1) {
+                    var message = String(cells[0].textContent || '').trim().toLowerCase();
+                    if (message.indexOf('no ') === 0 || message.indexOf('there are no') === 0) {
+                        continue;
+                    }
+                }
+
+                count += 1;
+            }
+
+            return count;
+        }
+
+        function updateModalTitleWithEntryCount(modalElement) {
+            if (!modalElement) {
+                return;
+            }
+
+            var title = modalElement.querySelector('.modal-title-container .modal-title');
+            if (!title) {
+                return;
+            }
+
+            var currentTitle = String(title.getAttribute('data-base-title') || '').trim();
+            if (!currentTitle) {
+                currentTitle = String(title.textContent || '').replace(/\s*\(\d+\s+entr(?:y|ies)\)\s*$/i, '').trim();
+                title.setAttribute('data-base-title', currentTitle);
+            }
+
+            var count = getModalTableEntryCount(modalElement);
+            var suffix = count === 1 ? ' (1 entry)' : ' (' + String(count) + ' entries)';
+            title.textContent = currentTitle + suffix;
+        }
+
+        function bindModalEntryCountHandlers() {
+            if (!window.jQuery) {
+                return;
+            }
+
+            var modalSelector = '#detailsModal,#detailsModal0,#detailsModal2,#detailsModal3,#detailsModalDrivers,#detailsModalDrivers1,#detailsModalSummaryMetrics';
+            var $modals = window.jQuery(modalSelector);
+            if (!$modals.length) {
+                return;
+            }
+
+            $modals.off('shown.bs.modal.modalEntryCount');
+            $modals.on('shown.bs.modal.modalEntryCount', function () {
+                updateModalTitleWithEntryCount(this);
+            });
+
+            $modals.each(function () {
+                if (window.jQuery(this).hasClass('show')) {
+                    updateModalTitleWithEntryCount(this);
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            bindModalEntryCountHandlers();
+        });
