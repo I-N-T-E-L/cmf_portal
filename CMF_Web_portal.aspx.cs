@@ -1465,6 +1465,7 @@ SELECT
     p.customer_owner,
     p.source_platform,
     COALESCE(NULLIF(LTRIM(RTRIM(c.drivers)), ''), 'Unassigned') AS drivers,
+    COALESCE(NULLIF(LTRIM(RTRIM(c.idst)), ''), 'Unassigned') AS idst,
     '' AS cmf_request,
     '' AS sysdebug
 FROM (" + pendingSource + @") AS p
@@ -1507,7 +1508,7 @@ FROM " + sourceSql + @"
 WHERE " + wherePredicate + @"
   AND src.cp_id IS NOT NULL
   AND LTRIM(RTRIM(CAST(src.cp_id AS VARCHAR(64)))) <> ''
-ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
+ORDER BY group_name, cp_id";
 
                 Dictionary<string, HashSet<string>> idsByGroup = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 
@@ -2967,7 +2968,7 @@ FROM " + dashboardSourceSql + @"
         snapshot.TptFacts = new List<HomeDashboardFact>();
         snapshot.MilestoneSummary = NewDashboardTable("Milestone", "Unique CMF Count");
         snapshot.ComponentSummary = NewDashboardTable("Ingredient");
-        snapshot.PendingSummary = NewDashboardTable("Ingredient", "iDST Name", "CMF Pending Count + Open HSDs");
+        snapshot.PendingSummary = NewDashboardTable("Ingredient", "iDST Name", "CMF Pending");
         snapshot.DesignSummary = NewDashboardTable(
             "Design Name",
             "SW Image Freeze",
@@ -3258,13 +3259,19 @@ FROM " + dashboardSourceSql, con))
 
     private void PopulateOverallOemSummary(HomeDashboardSnapshot snapshot, string dashboardSourceSql, SqlConnection connection)
     {
-        if (snapshot == null || connection == null || string.IsNullOrWhiteSpace(dashboardSourceSql))
+        if (snapshot == null || connection == null)
+        {
+            return;
+        }
+
+        string overallComponentSourceSql = BuildDashboardComponentSourceSql(OverallDashboardPlatformTable);
+        if (string.IsNullOrWhiteSpace(overallComponentSourceSql))
         {
             return;
         }
 
         string sql = @"
-WITH base AS (
+WITH issue_base AS (
     SELECT
         CASE WHEN ISNULL(LTRIM(RTRIM(customer_company)), '') = '' THEN 'Unassigned' ELSE LTRIM(RTRIM(customer_company)) END AS oem,
         LOWER(LTRIM(RTRIM(ISNULL(status, '')))) AS status_norm,
@@ -3273,15 +3280,16 @@ WITH base AS (
         TRY_CAST(date_cmf_ask AS DATE) AS ask_date,
         TRY_CAST(date_cmf_decided AS DATE) AS decided_date,
         TRY_CAST(implemented_date AS DATE) AS implemented_date
-    FROM " + dashboardSourceSql + @"
+    FROM " + overallComponentSourceSql + @"
+    WHERE LOWER(LTRIM(RTRIM(ISNULL(sysdebug, '')))) LIKE '%customer_must_fix%'
+      AND LOWER(LTRIM(RTRIM(ISNULL(cmf_request, '')))) = 'cmf_ok'
 ),
-agg AS (
+issue_agg AS (
     SELECT
         oem,
         COUNT(1) AS total_issues,
-        SUM(CASE WHEN status_norm = 'open' THEN 1 ELSE 0 END) AS open_issues,
-        SUM(CASE WHEN status_norm = 'open' THEN 1 ELSE 0 END) AS cmf_pending,
-        SUM(CASE WHEN status_norm IN ('implemented', 'verified') THEN 1 ELSE 0 END) AS implemented_issues,
+        SUM(CASE WHEN status_norm NOT IN ('complete', 'rejected', 'implemented') THEN 1 ELSE 0 END) AS open_issues,
+        SUM(CASE WHEN status_norm = 'implemented' THEN 1 ELSE 0 END) AS implemented_issues,
         SUM(CASE WHEN status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS closed_issues,
         ISNULL(AVG(CAST(CASE
             WHEN decided_date IS NOT NULL AND implemented_date IS NOT NULL AND implemented_date >= decided_date
@@ -3291,10 +3299,40 @@ agg AS (
         SUM(CASE WHEN ask_date >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE)) THEN 1 ELSE 0 END) AS this_week,
         SUM(CASE WHEN ask_date >= DATEADD(DAY, -6 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE))
                   AND ask_date < DATEADD(DAY, 1 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE)) THEN 1 ELSE 0 END) AS last_week
-    FROM base
+    FROM issue_base
     GROUP BY oem
+),
+pending_base AS (
+    SELECT
+        CASE WHEN ISNULL(LTRIM(RTRIM(customer_company)), '') = '' THEN 'Unassigned' ELSE LTRIM(RTRIM(customer_company)) END AS oem
+    FROM " + overallComponentSourceSql + @"
+    WHERE LOWER(LTRIM(RTRIM(ISNULL(cmf_request, '')))) IN ('cmf_ask', 'cmf_incomplete')
+      AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) NOT IN ('complete', 'rejected')
+),
+pending_agg AS (
+    SELECT
+        oem,
+        COUNT(1) AS cmf_pending
+    FROM pending_base
+    GROUP BY oem
+),
+combined AS (
+    SELECT
+        COALESCE(i.oem, p.oem) AS oem,
+        ISNULL(i.total_issues, 0) AS total_issues,
+        ISNULL(i.open_issues, 0) AS open_issues,
+        ISNULL(p.cmf_pending, 0) AS cmf_pending,
+        ISNULL(i.implemented_issues, 0) AS implemented_issues,
+        ISNULL(i.closed_issues, 0) AS closed_issues,
+        ISNULL(i.avg_resolution_days, 0) AS avg_resolution_days,
+        ISNULL(i.high_risk_signals, 0) AS high_risk_signals,
+        ISNULL(i.this_week, 0) AS this_week,
+        ISNULL(i.last_week, 0) AS last_week
+    FROM issue_agg i
+    FULL OUTER JOIN pending_agg p
+      ON p.oem = i.oem
 )
-SELECT TOP 8
+SELECT
     oem,
     total_issues,
     open_issues,
@@ -3312,7 +3350,7 @@ SELECT TOP 8
         WHEN last_week = 0 THEN CASE WHEN this_week = 0 THEN 0 ELSE 100 END
         ELSE CAST(ROUND(((this_week - last_week) * 100.0) / NULLIF(last_week, 0), 0) AS INT)
     END AS trend_percent
-FROM agg
+FROM combined
 ORDER BY total_issues DESC, oem";
 
         using (SqlCommand command = new SqlCommand(sql, connection))
@@ -3777,15 +3815,15 @@ CROSS JOIN wk", con))
                     int implementedDup = ReadInt(reader, 5);
                     int pending = ReadInt(reader, 6);
                     int pendingDup = ReadInt(reader, 7);
-                    int dispositionTpt = ReadInt(reader, 8);
-                    int resolutionTpt = ReadInt(reader, 9);
-                    int overallTpt = ReadInt(reader, 10);
-                    int dispositionThisWeek = ReadInt(reader, 11);
-                    int dispositionLastWeek = ReadInt(reader, 12);
-                    int resolutionThisWeek = ReadInt(reader, 13);
-                    int resolutionLastWeek = ReadInt(reader, 14);
-                    int overallThisWeek = ReadInt(reader, 15);
-                    int overallLastWeek = ReadInt(reader, 16);
+                    int dispositionTpt = ReadLegacyAvgInt(reader, 8);
+                    int resolutionTpt = ReadLegacyAvgInt(reader, 9);
+                    int overallTpt = ReadLegacyAvgInt(reader, 10);
+                    int dispositionThisWeek = ReadLegacyAvgInt(reader, 11);
+                    int dispositionLastWeek = ReadLegacyAvgInt(reader, 12);
+                    int resolutionThisWeek = ReadLegacyAvgInt(reader, 13);
+                    int resolutionLastWeek = ReadLegacyAvgInt(reader, 14);
+                    int overallThisWeek = ReadLegacyAvgInt(reader, 15);
+                    int overallLastWeek = ReadLegacyAvgInt(reader, 16);
                     averageResolutionDays = reader.IsDBNull(17)
                         ? 0m
                         : Convert.ToDecimal(reader.GetValue(17), CultureInfo.InvariantCulture);
@@ -4112,6 +4150,9 @@ ORDER BY component_group, idst_name", con))
                 {
                     int totalPending = 0;
                     List<string> pendingConstituentLines = new List<string>();
+                    Dictionary<string, int> pendingCountsByComponent = isOverall
+                        ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+                        : null;
                     while (reader.Read())
                     {
                         string component = ReadString(reader, 0);
@@ -4134,8 +4175,36 @@ ORDER BY component_group, idst_name", con))
                         }
 
                         snapshot.PendingSummary.Rows.Add(new List<string> { component, idstName, pendingCellValue });
-                        pendingConstituentLines.Add(component + " / " + idstName + ": " + count.ToString(CultureInfo.InvariantCulture));
+
+                        if (isOverall)
+                        {
+                            int existingCount;
+                            if (!pendingCountsByComponent.TryGetValue(component, out existingCount))
+                            {
+                                existingCount = 0;
+                            }
+
+                            pendingCountsByComponent[component] = existingCount + count;
+                        }
+                        else
+                        {
+                            pendingConstituentLines.Add(component + " / " + idstName + ": " + count.ToString(CultureInfo.InvariantCulture));
+                        }
                     }
+
+                    if (isOverall && pendingCountsByComponent != null && pendingCountsByComponent.Count > 0)
+                    {
+                        List<string> orderedComponents = new List<string>(pendingCountsByComponent.Keys);
+                        orderedComponents.Sort(StringComparer.OrdinalIgnoreCase);
+
+                        for (int componentIndex = 0; componentIndex < orderedComponents.Count; componentIndex++)
+                        {
+                            string componentName = orderedComponents[componentIndex];
+                            pendingConstituentLines.Add(
+                                componentName + ": " + pendingCountsByComponent[componentName].ToString(CultureInfo.InvariantCulture));
+                        }
+                    }
+
                     snapshot.PendingIssues = totalPending;
                     snapshot.SummaryFacts.Add(new HomeDashboardFact
                     {
@@ -4616,6 +4685,27 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
     private static int ReadInt(SqlDataReader reader, int index)
     {
         return reader.IsDBNull(index) ? 0 : Convert.ToInt32(reader.GetValue(index), CultureInfo.InvariantCulture);
+    }
+
+    private static int ReadLegacyAvgInt(SqlDataReader reader, int index)
+    {
+        if (reader.IsDBNull(index))
+        {
+            return 0;
+        }
+
+        decimal numeric = Convert.ToDecimal(reader.GetValue(index), CultureInfo.InvariantCulture);
+        if (numeric > int.MaxValue)
+        {
+            return int.MaxValue;
+        }
+
+        if (numeric < int.MinValue)
+        {
+            return int.MinValue;
+        }
+
+        return decimal.ToInt32(decimal.Truncate(numeric));
     }
 
     private static string ReadString(SqlDataReader reader, int index)
@@ -6450,6 +6540,21 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             {
                 HiddenDriverName.Value = eventArgument;
                 Session["DriverName"] = eventArgument; // persist for export
+
+                string activeFocusedTab = GetActiveFocusedTab();
+                if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShowWelcomeHome();
+                }
+                else if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShowModernCmfSummary();
+                }
+                else
+                {
+                    RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
+                }
+
                 BindDriverIssues(eventArgument);
                 ShowDriverIssues(); // opens the drivers modal
             }
@@ -6480,9 +6585,80 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                     Session["DriverName"] = driver;
                     Session["IssueType"] = issueType;
 
+                    string activeFocusedTab = GetActiveFocusedTab();
+                    if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ShowWelcomeHome();
+                    }
+                    else if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ShowModernCmfSummary();
+                    }
+                    else
+                    {
+                        RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
+                    }
+
                     BindCMFIssues(component, driver, issueType);
                     ShowCMFIssues();
                 }
+            }
+            else if (eventTarget == "ShowPendingSummaryIssues" && !string.IsNullOrEmpty(eventArgument))
+            {
+                string activeFocusedTab = GetActiveFocusedTab();
+                if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShowWelcomeHome();
+                }
+                else if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShowModernCmfSummary();
+                }
+                else
+                {
+                    RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
+                }
+
+                BindPendingSummaryIssues(eventArgument);
+                ShowCMFIssues();
+            }
+            else if (eventTarget == "ShowSummaryMetricIssues" && !string.IsNullOrEmpty(eventArgument))
+            {
+                string activeFocusedTab = GetActiveFocusedTab();
+                if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShowWelcomeHome();
+                }
+                else if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShowModernCmfSummary();
+                }
+                else
+                {
+                    RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
+                }
+
+                BindSummaryMetricIssues(eventArgument);
+                ShowSummaryMetricIssuesModal();
+            }
+            else if (eventTarget == "ShowPendingAgeBucketIssues" && !string.IsNullOrEmpty(eventArgument))
+            {
+                string activeFocusedTab = GetActiveFocusedTab();
+                if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShowWelcomeHome();
+                }
+                else if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShowModernCmfSummary();
+                }
+                else
+                {
+                    RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
+                }
+
+                BindPendingAgeBucketIssues(eventArgument);
+                ShowCMFIssues();
             }
             else if (eventTarget == "ExportCMFIssues" && !string.IsNullOrEmpty(eventArgument))
             {
@@ -6505,6 +6681,21 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             {
                 HiddenModalDesign.Value = eventArgument;
                 Session["DesignValue"] = eventArgument;
+
+                string activeFocusedTab = GetActiveFocusedTab();
+                if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShowWelcomeHome();
+                }
+                else if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShowModernCmfSummary();
+                }
+                else
+                {
+                    RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
+                }
+
                 BindModalGrid3(eventArgument);
                 ShowModal3();
             }
@@ -6516,6 +6707,21 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                     string design = args[0];
                     string driver = args[1];
                     Session["DesignValue"] = design;
+
+                    string activeFocusedTab = GetActiveFocusedTab();
+                    if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ShowWelcomeHome();
+                    }
+                    else if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ShowModernCmfSummary();
+                    }
+                    else
+                    {
+                        RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
+                    }
+
                     BindDriverDetailsModal(design, driver);
                     ShowModal0();
                 }
@@ -6524,6 +6730,21 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             {
                 HiddenModalDesign.Value = eventArgument;
                 Session["DesignValue"] = eventArgument;
+
+                string activeFocusedTab = GetActiveFocusedTab();
+                if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShowWelcomeHome();
+                }
+                else if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShowModernCmfSummary();
+                }
+                else
+                {
+                    RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
+                }
+
                 BindImplementedVerifiedDetailsModal(eventArgument);
                 ShowModal0();
             }
@@ -6543,6 +6764,15 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                 {
                     HiddenModalDesign.Value = designValue;
                     ExportToExcel2(designValue);
+                }
+            }
+            else if (eventTarget == "ExportToExcel3" && !string.IsNullOrEmpty(eventArgument))
+            {
+                string designValue = Session["DesignValue"] as string;
+                if (!string.IsNullOrEmpty(designValue))
+                {
+                    HiddenModalDesign.Value = designValue;
+                    ExportToExcel3(designValue);
                 }
             }
             else if (eventTarget == "SaveDesignSummaryInline")
@@ -11640,9 +11870,507 @@ firstPatternCaseStatements +
         GridView_component_summary_modal.DataBind();
     }
 
+    private static string SanitizeCpIdCsv(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return string.Empty;
+        }
+
+        string[] tokens = raw.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+        HashSet<string> unique = new HashSet<string>(StringComparer.Ordinal);
+        List<string> cleaned = new List<string>();
+
+        for (int i = 0; i < tokens.Length; i++)
+        {
+            string digits = System.Text.RegularExpressions.Regex.Replace(tokens[i] ?? string.Empty, @"[^0-9]", string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(digits) || !unique.Add(digits))
+            {
+                continue;
+            }
+
+            cleaned.Add(digits);
+        }
+
+        return string.Join(",", cleaned);
+    }
+
+    private const string PendingSummaryDriverTokenPrefix = "__PENDING_SUMMARY_CPIDS__:";
+
+    private static string ExtractPendingSummaryCpIdsFromDriverToken(string driverToken)
+    {
+        string token = (driverToken ?? string.Empty).Trim();
+        if (token.StartsWith(PendingSummaryDriverTokenPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            token = token.Substring(PendingSummaryDriverTokenPrefix.Length);
+        }
+
+        return SanitizeCpIdCsv(token);
+    }
+
+    private static string NormalizePendingIssueSortLabel(string rawSortLabel)
+    {
+        string key = (rawSortLabel ?? string.Empty).Trim().ToLowerInvariant();
+        return key == "alphabetically" ? "Alphabetically" : "by Count";
+    }
+
+    private static string NormalizePendingIssueGroupingLabel(string rawGroupingLabel, string ingredient)
+    {
+        string key = (rawGroupingLabel ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return "Component";
+        }
+
+        switch (key.ToLowerInvariant())
+        {
+            case "issue":
+                return "Issue";
+            case "platform":
+                return "Platform";
+            case "milestone":
+                return "Milestone";
+            case "design":
+                return "Design";
+            case "component":
+                return "Component";
+            case "owner":
+                return "Owner";
+            case "idst":
+            case "idst name":
+                return "iDST Name";
+            case "age bucket":
+                return "Age Bucket";
+            case "ingredient":
+                return "Ingredient";
+            default:
+                string fallback = key.Trim();
+                return string.IsNullOrWhiteSpace(fallback) ? "Component" : fallback;
+        }
+    }
+
+    private static string BuildIssueListModalTitle(string sortingLabel, string groupingLabel)
+    {
+        string normalizedSort = NormalizePendingIssueSortLabel(sortingLabel);
+        string normalizedGrouping = NormalizePendingIssueGroupingLabel(groupingLabel, null);
+        return string.Format(CultureInfo.InvariantCulture, "Issue List (Sorted {0} {1} Wise)", normalizedSort, normalizedGrouping);
+    }
+
+    private static void ParsePendingSummaryModalArgument(
+        string rawArgument,
+        out string ingredient,
+        out string cpIdsCsv,
+        out string groupingLabel,
+        out string sortingLabel)
+    {
+        ingredient = "Pending Summary";
+        cpIdsCsv = string.Empty;
+        groupingLabel = "Component";
+        sortingLabel = "by Count";
+
+        string token = (rawArgument ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return;
+        }
+
+        string[] parts = token.Split(new[] { "||" }, StringSplitOptions.None);
+        if (parts.Length >= 2)
+        {
+            ingredient = HttpUtility.UrlDecode(parts[0] ?? string.Empty);
+            cpIdsCsv = HttpUtility.UrlDecode(parts[1] ?? string.Empty);
+            if (parts.Length >= 3)
+            {
+                groupingLabel = HttpUtility.UrlDecode(parts[2] ?? string.Empty);
+            }
+
+            if (parts.Length >= 4)
+            {
+                sortingLabel = HttpUtility.UrlDecode(parts[3] ?? string.Empty);
+            }
+        }
+        else
+        {
+            cpIdsCsv = token;
+        }
+
+        if (string.IsNullOrWhiteSpace(ingredient))
+        {
+            ingredient = "Pending Summary";
+        }
+
+        groupingLabel = NormalizePendingIssueGroupingLabel(groupingLabel, ingredient);
+        sortingLabel = NormalizePendingIssueSortLabel(sortingLabel);
+        cpIdsCsv = SanitizeCpIdCsv(cpIdsCsv);
+    }
+
+    private static void ParseSummaryMetricModalArgument(
+        string rawArgument,
+        out string metricLabel,
+        out string groupName,
+        out string cpIdsCsv)
+    {
+        metricLabel = "Summary Metric";
+        groupName = "Unassigned";
+        cpIdsCsv = string.Empty;
+
+        string token = (rawArgument ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return;
+        }
+
+        string[] parts = token.Split(new[] { "||" }, StringSplitOptions.None);
+        if (parts.Length >= 3)
+        {
+            metricLabel = HttpUtility.UrlDecode(parts[0] ?? string.Empty);
+            groupName = HttpUtility.UrlDecode(parts[1] ?? string.Empty);
+            cpIdsCsv = HttpUtility.UrlDecode(parts[2] ?? string.Empty);
+        }
+        else
+        {
+            cpIdsCsv = HttpUtility.UrlDecode(token);
+        }
+
+        metricLabel = string.IsNullOrWhiteSpace(metricLabel) ? "Summary Metric" : metricLabel.Trim();
+        groupName = string.IsNullOrWhiteSpace(groupName) ? "Unassigned" : groupName.Trim();
+        cpIdsCsv = SanitizeCpIdCsv(cpIdsCsv);
+    }
+
+    private static string BuildSummaryMetricModalTitle(string metricLabel, string groupName)
+    {
+        string safeMetric = string.IsNullOrWhiteSpace(metricLabel) ? "Summary Metric" : metricLabel.Trim();
+        string safeGroup = string.IsNullOrWhiteSpace(groupName) ? "Unassigned" : groupName.Trim();
+        return string.Format(CultureInfo.InvariantCulture, "Issue List - {0} ({1})", safeMetric, safeGroup);
+    }
+
+    private DataTable GetSummaryMetricIssueDetailsData(string cpIdsCsv)
+    {
+        DataTable dt = new DataTable();
+        if (string.IsNullOrWhiteSpace(cpIdsCsv))
+        {
+            return dt;
+        }
+
+        string dashboardPlatform = ResolveDashboardPlatformSelection();
+        bool isOverallSelection = IsOverallDashboardPlatform(dashboardPlatform);
+        string issueSourceSql = BuildIssueDataSourceSql(dashboardPlatform);
+
+        using (SqlConnection con = new SqlConnection(ConnectionString))
+        {
+            con.Open();
+
+            string designTable = string.Empty;
+            bool includeDesignTable = false;
+            if (!isOverallSelection)
+            {
+                string resolvedPlatform = ResolvePlatformTable(dashboardPlatform);
+                string basePlatform = resolvedPlatform.Replace("_ALL_COMPONENTS_TABLE", string.Empty);
+                designTable = basePlatform + "_DESIGN_TABLE";
+                includeDesignTable = SqlTableExists(con, designTable);
+            }
+
+            StringBuilder duplicateDetailsBuilder = new StringBuilder();
+            duplicateDetailsBuilder.Append("STUFF((\n");
+            duplicateDetailsBuilder.Append("    SELECT ', ' + CAST(dup_src.cp_id AS VARCHAR(64))\n");
+            duplicateDetailsBuilder.Append("         + ' | ' + ISNULL(NULLIF(LTRIM(RTRIM(dup_src.customer_detail)), ''), 'Unknown')\n");
+            if (includeDesignTable)
+            {
+                duplicateDetailsBuilder.Append("         + ' | ' + ISNULL(CONVERT(VARCHAR(10), dup_design.sw_image_freeze, 120), 'Unknown')\n");
+            }
+            else
+            {
+                duplicateDetailsBuilder.Append("         + ' | Unknown'\n");
+            }
+
+            duplicateDetailsBuilder.Append("    FROM " + issueSourceSql + " AS dup_src\n");
+            if (includeDesignTable)
+            {
+                duplicateDetailsBuilder.Append("    LEFT JOIN " + designTable + " AS dup_design ON dup_design.customer_detail = dup_src.customer_detail\n");
+            }
+
+            duplicateDetailsBuilder.Append("    WHERE LOWER(LTRIM(RTRIM(ISNULL(dup_src.cmf_request, '')))) = 'cmf_duplicate'\n");
+            duplicateDetailsBuilder.Append("      AND CAST(dup_src.merge_id AS VARCHAR(64)) = CAST(issue_src.cp_id AS VARCHAR(64))\n");
+            if (isOverallSelection)
+            {
+                duplicateDetailsBuilder.Append("      AND dup_src.source_platform = issue_src.source_platform\n");
+            }
+
+            duplicateDetailsBuilder.Append("    FOR XML PATH('')\n");
+            duplicateDetailsBuilder.Append("), 1, 2, '') AS DuplicateDetails");
+
+            string imageFreezeSelect = includeDesignTable
+                ? "ISNULL(NULLIF(LTRIM(RTRIM(design_src.sw_image_freeze)), ''), 'Unknown') AS ImageFreeze"
+                : "CAST('Unknown' AS NVARCHAR(64)) AS ImageFreeze";
+
+            string sql = @"
+SELECT
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.drivers)), ''), 'Unassigned') AS Milestone,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.progress)), ''), 'NA') AS Progress,
+    CAST(issue_src.cp_id AS VARCHAR(64)) AS SightingID,
+    ISNULL(CASE
+        WHEN LOWER(LTRIM(RTRIM(ISNULL(issue_src.cmf_request, '')))) = 'cmf_duplicate'
+            THEN NULLIF(CAST(issue_src.merge_id AS VARCHAR(64)), '')
+        ELSE NULLIF(CAST(issue_src.promoted_id AS VARCHAR(64)), '')
+    END, 'N/A') AS PromotedID,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.customer_detail)), ''), 'N/A') AS CustomerDetail,
+    " + imageFreezeSelect + @",
+    " + duplicateDetailsBuilder.ToString() + @",
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.customer_company)), ''), 'N/A') AS CustomerCompany,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.title)), ''), 'N/A') AS Title,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.component)), ''), 'N/A') AS Component,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.component_group)), ''), 'Unassigned') AS Ingredient,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.customer_owner)), ''), 'N/A') AS Owner,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.owners_name)), ''), 'N/A') AS PromotedOwner,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.repro_on_rvp)), ''), 'N/A') AS RvpRepro,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.status)), ''), ISNULL(NULLIF(LTRIM(RTRIM(issue_src.cmf_status)), ''), 'N/A')) AS Status,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.idst)), ''), 'N/A') AS Idst,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.los)), ''), 'N/A') AS Los,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.processor)), ''), 'N/A') AS Processor,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.impact)), ''), 'N/A') AS Impact,
+    ISNULL(CAST(issue_src.days_active AS VARCHAR(32)), 'N/A') AS DaysOpen,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.closed_reason)), ''), 'N/A') + CHAR(13) + CHAR(10)
+        + CASE
+            WHEN LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) = 'rejected' THEN 'NA'
+            ELSE ISNULL(NULLIF(LTRIM(RTRIM(issue_src.fixed_in_version)), ''), 'N/A')
+          END AS ClosedDetails
+FROM " + issueSourceSql + @" AS issue_src
+" + (includeDesignTable ? ("LEFT JOIN " + designTable + " AS design_src ON design_src.customer_detail = issue_src.customer_detail") : string.Empty) + @"
+INNER JOIN (
+    SELECT DISTINCT LTRIM(RTRIM(value)) AS cp_id
+    FROM STRING_SPLIT(@cpIds, ',')
+    WHERE LTRIM(RTRIM(value)) <> ''
+) selected_ids ON CAST(issue_src.cp_id AS VARCHAR(64)) = selected_ids.cp_id
+ORDER BY
+    LOWER(LTRIM(RTRIM(ISNULL(issue_src.title, '')))),
+    TRY_CAST(issue_src.cp_id AS BIGINT),
+    CAST(issue_src.cp_id AS VARCHAR(64));";
+
+            using (SqlCommand cmd = new SqlCommand(sql, con))
+            using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+            {
+                cmd.Parameters.AddWithValue("@cpIds", cpIdsCsv);
+                da.Fill(dt);
+            }
+        }
+
+        return dt;
+    }
+
+    private void BindSummaryMetricIssues(string rawArgument)
+    {
+        string metricLabel;
+        string groupName;
+        string cpIdsCsv;
+        ParseSummaryMetricModalArgument(rawArgument, out metricLabel, out groupName, out cpIdsCsv);
+
+        lblSummaryMetricIssuesTitle.Text = Server.HtmlEncode(BuildSummaryMetricModalTitle(metricLabel, groupName));
+
+        DataTable dt = GetSummaryMetricIssueDetailsData(cpIdsCsv);
+        GridView_summaryMetricIssues.DataSource = dt;
+        GridView_summaryMetricIssues.DataBind();
+    }
+
+    private void ShowSummaryMetricIssuesModal()
+    {
+        ScriptManager.RegisterStartupScript(this, GetType(),
+            "ShowSummaryMetricIssuesModal",
+            "$('#detailsModalSummaryMetrics').modal('show');", true);
+    }
+
+    private static bool TryParsePendingAgeBucketRange(string bucketLabel, out int minDays, out int maxDays, out bool isGreaterThanRange)
+    {
+        minDays = 0;
+        maxDays = 0;
+        isGreaterThanRange = false;
+
+        string normalized = (bucketLabel ?? string.Empty).Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return false;
+        }
+
+        normalized = normalized.Replace("days", string.Empty).Trim();
+
+        if (normalized.StartsWith("0-7", StringComparison.OrdinalIgnoreCase) || normalized.StartsWith("0 - 7", StringComparison.OrdinalIgnoreCase))
+        {
+            minDays = 0;
+            maxDays = 7;
+            return true;
+        }
+
+        if (normalized.StartsWith("8-15", StringComparison.OrdinalIgnoreCase) || normalized.StartsWith("8 - 15", StringComparison.OrdinalIgnoreCase))
+        {
+            minDays = 8;
+            maxDays = 15;
+            return true;
+        }
+
+        if (normalized.StartsWith("16-30", StringComparison.OrdinalIgnoreCase) || normalized.StartsWith("16 - 30", StringComparison.OrdinalIgnoreCase))
+        {
+            minDays = 16;
+            maxDays = 30;
+            return true;
+        }
+
+        if (normalized.StartsWith("> 30", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith(">30", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith("over 30", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith("30+", StringComparison.OrdinalIgnoreCase))
+        {
+            minDays = 30;
+            isGreaterThanRange = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    private void BindPendingAgeBucketIssues(string rawBucketArgument)
+    {
+        string bucketLabel = HttpUtility.UrlDecode(rawBucketArgument ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(bucketLabel))
+        {
+            bucketLabel = "Pending Age Bucket";
+        }
+
+        List<string> cpIds = new List<string>();
+        int minDays;
+        int maxDays;
+        bool isGreaterThanRange;
+
+        if (TryParsePendingAgeBucketRange(bucketLabel, out minDays, out maxDays, out isGreaterThanRange))
+        {
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            {
+                con.Open();
+
+                string pendingSourceSql = BuildPendingAskSourceSql(con, ResolveDashboardPlatformSelection(), "pending_bucket_src");
+                if (!string.IsNullOrWhiteSpace(pendingSourceSql))
+                {
+                    string agePredicate = isGreaterThanRange
+                        ? "DATEDIFF(DAY, TRY_CAST(pending_bucket_src.date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) > @minDays"
+                        : "DATEDIFF(DAY, TRY_CAST(pending_bucket_src.date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) BETWEEN @minDays AND @maxDays";
+
+                    string sql = @"
+SELECT DISTINCT CAST(pending_bucket_src.cp_id AS VARCHAR(64)) AS cp_id
+FROM " + pendingSourceSql + @"
+WHERE LOWER(LTRIM(RTRIM(ISNULL(pending_bucket_src.status, '')))) NOT IN ('complete', 'rejected')
+  AND TRY_CAST(pending_bucket_src.date_cmf_ask AS DATE) IS NOT NULL
+  AND " + agePredicate + @"
+ORDER BY cp_id";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, con))
+                    {
+                        cmd.Parameters.AddWithValue("@minDays", minDays);
+                        if (!isGreaterThanRange)
+                        {
+                            cmd.Parameters.AddWithValue("@maxDays", maxDays);
+                        }
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                string cpId = ReadString(reader, 0).Trim();
+                                if (!string.IsNullOrWhiteSpace(cpId))
+                                {
+                                    cpIds.Add(cpId);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        cpIds = cpIds
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(id => id, Comparer<string>.Create(CompareIssueIds))
+            .ToList();
+
+        string cpIdsCsv = SanitizeCpIdCsv(string.Join(",", cpIds.ToArray()));
+        string pendingArgument = HttpUtility.UrlEncode(bucketLabel)
+            + "||" + HttpUtility.UrlEncode(cpIdsCsv)
+            + "||" + HttpUtility.UrlEncode("Age Bucket")
+            + "||" + HttpUtility.UrlEncode("by Count");
+        BindPendingSummaryIssues(pendingArgument);
+    }
+
+    private void BindPendingSummaryIssues(string rawArgument)
+    {
+        string ingredient;
+        string cpIdsCsv;
+        string groupingLabel;
+        string sortingLabel;
+        ParsePendingSummaryModalArgument(rawArgument, out ingredient, out cpIdsCsv, out groupingLabel, out sortingLabel);
+
+        string pendingDriverToken = PendingSummaryDriverTokenPrefix + cpIdsCsv;
+        HiddenComponentName.Value = ingredient;
+        HiddenDriverName.Value = pendingDriverToken;
+        HiddenIssueType.Value = "PendingSummary";
+        Session["ComponentName"] = ingredient;
+        Session["DriverName"] = pendingDriverToken;
+        Session["IssueType"] = "PendingSummary";
+
+        if (btnExportDriverIssues1 != null)
+        {
+            btnExportDriverIssues1.Visible = true;
+        }
+
+        lblDriverName1.Text = Server.HtmlEncode("Issue List - " + ingredient + " (Pending)");
+
+        DataTable dt = new DataTable();
+        if (!string.IsNullOrWhiteSpace(cpIdsCsv))
+        {
+            string issueSourceSql = BuildIssueDataSourceSql(ResolveDashboardPlatformSelection(), "issue_src");
+            string sql = @"
+SELECT
+    CAST(issue_src.cp_id AS VARCHAR(64)) AS id,
+    issue_src.title,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.customer_detail)), ''), 'N/A') AS customer_detail,
+    issue_src.component,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.component_group)), ''), 'Unassigned') AS component_group,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.idst)), ''), 'Unassigned') AS idst,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.customer_owner)), ''), 'N/A') AS customer_owner,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.repro_on_rvp)), ''), 'N/A') AS repro_on_rvp,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.reproducibility)), ''), 'N/A') AS reproducibility,
+    ISNULL(CONVERT(VARCHAR(10), TRY_CONVERT(DATE, issue_src.date_cmf_ask), 120), 'N/A') AS date_cmf_ask,
+    issue_src.cmf_request,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.impact)), ''), 'N/A') AS why_cmf_change,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.cmf_status)), ''), ISNULL(NULLIF(LTRIM(RTRIM(issue_src.status)), ''), 'N/A')) AS pending_reason,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.customer_affected)), ''), 'N/A') AS justification
+FROM " + issueSourceSql + @"
+INNER JOIN (
+    SELECT DISTINCT LTRIM(RTRIM(value)) AS cp_id
+    FROM STRING_SPLIT(@cpIds, ',')
+    WHERE LTRIM(RTRIM(value)) <> ''
+) ids ON CAST(issue_src.cp_id AS VARCHAR(64)) = ids.cp_id
+WHERE LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) NOT IN ('complete', 'rejected')
+ORDER BY LOWER(LTRIM(RTRIM(ISNULL(issue_src.title, '')))), TRY_CAST(issue_src.cp_id AS BIGINT), CAST(issue_src.cp_id AS VARCHAR(64));";
+
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            using (SqlCommand cmd = new SqlCommand(sql, con))
+            using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+            {
+                cmd.Parameters.AddWithValue("@cpIds", cpIdsCsv);
+                da.Fill(dt);
+            }
+        }
+
+        GridView_cmf_issues.DataSource = dt;
+        GridView_cmf_issues.DataBind();
+    }
+
     private void BindCMFIssues(string component, string driver, string issueType)
     {
-        lblDriverName1.Text = Server.HtmlEncode(component + " - " + driver + " (" + issueType + ")");
+        if (btnExportDriverIssues1 != null)
+        {
+            btnExportDriverIssues1.Visible = true;
+        }
+
+        string modalTitle = BuildIssueListModalTitle("by Count", "Milestone") + " - " + component + " - " + driver + " (" + issueType + ")";
+        lblDriverName1.Text = Server.HtmlEncode(modalTitle);
 
         string connectionString = ConnectionString;
         string issueSourceSql = BuildIssueDataSourceSql(selectedPlatform, "A");
@@ -11677,7 +12405,35 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
 ORDER BY A.cmf_request desc";
                         }
                 }
-                else if (issueType == "OpenUnique" || issueType == "Open")
+                                else if (issueType == "OpenCombined")
+                {
+                        if (component == "Total")
+                        {
+                                sql = @"
+SELECT cp_id, title, cmf_request, ISNULL(los, 'No') as los, component_group as component
+FROM " + issueSourceSql + @"
+WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
+    AND drivers = @Driver
+    AND status IN ('open')
+    AND cmf_request != 'cmf_reject'
+    AND sysdebug LIKE '%customer_must_fix%'
+ORDER BY cmf_request desc";
+                        }
+                        else
+                        {
+                                sql = @"
+SELECT A.cp_id, A.title, A.cmf_request, ISNULL(A.los, 'No') as los, A.component_group as component
+FROM " + issueSourceSql + @"
+WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
+    AND A.drivers = @Driver
+        AND A.component_group = @Component
+    AND A.status IN ('open')
+    AND A.cmf_request != 'cmf_reject'
+    AND A.sysdebug LIKE '%customer_must_fix%'
+ORDER BY A.cmf_request desc";
+                        }
+                }
+                                else if (issueType == "OpenUnique" || issueType == "Open")
         {
             if (component == "Total")
             {
@@ -11735,7 +12491,35 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
 ORDER BY A.cmf_request desc";
                         }
                 }
-                else if (issueType == "ImplementedUnique" || issueType == "Implemented")
+                                else if (issueType == "ImplementedCombined")
+                {
+                        if (component == "Total")
+                        {
+                                sql = @"
+SELECT cp_id, title, cmf_request, ISNULL(los, 'No') as los, component_group as component
+FROM " + issueSourceSql + @"
+WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
+    AND drivers = @Driver
+    AND cmf_request IN ('cmf_ok', 'cmf_duplicate')
+    AND sysdebug LIKE '%customer_must_fix%'
+    AND status IN ('implemented','verified')
+ORDER BY cmf_request desc";
+                        }
+                        else
+                        {
+                                sql = @"
+SELECT A.cp_id, A.title, A.cmf_request, ISNULL(A.los, 'No') as los, A.component_group as component
+FROM " + issueSourceSql + @"
+WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
+    AND A.drivers = @Driver
+        AND A.component_group = @Component
+    AND A.cmf_request IN ('cmf_ok', 'cmf_duplicate')
+    AND A.sysdebug LIKE '%customer_must_fix%'
+    AND A.status IN ('implemented','verified')
+ORDER BY A.cmf_request desc";
+                        }
+                }
+                                else if (issueType == "ImplementedUnique" || issueType == "Implemented")
         {
             if (component == "Total")
             {
@@ -11809,6 +12593,10 @@ ORDER BY A.cmf_request desc";
 
             string safeComponent = (component ?? "").Replace("\"", "");
             string safeDriver = (driver ?? "").Replace("\"", "");
+            if (string.Equals(issueType, "PendingSummary", StringComparison.OrdinalIgnoreCase))
+            {
+                safeDriver = "PendingSummary";
+            }
             string fileName = "CMF_Issues_" + safeComponent + "_" + safeDriver + "_" + issueType + "_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".xls";
             Response.AddHeader("content-disposition", "attachment;filename=" + fileName);
             Response.Charset = "";
@@ -11874,8 +12662,38 @@ ORDER BY A.cmf_request desc";
 
         // Use the same SQL logic as in BindCMFIssues
         string sql = "";
+        bool requiresDriverParam = true;
+        bool requiresComponentParam = component != "Total";
+        string pendingCpIdsCsv = string.Empty;
 
-                if (issueType == "OpenDuplicate")
+            if (issueType == "PendingSummary")
+            {
+                pendingCpIdsCsv = ExtractPendingSummaryCpIdsFromDriverToken(driver);
+                if (string.IsNullOrWhiteSpace(pendingCpIdsCsv))
+                {
+                    return new DataTable();
+                }
+
+                sql = @"
+    SELECT
+        CAST(A.cp_id AS VARCHAR(64)) AS cp_id,
+        A.title,
+        A.cmf_request,
+        ISNULL(NULLIF(LTRIM(RTRIM(A.los)), ''), 'No') AS los,
+        A.component_group AS component
+    FROM " + issueSourceSql + @"
+    INNER JOIN (
+        SELECT DISTINCT LTRIM(RTRIM(value)) AS cp_id
+        FROM STRING_SPLIT(@cpIds, ',')
+        WHERE LTRIM(RTRIM(value)) <> ''
+    ) ids ON CAST(A.cp_id AS VARCHAR(64)) = ids.cp_id
+    ORDER BY TRY_CAST(A.cp_id AS BIGINT), CAST(A.cp_id AS VARCHAR(64));";
+
+                requiresDriverParam = false;
+                requiresComponentParam = false;
+            }
+
+            else if (issueType == "OpenDuplicate")
                 {
                         if (component == "Total")
                         {
@@ -11903,7 +12721,35 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
 ORDER BY A.cmf_request desc";
                         }
                 }
-                else if (issueType == "OpenUnique" || issueType == "Open")
+                                else if (issueType == "OpenCombined")
+                {
+                        if (component == "Total")
+                        {
+                                sql = @"
+SELECT cp_id, title, cmf_request, ISNULL(los, 'No') as los, component_group as component
+FROM " + issueSourceSql + @"
+WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
+    AND drivers = @Driver
+    AND status IN ('open')
+    AND cmf_request != 'cmf_reject'
+    AND sysdebug LIKE '%customer_must_fix%'
+ORDER BY cmf_request desc";
+                        }
+                        else
+                        {
+                                sql = @"
+SELECT A.cp_id, A.title, A.cmf_request, ISNULL(A.los, 'No') as los, A.component_group as component
+FROM " + issueSourceSql + @"
+WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
+    AND A.drivers = @Driver
+        AND A.component_group = @Component
+    AND A.status IN ('open')
+    AND A.cmf_request != 'cmf_reject'
+    AND A.sysdebug LIKE '%customer_must_fix%'
+ORDER BY A.cmf_request desc";
+                        }
+                }
+                                else if (issueType == "OpenUnique" || issueType == "Open")
         {
             if (component == "Total")
             {
@@ -11961,7 +12807,35 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
 ORDER BY A.cmf_request desc";
                         }
                 }
-                else if (issueType == "ImplementedUnique" || issueType == "Implemented")
+                                else if (issueType == "ImplementedCombined")
+                {
+                        if (component == "Total")
+                        {
+                                sql = @"
+SELECT cp_id, title, cmf_request, ISNULL(los, 'No') as los, component_group as component
+FROM " + issueSourceSql + @"
+WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
+    AND drivers = @Driver
+    AND cmf_request IN ('cmf_ok', 'cmf_duplicate')
+    AND sysdebug LIKE '%customer_must_fix%'
+    AND status IN ('implemented','verified')
+ORDER BY cmf_request desc";
+                        }
+                        else
+                        {
+                                sql = @"
+SELECT A.cp_id, A.title, A.cmf_request, ISNULL(A.los, 'No') as los, A.component_group as component
+FROM " + issueSourceSql + @"
+WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
+    AND A.drivers = @Driver
+        AND A.component_group = @Component
+    AND A.cmf_request IN ('cmf_ok', 'cmf_duplicate')
+    AND A.sysdebug LIKE '%customer_must_fix%'
+    AND A.status IN ('implemented','verified')
+ORDER BY A.cmf_request desc";
+                        }
+                }
+                                else if (issueType == "ImplementedUnique" || issueType == "Implemented")
         {
             if (component == "Total")
             {
@@ -11993,13 +12867,21 @@ ORDER BY A.cmf_request desc";
         using (SqlConnection con = new SqlConnection(connectionString))
         using (SqlCommand cmd = new SqlCommand(sql, con))
         {
-            object driverParam = (driver != null) ? (object)driver.Trim() : (object)DBNull.Value;
-            cmd.Parameters.Add("@Driver", SqlDbType.NVarChar, 256).Value = driverParam;
+            if (requiresDriverParam)
+            {
+                object driverParam = (driver != null) ? (object)driver.Trim() : (object)DBNull.Value;
+                cmd.Parameters.Add("@Driver", SqlDbType.NVarChar, 256).Value = driverParam;
+            }
 
-            if (component != "Total")
+            if (requiresComponentParam)
             {
                 object componentParam = (component != null) ? (object)component.Trim() : (object)DBNull.Value;
                 cmd.Parameters.Add("@Component", SqlDbType.NVarChar, 256).Value = componentParam;
+            }
+
+            if (!string.IsNullOrWhiteSpace(pendingCpIdsCsv))
+            {
+                cmd.Parameters.AddWithValue("@cpIds", pendingCpIdsCsv);
             }
 
             using (SqlDataAdapter da = new SqlDataAdapter(cmd))
@@ -12165,10 +13047,173 @@ ORDER BY cp_id";
     {
     }
 
+    private static string MapLegacyOemModalTriggerToMetric(string trigger)
+    {
+        switch ((trigger ?? string.Empty).Trim().ToLowerInvariant())
+        {
+            case "_trg1":
+                return "total";
+            case "_trg2":
+                return "pending";
+            case "_trg3":
+                return "closed";
+            case "_trg4":
+                return "open";
+            case "_trg5":
+            case "_trg6":
+            case "_trg7":
+            case "_trg8":
+                return "total";
+            default:
+                return "total";
+        }
+    }
+
+    private const string OverallOemAllToken = "__all_oems__";
+
+    private static void ParseOemSummaryModalArgument(string rawArgument, out string oemName, out string metricKey)
+    {
+        string token = (rawArgument ?? string.Empty).Trim();
+        oemName = string.Empty;
+        metricKey = "total";
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return;
+        }
+
+        string[] modernParts = token.Split(new[] { "||" }, StringSplitOptions.None);
+        if (modernParts.Length >= 2)
+        {
+            oemName = (modernParts[0] ?? string.Empty).Trim();
+            metricKey = NormalizeSummaryMetricKey(modernParts[1]);
+            if (string.IsNullOrWhiteSpace(metricKey))
+            {
+                metricKey = "total";
+            }
+
+            if (string.IsNullOrWhiteSpace(oemName))
+            {
+                oemName = "Unassigned";
+            }
+
+            return;
+        }
+
+        string[] legacyTriggers = { "_trg1", "_trg2", "_trg3", "_trg4", "_trg5", "_trg6", "_trg7", "_trg8" };
+        for (int index = 0; index < legacyTriggers.Length; index++)
+        {
+            string legacyTrigger = legacyTriggers[index];
+            if (!token.EndsWith(legacyTrigger, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            oemName = token.Substring(0, token.Length - legacyTrigger.Length).Trim();
+            metricKey = MapLegacyOemModalTriggerToMetric(legacyTrigger);
+            if (string.IsNullOrWhiteSpace(oemName))
+            {
+                oemName = "Unassigned";
+            }
+
+            return;
+        }
+
+        oemName = token;
+        if (string.IsNullOrWhiteSpace(oemName))
+        {
+            oemName = "Unassigned";
+        }
+    }
+
     private DataTable GetOemSummaryModalData(string oem)
     {
-        // Keeps OEM modal path compilable in environments where legacy helper was removed.
-        return new DataTable();
+        string parsedOem;
+        string parsedMetric;
+        ParseOemSummaryModalArgument(oem, out parsedOem, out parsedMetric);
+        bool includeAllOems = string.Equals(parsedOem, OverallOemAllToken, StringComparison.OrdinalIgnoreCase);
+
+        string dashboardPlatform = ResolveDashboardPlatformSelection();
+        string issueSourceSql = BuildIssueDataSourceSql(dashboardPlatform, "issue_src");
+        string normalizedMetric = NormalizeSummaryMetricKey(parsedMetric);
+        if (string.IsNullOrWhiteSpace(normalizedMetric))
+        {
+            normalizedMetric = "total";
+        }
+
+        StringBuilder whereClause = new StringBuilder();
+        whereClause.Append("WHERE ");
+
+        if (string.Equals(normalizedMetric, "pending", StringComparison.OrdinalIgnoreCase))
+        {
+            whereClause.Append("LOWER(LTRIM(RTRIM(ISNULL(issue_src.cmf_request, '')))) IN ('cmf_ask', 'cmf_incomplete') ");
+            whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) NOT IN ('complete', 'rejected') ");
+        }
+        else
+        {
+            whereClause.Append("LOWER(LTRIM(RTRIM(ISNULL(issue_src.sysdebug, '')))) LIKE '%customer_must_fix%' ");
+            whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.cmf_request, '')))) = 'cmf_ok' ");
+
+            if (string.Equals(normalizedMetric, "open", StringComparison.OrdinalIgnoreCase))
+            {
+                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) NOT IN ('complete', 'rejected', 'implemented') ");
+            }
+            else if (string.Equals(normalizedMetric, "implemented", StringComparison.OrdinalIgnoreCase))
+            {
+                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) = 'implemented' ");
+            }
+            else if (string.Equals(normalizedMetric, "closed", StringComparison.OrdinalIgnoreCase))
+            {
+                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) IN ('complete', 'rejected') ");
+            }
+        }
+
+        StringBuilder sql = new StringBuilder();
+        sql.Append(@"SELECT
+    CAST(issue_src.cp_id AS VARCHAR(64)) AS cp_id,
+    issue_src.title,
+    issue_src.status,
+    issue_src.component,
+    issue_src.cmf_request,
+    issue_src.customer_owner,
+    issue_src.customer_company,
+    issue_src.promoted_id,
+    issue_src.closed_reason,
+    issue_src.days_active,
+    issue_src.idst,
+    issue_src.drivers
+FROM ");
+        sql.Append(issueSourceSql);
+    sql.Append("\n");
+    sql.Append(whereClause.ToString());
+    if (!includeAllOems)
+    {
+        sql.Append(@"
+AND (
+    (@oem = 'Unassigned' AND ISNULL(LTRIM(RTRIM(issue_src.customer_company)), '') = '')
+     OR LTRIM(RTRIM(ISNULL(issue_src.customer_company, ''))) = @oem
+)");
+    }
+
+        sql.Append(@"
+ORDER BY
+    TRY_CAST(issue_src.cp_id AS BIGINT),
+    CAST(issue_src.cp_id AS VARCHAR(64))");
+
+        DataTable dt = new DataTable();
+        using (SqlConnection con = new SqlConnection(ConnectionString))
+        using (SqlCommand cmd = new SqlCommand(sql.ToString(), con))
+        using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+        {
+            if (!includeAllOems)
+            {
+                cmd.Parameters.AddWithValue("@oem", parsedOem ?? "Unassigned");
+            }
+
+            da.Fill(dt);
+        }
+
+        return dt;
     }
 
     private void ExportToExcel(string design)
