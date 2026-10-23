@@ -20253,17 +20253,23 @@ td:nth-child(odd), th:nth-child(odd) {
             }).filter(function (item) { return item.text; });
 
             var bullets = [];
+            var opening = '';
             var markedBullets = parsedLines.filter(function (item) { return item.isBullet; });
-            if (markedBullets.length >= 2) {
-                bullets = markedBullets.map(function (item) { return item.text; }).slice(0, 3);
+            if (markedBullets.length) {
+                var openingLines = parsedLines.filter(function (item) { return !item.isBullet; });
+                opening = openingLines.map(function (item) { return item.text; }).join(' ');
+                bullets = markedBullets.map(function (item) { return item.text; }).slice(0, 6);
             } else if (parsedLines.length >= 4) {
-                bullets = parsedLines.slice(1, 4).map(function (item) { return item.text; });
+                opening = parsedLines[0].text;
+                bullets = parsedLines.slice(1, 7).map(function (item) { return item.text; });
             } else {
-                bullets = parsedLines.map(function (item) { return item.text; }).slice(0, 3);
+                bullets = parsedLines.map(function (item) { return item.text; });
             }
 
-            var html = '<ul>';
-            for (var j = 0; j < bullets.length && j < 3; j++) {
+            var html = opening ? '<div>' + escapeHtml(opening) + '</div>' : '';
+            if (!bullets.length) return html;
+            html += '<ul>';
+            for (var j = 0; j < bullets.length && j < 6; j++) {
                 html += '<li>' + escapeHtml(bullets[j]) + '</li>';
             }
             return html + '</ul>';
@@ -20612,6 +20618,8 @@ td:nth-child(odd), th:nth-child(odd) {
             if (recommendationSection) recommendationSection.classList.add('cmf-rec-hidden');
             if (impactSection) impactSection.classList.add('cmf-rec-hidden');
             if (reasoningSection) reasoningSection.classList.add('cmf-rec-hidden');
+            var chatPanel = document.getElementById('cmfSightingChatPanel');
+            if (chatPanel) chatPanel.classList.add('cmf-rec-hidden');
             if (detailsBody) {
                 detailsBody.classList.remove('cmf-rec-hidden');
                 detailsBody.innerHTML = renderSightingQualityDetails(state.assessment, state.payload || {});
@@ -20632,6 +20640,8 @@ td:nth-child(odd), th:nth-child(odd) {
             if (recommendationSection) recommendationSection.classList.remove('cmf-rec-hidden');
             if (impactSection) impactSection.classList.remove('cmf-rec-hidden');
             if (reasoningSection) reasoningSection.classList.remove('cmf-rec-hidden');
+            var chatPanel = document.getElementById('cmfSightingChatPanel');
+            if (chatPanel) chatPanel.classList.remove('cmf-rec-hidden');
             if (detailsBody) {
                 detailsBody.classList.add('cmf-rec-hidden');
                 detailsBody.innerHTML = '';
@@ -20643,7 +20653,6 @@ td:nth-child(odd), th:nth-child(odd) {
             html += renderSqaTemplateQualityOverview(assessment);
             html += renderSqaFieldEvidenceTable(assessment);
             html += renderSqaAssessmentSummary(assessment);
-            html += renderSightingQualitySuggestions(assessment);
             html += '</div>';
             return html;
         }
@@ -20680,7 +20689,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var quality = getSqaQualitySummary(score, counts);
             var html = '<section class="cmf-quality-detail-card cmf-sqa-overview-template"><h4><span class="cmf-sqa-card-icon" aria-hidden="true">&#xf201;</span>Quality Overview</h4>';
             html += '<div class="cmf-sqa-overview-grid">';
-            html += '<div class="cmf-sqa-score-block"><div class="cmf-quality-donut" style="--score:' + escapeHtml(score) + '"><div class="cmf-quality-donut-value">' + escapeHtml(Math.round(score)) + '<span>/100</span></div></div><div class="cmf-sqa-score-message ' + escapeHtml(getQualityStateClass(score)) + '"><strong>' + escapeHtml(quality.title) + '</strong><span>' + escapeHtml(quality.message) + '</span></div></div>';
+            html += '<div class="cmf-sqa-score-block"><div class="cmf-quality-donut" style="--score:' + escapeHtml(score) + '"><div class="cmf-quality-donut-value">' + escapeHtml(formatSqaScoreOutOfTen(score)) + '<span>/10</span></div></div><div class="cmf-sqa-score-message ' + escapeHtml(getQualityStateClass(score)) + '"><strong>' + escapeHtml(quality.title) + '</strong><span>' + escapeHtml(quality.message) + '</span></div></div>';
             html += '<div class="cmf-sqa-status-summary"><div class="cmf-quality-panel-label">Field Status Summary</div>';
             html += renderSqaStatusSummaryRow('Complete', counts.complete, 'present');
             html += renderSqaStatusSummaryRow('Partial', counts.partial, 'partial');
@@ -20733,17 +20742,26 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function renderSqaAssessmentSummary(assessment) {
-            var fields = assessment.fields || [];
-            var gaps = [];
+            var fields = (assessment.fields || []).filter(function (field) { return isSqaCoreField(field.fieldName); });
+            var counts = getSqaStatusCounts(fields);
+            var score = Math.max(0, Math.min(100, parseFloat(assessment.score) || 0));
+            var quality = getSqaQualitySummary(score, counts);
+            var explanations = [];
+            var suggestions = [];
             for (var i = 0; i < fields.length; i++) {
                 var field = fields[i] || {};
-                if (!isSqaCoreField(field.fieldName) || /^present$/i.test(field.status || '')) continue;
-                gaps.push((field.fieldName || 'Field') + ' is ' + normalizeSqaFieldStatusLabel(field.status).toLowerCase());
+                if (normalizeSqaFieldStatusLabel(field.status) === 'Complete') continue;
+                explanations.push((field.fieldName || 'Field') + ': ' + getSqaStatusReason(field));
+                var suggestion = String(field.recommendation || ('Clarify ' + (field.fieldName || 'this field') + '.')).trim();
+                if (suggestion && suggestions.indexOf(suggestion) < 0) suggestions.push(suggestion);
             }
-            var summary = (assessment.summary && assessment.summary.length ? assessment.summary[0] : '') || 'The sighting quality was assessed from the requested HSD checklist fields.';
-            if (gaps.length) summary += ' Main gaps: ' + gaps.slice(0, 3).join('; ') + '.';
+            var summary = 'The sighting has an information quality score of ' + formatSqaScoreOutOfTen(score) + '/10. ' + quality.message + ' Of the ' + fields.length + ' assessed fields, ' + counts.complete + ' are complete, ' + counts.partial + ' are partial, ' + counts.missing + ' are missing, and ' + counts.conflicting + ' contain conflicting information.';
             var html = '<section class="cmf-quality-detail-card cmf-sqa-assessment-summary"><h4><span class="cmf-sqa-sparkle" aria-hidden="true">&#10024;</span>Assessment Summary</h4>';
-            html += '<p>' + escapeHtml(summary) + '</p></section>';
+            html += '<p>' + escapeHtml(summary) + '</p>';
+            for (var explanationIndex = 0; explanationIndex < explanations.length; explanationIndex++) {
+                html += '<p>' + escapeHtml(explanations[explanationIndex]) + '</p>';
+            }
+            html += '<p><strong>Next steps:</strong> ' + escapeHtml(suggestions.length ? suggestions.join(' ') : 'No immediate information-quality improvements are needed; proceed with CMF review.') + '</p></section>';
             return html;
         }
 
@@ -21375,12 +21393,15 @@ td:nth-child(odd), th:nth-child(odd) {
             var list = (items || []).filter(function (item) { return item && String(item).trim().length; });
             if (!list.length) list = ['No reasoning returned; review the score details and issue evidence.'];
             var segmenter = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('en', { granularity: 'sentence' }) : null;
+            var points = [];
             for (var i = 0; i < list.length; i++) {
                 var sentences = segmenter ? Array.from(segmenter.segment(String(list[i])), function (part) { return part.segment.trim(); }) : [String(list[i]).trim()];
                 for (var sentenceIndex = 0; sentenceIndex < sentences.length; sentenceIndex++) {
-                    if (sentences[sentenceIndex]) html += '<li>' + escapeHtml(sentences[sentenceIndex]) + '</li>';
+                    if (sentences[sentenceIndex]) points.push(sentences[sentenceIndex]);
                 }
             }
+            if (points.length > 4) points = [points[0], points[1], points.slice(2, -1).join(' '), points[points.length - 1]];
+            for (var pointIndex = 0; pointIndex < points.length; pointIndex++) html += '<li>' + escapeHtml(points[pointIndex]) + '</li>';
             return html + '</ul></div>';
         }
 
