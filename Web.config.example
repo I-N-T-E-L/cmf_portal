@@ -31,6 +31,7 @@
     <add key="HSD:McpAuthorization" value="" />
     <add key="HSD:ArticleApiBaseUrl" value="https://hsdes-api.intel.com/rest/article" />
     <add key="HSD:TimeoutSeconds" value="20" />
+    <add key="CMF:AssistantHsdRefreshSeconds" value="60" />
     <add key="HSD:UseDefaultCredentials" value="true" />
     <add key="HSD:Proxy" value="" />
   </appSettings>

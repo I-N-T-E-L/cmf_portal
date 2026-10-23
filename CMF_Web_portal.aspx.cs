@@ -7602,7 +7602,8 @@ LEFT JOIN " + designTable + @" AS d
         string impact = impactValue == null || impactValue == DBNull.Value ? string.Empty : impactValue.ToString().Trim();
 
         DateTime parsedDate;
-        if (DateTime.TryParse(dateCmfAsk, out parsedDate))
+        bool hasAskDate = DateTime.TryParse(dateCmfAsk, out parsedDate);
+        if (hasAskDate)
         {
             dateCmfAsk = parsedDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
         }
@@ -7611,6 +7612,10 @@ LEFT JOIN " + designTable + @" AS d
         sb.Append("<span class=\"pending-status-cell\">");
         sb.Append("<span class=\"pending-chip-row\">");
         sb.AppendFormat("<span class=\"pending-chip\">Date: {0}</span>", HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(dateCmfAsk) ? "N/A" : dateCmfAsk));
+        if (hasAskDate && DateTime.Now - parsedDate > TimeSpan.FromDays(2))
+        {
+            sb.Append("<span class=\"pending-stale-label\" title=\"CMF ask date is more than 2 days old\"><i class=\"fas fa-clock\" aria-hidden=\"true\"></i>Stale</span>");
+        }
         sb.Append("</span>");
         sb.AppendFormat("<span class=\"pending-mini-label\">Impact</span><span>{0}</span>", HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(impact) ? "Impact not specified" : impact));
         sb.Append("</span>");
@@ -8967,33 +8972,77 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         }
     }
 
+    [WebMethod]
+    public static CmfSightingChatResponse AskCmfSightingQuestion(string cpId, string title, string question, string platform, List<CmfSightingChatTurn> history)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(cpId) || string.IsNullOrWhiteSpace(question))
+            {
+                return new CmfSightingChatResponse
+                {
+                    Success = false,
+                    Message = "Sighting ID and question are required."
+                };
+            }
+
+            if (!IsAllowedOrOverallPlatform(platform))
+            {
+                return new CmfSightingChatResponse
+                {
+                    Success = false,
+                    Message = "Invalid platform input for sighting chat."
+                };
+            }
+
+            string hsdContext = BuildPendingHsdContext(cpId);
+            string dbContext = BuildIssueSummaryContext(platform, cpId);
+
+            StringBuilder contextBuilder = new StringBuilder();
+            if (!string.IsNullOrWhiteSpace(dbContext)) contextBuilder.AppendLine(dbContext);
+            if (!string.IsNullOrWhiteSpace(hsdContext))
+            {
+                if (contextBuilder.Length > 0) contextBuilder.AppendLine();
+                contextBuilder.AppendLine(hsdContext);
+            }
+
+            return AiSummaryService.GenerateSightingFollowUpAnswer(cpId, title, contextBuilder.ToString(), question, history);
+        }
+        catch (Exception ex)
+        {
+            return new CmfSightingChatResponse
+            {
+                Success = false,
+                Message = "Failed to answer sighting question: " + ex.Message
+            };
+        }
+    }
+
     private static string BuildPendingHsdContext(string cpId)
     {
         if (string.IsNullOrWhiteSpace(cpId)) return string.Empty;
         string cacheKey = "cmf-assistant-hsd-context:" + cpId.Trim();
-        lock (AssistantContextCacheSync)
+        using (CmfAssistantResponseCache.Enter(cacheKey))
         {
             string cached = HttpRuntime.Cache[cacheKey] as string;
             if (cached != null) return cached;
-        }
 
         try
         {
             HsdArticleData article = HsdPortalService.FetchArticle(cpId.Trim());
+            if (article == null || !article.FetchSuccess) return string.Empty;
             string context = HsdPortalService.FormatForAiContext(article, "Pending Sighting");
-            lock (AssistantContextCacheSync)
-            {
-                HttpRuntime.Cache.Insert(cacheKey, context ?? string.Empty, null, DateTime.UtcNow.AddMinutes(10), System.Web.Caching.Cache.NoSlidingExpiration);
-            }
+            context += "\nHSD Source Fingerprint: " + CmfAssistantResponseCache.Fingerprint(article);
+            int refreshSeconds;
+            if (!int.TryParse(System.Configuration.ConfigurationManager.AppSettings["CMF:AssistantHsdRefreshSeconds"], out refreshSeconds)) refreshSeconds = 60;
+            refreshSeconds = Math.Max(15, Math.Min(300, refreshSeconds));
+            HttpRuntime.Cache.Insert(cacheKey, context, null, DateTime.UtcNow.AddSeconds(refreshSeconds), System.Web.Caching.Cache.NoSlidingExpiration);
             return context;
         }
         catch
         {
-            lock (AssistantContextCacheSync)
-            {
-                HttpRuntime.Cache.Insert(cacheKey, string.Empty, null, DateTime.UtcNow.AddMinutes(2), System.Web.Caching.Cache.NoSlidingExpiration);
-            }
             return string.Empty;
+        }
         }
     }
 
@@ -9001,12 +9050,6 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
     {
         if (string.IsNullOrWhiteSpace(cpId)) return string.Empty;
         string resolvedPlatform = NormalizePlatformForLookup(platformTable);
-        string cacheKey = "cmf-assistant-recommendation-context:" + (resolvedPlatform ?? OverallDashboardPlatformTable) + ":" + cpId.Trim();
-        lock (AssistantContextCacheSync)
-        {
-            string cached = HttpRuntime.Cache[cacheKey] as string;
-            if (cached != null) return cached;
-        }
 
         StringBuilder builder = new StringBuilder();
         string dbContext = BuildIssueSummaryContext(resolvedPlatform, cpId);
@@ -9023,10 +9066,6 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         }
 
         string context = builder.ToString().Trim();
-        lock (AssistantContextCacheSync)
-        {
-            HttpRuntime.Cache.Insert(cacheKey, context, null, DateTime.UtcNow.AddMinutes(10), System.Web.Caching.Cache.NoSlidingExpiration);
-        }
         return context;
     }
 

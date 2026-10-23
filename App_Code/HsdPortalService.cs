@@ -51,6 +51,7 @@ public class HsdArticleData
     public string CmfJustification { get; set; }
     public string InvestigationHistory { get; set; }
     public string FetchSource { get; set; }
+    public string UpdatedDate { get; set; }
 }
 
 public static class HsdPortalService
@@ -398,7 +399,7 @@ public static class HsdPortalService
         builder.AppendLine("Retrieve HSDES bug/article " + articleId + " using the available HSDES plugin/tool.");
         builder.AppendLine("Return only a JSON object with these keys when available:");
         builder.AppendLine("fetch_success, fetch_error, article_id, title, problem_description, description, family, component, status, sysdebug, sysdebug_forum, priority, exposure, submitter, owner, repro_steps, steps_to_reproduce, mandatory_fields, expected_behavior, actual_behavior, customer_summary, customer_impact, reproducibility, processor, soc_stepping, me_sku, cmf_justification, fix_description, fixed_version, closed_reason, implemented_date, verified_date, closed_date, investigation_history, comments.");
-        builder.AppendLine("comments must be an array of concise recent discussion/update strings. investigation_history should include relevant engineering updates, debug findings, root-cause/fix/closure notes, and customer/external history when present.");
+        builder.AppendLine("Also return updated_date with the article's last-modified timestamp or revision when available. Copy retrieved field values verbatim rather than paraphrasing or summarizing them, so unchanged articles produce stable source data. comments must contain the most recent discussion/update strings in newest-first order. investigation_history should include relevant engineering updates, debug findings, root-cause/fix/closure notes, and customer/external history when present.");
         builder.AppendLine("If the plugin/tool cannot retrieve this article, return fetch_success=false and a short fetch_error. Do not use prior knowledge or guess.");
         return builder.ToString();
     }
@@ -419,6 +420,7 @@ public static class HsdPortalService
         if (fields == null) fields = root;
 
         ApplyCanonicalFields(fields, result);
+        result.UpdatedDate = Pick(fields, "updated_date", "last_updated", "last_modified", "modified_date", "date_updated", "updated_at", "revision", "version");
         ParseInlineComments(fields, result);
 
         object fetchSuccess = fields["fetch_success"];

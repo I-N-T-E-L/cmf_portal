@@ -2260,6 +2260,128 @@
     vertical-align: middle;
 }
 
+.cmf-sighting-chat-panel {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 12px;
+    border: 1px solid #d7e7fb;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.cmf-sighting-chat-title {
+    color: #16385f;
+    font-size: 12px;
+    font-weight: 950;
+}
+
+.cmf-sighting-chat-messages {
+    display: grid;
+    gap: 8px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.cmf-sighting-chat-msg {
+    max-width: 92%;
+    padding: 9px 11px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #24364a;
+    background: #f1f6fd;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.cmf-sighting-chat-msg.user {
+    justify-self: end;
+    color: #ffffff;
+    background: #1769aa;
+}
+
+.cmf-sighting-chat-answer {
+    white-space: normal;
+}
+
+.cmf-sighting-chat-answer ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.cmf-sighting-chat-answer li + li {
+    margin-top: 6px;
+}
+
+.cmf-sighting-chat-input-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: end;
+    width: 100%;
+    margin: 0 auto;
+    padding: 5px 8px;
+    border: 1px solid #c9daee;
+    border-radius: 8px;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+.cmf-sighting-chat-input-row:focus-within {
+    border-color: #1769aa;
+}
+
+.cmf-sighting-chat-edit {
+    display: block;
+    width: 28px;
+    height: 28px;
+    margin-top: 5px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.cmf-sighting-chat-edit:hover,
+.cmf-sighting-chat-edit:focus-visible {
+    background: rgba(255, 255, 255, .2);
+}
+
+.cmf-sighting-chat-input-row textarea {
+    min-height: 28px;
+    max-height: 90px;
+    resize: vertical;
+    min-width: 0;
+    border: 0;
+    border-radius: 4px;
+    padding: 4px;
+    background: transparent;
+    color: #102a43;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.cmf-sighting-chat-send {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border: 0;
+    border-radius: 8px;
+    background: #0f6db3;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.cmf-sighting-chat-send:disabled {
+    cursor: not-allowed;
+    background: #9bb8d3;
+}
+
 .cmf-assistant-context {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -2346,6 +2468,44 @@
     color: #1f2937;
     font-size: 11px;
     line-height: 1;
+}
+
+#cmfAssistantRecTag.is-loading {
+    position: relative;
+    overflow: hidden;
+    background: #e4edf7;
+    color: transparent;
+    text-shadow: none;
+}
+
+#cmfAssistantRecTag.is-loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .85), transparent);
+    animation: cmfTagShimmer 1.4s linear infinite;
+}
+
+@keyframes cmfTagShimmer {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #cmfAssistantRecTag.is-loading::after { animation: none; }
+}
+
+.pending-stale-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 6px;
+    border: 1px solid #f0ce79;
+    border-radius: 4px;
+    background: #fff5d6;
+    color: #805300;
+    font-size: 10px;
+    font-weight: 700;
 }
 
 .cmf-assistant-heading-id {
@@ -3089,11 +3249,11 @@ body {
 }
 
 .ccip-specific-top-layout {
-    width: 1840px;
-    min-width: 1840px;
-    max-width: 1840px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     display: grid;
-    grid-template-columns: 1262px 568px;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, .45fr);
     grid-template-rows: auto auto;
     gap: 10px;
     align-items: start;
@@ -3219,9 +3379,9 @@ body {
 }
 
 #homeLegacyTablesGrid {
-    width: 1840px;
-    min-width: 1840px;
-    max-width: 1840px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
 }
 
 /* Match platform-specific row-2 to row-3 spacing with overall tab rhythm. */
@@ -5929,15 +6089,15 @@ form,
 .main-content,
 .portal-content,
 .page-content {
-    min-width: 1880px;
+    min-width: 0;
 }
 
 .overall-layout-v2 {
-    width: 1840px;
-    min-width: 1840px;
-    max-width: 1840px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     display: grid;
-    grid-template-columns: 1130px 700px;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, .45fr);
     grid-template-rows: auto auto auto;
     gap: 10px;
 }
@@ -9473,7 +9633,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
     .cmf-assistant-rec-top {
         display: grid;
-        grid-template-columns: minmax(132px, 0.32fr) minmax(0, 1fr);
+        grid-template-columns: minmax(112px, 0.24fr) minmax(0, 1fr);
         gap: 8px;
         align-items: stretch;
     }
@@ -9481,20 +9641,21 @@ td:nth-child(odd), th:nth-child(odd) {
     .cmf-assistant-overall-score {
         border: 1px solid #d8e2ee;
         border-radius: 8px;
-        padding: 10px 8px;
+        padding: 8px;
         background: linear-gradient(180deg, #f8fbff, #ffffff);
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 7px;
-        min-height: 112px;
+        gap: 6px;
+        min-height: 96px;
+        align-self: start;
         overflow: hidden;
     }
 
     .cmf-assistant-score-ring {
-        width: 72px;
-        height: 72px;
+        width: 64px;
+        height: 64px;
         border-radius: 50%;
         display: grid;
         place-items: center;
@@ -9508,14 +9669,16 @@ td:nth-child(odd), th:nth-child(odd) {
     }
 
     .cmf-assistant-score-ring-value {
-        width: 54px;
-        height: 54px;
+        width: 52px;
+        height: 52px;
         border-radius: 50%;
         background: #fff;
-        display: grid;
-        place-items: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
         color: #12385f;
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 950;
         line-height: 1;
     }
@@ -9632,6 +9795,18 @@ td:nth-child(odd), th:nth-child(odd) {
         color: #40566e;
         font-size: 11px;
         line-height: 1.35;
+    }
+
+    .cmf-assistant-reasoning-copy p {
+        margin: 0 0 10px;
+        color: #304761;
+        font-size: 12px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+    }
+
+    .cmf-assistant-reasoning-copy p:last-child {
+        margin-bottom: 0;
     }
 
     .cmf-assistant-reasoning-copy ul {
@@ -9885,7 +10060,7 @@ td:nth-child(odd), th:nth-child(odd) {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 10px;
-        align-items: stretch;
+        align-items: start;
     }
 
     .cmf-sqa-score-pill {
@@ -9907,8 +10082,8 @@ td:nth-child(odd), th:nth-child(odd) {
         border: 2px solid #d8e7f5;
         border-radius: 14px;
         background: #ffffff;
-        min-height: 116px;
-        padding: 10px 11px;
+        min-height: 0;
+        padding: 8px 10px;
         min-width: 0;
     }
 
@@ -10950,7 +11125,7 @@ td:nth-child(odd), th:nth-child(odd) {
     .issue-grid-inner #overall_request_details {
         table-layout: fixed !important;
         width: 100% !important;
-        min-width: 1620px !important;
+        min-width: 1320px !important;
         max-width: none !important;
         display: table !important;
         overflow: visible !important;
@@ -10989,7 +11164,7 @@ td:nth-child(odd), th:nth-child(odd) {
     .issue-grid-inner .table-primary {
         table-layout: fixed !important;
         width: 100% !important;
-        min-width: 1560px !important;
+        min-width: 1320px !important;
         max-width: none !important;
         display: table !important;
     }
@@ -11000,7 +11175,7 @@ td:nth-child(odd), th:nth-child(odd) {
     .issue-grid-inner .table-primary {
         table-layout: fixed !important;
         width: 100% !important;
-        min-width: 1560px !important;
+        min-width: 1320px !important;
         max-width: none !important;
         display: table !important;
     }
@@ -11117,7 +11292,7 @@ td:nth-child(odd), th:nth-child(odd) {
     }
 
     .issue-grid-inner #overall_request_details {
-        min-width: 1668px !important;
+        min-width: 1320px !important;
         border-collapse: separate !important;
         border-spacing: 0 !important;
         border: 1px solid #e8edf5 !important;
@@ -13136,7 +13311,7 @@ td:nth-child(odd), th:nth-child(odd) {
     .issue-grid-inner > table,
     .issue-grid-inner .table-primary {
         width: max-content !important;
-        min-width: 2200px !important;
+        min-width: 1320px !important;
         max-width: none !important;
     }
 
@@ -13409,6 +13584,592 @@ td:nth-child(odd), th:nth-child(odd) {
 
         .cmf-pending-filter-card {
             grid-template-columns: 1fr;
+        }
+    }
+
+    /* Compact workspace sizing: preserve content visibility and contain wide tables. */
+    html,
+    body,
+    form,
+    header,
+    .container-scroller,
+    .container-fluid.page-body-wrapper {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    html,
+    body {
+        overflow-x: hidden !important;
+    }
+
+    .portal-layout-shell,
+    .portal-main-workspace,
+    #mainDataWrapper.content-wrapper,
+    .table-container,
+    #issueTabShell,
+    #pendingTabShell {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .portal-layout-shell {
+        width: 100% !important;
+        gap: 10px !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: flex-start !important;
+    }
+
+    .portal-main-workspace {
+        flex: 0 0 calc(100vw - 196px) !important;
+        width: calc(100vw - 196px) !important;
+        max-width: calc(100vw - 196px) !important;
+        overflow: visible !important;
+    }
+
+    .portal-left-nav {
+        flex: 0 0 176px !important;
+        width: 176px !important;
+    }
+
+    .portal-left-nav.is-collapsed {
+        flex-basis: 58px !important;
+        width: 58px !important;
+    }
+
+    .portal-layout-shell.main-menu-collapsed .portal-main-workspace {
+        flex-basis: calc(100vw - 78px) !important;
+        width: calc(100vw - 78px) !important;
+        max-width: calc(100vw - 78px) !important;
+    }
+
+    .content-wrapper,
+    #mainDataWrapper.content-wrapper {
+        width: 100% !important;
+        min-width: 0 !important;
+        margin: 4px 0 8px !important;
+        padding: 8px !important;
+        border-radius: 10px !important;
+        overflow: visible !important;
+    }
+
+    .ccip-dashboard,
+    .home-dashboard-shell,
+    .portal-tab-shell,
+    .issue-tab-main,
+    #pendingTabShell .pending-tab-main {
+        gap: 10px !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .ccip-dash-top,
+    .portal-tab-hero,
+    .home-dashboard-panel,
+    .home-ai-card,
+    .portal-surface-card,
+    .overall-card,
+    .ccip-card,
+    .issue-page-hd,
+    #pendingTabShell .cmf-pending-page-hd,
+    .field-selector-panel {
+        padding: 10px 12px !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.045) !important;
+    }
+
+    .ccip-dash-greeting,
+    .portal-tab-title,
+    .issue-page-title,
+    .cmf-pending-page-title {
+        font-size: 20px !important;
+        line-height: 1.15 !important;
+        margin-bottom: 4px !important;
+    }
+
+    .ccip-dash-sub,
+    .portal-tab-desc,
+    .issue-page-desc,
+    .cmf-pending-page-desc {
+        font-size: 12px !important;
+        line-height: 1.35 !important;
+        margin: 2px 0 0 !important;
+    }
+
+    .platform-chip-rail {
+        gap: 6px !important;
+        margin-bottom: 8px !important;
+        overflow-x: auto !important;
+        max-width: 100% !important;
+        padding-bottom: 2px !important;
+    }
+
+    .platform-chip-rail button,
+    .platform-chip-rail .platform-chip {
+        min-height: 28px !important;
+        padding: 4px 9px !important;
+        font-size: 11px !important;
+    }
+
+    .overall-row,
+    .ccip-main-grid,
+    .ccip-dashboard-overview,
+    .ccip-summary-canvas,
+    .ccip-inline-side-stack,
+    .home-dashboard-grid,
+    .home-ai-panels,
+    .home-dashboard-metrics,
+    .issue-kpi-row,
+    #pendingTabShell .template-kpi-row {
+        gap: 10px !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    #homeOverallLayoutV2.overall-layout-v2,
+    .overall-layout-v2 {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    #homeOverallLayoutV2 .overall-row-summary,
+    #homeOverallLayoutV2 .overall-summary-card,
+    .overall-row-summary,
+    .overall-row-second,
+    .overall-row-third,
+    .overall-ai-span-card {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        grid-column: 1 !important;
+        grid-row: auto !important;
+        justify-self: stretch !important;
+    }
+
+    .overall-row-second,
+    .overall-row-third {
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr) !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+
+    #homeOverallSummaryFacts.overall-summary-facts,
+    #homeSpecificSummaryFactsDashboard.overall-summary-facts,
+    #homeSpecificSummaryFactsCmf.overall-summary-facts {
+        justify-content: start !important;
+    }
+
+    #homeOverallSummaryFacts .overall-summary-fact,
+    #homeSpecificSummaryFactsDashboard .overall-summary-fact,
+    #homeSpecificSummaryFactsCmf .overall-summary-fact {
+        width: 96px !important;
+        min-width: 96px !important;
+        max-width: 96px !important;
+        height: 92px !important;
+        min-height: 92px !important;
+        max-height: 92px !important;
+        padding: 7px 6px !important;
+    }
+
+    .overall-summary-fact .ccip-summary-fact-value {
+        font-size: 22px !important;
+    }
+
+    .overall-card-head,
+    .ccip-card-head,
+    .home-dashboard-panel-head {
+        gap: 8px !important;
+        margin-bottom: 8px !important;
+    }
+
+    .overall-card-title,
+    .ccip-card-title,
+    .ccip-card-mini-title,
+    .home-dashboard-panel-title {
+        font-size: 14px !important;
+        line-height: 1.25 !important;
+    }
+
+    .overall-trend-chart,
+    #homeTrendChart,
+    #homeOverallTrendChart {
+        height: 230px !important;
+        min-height: 220px !important;
+    }
+
+    .ccip-live-table-wrap,
+    .overall-oem-table-wrap,
+    .overall-heatmap-wrap,
+    .overall-pending-body {
+        max-width: 100% !important;
+        overflow-x: auto !important;
+    }
+
+    .issue-kpi {
+        min-height: 72px !important;
+        padding: 10px 12px !important;
+        border-radius: 8px !important;
+    }
+
+    .issue-kpi-value {
+        font-size: 22px !important;
+        line-height: 1 !important;
+    }
+
+    .issue-top-filter-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+        gap: 8px !important;
+    }
+
+    .issue-top-filter-item,
+    .cmf-pending-filter-card {
+        min-width: 0 !important;
+    }
+
+    .issue-grid-scroll,
+    .issue-grid-inner,
+    #pendingTabShell .cmf-pending-grid-wrap,
+    .cmf-pending-grid-wrap {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+        overflow-y: auto !important;
+        overscroll-behavior-x: contain;
+    }
+
+    .issue-grid-inner #overall_request_details,
+    .issue-grid-inner > table,
+    .issue-grid-inner .table-primary {
+        min-width: min(1320px, 100%) !important;
+        width: 100% !important;
+        table-layout: fixed !important;
+    }
+
+    #overall_request_details th,
+    #overall_request_details td,
+    #GridView_cmf_pending th,
+    #GridView_cmf_pending td {
+        padding: 7px 8px !important;
+        font-size: 10px !important;
+        line-height: 1.28 !important;
+    }
+
+    #overall_request_details th .header-dropdown,
+    .issue-top-filter-item .header-dropdown,
+    .cmf-pending-filter-select {
+        height: 30px !important;
+        padding: 3px 7px !important;
+        font-size: 10px !important;
+        border-radius: 6px !important;
+    }
+
+    #overall_request_details tbody td:nth-child(2),
+    #overall_request_details .field-issue_details {
+        min-width: 220px !important;
+        max-width: 280px !important;
+    }
+
+    #pendingTabShell .cmf-pending-filter-card {
+        grid-template-columns: minmax(170px, 1.4fr) repeat(4, minmax(105px, 0.65fr)) auto !important;
+        gap: 7px !important;
+        padding: 9px !important;
+    }
+
+    #pendingTabShell #GridView_cmf_pending {
+        min-width: min(920px, 100%) !important;
+        width: 100% !important;
+    }
+
+    #pendingTabShell .pending-ai-rec-btn,
+    .cmf-pending-action-btn,
+    .cmf-pending-filter-btn,
+    .issue-toolbar-btn,
+    .filter-btn {
+        min-height: 30px !important;
+        padding: 4px 9px !important;
+        font-size: 11px !important;
+        border-radius: 6px !important;
+    }
+
+    @media (max-width: 1180px) {
+        #pendingTabShell .cmf-pending-filter-card {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+
+        .issue-grid-inner #overall_request_details,
+        .issue-grid-inner > table,
+        .issue-grid-inner .table-primary {
+            min-width: 1180px !important;
+        }
+    }
+
+    @media (max-width: 760px) {
+        #pendingTabShell .cmf-pending-filter-card,
+        .issue-top-filter-grid,
+        .issue-kpi-row {
+            grid-template-columns: 1fr !important;
+        }
+
+        .ccip-dash-top,
+        .cmf-pending-page-hd-top,
+        .issue-page-hd-top {
+            flex-direction: column !important;
+            align-items: stretch !important;
+        }
+    }
+
+    /* Platform-specific dashboard fit: keep all cards visible inside the workspace. */
+    #homeLegacyTopLayout.ccip-specific-top-layout {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 10px !important;
+    }
+
+    #homeLegacyTopLayout #homeLegacySummarySection,
+    #homeLegacyTopLayout #homeLegacySummarySection .overall-summary-card,
+    #homeLegacyTopLayout #homeLegacyOverview,
+    #homeLegacyTablesGrid,
+    #homeLegacyTablesGrid .ccip-summary-canvas {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+
+    #homeLegacyTopLayout #homeLegacySummarySection,
+    #homeLegacyTopLayout #homeLegacySummarySection .overall-summary-card {
+        padding: 8px !important;
+    }
+
+    #homeLegacyTopLayout #homeSpecificSummaryFactsDashboard.overall-summary-facts,
+    #homeLegacyTopLayout #homeSpecificSummaryFactsCmf.overall-summary-facts {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        gap: 4px !important;
+        overflow: visible !important;
+        height: auto !important;
+    }
+
+    #homeLegacyTopLayout #homeSpecificSummaryFactsDashboard .overall-summary-facts-core,
+    #homeLegacyTopLayout #homeSpecificSummaryFactsCmf .overall-summary-facts-core,
+    #homeLegacyTopLayout #homeSpecificSummaryFactsDashboard .overall-summary-tpt-inline,
+    #homeLegacyTopLayout #homeSpecificSummaryFactsCmf .overall-summary-tpt-inline {
+        display: contents !important;
+        grid-template-columns: none !important;
+        gap: 5px !important;
+        min-width: 0 !important;
+    }
+
+    #homeLegacyTopLayout #homeSpecificSummaryFactsDashboard .overall-summary-fact,
+    #homeLegacyTopLayout #homeSpecificSummaryFactsCmf .overall-summary-fact {
+        flex: 1 1 0 !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: 62px !important;
+        min-height: 62px !important;
+        max-height: 62px !important;
+        padding: 5px !important;
+    }
+
+    #homeLegacyTopLayout #homeSpecificSummaryFactsDashboard .overall-tpt-box,
+    #homeLegacyTopLayout #homeSpecificSummaryFactsCmf .overall-tpt-box {
+        flex: 1 1 0 !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: 62px !important;
+        min-height: 62px !important;
+        max-height: 62px !important;
+        padding: 5px !important;
+    }
+
+    #homeLegacyTopLayout .overall-tpt-label,
+    #homeLegacyTopLayout .overall-tpt-foot {
+        font-size: 8px !important;
+        line-height: 1.1 !important;
+    }
+
+    #homeLegacyTopLayout .overall-tpt-value {
+        font-size: 17px !important;
+        line-height: 1 !important;
+    }
+
+    #homeLegacyTopLayout .overall-summary-fact .ccip-summary-fact-value {
+        font-size: 17px !important;
+    }
+
+    #homeLegacyTopLayout .overall-summary-fact .ccip-summary-fact-label,
+    #homeLegacyTopLayout .overall-summary-fact .ccip-summary-fact-note {
+        font-size: 8px !important;
+        line-height: 1.1 !important;
+    }
+
+    #homeLegacyTopLayout #homeLegacyOverview .ccip-dashboard-left {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        display: grid !important;
+        grid-template-columns: minmax(0, 1.45fr) minmax(240px, .85fr) !important;
+        grid-template-rows: auto !important;
+        gap: 10px !important;
+        padding: 10px !important;
+        height: auto !important;
+    }
+
+    #homeLegacyTopLayout #homeLegacyOverview .ccip-trend-card-inline.overall-trend-card,
+    #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot {
+        grid-row: 1 !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        height: 205px !important;
+        min-height: 205px !important;
+        max-height: 205px !important;
+        overflow: hidden !important;
+    }
+
+    #homeLegacyTopLayout #homeLegacyOverview .ccip-trend-card-inline.overall-trend-card {
+        grid-column: 1 !important;
+    }
+
+    #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot {
+        grid-column: 2 !important;
+    }
+
+    #homeLegacyTopLayout #homeLegacyOverview .overall-trend-chart,
+    #homeLegacyTopLayout #homeTrendChart {
+        height: 140px !important;
+        min-height: 140px !important;
+    }
+
+    #homeLegacyTopLayout #homeLegacyAiHealthCard {
+        grid-column: 1 !important;
+        grid-row: auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        min-height: 34px !important;
+        height: 34px !important;
+        max-height: 34px !important;
+        padding: 6px 10px !important;
+        overflow: hidden !important;
+    }
+
+    #homeLegacyTopLayout #homeLegacyAiHealthCard .overall-card-head {
+        margin-bottom: 0 !important;
+    }
+
+    #homeLegacyTopLayout #homeLegacyAiHealthCard .overall-ai-blank {
+        display: none !important;
+    }
+
+    #homeLegacyTablesGrid {
+        margin-top: 0 !important;
+    }
+
+    #homeLegacyTablesGrid .ccip-col.ccip-col-center,
+    #homeLegacyTablesGrid .ccip-inline-side-stack {
+        display: contents !important;
+    }
+
+    #homeLegacyTablesGrid .ccip-summary-canvas {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1.2fr) minmax(220px, .74fr) minmax(190px, .58fr) !important;
+        gap: 10px !important;
+        padding: 10px !important;
+        overflow: hidden !important;
+    }
+
+    #homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card,
+    #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card,
+    #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card.ccip-milestone-summary-card,
+    #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card.ccip-pending-summary-card {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        height: 220px !important;
+        min-height: 220px !important;
+        max-height: 220px !important;
+        justify-self: stretch !important;
+        overflow: hidden !important;
+    }
+
+    #homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+    }
+
+    #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card.ccip-milestone-summary-card {
+        grid-column: 2 !important;
+        grid-row: 1 !important;
+    }
+
+    #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card.ccip-pending-summary-card {
+        grid-column: 3 !important;
+        grid-row: 1 !important;
+    }
+
+    #homeLegacyTopLayout .ccip-live-table-wrap,
+    #homeLegacyTablesGrid .ccip-live-table-wrap,
+    #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card .ccip-live-table-wrap,
+    #homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card .ccip-live-table-wrap {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        flex: 1 1 auto !important;
+        overflow: auto !important;
+    }
+
+    #homeLegacyTopLayout .ccip-card-head,
+    #homeLegacyTablesGrid .ccip-card-head {
+        margin-bottom: 7px !important;
+    }
+
+    #homeLegacyTopLayout .ccip-card-mini-title,
+    #homeLegacyTablesGrid .ccip-card-mini-title {
+        font-size: 13px !important;
+        line-height: 1.2 !important;
+    }
+
+    #homeLegacyTopLayout .ccip-live-table,
+    #homeLegacyTablesGrid .ccip-live-table {
+        font-size: 10px !important;
+    }
+
+    #homeLegacyTopLayout .ccip-live-table th,
+    #homeLegacyTopLayout .ccip-live-table td,
+    #homeLegacyTablesGrid .ccip-live-table th,
+    #homeLegacyTablesGrid .ccip-live-table td {
+        padding: 6px 7px !important;
+        line-height: 1.25 !important;
+    }
+
+    @media (max-width: 980px) {
+        #homeLegacyTopLayout #homeLegacyOverview .ccip-dashboard-left,
+        #homeLegacyTablesGrid .ccip-summary-canvas {
+            grid-template-columns: 1fr !important;
+        }
+
+        #homeLegacyTopLayout #homeLegacyOverview .ccip-trend-card-inline.overall-trend-card,
+        #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot,
+        #homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card,
+        #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card.ccip-milestone-summary-card,
+        #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card.ccip-pending-summary-card {
+            grid-column: 1 !important;
+            height: 245px !important;
+            min-height: 245px !important;
+            max-height: 245px !important;
         }
     }
 
@@ -14528,6 +15289,9 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
+            stopCmfSightingChat();
+            window._cmfSightingChatPayload = null;
+
             var summaryDrawer = document.getElementById('aiSummaryDrawer');
             var summaryDrawerBg = document.getElementById('aiSummaryDrawerBg');
             if (summaryDrawer || summaryDrawerBg) {
@@ -14542,7 +15306,9 @@ td:nth-child(odd), th:nth-child(odd) {
             if (recommendationNode) recommendationNode.innerHTML = renderCmfRecommendationSkeleton();
             if (recTagNode) {
                 recTagNode.textContent = 'CMF_Tag';
-                recTagNode.className = 'cmf-assistant-rec-tag';
+                recTagNode.className = 'cmf-assistant-rec-tag is-loading';
+                recTagNode.setAttribute('aria-busy', 'true');
+                recTagNode.setAttribute('aria-label', 'Assessing CMF recommendation');
             }
 
             var recNode = document.getElementById('cmfRecRecommendation');
@@ -14591,6 +15357,9 @@ td:nth-child(odd), th:nth-child(odd) {
                 customerOwner: customerOwner || '',
                 platform: getIssuePendingPlatformValue()
             };
+            window._cmfSightingChatPayload = { cpId: payload.cpId, title: payload.title, platform: payload.platform };
+            resetCmfSightingChat();
+            var sightingSession = window._cmfSightingChatPayload;
 
             if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentSkeleton();
 
@@ -14661,10 +15430,12 @@ td:nth-child(odd), th:nth-child(odd) {
             })
             .then(function (response) { return response.json(); })
             .then(function (data) {
+                if (window._cmfSightingChatPayload !== sightingSession) return;
                 var result = data && data.d ? data.d : data;
                 if (!result || result.Success !== true) {
                     if (evidenceNode) evidenceNode.textContent = (result && result.Message) ? result.Message : 'Unable to generate CMF recommendation.';
                     if (recommendationNode) recommendationNode.innerHTML = '<span class="sighting-description-error">CMF recommendation unavailable.</span>';
+                    updateCmfAssistantTag('Unavailable');
                     return;
                 }
                 if (qualityNode) qualityNode.textContent = 'Sighting quality and CMF readiness';
@@ -14674,9 +15445,11 @@ td:nth-child(odd), th:nth-child(odd) {
                 if (evidenceNode) evidenceNode.innerHTML = renderMergedCmfRecommendation(result, payload);
             })
             .catch(function () {
+                if (window._cmfSightingChatPayload !== sightingSession) return;
                 if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = '<span class="sighting-description-error">Sighting quality assessment unavailable.</span>';
                 if (recommendationNode) recommendationNode.innerHTML = '<span class="sighting-description-error">CMF recommendation unavailable.</span>';
                 if (evidenceNode) evidenceNode.textContent = 'Error while calling CMF recommendation service.';
+                updateCmfAssistantTag('Unavailable');
             });
 
         }
@@ -14837,6 +15610,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var reasoningSection = document.getElementById('cmfRecReasoningSection');
             var actionsNode = document.getElementById('cmfRecActions');
             var detailsBody = document.getElementById('cmfDecisionDetailsBody');
+            var chatPanel = document.getElementById('cmfSightingChatPanel');
             if (titleRow) titleRow.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
             if (sightingRow) sightingRow.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
             if (assistantSightingDetails) assistantSightingDetails.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
@@ -14847,6 +15621,7 @@ td:nth-child(odd), th:nth-child(odd) {
             if (reasoningSection) reasoningSection.classList.toggle('cmf-rec-hidden', isDetails);
             if (actionsNode) actionsNode.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
             if (detailsBody) detailsBody.classList.toggle('cmf-rec-hidden', !isDetails && !isInsights);
+            if (chatPanel) chatPanel.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
             if (!isDetails && !isInsights && detailsBody) detailsBody.innerHTML = '';
             if (!isDetails && !isInsights) {
                 var headingNode = document.getElementById('cmfRecHeading');
@@ -15023,6 +15798,180 @@ td:nth-child(odd), th:nth-child(odd) {
 
             drawerBg.classList.remove('show');
             drawer.classList.remove('show');
+            stopCmfSightingChat();
+            window._cmfSightingChatPayload = null;
+        }
+
+        function resetCmfSightingChat() {
+            stopCmfSightingChat();
+            var messages = document.getElementById('cmfSightingChatMessages');
+            var input = document.getElementById('cmfSightingChatInput');
+            var send = document.getElementById('cmfSightingChatSend');
+            if (window._cmfSightingChatPayload) {
+                window._cmfSightingChatPayload.history = [];
+                window._cmfSightingChatPayload.turns = [];
+                window._cmfSightingChatPayload.busy = false;
+            }
+            if (send) send.disabled = false;
+            setCmfChatGenerating(false);
+            if (messages) messages.innerHTML = '<div class="cmf-sighting-chat-msg">Ask a follow-up question about this opened sighting. Answers are limited to the sighting context.</div>';
+            if (input) input.value = '';
+        }
+
+        function renderCmfSightingChatAnswer(text) {
+            var source = String(text || '').replace(/\r\n?/g, '\n').trim();
+            if (!source) return '';
+            var lines = source.split('\n').map(function (line) { return line.trim(); }).filter(Boolean);
+            var marker = /^(?:[-*\u2022]|\d+[.)])\s+/;
+            var points = [];
+            if (lines.some(function (line) { return marker.test(line); })) {
+                lines.forEach(function (line) {
+                    if (marker.test(line)) points.push(line.replace(marker, ''));
+                    else if (points.length) points[points.length - 1] += ' ' + line;
+                    else points.push(line);
+                });
+            } else {
+                var paragraph = lines.join(' ');
+                var segmenter = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('en', { granularity: 'sentence' }) : null;
+                var sentences = segmenter ? Array.from(segmenter.segment(paragraph), function (part) { return part.segment.trim(); }) : [paragraph];
+                sentences.forEach(function (sentence) {
+                    if (points.length && /(?:^|[\s"'])\d+\.$/.test(points[points.length - 1])) points[points.length - 1] += ' ' + sentence;
+                    else points.push(sentence);
+                });
+            }
+            return '<ul>' + points.filter(Boolean).map(function (point) {
+                return '<li>' + renderAssistantRichText(point) + '</li>';
+            }).join('') + '</ul>';
+        }
+
+        function appendCmfSightingChatMessage(role, text) {
+            var messages = document.getElementById('cmfSightingChatMessages');
+            if (!messages) return null;
+            var node = document.createElement('div');
+            node.className = 'cmf-sighting-chat-msg' + (role === 'user' ? ' user' : '');
+            node.textContent = text || '';
+            if (role === 'assistant') {
+                node.classList.add('cmf-sighting-chat-answer');
+                node.innerHTML = renderCmfSightingChatAnswer(text);
+            }
+            if (role === 'user') {
+                var edit = document.createElement('button');
+                edit.type = 'button';
+                edit.className = 'cmf-sighting-chat-edit';
+                edit.title = 'Edit prompt';
+                edit.setAttribute('aria-label', 'Edit prompt');
+                edit.innerHTML = '<i class="fas fa-pen" aria-hidden="true"></i>';
+                edit.onclick = function () { editCmfSightingPrompt(node._cmfTurn); };
+                node.appendChild(edit);
+            }
+            messages.appendChild(node);
+            messages.scrollTop = messages.scrollHeight;
+            return node;
+        }
+
+        function setCmfChatGenerating(generating) {
+            var send = document.getElementById('cmfSightingChatSend');
+            if (!send) return;
+            var label = generating ? 'Stop generating' : 'Send message';
+            send.title = label;
+            send.setAttribute('aria-label', label);
+            send.innerHTML = '<i class="fas fa-' + (generating ? 'stop' : 'paper-plane') + '" aria-hidden="true"></i>';
+        }
+
+        function stopCmfSightingChat() {
+            var payload = window._cmfSightingChatPayload;
+            if (!payload || !payload.request) return;
+            var request = payload.request;
+            payload.request = null;
+            payload.busy = false;
+            request.controller.abort();
+            if (request.thinking && request.thinking.parentNode) request.thinking.textContent = 'Response stopped.';
+            setCmfChatGenerating(false);
+        }
+
+        function editCmfSightingPrompt(turn) {
+            var payload = window._cmfSightingChatPayload;
+            if (!turn || turn.payload !== payload) return;
+            stopCmfSightingChat();
+            payload.history = turn.history.slice();
+            var turns = payload.turns || [];
+            payload.turns = turns.slice(0, turns.indexOf(turn));
+            var node = turn.node;
+            while (node) {
+                var next = node.nextSibling;
+                node.remove();
+                node = next;
+            }
+            var input = document.getElementById('cmfSightingChatInput');
+            if (input) {
+                input.value = turn.question;
+                input.focus();
+            }
+        }
+
+        function handleCmfSightingChatKeydown(event) {
+            if (event.key !== 'Enter' || event.shiftKey || event.isComposing || event.keyCode === 229) return;
+            event.preventDefault();
+            if (event.repeat || (window._cmfSightingChatPayload || {}).busy) return;
+            sendCmfSightingChatQuestion();
+        }
+
+        function sendCmfSightingChatQuestion() {
+            var payload = window._cmfSightingChatPayload || {};
+            var input = document.getElementById('cmfSightingChatInput');
+            var send = document.getElementById('cmfSightingChatSend');
+            var question = input ? String(input.value || '').trim() : '';
+            if (payload.busy) {
+                stopCmfSightingChat();
+                return;
+            }
+            if (!payload.cpId || !question) return;
+            payload.busy = true;
+            var history = (payload.history || []).slice(-12);
+
+            var userNode = appendCmfSightingChatMessage('user', question);
+            var turn = { payload: payload, question: question, history: history, node: userNode };
+            userNode._cmfTurn = turn;
+            if (!payload.turns) payload.turns = [];
+            payload.turns.push(turn);
+            if (input) input.value = '';
+            setCmfChatGenerating(true);
+            var thinking = appendCmfSightingChatMessage('assistant', 'Checking this sighting context...');
+            var request = { controller: new AbortController(), thinking: thinking };
+            payload.request = request;
+
+            fetch('CMF_Web_portal.aspx/AskCmfSightingQuestion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                signal: request.controller.signal,
+                body: JSON.stringify({ cpId: payload.cpId, title: payload.title || '', question: question, platform: payload.platform || getIssuePendingPlatformValue(), history: history })
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                if (window._cmfSightingChatPayload !== payload || payload.request !== request) return;
+                var result = data && data.d ? data.d : data;
+                if (thinking && thinking.parentNode) thinking.parentNode.removeChild(thinking);
+                if (!result || result.Success !== true) {
+                    appendCmfSightingChatMessage('assistant', (result && result.Message) ? result.Message : 'Unable to answer from this sighting context.');
+                    return;
+                }
+                var answer = result.Answer || 'The sighting context does not contain enough information to answer that.';
+                payload.history = history.concat([{ Role: 'user', Text: question }, { Role: 'assistant', Text: answer }]).slice(-12);
+                appendCmfSightingChatMessage('assistant', answer);
+            })
+            .catch(function (error) {
+                if (window._cmfSightingChatPayload !== payload || payload.request !== request || error.name === 'AbortError') return;
+                if (thinking && thinking.parentNode) thinking.parentNode.removeChild(thinking);
+                appendCmfSightingChatMessage('assistant', 'Error while answering this sighting question.');
+            })
+            .finally(function () {
+                if (window._cmfSightingChatPayload !== payload || payload.request !== request) return;
+                payload.request = null;
+                payload.busy = false;
+                setCmfChatGenerating(false);
+                if (send) send.disabled = false;
+                if (input) input.focus();
+            });
         }
 
         function showCmfPlaceholderAction(actionName) {
@@ -15478,12 +16427,12 @@ td:nth-child(odd), th:nth-child(odd) {
             host.style.width = '100%';
             host.style.maxWidth = '100%';
 
-            // Enforce width at runtime in case later CSS rules collapse the table width.
-            table.style.width = 'max-content';
-            table.style.minWidth = '2200px';
+            // Keep the table readable while avoiding a page-sized horizontal canvas.
+            table.style.width = '100%';
+            table.style.minWidth = '1320px';
             table.style.maxWidth = 'none';
 
-            var targetWidth = Math.max(table.scrollWidth || 0, table.offsetWidth || 0, 2200);
+            var targetWidth = Math.max(table.scrollWidth || 0, table.offsetWidth || 0, 1320);
             if (proxyInner) {
                 proxyInner.style.width = targetWidth + 'px';
             }
@@ -19226,8 +20175,8 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             if (issueTable) {
-                issueTable.style.setProperty('width', 'max-content', 'important');
-                issueTable.style.setProperty('min-width', '2200px', 'important');
+                issueTable.style.setProperty('width', '100%', 'important');
+                issueTable.style.setProperty('min-width', '1320px', 'important');
                 issueTable.style.setProperty('max-width', 'none', 'important');
             }
 
@@ -19311,14 +20260,6 @@ td:nth-child(odd), th:nth-child(odd) {
                 bullets = parsedLines.slice(1, 4).map(function (item) { return item.text; });
             } else {
                 bullets = parsedLines.map(function (item) { return item.text; }).slice(0, 3);
-            }
-
-            if (bullets.length < 3) {
-                var sentenceParts = parsedLines.map(function (item) { return item.text; }).join(' ').match(/[^.!?]+[.!?]+/g) || [];
-                for (var i = 0; i < sentenceParts.length && bullets.length < 3; i++) {
-                    var sentence = sentenceParts[i].trim();
-                    if (sentence && bullets.indexOf(sentence) < 0) bullets.push(sentence);
-                }
             }
 
             var html = '<ul>';
@@ -20421,7 +21362,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var reasons = buildCmfAssistantRecommendationReasoning(recommendation, score, rules, result.Evidence || '', payload);
             var html = '<div class="cmf-assistant-rec-shell">';
             html += '<div class="cmf-assistant-rec-top">';
-            html += '<div class="cmf-assistant-overall-score"><span>Overall Score</span><div class="cmf-assistant-score-ring" style="--score-percent:' + escapeHtml(scorePercent.toFixed(2)) + '"><div class="cmf-assistant-score-ring-value">' + escapeHtml(scoreDisplay) + '</div></div><strong>/5</strong></div>';
+            html += '<div class="cmf-assistant-overall-score"><span>Overall Score</span><div class="cmf-assistant-score-ring" style="--score-percent:' + escapeHtml(scorePercent.toFixed(2)) + '"><div class="cmf-assistant-score-ring-value">' + escapeHtml(scoreDisplay) + '<small>/5</small></div></div></div>';
             html += renderCmfMetricChips(rules);
             html += '</div>';
             html += '<div class="cmf-assistant-reasoning-box"><h4>Reasoning</h4>' + renderCmfReasoningBullets(reasons) + '</div>';
@@ -20433,8 +21374,12 @@ td:nth-child(odd), th:nth-child(odd) {
             var html = '<div class="cmf-assistant-reasoning-copy"><ul>';
             var list = (items || []).filter(function (item) { return item && String(item).trim().length; });
             if (!list.length) list = ['No reasoning returned; review the score details and issue evidence.'];
+            var segmenter = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('en', { granularity: 'sentence' }) : null;
             for (var i = 0; i < list.length; i++) {
-                html += '<li>' + escapeHtml(list[i]) + '</li>';
+                var sentences = segmenter ? Array.from(segmenter.segment(String(list[i])), function (part) { return part.segment.trim(); }) : [String(list[i]).trim()];
+                for (var sentenceIndex = 0; sentenceIndex < sentences.length; sentenceIndex++) {
+                    if (sentences[sentenceIndex]) html += '<li>' + escapeHtml(sentences[sentenceIndex]) + '</li>';
+                }
             }
             return html + '</ul></div>';
         }
@@ -20509,15 +21454,11 @@ td:nth-child(odd), th:nth-child(odd) {
         function buildCmfModelReasoningBullets(evidenceText, payload) {
             var text = extractCmfReasoningText(evidenceText || '');
             if (!text) return [];
-            var bullets = splitCmfReasoningItems(text).map(function (item) {
-                return cleanCmfReasoningSentence(item, payload);
-            }).filter(isUsefulCmfReasoningBullet);
-            if (!bullets.length) {
-                bullets = (text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text]).map(function (item) {
-                    return cleanCmfReasoningSentence(item, payload);
-                }).filter(isUsefulCmfReasoningBullet);
-            }
-            return limitCmfReasoningWords(bullets.slice(0, 4), 180);
+            return text.split(/\n+/).map(function (item) {
+                return item.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').replace(/^\s*(?:observed(?:\s+facts)?|observation|reasoning|inference)\s*:\s*/i, '').replace(/\s+/g, ' ').trim();
+            }).filter(function (item) {
+                return item.length > 0 && !/^(?:CMF\s+)?decision\s*(?:is|:)\s*(?:CMF_)?(?:REVIEW|OK|REJECT|INCOMPLETE)[.!?]?$/i.test(item);
+            }).slice(0, 5);
         }
 
         function splitCmfReasoningItems(text) {
@@ -20712,6 +21653,8 @@ td:nth-child(odd), th:nth-child(odd) {
             else if (rec === 'CMF_REJECT') className += ' is-reject';
             node.className = className;
             node.textContent = rec;
+            node.setAttribute('aria-busy', 'false');
+            node.removeAttribute('aria-label');
         }
 
         function renderCmfRecommendationSkeleton() {
@@ -20738,43 +21681,22 @@ td:nth-child(odd), th:nth-child(odd) {
 
         function extractBriefCmfContributingFactor(rule) {
             var id = String((rule || {}).RuleId || '').toUpperCase();
-            var text = extractCmfContributingFactor((rule || {}).Evaluation || '');
-            var lower = text.toLowerCase();
-            if (!text || /missing evidence|missing .* evidence|not identified/i.test(text)) return getCmfMissingEvidenceFactorLabel(id);
-            if (isConcreteCmfFactor(text)) return formatBriefCmfFactor(id, text);
-            if (id === 'S') {
-                if (/gpgpu|burnin|gpu/i.test(lower)) return 'GPGPU BurnIn failure';
-                if (/bsod|black screen|hang|crash|boot/i.test(lower)) return 'Major system failure';
-                if (/performance|degradation/i.test(lower)) return 'Performance degradation';
-                return 'Functional impact evidence';
-            }
+            var evaluation = String((rule || {}).Evaluation || '').replace(/\s+/g, ' ').trim();
             if (id === 'O') {
-                if (/very_sporadic|sporadic|6\/90/i.test(lower)) return 'Sporadic repro rate';
-                if (/frequent|hourly|1\/10/i.test(lower)) return 'Frequent occurrence';
-                if (/rare|1\/1000/i.test(lower)) return 'Rare occurrence';
-                return 'Repro frequency';
+                var category = evaluation.match(/very_sporadic_<\s*10%|sporadic_10%\s*-\s*40%|frequently_50%\s*-\s*90%|always_100%|\bonce\b/i);
+                if (category) return category[0].replace(/\s+/g, '');
             }
-            if (id === 'D') {
-                if (/burnin|stress/i.test(lower)) return 'Stress workflow detection';
-                if (/daily|login|restart/i.test(lower)) return 'Common workflow detection';
-                return 'Usage trigger evidence';
+            var evidence = evaluation.match(/\bEvidence\s*:\s*([\s\S]*)$/i);
+            if (!evaluation || (evidence && /^missing evidence[.!]?$/i.test(evidence[1].trim()))) {
+                var names = { S: 'Severity', O: 'Reproducibility', D: 'Detection', R: 'Recovery', B: 'Business impact', CX: 'Customer experience' };
+                return (names[id] || 'Scoring') + ' evidence missing';
             }
-            if (id === 'R') {
-                if (/revert|rollback|pcode|dcode/i.test(lower)) return 'Firmware rollback workaround';
-                if (/reboot|restart|reconnect|reflash/i.test(lower)) return 'Manual recovery needed';
-                return 'Workaround clarity';
+            var match = evaluation.match(/^Contributing factor\s*:\s*([\s\S]*?)(?:\.\s*Evidence\s*:|$)/i);
+            var factor = (match ? match[1] : (evidence ? '' : evaluation)).replace(/[.!]+$/g, '').trim();
+            if (!factor || factor.length > 84 || factor.split(/\s+/).length > 10 || /^(?:workaround clarity|functional impact evidence|business exposure|customer visibility|repro frequency|detection evidence)$/i.test(factor)) {
+                return 'Specific factor unavailable';
             }
-            if (id === 'B') {
-                if (/blocked|blocks|validation|performance test/i.test(lower)) return 'Validation blocked';
-                if (/launch|milestone|gate/i.test(lower)) return 'Milestone risk';
-                return 'Business exposure';
-            }
-            if (id === 'CX') {
-                if (/display|audio|camera|network|touch|unusable/i.test(lower)) return 'Visible feature impact';
-                if (/missing/i.test(lower)) return 'Missing CX evidence';
-                return 'Customer visibility';
-            }
-            return trimToWordCount(text, 6);
+            return factor;
         }
 
         function getCmfMissingEvidenceFactorLabel(id) {
@@ -21886,6 +22808,17 @@ Submit
                         <div id="cmfRecEvidence" class="ai-summary-body">-</div>
                     </div>
                     <div id="cmfDecisionDetailsBody" class="cmf-rec-hidden"></div>
+
+                    <section id="cmfSightingChatPanel" class="cmf-sighting-chat-panel" aria-label="Ask about this sighting">
+                        <div class="cmf-sighting-chat-title">Ask about this sighting</div>
+                        <div id="cmfSightingChatMessages" class="cmf-sighting-chat-messages">
+                            <div class="cmf-sighting-chat-msg">Ask a follow-up question about this opened sighting. Answers are limited to the sighting context.</div>
+                        </div>
+                        <div class="cmf-sighting-chat-input-row">
+                            <textarea id="cmfSightingChatInput" rows="1" aria-label="Question about this sighting" placeholder="Ask about root cause, recovery, repro, impact..." onkeydown="handleCmfSightingChatKeydown(event)"></textarea>
+                            <button type="button" id="cmfSightingChatSend" class="cmf-sighting-chat-send" onclick="sendCmfSightingChatQuestion()" title="Send message" aria-label="Send message"><i class="fas fa-paper-plane" aria-hidden="true"></i></button>
+                        </div>
+                    </section>
 
                     <div id="cmfRecActions" class="cmf-rec-placeholder-actions" style="display:none">
                         <button type="button" class="cmf-rec-placeholder-btn primary" onclick="showCmfPlaceholderAction('Approve CMF Tag')">Approve CMF Tag</button>

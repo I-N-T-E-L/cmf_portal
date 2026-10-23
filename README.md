@@ -202,6 +202,33 @@ Issue List AI Summary
 Issue List Issue Details
 CMF Pending AI Recommendation
 AI CMF Assessment / Decision Details
+
+The CMF Assistant checks HSD context on access, with a 60-second source cache
+by default (`CMF:AssistantHsdRefreshSeconds`, bounded to 15-300 seconds). Reopen
+the assistant after that window to pick up changes; an already-open drawer is
+not automatically pushed updates. The combined recommendation context no
+longer adds another ten-minute cache window.
+
+Successful model-generated recommendation, description, impact, and quality
+assessment responses are saved as JSON under `App_Data/cmf-assistant-cache`.
+Their keys include the HSD source fingerprint, database/request context, model
+configuration, and the section's prompt version. Unchanged inputs reuse the
+saved response across application restarts. Changed source data or a supplied
+HSD last-modified timestamp/revision produces a new key and a fresh response.
+The fingerprint covers the full article data returned by the provider, before
+prompt-display truncation; it cannot detect data the provider does not return.
+HSD extraction requests verbatim fields and newest-first comments. Direct
+REST/MCP source data is preferable to model-mediated extraction when available.
+
+Fallback/error results are not persisted and are retried after a short memory
+cache. HSD failures do not replace a verified saved result, but the assistant
+may show a temporary database-only fallback rather than claim HSD is current.
+The application identity needs write permission on this App_Data subfolder;
+disk-cache failures are traced and do not prevent ordinary generation. Files
+contain internal sighting content: apply the same access controls, backup, and
+retention policy as other App_Data content. There is no automatic file expiry;
+delete this subfolder to purge saved responses (and restart the app to clear
+memory caches). Follow-up chat and dashboard caches are unchanged.
 Reports Assistant
 ```
 

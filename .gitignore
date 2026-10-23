@@ -31,6 +31,7 @@ Content/generated-reports/
 App_Data/reports-assistant/issues_*.csv
 App_Data/reports-assistant/template_*.md
 App_Data/reports-assistant/templates/*_manual-template.md
+App_Data/cmf-assistant-cache/
 
 # Python caches
 __pycache__/
