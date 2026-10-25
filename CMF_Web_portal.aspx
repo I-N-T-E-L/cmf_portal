@@ -3249,11 +3249,11 @@ body {
 }
 
 .ccip-specific-top-layout {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
+    width: 1840px;
+    min-width: 1840px;
+    max-width: 1840px;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(260px, .45fr);
+    grid-template-columns: 1262px 568px;
     grid-template-rows: auto auto;
     gap: 10px;
     align-items: start;
@@ -3427,10 +3427,23 @@ body {
     padding: 10px;
 }
 
+/* Keep row-3 inner section/table font metrics aligned with safe baseline. */
+#homeLegacyTablesGrid .ccip-summary-canvas,
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-card,
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-live-table,
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-live-table th,
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-live-table td {
+    font-family: var(--portal-font-body) !important;
+}
+
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-card {
+    padding: 14px !important;
+}
+
 #homeLegacyTablesGrid {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
+    width: 1840px;
+    min-width: 1840px;
+    max-width: 1840px;
 }
 
 /* Match platform-specific row-2 to row-3 spacing with overall tab rhythm. */
@@ -4668,15 +4681,6 @@ body {
     align-items: stretch;
     grid-column: 1;
     grid-row: 1;
-}
-
-#homeOverallLayoutV2 .overall-row-summary {
-    grid-template-columns: 1fr !important;
-}
-
-#homeLegacySummarySection.overall-row-summary,
-#homeCmfSummaryPanel .overall-row-summary {
-    grid-template-columns: 1fr !important;
 }
 
 /* Overall tab: remove outer section/card chrome around CMF Summary cards. */
@@ -6354,13 +6358,13 @@ form,
 .main-content,
 .portal-content,
 .page-content {
-    min-width: 0;
+    min-width: 1880px;
 }
 
 .overall-layout-v2 {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
+    width: 1840px;
+    min-width: 1840px;
+    max-width: 1840px;
     display: grid;
     grid-template-columns: var(--cmf-summary-side-card-width) var(--cmf-summary-main-width) 700px;
     grid-template-rows: auto auto auto;
@@ -6390,6 +6394,11 @@ form,
 }
 
 #homeOverallLayoutV2 .overall-row-summary {
+    grid-template-columns: 1fr !important;
+}
+
+#homeLegacySummarySection.overall-row-summary,
+#homeCmfSummaryPanel .overall-row-summary {
     grid-template-columns: 1fr !important;
 }
 
@@ -6533,6 +6542,7 @@ form,
 .overall-heatmap-card .overall-card-head {
     flex: 0 0 auto;
 }
+
 
 .overall-heatmap-card .overall-heatmap-wrap {
     flex: 1 1 auto;
@@ -14604,85 +14614,31 @@ td:nth-child(odd), th:nth-child(odd) {
         min-width: 0 !important;
     }
 
-    #homeOverallLayoutV2.overall-layout-v2,
-    .overall-layout-v2 {
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        grid-template-columns: minmax(0, 1fr) !important;
+    /* Keep legacy row-3 grid at its designed width; compact clamps cause column overlap. */
+    #homeLegacyTablesGrid.ccip-main-grid,
+    #homeLegacyTablesGrid .ccip-summary-canvas {
+        max-width: none !important;
     }
 
-    #homeOverallLayoutV2 .overall-row-summary,
-    #homeOverallLayoutV2 .overall-summary-card,
-    .overall-row-summary,
-    .overall-row-second,
-    .overall-row-third,
-    .overall-ai-span-card {
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        grid-column: 1 !important;
-        grid-row: auto !important;
-        justify-self: stretch !important;
-    }
+    @media (max-width: 900px) {
+        .overall-layout-v2 {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: auto !important;
+        }
 
-    .overall-row-second,
-    .overall-row-third {
-        grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr) !important;
-        padding-left: 8px !important;
-        padding-right: 8px !important;
-    }
+        .overall-row-summary,
+        .overall-row-second,
+        .overall-row-third,
+        .overall-ai-span-card {
+            grid-column: auto !important;
+            grid-row: auto !important;
+        }
 
-    #homeOverallSummaryFacts.overall-summary-facts,
-    #homeSpecificSummaryFactsDashboard.overall-summary-facts,
-    #homeSpecificSummaryFactsCmf.overall-summary-facts {
-        justify-content: start !important;
-    }
-
-    #homeOverallSummaryFacts .overall-summary-fact,
-    #homeSpecificSummaryFactsDashboard .overall-summary-fact,
-    #homeSpecificSummaryFactsCmf .overall-summary-fact {
-        width: 96px !important;
-        min-width: 96px !important;
-        max-width: 96px !important;
-        height: 92px !important;
-        min-height: 92px !important;
-        max-height: 92px !important;
-        padding: 7px 6px !important;
-    }
-
-    .overall-summary-fact .ccip-summary-fact-value {
-        font-size: 22px !important;
-    }
-
-    .overall-card-head,
-    .ccip-card-head,
-    .home-dashboard-panel-head {
-        gap: 8px !important;
-        margin-bottom: 8px !important;
-    }
-
-    .overall-card-title,
-    .ccip-card-title,
-    .ccip-card-mini-title,
-    .home-dashboard-panel-title {
-        font-size: 14px !important;
-        line-height: 1.25 !important;
-    }
-
-    .overall-trend-chart,
-    #homeTrendChart,
-    #homeOverallTrendChart {
-        height: 230px !important;
-        min-height: 220px !important;
-    }
-
-    .ccip-live-table-wrap,
-    .overall-oem-table-wrap,
-    .overall-heatmap-wrap,
-    .overall-pending-body {
-        max-width: 100% !important;
-        overflow-x: auto !important;
+        .overall-row-summary,
+        .overall-row-second,
+        .overall-row-third {
+            grid-template-columns: 1fr !important;
+        }
     }
 
     .issue-kpi {
@@ -14795,255 +14751,6 @@ td:nth-child(odd), th:nth-child(odd) {
         .issue-page-hd-top {
             flex-direction: column !important;
             align-items: stretch !important;
-        }
-    }
-
-    /* Platform-specific dashboard fit: keep all cards visible inside the workspace. */
-    #homeLegacyTopLayout.ccip-specific-top-layout {
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        display: grid !important;
-        grid-template-columns: minmax(0, 1fr) !important;
-        gap: 10px !important;
-    }
-
-    #homeLegacyTopLayout #homeLegacySummarySection,
-    #homeLegacyTopLayout #homeLegacySummarySection .overall-summary-card,
-    #homeLegacyTopLayout #homeLegacyOverview,
-    #homeLegacyTablesGrid,
-    #homeLegacyTablesGrid .ccip-summary-canvas {
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-    }
-
-    #homeLegacyTopLayout #homeLegacySummarySection,
-    #homeLegacyTopLayout #homeLegacySummarySection .overall-summary-card {
-        padding: 8px !important;
-    }
-
-    #homeLegacyTopLayout #homeSpecificSummaryFactsDashboard.overall-summary-facts,
-    #homeLegacyTopLayout #homeSpecificSummaryFactsCmf.overall-summary-facts {
-        display: flex !important;
-        flex-wrap: nowrap !important;
-        gap: 4px !important;
-        overflow: visible !important;
-        height: auto !important;
-    }
-
-    #homeLegacyTopLayout #homeSpecificSummaryFactsDashboard .overall-summary-facts-core,
-    #homeLegacyTopLayout #homeSpecificSummaryFactsCmf .overall-summary-facts-core,
-    #homeLegacyTopLayout #homeSpecificSummaryFactsDashboard .overall-summary-tpt-inline,
-    #homeLegacyTopLayout #homeSpecificSummaryFactsCmf .overall-summary-tpt-inline {
-        display: contents !important;
-        grid-template-columns: none !important;
-        gap: 5px !important;
-        min-width: 0 !important;
-    }
-
-    #homeLegacyTopLayout #homeSpecificSummaryFactsDashboard .overall-summary-fact,
-    #homeLegacyTopLayout #homeSpecificSummaryFactsCmf .overall-summary-fact {
-        flex: 1 1 0 !important;
-        width: auto !important;
-        min-width: 0 !important;
-        max-width: none !important;
-        height: 62px !important;
-        min-height: 62px !important;
-        max-height: 62px !important;
-        padding: 5px !important;
-    }
-
-    #homeLegacyTopLayout #homeSpecificSummaryFactsDashboard .overall-tpt-box,
-    #homeLegacyTopLayout #homeSpecificSummaryFactsCmf .overall-tpt-box {
-        flex: 1 1 0 !important;
-        width: auto !important;
-        min-width: 0 !important;
-        max-width: none !important;
-        height: 62px !important;
-        min-height: 62px !important;
-        max-height: 62px !important;
-        padding: 5px !important;
-    }
-
-    #homeLegacyTopLayout .overall-tpt-label,
-    #homeLegacyTopLayout .overall-tpt-foot {
-        font-size: 8px !important;
-        line-height: 1.1 !important;
-    }
-
-    #homeLegacyTopLayout .overall-tpt-value {
-        font-size: 17px !important;
-        line-height: 1 !important;
-    }
-
-    #homeLegacyTopLayout .overall-summary-fact .ccip-summary-fact-value {
-        font-size: 17px !important;
-    }
-
-    #homeLegacyTopLayout .overall-summary-fact .ccip-summary-fact-label,
-    #homeLegacyTopLayout .overall-summary-fact .ccip-summary-fact-note {
-        font-size: 8px !important;
-        line-height: 1.1 !important;
-    }
-
-    #homeLegacyTopLayout #homeLegacyOverview .ccip-dashboard-left {
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        display: grid !important;
-        grid-template-columns: minmax(0, 1.45fr) minmax(240px, .85fr) !important;
-        grid-template-rows: auto !important;
-        gap: 10px !important;
-        padding: 10px !important;
-        height: auto !important;
-    }
-
-    #homeLegacyTopLayout #homeLegacyOverview .ccip-trend-card-inline.overall-trend-card,
-    #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot {
-        grid-row: 1 !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        width: 100% !important;
-        height: 205px !important;
-        min-height: 205px !important;
-        max-height: 205px !important;
-        overflow: hidden !important;
-    }
-
-    #homeLegacyTopLayout #homeLegacyOverview .ccip-trend-card-inline.overall-trend-card {
-        grid-column: 1 !important;
-    }
-
-    #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot {
-        grid-column: 2 !important;
-    }
-
-    #homeLegacyTopLayout #homeLegacyOverview .overall-trend-chart,
-    #homeLegacyTopLayout #homeTrendChart {
-        height: 140px !important;
-        min-height: 140px !important;
-    }
-
-    #homeLegacyTopLayout #homeLegacyAiHealthCard {
-        grid-column: 1 !important;
-        grid-row: auto !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-        min-height: 34px !important;
-        height: 34px !important;
-        max-height: 34px !important;
-        padding: 6px 10px !important;
-        overflow: hidden !important;
-    }
-
-    #homeLegacyTopLayout #homeLegacyAiHealthCard .overall-card-head {
-        margin-bottom: 0 !important;
-    }
-
-    #homeLegacyTopLayout #homeLegacyAiHealthCard .overall-ai-blank {
-        display: none !important;
-    }
-
-    #homeLegacyTablesGrid {
-        margin-top: 0 !important;
-    }
-
-    #homeLegacyTablesGrid .ccip-col.ccip-col-center,
-    #homeLegacyTablesGrid .ccip-inline-side-stack {
-        display: contents !important;
-    }
-
-    #homeLegacyTablesGrid .ccip-summary-canvas {
-        display: grid !important;
-        grid-template-columns: minmax(0, 1.2fr) minmax(220px, .74fr) minmax(190px, .58fr) !important;
-        gap: 10px !important;
-        padding: 10px !important;
-        overflow: hidden !important;
-    }
-
-    #homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card,
-    #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card,
-    #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card.ccip-milestone-summary-card,
-    #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card.ccip-pending-summary-card {
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        height: 220px !important;
-        min-height: 220px !important;
-        max-height: 220px !important;
-        justify-self: stretch !important;
-        overflow: hidden !important;
-    }
-
-    #homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card {
-        grid-column: 1 !important;
-        grid-row: 1 !important;
-    }
-
-    #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card.ccip-milestone-summary-card {
-        grid-column: 2 !important;
-        grid-row: 1 !important;
-    }
-
-    #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card.ccip-pending-summary-card {
-        grid-column: 3 !important;
-        grid-row: 1 !important;
-    }
-
-    #homeLegacyTopLayout .ccip-live-table-wrap,
-    #homeLegacyTablesGrid .ccip-live-table-wrap,
-    #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card .ccip-live-table-wrap,
-    #homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card .ccip-live-table-wrap {
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        flex: 1 1 auto !important;
-        overflow: auto !important;
-    }
-
-    #homeLegacyTopLayout .ccip-card-head,
-    #homeLegacyTablesGrid .ccip-card-head {
-        margin-bottom: 7px !important;
-    }
-
-    #homeLegacyTopLayout .ccip-card-mini-title,
-    #homeLegacyTablesGrid .ccip-card-mini-title {
-        font-size: 13px !important;
-        line-height: 1.2 !important;
-    }
-
-    #homeLegacyTopLayout .ccip-live-table,
-    #homeLegacyTablesGrid .ccip-live-table {
-        font-size: 10px !important;
-    }
-
-    #homeLegacyTopLayout .ccip-live-table th,
-    #homeLegacyTopLayout .ccip-live-table td,
-    #homeLegacyTablesGrid .ccip-live-table th,
-    #homeLegacyTablesGrid .ccip-live-table td {
-        padding: 6px 7px !important;
-        line-height: 1.25 !important;
-    }
-
-    @media (max-width: 980px) {
-        #homeLegacyTopLayout #homeLegacyOverview .ccip-dashboard-left,
-        #homeLegacyTablesGrid .ccip-summary-canvas {
-            grid-template-columns: 1fr !important;
-        }
-
-        #homeLegacyTopLayout #homeLegacyOverview .ccip-trend-card-inline.overall-trend-card,
-        #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot,
-        #homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card,
-        #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card.ccip-milestone-summary-card,
-        #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card.ccip-pending-summary-card {
-            grid-column: 1 !important;
-            height: 245px !important;
-            min-height: 245px !important;
-            max-height: 245px !important;
         }
     }
 
