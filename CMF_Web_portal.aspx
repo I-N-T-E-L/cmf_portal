@@ -14620,6 +14620,128 @@ td:nth-child(odd), th:nth-child(odd) {
         max-width: none !important;
     }
 
+    /* Match safe styling for Overall + legacy dashboard cards and titles. */
+    #homeOverallLayoutV2 .overall-card,
+    #homeLegacyTopLayout .overall-card {
+        padding: 9px !important;
+        border: 1px solid #e4e9f2 !important;
+        border-radius: 10px !important;
+        background: #ffffff !important;
+        box-shadow: none !important;
+        font-family: var(--portal-font-body) !important;
+    }
+
+    #homeOverallLayoutV2 .overall-card-title,
+    #homeLegacyTopLayout .overall-card-title,
+    #homeLegacyTopLayout #homeLegacyAiHealthCard .ccip-ai-health-head span {
+        font-family: var(--portal-font-display) !important;
+        letter-spacing: -0.01em !important;
+    }
+
+    /* Preserve safe card treatment for specific summary row-3 cards when legacy layout is active. */
+    #homeLegacyTablesGrid .ccip-card {
+        border: 1px solid #e5e7eb !important;
+        border-radius: 14px !important;
+        background: #ffffff !important;
+        box-shadow: none !important;
+        padding: 14px !important;
+        font-family: var(--portal-font-body) !important;
+    }
+
+    #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot {
+        border: 1px solid #d9dde5 !important;
+        border-radius: 10px !important;
+        background: transparent !important;
+        padding: 14px !important;
+        box-shadow: none !important;
+        font-family: var(--portal-font-body) !important;
+    }
+
+    #homeLegacyTablesGrid .ccip-card-mini-title,
+    #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-card-mini-title {
+        font-family: var(--portal-font-display) !important;
+        letter-spacing: -0.01em !important;
+    }
+
+    #homeLegacyTopLayout .ccip-trend-card-inline.overall-trend-card {
+        background: transparent !important;
+        border-color: #d9dde5 !important;
+    }
+
+    #homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card #homeDesignSummaryTable .ccip-live-table {
+        min-width: 678px !important;
+    }
+
+    #homeLegacyTablesGrid #homePendingSummaryTable .ccip-live-table,
+    #homeLegacyTablesGrid #homeComponentSummaryTable .ccip-live-table {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Re-apply tone palette for CMF Summary metric cards overridden by global compact card reset. */
+    #homeOverallLayoutV2 #homeOverallSummaryFacts .overall-summary-fact,
+    #homeLegacyTopLayout #homeSpecificSummaryFactsDashboard .overall-summary-fact,
+    #homeLegacyTopLayout #homeSpecificSummaryFactsCmf .overall-summary-fact {
+        border-radius: 8px !important;
+        font-family: var(--portal-font-body) !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-total:not(.overall-summary-fact-blank),
+    #homeLegacyTopLayout .overall-summary-fact.tone-total:not(.overall-summary-fact-blank) {
+        background: #eff6ff !important;
+        border: 1px solid #bfdbfe !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-total:not(.overall-summary-fact-blank) .ccip-summary-fact-value,
+    #homeLegacyTopLayout .overall-summary-fact.tone-total:not(.overall-summary-fact-blank) .ccip-summary-fact-value {
+        color: #1d4ed8 !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-closed:not(.overall-summary-fact-blank),
+    #homeLegacyTopLayout .overall-summary-fact.tone-closed:not(.overall-summary-fact-blank) {
+        background: #ecfdf3 !important;
+        border: 1px solid #abefc6 !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-closed:not(.overall-summary-fact-blank) .ccip-summary-fact-value,
+    #homeLegacyTopLayout .overall-summary-fact.tone-closed:not(.overall-summary-fact-blank) .ccip-summary-fact-value {
+        color: #067647 !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-implemented:not(.overall-summary-fact-blank),
+    #homeLegacyTopLayout .overall-summary-fact.tone-implemented:not(.overall-summary-fact-blank) {
+        background: #f0f9ff !important;
+        border: 1px solid #bae6fd !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-implemented:not(.overall-summary-fact-blank) .ccip-summary-fact-value,
+    #homeLegacyTopLayout .overall-summary-fact.tone-implemented:not(.overall-summary-fact-blank) .ccip-summary-fact-value {
+        color: #0369a1 !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-open:not(.overall-summary-fact-blank),
+    #homeLegacyTopLayout .overall-summary-fact.tone-open:not(.overall-summary-fact-blank) {
+        background: #fff4ed !important;
+        border: 1px solid #ffccba !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-open:not(.overall-summary-fact-blank) .ccip-summary-fact-value,
+    #homeLegacyTopLayout .overall-summary-fact.tone-open:not(.overall-summary-fact-blank) .ccip-summary-fact-value {
+        color: #c2410c !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-pending:not(.overall-summary-fact-blank),
+    #homeLegacyTopLayout .overall-summary-fact.tone-pending:not(.overall-summary-fact-blank) {
+        background: #fffbeb !important;
+        border: 1px solid #fde68a !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-pending:not(.overall-summary-fact-blank) .ccip-summary-fact-value,
+    #homeLegacyTopLayout .overall-summary-fact.tone-pending:not(.overall-summary-fact-blank) .ccip-summary-fact-value {
+        color: #b45309 !important;
+    }
+
     @media (max-width: 900px) {
         .overall-layout-v2 {
             grid-template-columns: 1fr !important;
