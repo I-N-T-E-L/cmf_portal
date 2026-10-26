@@ -216,6 +216,7 @@ public partial class CMF_Web_portal : System.Web.UI.Page
     private const string UserModeSessionKey = "portalUserMode";
     private const string DashboardPlatformSessionKey = "dashboardSelectedPlatform";
     private const string IssuePendingPlatformSessionKey = "issuePendingSelectedPlatform";
+    private const string DefaultIssuePendingPlatformTable = "CMF_NVL_H_ALL_COMPONENTS_TABLE";
     private const string OverallExcludedPlatformsSessionKey = "overallExcludedPlatforms";
     private const string IssueGridCacheKeySessionKey = "issueGridCacheKey";
     private const string IssueGridCacheDataSessionKey = "issueGridCacheData";
@@ -2473,13 +2474,12 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     private string GetIssuePendingPlatform()
     {
         string value = Session[IssuePendingPlatformSessionKey] as string;
-        if (!string.IsNullOrWhiteSpace(value))
+        if (string.IsNullOrWhiteSpace(value) || IsOverallDashboardPlatform(value))
         {
-            return ResolveIssuePendingPlatformSelection(value);
+            value = DefaultIssuePendingPlatformTable;
         }
 
-        string globalPlatform = Session["selectedPlatform"] as string ?? ddlTables.SelectedValue;
-        return ResolveIssuePendingPlatformSelection(globalPlatform);
+        return ResolveIssuePendingPlatformSelection(value);
     }
 
     private void ApplyIssuePendingPlatformContext()
@@ -6365,7 +6365,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
 
             selectedPlatform = ResolvePlatformTable(ddlTables.SelectedValue);
             Session["selectedPlatform"] = selectedPlatform;
-            Session[IssuePendingPlatformSessionKey] = OverallDashboardPlatformTable;
+            Session[IssuePendingPlatformSessionKey] = DefaultIssuePendingPlatformTable;
             SetDashboardPlatformSelection(OverallDashboardPlatformTable);
             Session["isFirstLoad"] = null;
 
@@ -7658,7 +7658,7 @@ LEFT JOIN " + designTable + @" AS d
         return links.Count > 0 ? string.Join(", ", links) : "NA";
     }
 
-    protected string RenderIssueDetails(object sightingIdValue, object promotedIdValue, object titleValue, object cmfRequestValue, object submittedDateValue, object statusValue, object sysdebugValue)
+    protected string RenderIssueDetails(object sightingIdValue, object promotedIdValue, object titleValue, object cmfRequestValue, object submittedDateValue, object statusValue, object sysdebugValue, bool includeTitle = true)
     {
         string sightingId = sightingIdValue == null || sightingIdValue == DBNull.Value ? string.Empty : sightingIdValue.ToString().Trim();
         string title = titleValue == null || titleValue == DBNull.Value ? string.Empty : titleValue.ToString().Trim();
@@ -7678,7 +7678,10 @@ LEFT JOIN " + designTable + @" AS d
         }
         sb.Append("<button type=\"button\" class=\"ai-summary-btn ai-summary-btn-inline issue-details-ai-btn\" style=\"padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid #7cb5ec; background-color: #f3f9ff; font-size: 14px; width: 26px; height: 26px;\" onclick='" + onclick + "' title=\"AI Issue details\" aria-label=\"AI Issue details\">&#10024;</button>");
         sb.Append("</span>");
-        sb.AppendFormat("<span class=\"issue-title-text\">{0}</span>", HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(title) ? "Untitled issue" : title));
+        if (includeTitle)
+        {
+            sb.AppendFormat("<span class=\"issue-title-text\">{0}</span>", HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(title) ? "Untitled issue" : title));
+        }
         sb.Append("</span>");
         return sb.ToString();
     }
@@ -9882,11 +9885,12 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 var columns = new Spreadsheet.Columns();
                 for (int columnIndex = 0; columnIndex < GridView_cmf_pending.Columns.Count; columnIndex++)
                 {
+                    var field = GridView_cmf_pending.Columns[columnIndex] as BoundField;
                     columns.Append(new Spreadsheet.Column
                     {
                         Min = (uint)columnIndex + 1,
                         Max = (uint)columnIndex + 1,
-                        Width = columnIndex == 1 || columnIndex == 10 ? 60 : 24,
+                        Width = field != null && (field.DataField == "title" || field.DataField == "impact") ? 60 : 24,
                         CustomWidth = true
                     });
                 }
@@ -9908,9 +9912,26 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                     var exportRow = new Spreadsheet.Row();
                     for (int columnIndex = 0; columnIndex < GridView_cmf_pending.Columns.Count; columnIndex++)
                     {
-                        string value = columnIndex == 0 ? issueId : columnIndex == 7
-                            ? Convert.ToString(keys.Values["repro_on_rvp"], CultureInfo.InvariantCulture)
-                            : HttpUtility.HtmlDecode(gridRow.Cells[columnIndex].Text).Replace("\u00a0", " ");
+                        var column = GridView_cmf_pending.Columns[columnIndex];
+                        string value;
+                        if (columnIndex == 0)
+                        {
+                            value = issueId;
+                        }
+                        else if (column.ItemStyle.CssClass == "pending-field-rvp")
+                        {
+                            value = Convert.ToString(keys.Values["repro_on_rvp"], CultureInfo.InvariantCulture);
+                        }
+                        else if (column.ItemStyle.CssClass == "pending-field-request-date")
+                        {
+                            var request = (Label)gridRow.FindControl("PendingRequestValue");
+                            var date = (Label)gridRow.FindControl("PendingAskDateValue");
+                            value = HttpUtility.HtmlDecode(request.Text) + "\n" + date.Text;
+                        }
+                        else
+                        {
+                            value = HttpUtility.HtmlDecode(gridRow.Cells[columnIndex].Text).Replace("\u00a0", " ");
+                        }
                         exportRow.Append(CreatePendingExportCell(value));
                     }
                     sheetData.Append(exportRow);
@@ -16657,30 +16678,16 @@ ORDER BY
             ddlSharedPlatform.Items.Clear();
             if (availablePlatforms.Count > 0)
             {
-                ddlSharedPlatform.Items.Add(new ListItem("Overall", OverallDashboardPlatformTable));
                 foreach (CmfPlatformDefinition option in availablePlatforms)
                 {
                     ddlSharedPlatform.Items.Add(new ListItem(option.Label, option.TableName));
                 }
             }
 
-            // Restore previously selected platform from session or current platform
-            string currentPlatform = Session[IssuePendingPlatformSessionKey] as string
-                ?? selectedPlatform
-                ?? (Session["selectedPlatform"] as string);
-
-            string selectedValue;
-            if (IsOverallDashboardPlatform(currentPlatform) && availablePlatforms.Count > 0)
-            {
-                selectedValue = OverallDashboardPlatformTable;
-            }
-            else
-            {
-                selectedValue = ResolveFirstAvailablePlatform(
-                    new[] { currentPlatform, Session["selectedPlatform"] as string, selectedPlatform, DefaultPlatformTable },
-                    availableSet,
-                    availablePlatforms);
-            }
+            string selectedValue = ResolveFirstAvailablePlatform(
+                new[] { GetIssuePendingPlatform(), DefaultIssuePendingPlatformTable },
+                availableSet,
+                availablePlatforms);
 
             if (!string.IsNullOrWhiteSpace(selectedValue))
             {
@@ -16705,7 +16712,9 @@ ORDER BY
     {
         try
         {
-            string selectedPlatformTable = ResolveIssuePendingPlatformSelection(ddlSharedPlatform.SelectedValue);
+            string postedPlatform = Request.Form[ddlSharedPlatform.UniqueID];
+            string selectedPlatformTable = ResolveIssuePendingPlatformSelection(
+                string.IsNullOrWhiteSpace(postedPlatform) ? ddlSharedPlatform.SelectedValue : postedPlatform);
 
             if (!string.IsNullOrEmpty(selectedPlatformTable))
             {
