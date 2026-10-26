@@ -42,9 +42,10 @@
             --portal-border: #cdd9e5;
             --portal-shadow: 0 18px 42px rgba(17, 43, 70, 0.12);
             --portal-radius: 18px;
-            --portal-font-body: "Plus Jakarta Sans", "Segoe UI", "Trebuchet MS", sans-serif;
-            --portal-font-display: "Outfit", "Manrope", "Segoe UI", sans-serif;
-            --portal-font-card: "Manrope", "Plus Jakarta Sans", "Segoe UI", sans-serif;
+            --portal-font-ui: "Segoe UI Variable", "Segoe UI", sans-serif;
+            --portal-font-body: var(--portal-font-ui);
+            --portal-font-display: var(--portal-font-ui);
+            --portal-font-card: var(--portal-font-ui);
         }
 
         body {
@@ -17057,6 +17058,14 @@ td:nth-child(odd), th:nth-child(odd) {
                 reopenButton.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
             }
 
+            if (sectionName === 'mainMenu') {
+                hidePendingCellTooltip();
+                requestAnimationFrame(function () {
+                    formatIssueLongCells();
+                    formatPendingLongCells();
+                });
+            }
+
             if (sectionName === 'mainMenu' && window.CMF_PORTAL && window.CMF_PORTAL.homeTrendChart) {
                 setTimeout(function () {
                     try { window.CMF_PORTAL.homeTrendChart.resize(); } catch (ignore) { }
@@ -17296,7 +17305,7 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             if (!window.CMF_PORTAL[chartRefKey]) {
-                window.CMF_PORTAL[chartRefKey] = echarts.init(trendHost);
+                window.CMF_PORTAL[chartRefKey] = echarts.init(trendHost, { textStyle: { fontFamily: getComputedStyle(document.body).fontFamily } });
             }
 
             window.CMF_PORTAL[chartRefKey].setOption({
@@ -19468,7 +19477,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
             pieHost.innerHTML = '';
             if (!window.CMF_PORTAL.homeOverallPendingPieChart) {
-                window.CMF_PORTAL.homeOverallPendingPieChart = echarts.init(pieHost);
+                window.CMF_PORTAL.homeOverallPendingPieChart = echarts.init(pieHost, { textStyle: { fontFamily: getComputedStyle(document.body).fontFamily } });
             }
 
             window.CMF_PORTAL.homeOverallPendingPieChart.setOption({
@@ -20145,7 +20154,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
-            window.CMF_PORTAL.homeMilestoneSummaryPieChart = echarts.init(pieHost);
+            window.CMF_PORTAL.homeMilestoneSummaryPieChart = echarts.init(pieHost, { textStyle: { fontFamily: getComputedStyle(document.body).fontFamily } });
             var stackedSeries = breakdown.map(function (item, index) {
                 var pctValue = total > 0 ? (item.value * 100 / total) : 0;
                 return {
@@ -23305,12 +23314,26 @@ td:nth-child(odd), th:nth-child(odd) {
             if (!input || !table) return;
             var query = (input.value || '').toLowerCase().trim();
             var component = getPendingFilterValue('cmfPendingComponentFilter');
+            var componentControl = document.getElementById('cmfPendingComponentFilter');
+            if (componentControl) componentControl.title = componentControl.value || 'All Components';
             var owner = getPendingFilterValue('cmfPendingOwnerFilter');
             var customer = getPendingFilterValue('cmfPendingCustomerFilter');
             var idst = getPendingFilterValue('cmfPendingIdstFilter');
             var repro = getPendingFilterValue('cmfPendingRvpFilter');
             var from = getPendingFilterValue('cmfPendingDateFrom');
             var to = getPendingFilterValue('cmfPendingDateTo');
+            var fromControl = document.getElementById('cmfPendingDateFrom');
+            var toControl = document.getElementById('cmfPendingDateTo');
+            if (fromControl && toControl) {
+                fromControl.max = to;
+                toControl.min = from;
+                var invalidRange = from && to && from > to;
+                toControl.setCustomValidity(invalidRange ? 'The To date must be on or after the From date.' : '');
+                if (invalidRange) {
+                    toControl.reportValidity();
+                    return;
+                }
+            }
             var matches = [];
             var rows = table.querySelectorAll('tbody tr');
             for (var i = 0; i < rows.length; i++) {
@@ -23361,6 +23384,26 @@ td:nth-child(odd), th:nth-child(odd) {
         var issueCellResizeObserver = null;
         var issueCellObservedTable = null;
 
+        function configureCellPreview(text, clipped) {
+            if (!text.dataset.previewBound) {
+                text.addEventListener('mouseenter', showPendingCellTooltip);
+                text.addEventListener('focus', showPendingCellTooltip);
+                text.addEventListener('click', showPendingCellTooltip);
+                text.addEventListener('mouseleave', scheduleHidePendingCellTooltip);
+                text.addEventListener('blur', hidePendingCellTooltip);
+                text.dataset.previewBound = '1';
+            }
+            text.dataset.fullText = text.innerText || text.textContent;
+            text.classList.toggle('is-truncated', clipped);
+            if (clipped) {
+                text.tabIndex = 0;
+                text.setAttribute('aria-label', 'Show complete content');
+            } else {
+                text.removeAttribute('tabindex');
+                text.removeAttribute('aria-label');
+            }
+        }
+
         function formatIssueLongCells() {
             var table = document.getElementById('overall_request_details');
             if (table && window.ResizeObserver && issueCellObservedTable !== table) {
@@ -23384,37 +23427,68 @@ td:nth-child(odd), th:nth-child(odd) {
                     var text = document.createElement('span');
                     text.className = 'pending-cell-text';
                     while (cell.firstChild) text.appendChild(cell.firstChild);
-                    var info = document.createElement('button');
-                    info.type = 'button';
-                    info.className = 'pending-cell-info';
-                    info.hidden = true;
-                    var header = cell.closest('td').closest('table').rows[0].cells[cell.closest('td').cellIndex].cloneNode(true);
-                    header.querySelectorAll('button, select').forEach(function (node) { node.remove(); });
-                    info.setAttribute('aria-label', 'Show complete ' + header.textContent.trim());
-                    info.innerHTML = '<i class="fas fa-circle-info" aria-hidden="true"></i>';
-                    info.addEventListener('mouseenter', showPendingCellTooltip);
-                    info.addEventListener('focus', showPendingCellTooltip);
-                    info.addEventListener('click', showPendingCellTooltip);
-                    info.addEventListener('mouseleave', scheduleHidePendingCellTooltip);
-                    info.addEventListener('blur', hidePendingCellTooltip);
                     content.appendChild(text);
-                    content.appendChild(info);
                     cell.appendChild(content);
                 }
                 if (!cell.getClientRects().length) return;
-                var button = content.querySelector('.pending-cell-info');
                 var value = content.querySelector('.pending-cell-text');
-                button.hidden = true;
-                content.classList.remove('has-overflow');
-                button.dataset.fullText = value.innerText || value.textContent;
                 var lineLimit = parseFloat(getComputedStyle(value).lineHeight) * 4;
                 var clipped = value.clientHeight >= lineLimit - 1 && value.scrollHeight > lineLimit + 1;
-                button.hidden = !clipped;
-                content.classList.toggle('has-overflow', clipped);
+                configureCellPreview(value, clipped);
             });
         }
 
+        function formatPendingCustomerLogos() {
+            var labels = {
+                lenovo: 'Lenovo', hp: 'HP', dell: 'Dell', asus: 'ASUS', acer: 'Acer',
+                samsung: 'Samsung', apple: 'Apple', msi: 'MSI', lg: 'LG',
+                panasonic: 'Panasonic', sony: 'Sony', toshiba: 'Toshiba',
+                huawei: 'Huawei', honor: 'Honor', fujitsu: 'Fujitsu'
+            };
+            var aliases = {
+                le: 'lenovo', hewlett: 'hp', de: 'dell', as: 'asus', asustek: 'asus',
+                ac: 'acer', sa: 'samsung', ap: 'apple', pa: 'panasonic', so: 'sony',
+                to: 'toshiba', ts: 'toshiba', hu: 'huawei', ho: 'honor', fu: 'fujitsu'
+            };
+            document.querySelectorAll('#GridView_cmf_pending td.pending-field-customer').forEach(function (cell) {
+                if (cell.querySelector('.pending-customer-logo') || cell.dataset.logoUnavailable) return;
+                var prefix = cell.textContent.trim().toLowerCase().match(/^[a-z]+/);
+                if (!prefix) return;
+                var brand = aliases[prefix[0]] || prefix[0];
+                if (!Object.prototype.hasOwnProperty.call(labels, brand)) return;
+                var logo = document.createElement('img');
+                logo.className = 'pending-customer-logo';
+                logo.src = 'Content/customer-logos/' + brand + '.svg';
+                logo.alt = labels[brand] + ' logo';
+                logo.title = labels[brand];
+                logo.width = 54;
+                logo.height = 28;
+                logo.decoding = 'async';
+                logo.addEventListener('error', function () {
+                    cell.dataset.logoUnavailable = '1';
+                    logo.remove();
+                });
+                cell.insertBefore(logo, cell.firstChild);
+            });
+        }
+
+        var pendingCellResizeObserver = null;
+        var pendingCellObservedTable = null;
+
         function formatPendingLongCells() {
+            var table = document.getElementById('GridView_cmf_pending');
+            if (!table) return;
+            if (window.ResizeObserver && pendingCellObservedTable !== table) {
+                if (!pendingCellResizeObserver) {
+                    pendingCellResizeObserver = new ResizeObserver(function () {
+                        requestAnimationFrame(formatPendingLongCells);
+                    });
+                }
+                pendingCellResizeObserver.disconnect();
+                pendingCellObservedTable = table;
+                pendingCellResizeObserver.observe(table);
+            }
+            formatPendingCustomerLogos();
             var cells = document.querySelectorAll('#GridView_cmf_pending td.pending-field-title, #GridView_cmf_pending td.pending-field-impact, #GridView_cmf_pending td.pending-field-why');
             cells.forEach(function (cell) {
                 var text = cell.querySelector('.pending-cell-text');
@@ -23426,27 +23500,17 @@ td:nth-child(odd), th:nth-child(odd) {
                     text = document.createElement('span');
                     text.className = 'pending-cell-text';
                     text.textContent = value;
-                    var info = document.createElement('button');
-                    info.type = 'button';
-                    info.className = 'pending-cell-info';
-                    info.setAttribute('aria-label', 'Show complete ' + cell.closest('table').rows[0].cells[cell.cellIndex].textContent.trim());
-                    info.innerHTML = '<i class="fas fa-circle-info" aria-hidden="true"></i>';
-                    info.addEventListener('mouseenter', showPendingCellTooltip);
-                    info.addEventListener('focus', showPendingCellTooltip);
-                    info.addEventListener('click', showPendingCellTooltip);
-                    info.addEventListener('mouseleave', scheduleHidePendingCellTooltip);
-                    info.addEventListener('blur', hidePendingCellTooltip);
                     content.appendChild(text);
-                    content.appendChild(info);
                     cell.appendChild(content);
                 }
                 if (!cell.getClientRects().length) return;
-                var button = cell.querySelector('.pending-cell-info');
-                button.hidden = true;
-                cell.querySelector('.pending-cell-content').classList.remove('has-overflow');
                 var clipped = text.scrollHeight > text.clientHeight + 1;
-                button.hidden = !clipped;
-                cell.querySelector('.pending-cell-content').classList.toggle('has-overflow', clipped);
+                configureCellPreview(text, clipped);
+            });
+            table.querySelectorAll('.pending-field-request, .pending-field-date').forEach(function (text) {
+                text.classList.add('pending-cell-text');
+                if (!text.getClientRects().length) return;
+                configureCellPreview(text, text.scrollWidth > text.clientWidth + 1);
             });
         }
 
@@ -23460,11 +23524,12 @@ td:nth-child(odd), th:nth-child(odd) {
         function showPendingCellTooltip(event) {
             hidePendingCellTooltip();
             var button = event.currentTarget;
+            if (!button.classList.contains('is-truncated')) return;
             var tooltip = document.createElement('div');
             tooltip.id = 'pendingCellTooltip';
             tooltip.className = 'pending-cell-tooltip';
             tooltip.setAttribute('role', 'tooltip');
-            tooltip.textContent = button.dataset.fullText || button.parentElement.querySelector('.pending-cell-text').textContent;
+            tooltip.textContent = button.dataset.fullText || button.textContent;
             tooltip.addEventListener('mouseenter', function () { clearTimeout(pendingCellTooltipCloseTimer); });
             tooltip.addEventListener('mouseleave', scheduleHidePendingCellTooltip);
             document.body.appendChild(tooltip);
@@ -23480,7 +23545,7 @@ td:nth-child(odd), th:nth-child(odd) {
             clearTimeout(pendingCellTooltipCloseTimer);
             var tooltip = document.getElementById('pendingCellTooltip');
             if (tooltip) tooltip.remove();
-            document.querySelectorAll('.pending-cell-info[aria-describedby]').forEach(function (button) { button.removeAttribute('aria-describedby'); });
+            document.querySelectorAll('.pending-cell-text[aria-describedby]').forEach(function (button) { button.removeAttribute('aria-describedby'); });
         }
 
         window.addEventListener('resize', function () {
@@ -23663,11 +23728,15 @@ td:nth-child(odd), th:nth-child(odd) {
                 for (var valueIndex = 0; valueIndex < values.length; valueIndex++) {
                     var option = document.createElement('option');
                     option.value = values[valueIndex];
-                    option.textContent = values[valueIndex];
+                    option.textContent = filter.field === 'component' ? values[valueIndex].split('.').pop() : values[valueIndex];
+                    option.title = values[valueIndex];
                     select.appendChild(option);
                 }
                 if (currentValue && values.indexOf(currentValue) >= 0) {
                     select.value = currentValue;
+                }
+                if (filter.field === 'component') {
+                    select.title = select.value || 'All Components';
                 }
             }
         }
@@ -23708,7 +23777,7 @@ td:nth-child(odd), th:nth-child(odd) {
 </script>
     <script src="Scripts/cmf-portal-main.js?v=20261023-popup-export-all"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261024-issue-compact-columns-2" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261026-pending-date-fixes" />
 
 </head>
 
@@ -24842,12 +24911,12 @@ Submit
                                 <div id="cmfPendingPlatformSlot"></div>
                                 <div class="cmf-pending-searchbox"><i class="fas fa-search" aria-hidden="true"></i><input type="text" id="cmfPendingClientSearch" placeholder="Search by ID, title, customer, component..." oninput="filterCmfPendingRows()" /></div>
                                 <label class="portal-filter-field" for="cmfPendingCustomerFilter">Customer<select id="cmfPendingCustomerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All Customers</option></select></label>
-                                <label class="portal-filter-field" for="cmfPendingRvpFilter">RVP Repro<select id="cmfPendingRvpFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+                                <label class="portal-filter-field" for="cmfPendingRvpFilter">RVP Repro<select id="cmfPendingRvpFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All</option><option value="yes">Yes</option><option value="no">No</option><option value="unknown">Unknown</option></select></label>
                                 <label class="portal-filter-field" for="cmfPendingIdstFilter">iDST<select id="cmfPendingIdstFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All iDST</option></select></label>
                                 <fieldset class="portal-filter-field portal-date-filter"><legend>CMF Ask Date</legend><div><input type="date" id="cmfPendingDateFrom" aria-label="CMF Ask Date from" onchange="filterCmfPendingRows()" /><span aria-hidden="true">to</span><input type="date" id="cmfPendingDateTo" aria-label="CMF Ask Date to" onchange="filterCmfPendingRows()" /></div></fieldset>
                                 <label class="portal-filter-field" for="cmfPendingComponentFilter">Component<select id="cmfPendingComponentFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All Components</option></select></label>
                                 <label class="portal-filter-field" for="cmfPendingOwnerFilter">Owner<select id="cmfPendingOwnerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All Owners</option></select></label>
-                                <button type="button" class="cmf-pending-filter-btn" onclick="resetCmfPendingClientFilters()"><i class="fas fa-rotate-left" aria-hidden="true"></i><span>Reset</span></button>
+                                <button type="button" class="cmf-pending-filter-btn" onclick="resetCmfPendingClientFilters()"><i class="fas fa-rotate-left" aria-hidden="true"></i><span>Clear</span></button>
                             </div>
 
                             <!-- CMF PENDING LIST GRIDVIEW - INSIDE mainDataWrapper -->
@@ -24868,7 +24937,7 @@ Submit
                                         <asp:BoundField DataField="customer_detail" HeaderText="Customer Details" ItemStyle-CssClass="pending-field-customer" />
                                         <asp:BoundField DataField="idst" HeaderText="iDST Lead" ItemStyle-CssClass="pending-field-idst" />
                                         <asp:TemplateField HeaderText="RVP Repro" ItemStyle-CssClass="pending-field-rvp">
-                                            <ItemTemplate><span class="pending-rvp-status" data-rvp="<%#: Convert.ToString(Eval("repro_on_rvp")).Trim() %>"><%#: Eval("repro_on_rvp") %></span></ItemTemplate>
+                                            <ItemTemplate><span class="pending-rvp-status" data-rvp="<%#: string.IsNullOrWhiteSpace(Convert.ToString(Eval("repro_on_rvp"))) ? "unknown" : Convert.ToString(Eval("repro_on_rvp")).Trim() %>"><%#: string.IsNullOrWhiteSpace(Convert.ToString(Eval("repro_on_rvp"))) ? "unknown" : Convert.ToString(Eval("repro_on_rvp")).Trim() %></span></ItemTemplate>
                                         </asp:TemplateField>
                                         <asp:BoundField DataField="reproducibility" HeaderText="Repro Rate" ItemStyle-CssClass="pending-field-reproducibility" />
                                         <asp:TemplateField HeaderText="CMF Request / Ask Date" ItemStyle-CssClass="pending-field-request-date">

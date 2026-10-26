@@ -1,5 +1,5 @@
 :root {
-    --portal-font-ui: "Segoe UI", Tahoma, sans-serif;
+    --portal-font-ui: "Segoe UI Variable", "Segoe UI", sans-serif;
     --portal-font-body: var(--portal-font-ui);
     --portal-font-display: var(--portal-font-ui);
     --portal-font-card: var(--portal-font-ui);
@@ -41,6 +41,54 @@ body .portal-main-workspace [class*="value"],
 body .portal-main-workspace [class*="label"] {
     font-family: var(--portal-font-ui) !important;
     letter-spacing: 0 !important;
+}
+
+html body :is(form, #portalLayoutShell, .portal-app-header, .ai-summary-drawer, .modal) :not(i):not(.fa):not(.fas):not(.far):not(.fab):not(.fa-solid):not(.fa-regular):not(.fa-brands),
+html body #pendingTabShell #cmfPendingExternalLinks .issue-external-links a,
+html body #issueTabShell #issueExternalLinks .issue-external-links a {
+    font-family: var(--portal-font-ui) !important;
+}
+
+html body select,
+html body #ddlSharedPlatform,
+html body #issueTabShell select.header-dropdown,
+html body #issueTabShell select.issue-page-size-select,
+html body #pendingTabShell select.cmf-pending-filter-select,
+html body .portal-app-header select.header-mode-dropdown {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    border: 1px solid #d5dfeb !important;
+    border-radius: 8px !important;
+    padding: 5px 28px 5px 10px !important;
+    background-color: #fff !important;
+    background-image: linear-gradient(45deg, transparent 50%, #64738c 50%), linear-gradient(135deg, #64738c 50%, transparent 50%) !important;
+    background-position: calc(100% - 14px) 50%, calc(100% - 10px) 50% !important;
+    background-size: 4px 4px !important;
+    background-repeat: no-repeat !important;
+    color: #3d506d !important;
+    font-family: var(--portal-font-ui) !important;
+    font-weight: 400 !important;
+    cursor: pointer;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+html body select:hover:not(:disabled) {
+    border-color: #80b9ef !important;
+}
+
+html body select:focus-visible {
+    border-color: #0073ed !important;
+    box-shadow: 0 0 0 3px rgba(0, 115, 237, .12) !important;
+}
+
+html body select:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+html body #issueTabShell #overall_request_details .field-los select {
+    padding: 4px 14px 4px 2px !important;
+    background-position: calc(100% - 9px) 50%, calc(100% - 5px) 50% !important;
 }
 
 body .portal-app-header {
@@ -592,9 +640,14 @@ body #pendingTabShell .cmf-pending-grid-wrap {
     min-width: 0;
 }
 
-#pendingTabShell .pending-cell-content.has-overflow,
-#issueTabShell .pending-cell-content.has-overflow {
-    padding-right: 17px;
+body #pendingTabShell #GridView_cmf_pending .pending-customer-logo {
+    display: block;
+    width: 54px;
+    max-width: 100%;
+    height: 28px;
+    margin: 0 0 6px;
+    object-fit: contain;
+    object-position: left center;
 }
 
 #pendingTabShell .pending-cell-text,
@@ -609,25 +662,15 @@ body #pendingTabShell .cmf-pending-grid-wrap {
     overflow-wrap: anywhere;
 }
 
-#pendingTabShell .pending-cell-info,
-#issueTabShell .pending-cell-info {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    width: 15px;
-    height: 16px;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: #0069d0;
-    font-size: 12px;
-    line-height: 16px;
+#pendingTabShell .pending-cell-text.is-truncated,
+#issueTabShell .pending-cell-text.is-truncated {
     cursor: help;
 }
 
-#pendingTabShell .pending-cell-info[hidden],
-#issueTabShell .pending-cell-info[hidden] {
-    display: none;
+#pendingTabShell .pending-cell-text:focus-visible,
+#issueTabShell .pending-cell-text:focus-visible {
+    outline: 2px solid var(--portal-primary);
+    outline-offset: 2px;
 }
 
 body .pending-cell-tooltip {
@@ -643,7 +686,7 @@ body .pending-cell-tooltip {
     background: #fff;
     color: #20344d;
     box-shadow: 0 4px 16px rgba(20, 45, 70, .16);
-    font: 12px/1.5 "Segoe UI", Tahoma, sans-serif;
+    font: 12px/1.5 var(--portal-font-ui);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
@@ -790,6 +833,15 @@ body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-
     gap: 5px;
 }
 
+#pendingTabShell .pending-request-date > .pending-cell-text {
+    display: block;
+    max-width: 100%;
+    white-space: nowrap;
+    word-break: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 body .portal-main-workspace .table-primary tr:nth-child(even) > td {
     background-color: #fafbfe !important;
 }
@@ -826,6 +878,11 @@ body #pendingTabShell #GridView_cmf_pending .pending-rvp-status {
     color: #6c7890;
     font-size: 10px;
     font-weight: 500;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-rvp-status[data-rvp="unknown" i] {
+    background: #FFF4CE;
+    color: #8A6A00;
 }
 
 body .issue-pager-controls {
