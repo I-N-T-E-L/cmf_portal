@@ -1,14 +1,22 @@
 :root {
     --portal-font-ui: "Segoe UI", Tahoma, sans-serif;
-    --portal-font-card: "Segoe UI", Tahoma, sans-serif;
-    --portal-primary: #0071e3;
-    --portal-primary-dark: #005bb8;
-    --portal-bg: #f3f6fa;
-    --portal-ink: #20344d;
-    --cmf-primary: #0071e3;
-    --cmf-bg: #f3f6fa;
-    --cmf-border: #dfe6ef;
-    --cmf-text: #20344d;
+    --portal-font-body: var(--portal-font-ui);
+    --portal-font-display: var(--portal-font-ui);
+    --portal-font-card: var(--portal-font-ui);
+    --portal-primary: #0073ed;
+    --portal-primary-dark: #005fc7;
+    --portal-bg: #f7f8fb;
+    --portal-surface: #ffffff;
+    --portal-surface-soft: #f9fafd;
+    --portal-ink: #24354e;
+    --portal-muted: #64738c;
+    --cmf-primary: #0073ed;
+    --cmf-primary-dark: #005fc7;
+    --cmf-primary-soft: #edf5ff;
+    --cmf-bg: #f7f8fb;
+    --cmf-border: #e4e9f1;
+    --cmf-text: #24354e;
+    --cmf-text-secondary: #64738c;
     --cmf-radius-sm: 4px;
     --cmf-radius-md: 6px;
     --cmf-radius-lg: 8px;
@@ -16,9 +24,12 @@
 
 html body {
     margin: 0;
-    background: #f3f6fa !important;
-    color: #20344d;
+    background: var(--portal-bg) !important;
+    color: var(--portal-ink);
     font-family: var(--portal-font-ui) !important;
+    font-size: 12px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
 }
 
 body input, body select, body textarea, body button,
@@ -42,9 +53,9 @@ body .portal-app-header {
     height: 64px !important;
     min-height: 64px !important;
     padding: 0 20px !important;
-    background: #203c58 !important;
-    border-bottom: 1px solid #34516c !important;
-    box-shadow: none !important;
+    background: linear-gradient(105deg, #193249 0%, #244767 100%) !important;
+    border-bottom: 1px solid #2d4b65 !important;
+    box-shadow: 0 1px 3px rgba(20, 38, 59, .08) !important;
     color: #fff !important;
 }
 
@@ -87,8 +98,8 @@ body .portal-app-header .global-search-shell {
 
 body #globalPortalSearch {
     height: 36px;
-    background: #f8fafd;
-    border: 1px solid #cedaea;
+    background: #fcfdff;
+    border: 1px solid #d8e1ed;
     border-radius: 4px;
     padding-right: 38px;
     font-weight: 400;
@@ -121,8 +132,8 @@ body .header-user-mode label {
 body .portal-app-header .header-mode-dropdown {
     height: 34px !important;
     min-width: 145px !important;
-    background: #294964 !important;
-    border: 1px solid #5c738b !important;
+    background: #294a66 !important;
+    border: 1px solid #526e87 !important;
     border-radius: 4px !important;
     color: #fff !important;
     font-size: 12px !important;
@@ -159,7 +170,7 @@ body #mainMenuSidebar {
     min-height: calc(100vh - 64px) !important;
     top: 64px !important;
     padding: 12px 0 !important;
-    background: #1d344b !important;
+    background: #192f43 !important;
     border: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -185,7 +196,7 @@ body #mainMenuSidebar .portal-nav-link {
     border-left: 3px solid transparent !important;
     border-radius: 0 !important;
     background: transparent !important;
-    color: #c7d5e4 !important;
+    color: #b9c8d8 !important;
     font-size: 12px !important;
     font-weight: 400 !important;
     transform: none !important;
@@ -205,13 +216,13 @@ body #mainMenuSidebar .portal-nav-link span {
 }
 
 body #mainMenuSidebar .portal-nav-link:hover {
-    background: #29465f !important;
+    background: #263f58 !important;
     color: #fff !important;
 }
 
 body #mainMenuSidebar .portal-nav-link.is-active {
-    background: #284c6e !important;
-    border-left-color: #21a1ff !important;
+    background: #264c71 !important;
+    border-left-color: #009bff !important;
     color: #fff !important;
     font-weight: 600 !important;
 }
@@ -248,7 +259,7 @@ body #portalLayoutShell > .portal-main-workspace {
     max-width: none !important;
     margin: 0 !important;
     padding: 18px !important;
-    background: #f3f6fa !important;
+    background: var(--portal-bg) !important;
 }
 
 body #portalLayoutShell > .gridview-container-wrapper {
@@ -288,7 +299,7 @@ body .portal-tab-title,
 body .pane-heading {
     font-size: 22px !important;
     font-weight: 600 !important;
-    color: #1d324b !important;
+    color: #1b2d47 !important;
     line-height: 1.3 !important;
     letter-spacing: 0 !important;
 }
@@ -297,7 +308,7 @@ body .issue-page-desc,
 body #pendingTabShell .cmf-pending-page-desc,
 body .ccip-dash-sub {
     margin-top: 4px !important;
-    color: #60728a !important;
+    color: #63738c !important;
     font-size: 12px !important;
     line-height: 1.5;
 }
@@ -320,10 +331,10 @@ body .ccip-summary-fact,
 body .overall-card,
 body .ccip-card,
 body .portal-surface-card {
-    border: 1px solid #dfe6ef !important;
+    border: 1px solid #e4e9f1 !important;
     border-radius: 6px !important;
     background: #fff !important;
-    box-shadow: none !important;
+    box-shadow: 0 1px 3px rgba(23, 43, 68, .025) !important;
 }
 
 body .issue-kpi {
@@ -331,7 +342,7 @@ body .issue-kpi {
 }
 
 body .issue-kpi-label {
-    color: #536985 !important;
+    color: #5b6c86 !important;
     font-size: 12px !important;
     font-weight: 400 !important;
     text-transform: none !important;
@@ -339,8 +350,8 @@ body .issue-kpi-label {
 
 body .issue-kpi-value {
     font-size: 24px !important;
-    font-weight: 600 !important;
-    color: #223b57 !important;
+    font-weight: 700 !important;
+    color: #203650 !important;
 }
 
 body #sharedFilterPanel.overview-platform-actions,
@@ -383,11 +394,11 @@ body .cmf-pending-searchbox input {
     max-width: 100%;
     min-width: 0 !important;
     height: 34px !important;
-    border: 1px solid #d5dfeb !important;
+    border: 1px solid #dce3ee !important;
     border-radius: 4px !important;
     background-color: #fff !important;
-    color: #304760 !important;
-    font-size: 12px !important;
+    color: #3d506d !important;
+    font-size: 11px !important;
     font-weight: 400 !important;
     box-shadow: none !important;
 }
@@ -404,10 +415,10 @@ body #pendingTabShell #cmfPendingExternalLinks a {
     gap: 7px;
     min-height: 34px;
     padding: 7px 10px !important;
-    border: 1px solid #cfdaea !important;
+    border: 1px solid #dce3ee !important;
     border-radius: 4px;
     background: #fff !important;
-    color: #315574 !important;
+    color: #476384 !important;
     font-weight: 500 !important;
     text-decoration: none !important;
 }
@@ -559,32 +570,35 @@ body .modern-button,
 body .filter-btn-primary,
 body .ccip-btn-primary,
 body .cmf-pending-action-btn.primary {
-    background: #0071e3 !important;
+    background: var(--portal-primary) !important;
     color: #fff !important;
-    border: 1px solid #0071e3 !important;
+    border: 1px solid var(--portal-primary) !important;
     border-radius: 4px !important;
     font-weight: 600 !important;
-    box-shadow: none !important;
+    box-shadow: 0 1px 2px rgba(0, 96, 200, .10) !important;
 }
 
 body .issue-grid-scroll,
 body #pendingTabShell .cmf-pending-grid-wrap {
-    border: 1px solid #dfe6ef !important;
+    border: 1px solid #e1e7f0 !important;
     border-radius: 4px !important;
     background: #fff !important;
     box-shadow: none !important;
 }
 
-#pendingTabShell .pending-cell-content {
+#pendingTabShell .pending-cell-content,
+#issueTabShell .pending-cell-content {
     position: relative;
     min-width: 0;
 }
 
-#pendingTabShell .pending-cell-content.has-overflow {
+#pendingTabShell .pending-cell-content.has-overflow,
+#issueTabShell .pending-cell-content.has-overflow {
     padding-right: 17px;
 }
 
-#pendingTabShell .pending-cell-text {
+#pendingTabShell .pending-cell-text,
+#issueTabShell .pending-cell-text {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 4;
@@ -595,7 +609,8 @@ body #pendingTabShell .cmf-pending-grid-wrap {
     overflow-wrap: anywhere;
 }
 
-#pendingTabShell .pending-cell-info {
+#pendingTabShell .pending-cell-info,
+#issueTabShell .pending-cell-info {
     position: absolute;
     right: 0;
     bottom: 0;
@@ -610,7 +625,8 @@ body #pendingTabShell .cmf-pending-grid-wrap {
     cursor: help;
 }
 
-#pendingTabShell .pending-cell-info[hidden] {
+#pendingTabShell .pending-cell-info[hidden],
+#issueTabShell .pending-cell-info[hidden] {
     display: none;
 }
 
@@ -632,6 +648,11 @@ body .pending-cell-tooltip {
     overflow-wrap: anywhere;
 }
 
+body .ai-summary-drawer:not(.show) {
+    visibility: hidden !important;
+    box-shadow: none !important;
+}
+
 body .portal-main-workspace .table-primary {
     border: 0 !important;
     border-radius: 0 !important;
@@ -641,9 +662,9 @@ body .portal-main-workspace .table-primary {
 
 body .portal-main-workspace .table-primary th,
 body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th {
-    background: #eaf0f7 !important;
-    color: #28425f !important;
-    border-color: #dfe6ef !important;
+    background: #edf1f7 !important;
+    color: #31445e !important;
+    border-color: #e1e7f0 !important;
     font-size: 11px !important;
     font-weight: 600 !important;
     letter-spacing: 0 !important;
@@ -652,18 +673,159 @@ body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th {
 
 body .portal-main-workspace .table-primary td,
 body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td {
-    color: #30445e !important;
-    border-color: #e3e9f1 !important;
+    color: #374760 !important;
+    border-color: #e8ecf3 !important;
     font-size: 11px !important;
     line-height: 1.45 !important;
 }
 
+body #pendingTabShell .cmf-pending-page-title {
+    font-weight: 700 !important;
+    color: #1b2d47 !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th {
+    font-weight: 700 !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-title,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-impact {
+    width: 14.285714% !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th:first-child,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td:first-child {
+    width: 84px !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-id-actions > a,
+body #issueTabShell #overall_request_details .issue-id-link {
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    font-variant-numeric: tabular-nums;
+}
+
+body #issueTabShell .issue-page-title {
+    font-weight: 700 !important;
+    color: #1b2d47 !important;
+}
+
+body #issueTabShell .issue-top-filter-item > span {
+    color: #536985 !important;
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    text-transform: none !important;
+}
+
+body #issueTabShell .header-dropdown {
+    height: 34px !important;
+    border: 1px solid #dce3ee !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    color: #3d506d !important;
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    box-shadow: none !important;
+}
+
+body #issueTabShell .filter-btn-secondary {
+    min-height: 34px !important;
+    border: 1px solid #dce3ee !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    color: #476384 !important;
+    box-shadow: none !important;
+}
+
+body #issueTabShell #overall_request_details {
+    margin-top: 0 !important;
+    border-collapse: collapse !important;
+    border-radius: 0 !important;
+    font-family: var(--portal-font-ui) !important;
+    box-shadow: none !important;
+}
+
+body #issueTabShell #overall_request_details th {
+    border: 1px solid #e1e7f0 !important;
+    background: #edf1f7 !important;
+    color: #31445e !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+}
+
+body #issueTabShell #overall_request_details td {
+    border: 1px solid #e8ecf3 !important;
+    background: #fff !important;
+    color: #374760 !important;
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    line-height: 1.45 !important;
+}
+
+body #issueTabShell #overall_request_details tr:nth-child(even) > td {
+    background: #fafbfe !important;
+}
+
+body #issueTabShell #overall_request_details tr:hover > td {
+    background: #f0f6ff !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn:hover,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn:active,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn:focus {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: #0069d0 !important;
+    box-shadow: none !important;
+}
+
+#pendingTabShell .pending-request-date {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+}
+
 body .portal-main-workspace .table-primary tr:nth-child(even) > td {
-    background-color: #f7f9fc !important;
+    background-color: #fafbfe !important;
 }
 
 body .portal-main-workspace .table-primary tr:hover > td {
-    background-color: #edf5ff !important;
+    background-color: #f0f6ff !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns tr:nth-child(even) > td {
+    background-color: #fafbfe !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns tr:hover > td {
+    background-color: #f0f6ff !important;
+}
+
+body .portal-main-workspace .table-primary td a:not(.pending-ai-rec-btn) {
+    color: #0073ed;
+    text-decoration: none;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-rvp-status[data-rvp="yes" i] {
+    background: #daf4e5;
+    color: #208454;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-rvp-status[data-rvp="no" i] {
+    background: #fce6e6;
+    color: #cc4b4b;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-rvp-status {
+    background: #eef0f6;
+    color: #6c7890;
+    font-size: 10px;
+    font-weight: 500;
 }
 
 body .issue-pager-controls {
@@ -674,6 +836,450 @@ body .issue-pager-controls {
     background: transparent !important;
     box-shadow: none !important;
     color: #536985;
+}
+
+body #issueTabShell .issue-page-hd {
+    display: block !important;
+}
+
+body #issueTabShell .issue-page-hd-top {
+    width: 100% !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+body #issueTabShell .issue-page-title {
+    margin: 0 !important;
+}
+
+body #issueTabShell .issue-page-desc {
+    margin: 4px 0 0 !important;
+    text-align: left !important;
+}
+
+body #issueTabShell #issueExternalLinks {
+    margin-left: auto;
+}
+
+body #issueExternalLinks .issue-external-links {
+    gap: 8px !important;
+    justify-content: flex-end;
+}
+
+body #issueExternalLinks a {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 7px;
+    min-height: 34px;
+    padding: 7px 10px !important;
+    border: 1px solid #dce3ee !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    color: #476384 !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+}
+
+body #issueExternalLinks a::after {
+    content: "\f35d";
+    font-family: "Font Awesome 6 Free";
+    font-size: 10px;
+    font-weight: 900;
+    color: #607d99;
+}
+
+body #issueExternalLinks a:hover {
+    background: #edf5ff !important;
+    border-color: #80b9ef !important;
+    color: #005bb8 !important;
+}
+
+body #issueTabShell .issue-kpi-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    margin: 0 0 12px !important;
+}
+
+body #issueTabShell .issue-kpi {
+    --issue-kpi-color: #536985;
+    --issue-kpi-tint: #edf1f7;
+    display: grid !important;
+    grid-template-columns: 38px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-content: center;
+    column-gap: 12px;
+    row-gap: 1px;
+    min-height: 72px !important;
+    padding: 10px 12px !important;
+    border: 1px solid #e4e9f1 !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+}
+
+body #issueTabShell .issue-kpi::before {
+    display: none !important;
+}
+
+body #issueTabShell .issue-kpi:nth-child(2) {
+    --issue-kpi-color: #0073ed;
+    --issue-kpi-tint: #e5f1ff;
+}
+
+body #issueTabShell .issue-kpi:nth-child(3) {
+    --issue-kpi-color: #208454;
+    --issue-kpi-tint: #e0f4e9;
+}
+
+body #issueTabShell .issue-kpi:nth-child(4) {
+    --issue-kpi-color: #157b86;
+    --issue-kpi-tint: #e0f2f3;
+}
+
+body #issueTabShell .issue-kpi-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--issue-kpi-tint);
+    color: var(--issue-kpi-color);
+    font-size: 19px;
+}
+
+body #issueTabShell .issue-kpi-label {
+    grid-column: 2;
+    margin: 0 !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+}
+
+body #issueTabShell .issue-kpi-value {
+    grid-column: 2;
+    margin: 0 !important;
+    color: var(--issue-kpi-color) !important;
+    font-size: 20px !important;
+    line-height: 1.2 !important;
+}
+
+body #issueTabShell .issue-top-filter-panel {
+    display: block !important;
+    margin: 0 0 12px !important;
+    padding: 0 !important;
+}
+
+body #issueTabShell #issueTopFilterBody,
+body #issueTabShell #issueTopFilterBody.is-collapsed {
+    display: grid !important;
+    grid-template-columns: repeat(9, minmax(0, 1fr)) max-content;
+    align-items: end !important;
+    gap: 8px !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+body #issueTabShell .issue-top-filter-grid {
+    display: contents !important;
+}
+
+body #issueTabShell .issue-top-filter-item {
+    display: flex !important;
+    flex-direction: column;
+    gap: 4px;
+    width: 100% !important;
+}
+
+body #issueTabShell .issue-top-filter-item > span {
+    white-space: normal !important;
+    line-height: 1.4;
+}
+
+body #issueTabShell .issue-top-filter-buttons {
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body #issueTabShell #btnClearFilters {
+    height: 34px !important;
+    padding: 0 12px !important;
+}
+
+body #issueTabShell .issue-user-toolbar {
+    min-height: 0 !important;
+    margin: 0 0 8px !important;
+    padding: 0 !important;
+}
+
+body #issueTabShell .issue-user-toolbar:has(#btnShowAllColumns[style*="display:none"]) {
+    display: none !important;
+}
+
+body #issueTabShell .issue-grid-scroll {
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+body #issueTabShell .issue-grid-toolbar,
+body #issueTabShell #issue-grid-inner {
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+body #issueTabShell #issue-grid-inner {
+    width: 100% !important;
+    scrollbar-gutter: auto !important;
+}
+
+body #issueTabShell #overall_request_details .impact-text {
+    color: #374760 !important;
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    line-height: 1.45 !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary {
+    table-layout: fixed !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th,
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td {
+    width: calc((100% - 76px) / 15) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 7px 4px !important;
+    vertical-align: top !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.field-sno,
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.field-sno {
+    width: 36px !important;
+    font-size: 10px !important;
+}
+
+body #issueTabShell #overall_request_details .issue-sno-index {
+    font-size: 10px !important;
+}
+
+body #issueTabShell #overall_request_details .issue-sno-cell {
+    min-width: 0 !important;
+    max-width: 100%;
+}
+
+body #issueTabShell #overall_request_details .issue-inline-edit-btn,
+body #issueTabShell #overall_request_details .issue-inline-edit-action {
+    width: 24px !important;
+    min-width: 24px !important;
+    height: 24px !important;
+    padding: 0 !important;
+}
+
+body #issueTabShell #overall_request_details .issue-inline-edit-actions {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.field-los,
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.field-los {
+    width: 40px !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.hidden,
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.hidden {
+    display: none !important;
+}
+
+body #issueTabShell #overall_request_details .empty-data-container {
+    padding: 24px 12px !important;
+    text-align: center;
+    color: #63738c;
+}
+
+body #issueTabShell #overall_request_details .issue-cell-stack,
+body #issueTabShell #overall_request_details .issue-cell-stack > span {
+    display: block;
+    line-height: 1.45;
+}
+
+body #issueTabShell #overall_request_details .issue-meta-row-primary {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+}
+
+body #issueTabShell #overall_request_details .issue-id-link {
+    max-width: 100% !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+}
+
+body #issueTabShell #overall_request_details .issue-details-ai-btn {
+    flex: 0 0 24px;
+    width: 24px !important;
+    height: 24px !important;
+    padding: 2px !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body #issueTabShell #overall_request_details .status-cell-wrap,
+body #issueTabShell #overall_request_details .status-row,
+body #issueTabShell #overall_request_details .status-label-group {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+}
+
+body #issueTabShell #overall_request_details .status-pill,
+body #issueTabShell #overall_request_details .status-confidence-pill {
+    max-width: 100%;
+    padding: 3px 5px !important;
+    margin: 0 !important;
+    font-size: 9px !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+}
+
+body #issueTabShell #overall_request_details .status-one-line {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    font-size: 11px !important;
+    line-height: 1.45 !important;
+}
+
+body #issueTabShell #overall_request_details .milestone-text-only,
+body #issueTabShell #overall_request_details .days-open-pill {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    white-space: normal !important;
+    font-size: 11px !important;
+    line-height: 1.45 !important;
+}
+
+body #issueTabShell .issue-pager-controls {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    width: 100% !important;
+}
+
+body #issueTabShell .issue-page-size-control {
+    margin: 0 !important;
+    color: #536985 !important;
+    font-size: 12px !important;
+    font-weight: 400 !important;
+}
+
+body #issueTabShell .issue-page-status {
+    margin: 0 0 0 auto !important;
+    padding: 0 !important;
+    color: #63738c !important;
+    font-size: 11px !important;
+    white-space: nowrap;
+}
+
+body #issueTabShell .issue-page-nav {
+    display: flex !important;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px !important;
+    margin: 0 !important;
+}
+
+body #issueTabShell .issue-page-nav a,
+body #issueTabShell .issue-page-size-select {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px !important;
+    height: 30px !important;
+    padding: 4px 8px !important;
+    border: 1px solid #d5dfeb !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    color: #536985 !important;
+    font-size: 11px !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+}
+
+body #issueTabShell .issue-page-nav .issue-pager-current {
+    border-color: #80b9ef !important;
+    background: #edf5ff !important;
+    color: #0069d0 !important;
+}
+
+@media (max-width: 900px) {
+    body #issueTabShell #issueTopFilterBody,
+    body #issueTabShell #issueTopFilterBody.is-collapsed {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    body #issueTabShell .issue-page-hd-top {
+        align-items: flex-start !important;
+    }
+
+    body #issueTabShell #issueExternalLinks {
+        margin-left: 0;
+    }
+
+    body #issueTabShell .issue-kpi-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+@media (max-width: 600px) {
+    body #issueTabShell #issueTopFilterBody,
+    body #issueTabShell #issueTopFilterBody.is-collapsed {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body #issueTabShell .issue-kpi {
+        grid-template-columns: 28px minmax(0, 1fr);
+        column-gap: 8px;
+        padding: 9px !important;
+    }
+
+    body #issueTabShell .issue-kpi-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 15px;
+    }
+
+    body #issueTabShell .issue-page-nav {
+        flex: 1 1 100%;
+    }
 }
 
 body input:focus-visible, body select:focus-visible,

@@ -21345,6 +21345,9 @@ td:nth-child(odd), th:nth-child(odd) {
             bindGlobalSearchShortcut();
             applyTableOnlyScroll();
             scheduleInitColumnHideButtons(80);
+            if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) {
+                Sys.WebForms.PageRequestManager.getInstance().add_endRequest(applyTableOnlyScroll);
+            }
         });
 
         if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) {
@@ -21441,6 +21444,7 @@ td:nth-child(odd), th:nth-child(odd) {
             }
             var btn = document.getElementById('btnShowAllColumns');
             if (btn) btn.style.display = '';
+            requestAnimationFrame(formatIssueLongCells);
         }
 
         function restoreHiddenColumns() {
@@ -21464,6 +21468,7 @@ td:nth-child(odd), th:nth-child(odd) {
             localStorage.removeItem(CMF_HIDDEN_COLS_KEY);
             var btn = document.getElementById('btnShowAllColumns');
             if (btn) btn.style.display = 'none';
+            requestAnimationFrame(formatIssueLongCells);
         }
 
         function filterGridRowsByQuery(grid, query) {
@@ -21586,7 +21591,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 issueWrap.style.setProperty('max-height', 'none', 'important');
                 issueWrap.style.setProperty('min-height', '0', 'important');
                 issueWrap.style.setProperty('overflow', 'hidden', 'important');
-                issueWrap.style.setProperty('scrollbar-gutter', 'stable', 'important');
+                issueWrap.style.setProperty('scrollbar-gutter', 'auto', 'important');
             }
 
             if (issueInner) {
@@ -21596,12 +21601,12 @@ td:nth-child(odd), th:nth-child(odd) {
                 issueInner.style.setProperty('min-height', '0', 'important');
                 issueInner.style.setProperty('overflow-x', 'auto', 'important');
                 issueInner.style.setProperty('overflow-y', 'auto', 'important');
-                issueInner.style.setProperty('scrollbar-gutter', 'stable both-edges', 'important');
+                issueInner.style.setProperty('scrollbar-gutter', 'auto', 'important');
             }
 
             if (issueTable) {
                 issueTable.style.setProperty('width', '100%', 'important');
-                issueTable.style.setProperty('min-width', '1320px', 'important');
+                issueTable.style.setProperty('min-width', window.innerWidth > 1200 ? '0' : '1320px', 'important');
                 issueTable.style.setProperty('max-width', 'none', 'important');
             }
 
@@ -21612,6 +21617,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 pendingWrap.style.setProperty('overflow-y', 'auto', 'important');
                 pendingWrap.style.setProperty('scrollbar-gutter', 'auto', 'important');
             }
+            requestAnimationFrame(formatIssueLongCells);
         }
 
         if (window.Sys && Sys.Application) {
@@ -22805,7 +22811,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var reasons = buildCmfAssistantRecommendationReasoning(recommendation, score, rules, result.Evidence || '', payload);
             var html = '<div class="cmf-assistant-rec-shell">';
             html += '<div class="cmf-assistant-rec-top">';
-            html += '<div class="cmf-assistant-overall-score"><span>Overall Score</span><div class="cmf-assistant-score-ring" style="--score-percent:' + escapeHtml(scorePercent.toFixed(2)) + '"><div class="cmf-assistant-score-ring-value">' + escapeHtml(scoreDisplay) + '<small>/5</small></div></div></div>';
+            html += '<div class="cmf-assistant-overall-score"><span>Overall Score</span><div class="cmf-assistant-score-ring" style="--score-percent:' + escapeHtml(scorePercent.toFixed(2)) + '"><div class="cmf-assistant-score-ring-value">' + escapeHtml(scoreDisplay) + '/5</div></div></div>';
             html += renderCmfMetricChips(rules);
             html += '</div>';
             html += '<div class="cmf-assistant-reasoning-box"><h4>Reasoning</h4>' + renderCmfReasoningBullets(reasons) + '</div>';
@@ -23523,6 +23529,62 @@ td:nth-child(odd), th:nth-child(odd) {
             loadSightingDescriptions();
         }
 
+        var issueCellResizeObserver = null;
+        var issueCellObservedTable = null;
+
+        function formatIssueLongCells() {
+            var table = document.getElementById('overall_request_details');
+            if (table && window.ResizeObserver && issueCellObservedTable !== table) {
+                if (!issueCellResizeObserver) {
+                    issueCellResizeObserver = new ResizeObserver(function () {
+                        requestAnimationFrame(formatIssueLongCells);
+                    });
+                }
+                issueCellResizeObserver.disconnect();
+                issueCellObservedTable = table;
+                issueCellResizeObserver.observe(table);
+            }
+            var targets = document.querySelectorAll('#overall_request_details > tbody > tr > td:not([colspan]):not(.field-sno):not(.field-sightingid):not(.field-status), #overall_request_details .status-one-line');
+            targets.forEach(function (cell) {
+                var row = cell.closest('tr');
+                if (row.querySelector('textarea, input, select') || !cell.textContent.trim()) return;
+                var content = cell.querySelector('.pending-cell-content');
+                if (!content) {
+                    content = document.createElement('div');
+                    content.className = 'pending-cell-content';
+                    var text = document.createElement('span');
+                    text.className = 'pending-cell-text';
+                    while (cell.firstChild) text.appendChild(cell.firstChild);
+                    var info = document.createElement('button');
+                    info.type = 'button';
+                    info.className = 'pending-cell-info';
+                    info.hidden = true;
+                    var header = cell.closest('td').closest('table').rows[0].cells[cell.closest('td').cellIndex].cloneNode(true);
+                    header.querySelectorAll('button, select').forEach(function (node) { node.remove(); });
+                    info.setAttribute('aria-label', 'Show complete ' + header.textContent.trim());
+                    info.innerHTML = '<i class="fas fa-circle-info" aria-hidden="true"></i>';
+                    info.addEventListener('mouseenter', showPendingCellTooltip);
+                    info.addEventListener('focus', showPendingCellTooltip);
+                    info.addEventListener('click', showPendingCellTooltip);
+                    info.addEventListener('mouseleave', scheduleHidePendingCellTooltip);
+                    info.addEventListener('blur', hidePendingCellTooltip);
+                    content.appendChild(text);
+                    content.appendChild(info);
+                    cell.appendChild(content);
+                }
+                if (!cell.getClientRects().length) return;
+                var button = content.querySelector('.pending-cell-info');
+                var value = content.querySelector('.pending-cell-text');
+                button.hidden = true;
+                content.classList.remove('has-overflow');
+                button.dataset.fullText = value.innerText || value.textContent;
+                var lineLimit = parseFloat(getComputedStyle(value).lineHeight) * 4;
+                var clipped = value.clientHeight >= lineLimit - 1 && value.scrollHeight > lineLimit + 1;
+                button.hidden = !clipped;
+                content.classList.toggle('has-overflow', clipped);
+            });
+        }
+
         function formatPendingLongCells() {
             var cells = document.querySelectorAll('#GridView_cmf_pending td.pending-field-title, #GridView_cmf_pending td.pending-field-impact, #GridView_cmf_pending td.pending-field-why');
             cells.forEach(function (cell) {
@@ -23573,7 +23635,7 @@ td:nth-child(odd), th:nth-child(odd) {
             tooltip.id = 'pendingCellTooltip';
             tooltip.className = 'pending-cell-tooltip';
             tooltip.setAttribute('role', 'tooltip');
-            tooltip.textContent = button.parentElement.querySelector('.pending-cell-text').textContent;
+            tooltip.textContent = button.dataset.fullText || button.parentElement.querySelector('.pending-cell-text').textContent;
             tooltip.addEventListener('mouseenter', function () { clearTimeout(pendingCellTooltipCloseTimer); });
             tooltip.addEventListener('mouseleave', scheduleHidePendingCellTooltip);
             document.body.appendChild(tooltip);
@@ -23594,6 +23656,8 @@ td:nth-child(odd), th:nth-child(odd) {
 
         window.addEventListener('resize', function () {
             hidePendingCellTooltip();
+            applyTableOnlyScroll();
+            formatIssueLongCells();
             formatPendingLongCells();
         });
         document.addEventListener('scroll', function (event) {
@@ -23815,7 +23879,7 @@ td:nth-child(odd), th:nth-child(odd) {
 </script>
     <script src="Scripts/cmf-portal-main.js?v=20261023-popup-export-all"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261023-schema" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261024-issue-compact-columns-2" />
 
 </head>
 
@@ -24583,33 +24647,33 @@ Submit
                     <asp:Panel ID="issueListHeaderPanel" runat="server" Visible="true">
                         <div class="issue-page-hd">
                             <div class="issue-page-hd-top">
-                                <h1 class="issue-page-title">Issue List</h1>
+                                <div>
+                                    <h1 class="issue-page-title">Issue List</h1>
+                                    <p class="issue-page-desc">Review active issues, understand their current status, and identify what needs attention next.</p>
+                                </div>
                                 <div id="issueExternalLinks"></div>
                             </div>
-                            <p class="issue-page-desc">
-                                Review active issues, understand their current status, and identify what needs attention next.
-                            </p>
                         </div>
                         <div class="issue-kpi-row">
                             <div class="issue-kpi">
+                                <i class="fas fa-file-alt issue-kpi-icon" aria-hidden="true"></i>
                                 <div class="issue-kpi-label">Total Issues</div>
                                 <div class="issue-kpi-value"><asp:Label ID="lblIssueTotal" runat="server" Text="0" /></div>
-                                <div class="issue-kpi-sub"><i class="fas fa-arrow-up" aria-hidden="true"></i> current platform workload</div>
                             </div>
                             <div class="issue-kpi">
+                                <i class="fas fa-folder-open issue-kpi-icon" aria-hidden="true"></i>
                                 <div class="issue-kpi-label">Open Issues</div>
                                 <div class="issue-kpi-value" style="color:#0068b5;"><asp:Label ID="lblIssueInProgress" runat="server" Text="0" /></div>
-                                <div class="issue-kpi-sub"><i class="fas fa-arrow-up" aria-hidden="true"></i> open status</div>
                             </div>
                             <div class="issue-kpi">
+                                <i class="fas fa-check-circle issue-kpi-icon" aria-hidden="true"></i>
                                 <div class="issue-kpi-label">Closed Issues</div>
                                 <div class="issue-kpi-value" style="color:#107c10;"><asp:Label ID="lblIssueClosed" runat="server" Text="0" /></div>
-                                <div class="issue-kpi-sub"><i class="fas fa-arrow-up" aria-hidden="true"></i> complete or rejected</div>
                             </div>
                             <div class="issue-kpi">
+                                <i class="fas fa-check-double issue-kpi-icon" aria-hidden="true"></i>
                                 <div class="issue-kpi-label">Implemented Issues</div>
                                 <div class="issue-kpi-value" style="color:#bc2f32;"><asp:Label ID="lblIssueStale" runat="server" Text="0" /></div>
-                                <div class="issue-kpi-sub"><i class="fas fa-clock" aria-hidden="true"></i> implemented or verified</div>
                             </div>
                         </div>
                     </asp:Panel>
@@ -24617,13 +24681,6 @@ Submit
                     <!-- TOP FILTER PANEL - FOR ISSUE LIST -->
                     <asp:Panel ID="fieldSelectorPanel" runat="server" Visible="true">
                         <div class="field-selector-panel issue-top-filter-panel">
-                            <div class="issue-filter-section-header">
-                                <div class="issue-filter-title"><i class="fas fa-filter" aria-hidden="true"></i> Filters</div>
-                                <button type="button" id="issueFiltersToggleBtn" class="issue-collapse-btn" aria-expanded="true" onclick="toggleCollapsibleSection('issueFilters')">
-                                    <span class="toggle-label">Hide</span>
-                                    <span class="toggle-chevron">▾</span>
-                                </button>
-                            </div>
                             <div id="issueTopFilterBody" class="collapsible-body">
                                 <div class="issue-top-filter-grid">
                                     <div id="issuePlatformSlot" class="issue-top-filter-item"></div>
@@ -24637,7 +24694,7 @@ Submit
                                     <div class="issue-top-filter-item"><span>Component Group</span><asp:DropDownList ID="ddlComponentTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlComponentHeader_SelectedIndexChanged" CssClass="header-dropdown" /></div>
                                 </div>
                                 <div class="issue-top-filter-buttons">
-                                    <asp:Button ID="btnClearFilters" runat="server" CssClass="filter-btn filter-btn-secondary" Text="Clear Filters" OnClick="btnClearFilters_Click" />
+                                    <asp:Button ID="btnClearFilters" runat="server" CssClass="filter-btn filter-btn-secondary" Text="Clear" OnClick="btnClearFilters_Click" />
                                 </div>
                             </div>
                         </div>
@@ -24654,16 +24711,7 @@ Submit
                     </div>
 
                     <div class="issue-user-toolbar">
-                        <div class="issue-view-note"><i class="fas fa-table-list" aria-hidden="true"></i> Compact issue workspace</div>
                         <div class="issue-user-actions">
-                            <button
-                                type="button"
-                                id="issueFilterToolbarBtn"
-                                class="issue-toolbar-btn filter-toggle"
-                                onclick="toggleCollapsibleSection('issueFilters')">
-                                <i class="fas fa-filter" aria-hidden="true"></i>
-                                Filters
-                            </button>
                             <button
                                 type="button"
                                 id="btnShowAllColumns"
@@ -24685,7 +24733,7 @@ Submit
                         <div id="issue-grid-inner" class="issue-grid-inner">
 
 <asp:GridView ID="overall_request_details" CssClass="table-primary" runat="server" AutoGenerateColumns="False"
-    EmptyDataText="No Open CMFs" OnRowEditing="overall_request_details_RowEditing"
+    EmptyDataText="No Open CMFs" ShowHeaderWhenEmpty="True" OnRowEditing="overall_request_details_RowEditing"
     OnRowUpdating="overall_request_details_RowUpdating" OnRowCancelingEdit="overall_request_details_RowCancelingEdit"
     OnRowDataBound="overall_request_details_RowDataBound" OnPageIndexChanging="overall_request_details_PageIndexChanging"
     AllowPaging="true" PageSize="12" PagerStyle-CssClass="pager" Visible="false">
@@ -24719,28 +24767,14 @@ Submit
             </EditItemTemplate>
         </asp:TemplateField>
 
-        <asp:TemplateField HeaderText="Issue Details" ItemStyle-CssClass="field-issue_details" HeaderStyle-CssClass="field-issue_details">
+        <asp:TemplateField HeaderText="Sighting ID" ItemStyle-CssClass="field-sightingid" HeaderStyle-CssClass="field-sightingid">
             <ItemTemplate>
-                <%# RenderIssueDetails(Eval("SightingID"), Eval("Merged_PromotedID"), Eval("title"), Eval("cmf_request"), Eval("SubmittedDate"), Eval("IssueStatus"), Eval("sysdebug")) %>
+                <%# RenderIssueDetails(Eval("SightingID"), Eval("Merged_PromotedID"), Eval("title"), Eval("cmf_request"), Eval("SubmittedDate"), Eval("IssueStatus"), Eval("sysdebug"), false) %>
             </ItemTemplate>
         </asp:TemplateField>
 
-        <asp:TemplateField HeaderText="Customer" ItemStyle-CssClass="field-customer_detail" HeaderStyle-CssClass="field-customer_detail">
-            <ItemTemplate><%# RenderCustomerDetailWithCompanyAndProcessor(Eval("customer_detail"), Eval("customer_company"), Eval("processor")) %></ItemTemplate>
-        </asp:TemplateField>
-
-        <asp:TemplateField HeaderText="Component" ItemStyle-CssClass="component-column field-component" HeaderStyle-CssClass="field-component">
-            <HeaderTemplate>
-                <div class="filter-header-container">
-                    <div class="filter-header-text">Component</div>
-                    <div class="filter-container">
-                        <asp:DropDownList ID="ddlComponentHeader" runat="server" AutoPostBack="true"
-                            OnSelectedIndexChanged="ddlComponentHeader_SelectedIndexChanged" CssClass="header-dropdown" />
-                    </div>
-                </div>
-            </HeaderTemplate>
-            <ItemTemplate><%# RenderComponentWithGroupBadge(Eval("component"), Eval("component_group")) %></ItemTemplate>
-        </asp:TemplateField>
+        <asp:BoundField DataField="title" HeaderText="Title" ReadOnly="True"
+            ItemStyle-CssClass="field-title" HeaderStyle-CssClass="field-title" />
 
         <asp:TemplateField HeaderText="Owner" ItemStyle-CssClass="field-owner" HeaderStyle-CssClass="field-owner">
             <HeaderTemplate>
@@ -24752,7 +24786,7 @@ Submit
                     </div>
                 </div>
             </HeaderTemplate>
-            <ItemTemplate><%# RenderOwnerWithPromotedOwner(Eval("Owner"), Eval("owners_name")) %></ItemTemplate>
+            <ItemTemplate><%#: Eval("Owner") %></ItemTemplate>
             <EditItemTemplate>
                 <asp:TextBox ID="txtOwner" runat="server" TextMode="MultiLine" Text='<%# Bind("Owner") %>'
                     CssClass="form-control"></asp:TextBox>
@@ -24771,6 +24805,33 @@ Submit
             </HeaderTemplate>
             <ItemTemplate>
                 <%# RenderMilestoneText(Eval("Driver"), Eval("MustFixFor")) %>
+            </ItemTemplate>
+        </asp:TemplateField>
+
+        <asp:TemplateField HeaderText="Customer Company / Detail" ItemStyle-CssClass="field-customer_detail" HeaderStyle-CssClass="field-customer_detail">
+            <ItemTemplate>
+                <span class="issue-cell-stack"><span><%#: Eval("customer_company") %></span><span><%#: Eval("customer_detail") %></span></span>
+            </ItemTemplate>
+        </asp:TemplateField>
+
+        <asp:TemplateField HeaderText="Component Group / Component" ItemStyle-CssClass="field-component" HeaderStyle-CssClass="field-component">
+            <HeaderTemplate>
+                <div class="filter-header-container">
+                    <div class="filter-header-text">Component Group / Component</div>
+                    <div class="filter-container">
+                        <asp:DropDownList ID="ddlComponentHeader" runat="server" AutoPostBack="true"
+                            OnSelectedIndexChanged="ddlComponentHeader_SelectedIndexChanged" CssClass="header-dropdown" />
+                    </div>
+                </div>
+            </HeaderTemplate>
+            <ItemTemplate>
+                <span class="issue-cell-stack"><span><%#: Eval("component_group") %></span><span><%#: Eval("component") %></span></span>
+            </ItemTemplate>
+        </asp:TemplateField>
+
+        <asp:TemplateField HeaderText="Promoted ID / Owner" ItemStyle-CssClass="field-promoted" HeaderStyle-CssClass="field-promoted">
+            <ItemTemplate>
+                <span class="issue-cell-stack"><span><%#: Eval("Merged_PromotedID") %></span><span><%#: Eval("owners_name") %></span></span>
             </ItemTemplate>
         </asp:TemplateField>
 
@@ -24847,7 +24908,7 @@ Submit
 
 
     <asp:TemplateField HeaderText="Impact" ItemStyle-CssClass="field-impact_processor" HeaderStyle-CssClass="field-impact_processor">
-        <ItemTemplate><%# RenderImpactWithProcessor(Eval("impact"), Eval("processor")) %></ItemTemplate>
+        <ItemTemplate><%#: Eval("impact") %></ItemTemplate>
             <EditItemTemplate>
                 <asp:TextBox ID="txtimpact" runat="server" TextMode="MultiLine" Text='<%# Bind("impact") %>'
                     CssClass="form-control"></asp:TextBox>
@@ -24869,129 +24930,7 @@ Submit
 
 <EmptyDataTemplate>
     <div class="empty-data-container">
-        <table class="table-primary" style="width:100%">
-            <thead>
-                <tr>
-
-                    <th style="width:50px;" class="field-sno">S.No</th>
-
-                    <th class="field-sightingid">SightingID | Promoted ID</th>
-
-                    <th class="field-milestone">
-                        <div class="filter-header-container">
-                            <div class="filter-header-text">Milestone</div>
-                            <div class="filter-container">
-                                <asp:DropDownList ID="ddlMilestoneHeaderEmpty" runat="server"
-                                    AutoPostBack="true"
-                                    OnSelectedIndexChanged="ddlMilestoneHeader_SelectedIndexChanged"
-                                    CssClass="header-dropdown">
-                                </asp:DropDownList>
-                            </div>
-                        </div>
-                    </th>
-
-                    <th class="field-title">Title</th>
-
-                    <th class="field-owner">
-                        <div class="filter-header-container">
-                            <div class="filter-header-text">Owner</div>
-                            <div class="filter-container">
-                                <asp:DropDownList ID="ddlOwnerHeaderEmpty" runat="server"
-                                    AutoPostBack="true"
-                                    OnSelectedIndexChanged="ddlOwnerHeader_SelectedIndexChanged"
-                                    CssClass="header-dropdown">
-                                </asp:DropDownList>
-                            </div>
-                        </div>
-                    </th>
-
-                    <th class="field-status">Status</th>
-
-                    <th class="field-component">Component</th>
-
-
-                    <th class="field-customer_detail">
-                        <div class="filter-header-container">
-                            <div class="filter-header-text">Customer Detail</div>
-                            <div class="filter-container">
-                                <asp:DropDownList ID="ddlDetailHeaderEmpty" runat="server"
-                                    AutoPostBack="true"
-                                    OnSelectedIndexChanged="ddlDetailHeader_SelectedIndexChanged"
-                                    CssClass="header-dropdown">
-                                </asp:DropDownList>
-                            </div>
-                        </div>
-                    </th>
-
-                    <th class="field-imagefreeze">ImageFreeze</th>
-
-                    <th class="field-duplicatedetails">Duplicate Details</th>
-
-                    <th class="field-rvp_repro">
-                        <div class="filter-header-container">
-                            <div class="filter-header-text">RVP Repro</div>
-                            <div class="filter-container">
-                                <asp:DropDownList ID="ddlRvpReproHeaderEmpty" runat="server"
-                                    AutoPostBack="true"
-                                    OnSelectedIndexChanged="ddlRvpReproHeader_SelectedIndexChanged"
-                                    CssClass="header-dropdown">
-                                </asp:DropDownList>
-                            </div>
-                        </div>
-                    </th>
-
-                    <th class="field-idst">
-                        <div class="filter-header-container">
-                            <div class="filter-header-text">iDST</div>
-                            <div class="filter-container">
-                                <asp:DropDownList ID="ddlIdstHeaderEmpty" runat="server"
-                                    AutoPostBack="true"
-                                    OnSelectedIndexChanged="ddlIdstHeader_SelectedIndexChanged"
-                                    CssClass="header-dropdown">
-                                </asp:DropDownList>
-                            </div>
-                        </div>
-                    </th>
-
-
-                    <th class="field-los" style="width:100px;">
-                        <div class="filter-header-container">
-                            <div class="filter-header-text">LOS</div>
-                            <div class="filter-container">
-                                <asp:DropDownList ID="ddlLosHeaderEmpty" runat="server"
-                                    AutoPostBack="true"
-                                    OnSelectedIndexChanged="ddlLosHeader_SelectedIndexChanged"
-                                    CssClass="header-dropdown">
-                                </asp:DropDownList>
-                            </div>
-                        </div>
-                    </th>
-
-
-                    <th class="field-processor">Processor</th>
-
-
-                    <th class="field-impact">Impact</th>
-
-
-                    <th class="field-days_open">Days_Open</th>
-
-
-                    <th class="field-closed_reason">Closed Reason / Fixed Version</th>
-
-                    <th class="field-progress">Progress</th>
-
-
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td colspan="23" style="text-align:center; padding:20px;">
-                        No Open CMFs found for the selected filters. Please adjust your filter criteria.
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        No Open CMFs found for the selected filters. Please adjust your filter criteria.
     </div>
 </EmptyDataTemplate>
 
@@ -25003,7 +24942,20 @@ Submit
                             <div id="issue-scroll-proxy" class="issue-scroll-proxy" aria-label="Issue list horizontal scroll">
                                 <div id="issue-scroll-proxy-inner" class="issue-scroll-proxy-inner"></div>
                             </div>
-                            <div class="issue-pager-controls">
+                            <div class="issue-pager-controls portal-table-footer">
+                                <label class="issue-page-size-control" for="ddlIssuePageSize">
+                                    <span>Rows per page</span>
+                                    <asp:DropDownList ID="ddlIssuePageSize" runat="server" AutoPostBack="true" CssClass="issue-page-size-select" OnSelectedIndexChanged="ddlIssuePageSize_SelectedIndexChanged">
+                                        <asp:ListItem Text="10" Value="10" />
+                                        <asp:ListItem Text="12" Value="12" Selected="True" />
+                                        <asp:ListItem Text="25" Value="25" />
+                                        <asp:ListItem Text="50" Value="50" />
+                                        <asp:ListItem Text="100" Value="100" />
+                                    </asp:DropDownList>
+                                </label>
+                                <div class="issue-page-status">
+                                    <asp:Label ID="lblIssuePageStatus" runat="server" />
+                                </div>
                                 <div class="issue-page-nav" aria-label="Issue pages">
                                     <asp:LinkButton ID="btnPageGroupPrev" runat="server" CssClass="issue-pager-group-btn" OnClick="btnPageGroupPrev_Click" ToolTip="Previous 10 pages">&laquo;</asp:LinkButton>
                                     <asp:Repeater ID="rptPageNumbers" runat="server" OnItemCommand="rptPageNumbers_ItemCommand">
@@ -25013,19 +24965,6 @@ Submit
                                     </asp:Repeater>
                                     <asp:LinkButton ID="btnPageGroupNext" runat="server" CssClass="issue-pager-group-btn" OnClick="btnPageGroupNext_Click" ToolTip="Next 10 pages">&raquo;</asp:LinkButton>
                                 </div>
-                                <span class="issue-page-size-control">
-                                    <span>Rows per page</span>
-                                    <asp:DropDownList ID="ddlIssuePageSize" runat="server" AutoPostBack="true" CssClass="issue-page-size-select" OnSelectedIndexChanged="ddlIssuePageSize_SelectedIndexChanged">
-                                        <asp:ListItem Text="10" Value="10" />
-                                        <asp:ListItem Text="12" Value="12" Selected="True" />
-                                        <asp:ListItem Text="25" Value="25" />
-                                        <asp:ListItem Text="50" Value="50" />
-                                        <asp:ListItem Text="100" Value="100" />
-                                    </asp:DropDownList>
-                                </span>
-                            </div>
-                            <div class="issue-page-status">
-                                <asp:Label ID="lblIssuePageStatus" runat="server" />
                             </div>
                         </asp:Panel>
                     </div>
@@ -25094,19 +25033,24 @@ Submit
                                                 </div>
                                             </ItemTemplate>
                                         </asp:TemplateField>
-                                        <asp:BoundField DataField="title" HeaderText="Issue Title" ItemStyle-CssClass="pending-field-title" />
+                                        <asp:BoundField DataField="title" HeaderText="Issue Title" ItemStyle-CssClass="pending-field-title" HeaderStyle-CssClass="pending-field-title" />
                                         <asp:BoundField DataField="component" HeaderText="Component Name" ItemStyle-CssClass="pending-field-component" />
-                                        <asp:BoundField DataField="component_group" HeaderText="Component Group" />
                                         <asp:BoundField DataField="customer_owner" HeaderText="Customer Owner" ItemStyle-CssClass="pending-field-owner" />
                                         <asp:BoundField DataField="customer_detail" HeaderText="Customer Details" ItemStyle-CssClass="pending-field-customer" />
                                         <asp:BoundField DataField="idst" HeaderText="iDST Lead" ItemStyle-CssClass="pending-field-idst" />
-                                        <asp:TemplateField HeaderText="RVP Repro">
+                                        <asp:TemplateField HeaderText="RVP Repro" ItemStyle-CssClass="pending-field-rvp">
                                             <ItemTemplate><span class="pending-rvp-status" data-rvp="<%#: Convert.ToString(Eval("repro_on_rvp")).Trim() %>"><%#: Eval("repro_on_rvp") %></span></ItemTemplate>
                                         </asp:TemplateField>
                                         <asp:BoundField DataField="reproducibility" HeaderText="Repro Rate" ItemStyle-CssClass="pending-field-reproducibility" />
-                                        <asp:BoundField DataField="date_cmf_ask" HeaderText="CMF Ask Date" DataFormatString="{0:dd-MMM-yyyy}" HtmlEncode="true" ItemStyle-CssClass="pending-field-date" />
-                                        <asp:BoundField DataField="impact" HeaderText="Impact" ItemStyle-CssClass="pending-field-impact" />
-                                        <asp:BoundField DataField="cmf_request" HeaderText="CMF Request" />
+                                        <asp:TemplateField HeaderText="CMF Request / Ask Date" ItemStyle-CssClass="pending-field-request-date">
+                                            <ItemTemplate>
+                                                <div class="pending-request-date">
+                                                    <asp:Label ID="PendingRequestValue" runat="server" CssClass="pending-field-request" Text='<%# HttpUtility.HtmlEncode(Convert.ToString(Eval("cmf_request"))) %>' />
+                                                    <asp:Label ID="PendingAskDateValue" runat="server" CssClass="pending-field-date" Text='<%# Eval("date_cmf_ask", "{0:dd-MMM-yyyy}") %>' />
+                                                </div>
+                                            </ItemTemplate>
+                                        </asp:TemplateField>
+                                        <asp:BoundField DataField="impact" HeaderText="Impact" ItemStyle-CssClass="pending-field-impact" HeaderStyle-CssClass="pending-field-impact" />
                                         <asp:BoundField DataField="why_cmf_change" HeaderText="Why CMF Change" ItemStyle-CssClass="pending-field-why" />
                                         <asp:BoundField DataField="pending_reason" HeaderText="Pending Reason" />
                                     </Columns>
