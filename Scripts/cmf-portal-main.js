@@ -42,7 +42,7 @@
             option.selected = !option.selected;
             if (!option.value) {
                 Array.from(control.select.options).forEach(function (item) { item.selected = !item.value; });
-            } else {
+            } else if (control.select.options[0] && !control.select.options[0].value) {
                 control.select.options[0].selected = !Array.from(control.select.selectedOptions).some(function (item) { return item.value; });
             }
         } else {
@@ -81,7 +81,15 @@
         reset.title = 'Clear ' + control.label + ' filter';
         reset.setAttribute('aria-label', reset.title);
         reset.appendChild(icon('rotate-left'));
-        reset.addEventListener('click', function () { choose(control, 0); });
+        reset.addEventListener('click', function () {
+            if (control.select.id === 'ddlSharedPlatform' && control.select.multiple) {
+                control.select.selectedIndex = 0;
+                sync(control);
+                control.select.dispatchEvent(new Event('change', { bubbles: true }));
+                return;
+            }
+            choose(control, 0);
+        });
         summary.appendChild(reset);
         var list = document.createElement('div');
         list.className = 'portal-filter-menu-options';

@@ -849,14 +849,19 @@ body #pendingTabShell .cmf-pending-grid-wrap {
     min-width: 0;
 }
 
-body #pendingTabShell #GridView_cmf_pending .pending-customer-logo {
+body #pendingTabShell #GridView_cmf_pending .pending-customer-label {
     display: block;
-    width: 54px;
+    width: fit-content;
     max-width: 100%;
-    height: 28px;
+    box-sizing: border-box;
     margin: 0 auto 6px;
-    object-fit: contain;
-    object-position: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: var(--customer-brand);
+    color: var(--customer-ink, #fff);
+    font-weight: 700;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
 }
 
 #pendingTabShell .pending-cell-text,

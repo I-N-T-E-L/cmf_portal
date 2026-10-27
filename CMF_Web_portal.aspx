@@ -15972,7 +15972,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 .replace(/'/g, '&#39;');
         }
 
-        function openCmfPendingRecommendationModal(cpId, title, component, componentGroup, cmfRequest, impact, idst, reproOnRvp, reproducibility, customerDetail, customerOwner) {
+        function openCmfPendingRecommendationModal(cpId, title, component, componentGroup, cmfRequest, impact, idst, reproOnRvp, reproducibility, customerDetail, customerOwner, sourcePlatform) {
             var cpIdNode = document.getElementById('cmfRecCpId');
             var titleNode = document.getElementById('cmfRecTitle');
             var componentNode = document.getElementById('cmfRecComponent');
@@ -16038,7 +16038,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     sightingHsdLinkNode.style.display = 'none';
                 }
             }
-            if (platformNode) platformNode.textContent = getPlatformDisplayLabel(getIssuePendingPlatformValue());
+            if (platformNode) platformNode.textContent = getPlatformDisplayLabel(sourcePlatform || getIssuePendingPlatformValue());
             if (visibleComponentNode) visibleComponentNode.textContent = component || 'N/A';
 
             if (recNode) recNode.style.display = 'none';
@@ -16060,7 +16060,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 reproducibility: reproducibility || '',
                 customerDetail: customerDetail || '',
                 customerOwner: customerOwner || '',
-                platform: getIssuePendingPlatformValue()
+                platform: sourcePlatform || getIssuePendingPlatformValue()
             };
             window._cmfSightingChatPayload = { cpId: payload.cpId, title: payload.title, platform: payload.platform };
             resetCmfSightingChat();
@@ -23441,7 +23441,13 @@ td:nth-child(odd), th:nth-child(odd) {
                 lenovo: 'Lenovo', hp: 'HP', dell: 'Dell', asus: 'ASUS', acer: 'Acer',
                 samsung: 'Samsung', apple: 'Apple', msi: 'MSI', lg: 'LG',
                 panasonic: 'Panasonic', sony: 'Sony', toshiba: 'Toshiba',
-                huawei: 'Huawei', honor: 'Honor', fujitsu: 'Fujitsu'
+                huawei: 'Huawei', honor: 'Honor', fujitsu: 'Fujitsu', mechrevo: 'Mechrevo', nec: 'NEC'
+            };
+            var colors = {
+                lenovo: '#E2231A', hp: '#0096D6', dell: '#007DB8', asus: '#000000', acer: '#83B81A',
+                samsung: '#1428A0', apple: '#555555', msi: '#C8102E', lg: '#A50034',
+                panasonic: '#0041C0', sony: '#000000', toshiba: '#FF0000',
+                huawei: '#CF0A2C', honor: '#000000', fujitsu: '#E60012', mechrevo: '#111111', nec: '#1414A0'
             };
             var aliases = {
                 le: 'lenovo', hewlett: 'hp', de: 'dell', as: 'asus', asustek: 'asus',
@@ -23449,24 +23455,20 @@ td:nth-child(odd), th:nth-child(odd) {
                 to: 'toshiba', ts: 'toshiba', hu: 'huawei', ho: 'honor', fu: 'fujitsu'
             };
             document.querySelectorAll('#GridView_cmf_pending td.pending-field-customer').forEach(function (cell) {
-                if (cell.querySelector('.pending-customer-logo') || cell.dataset.logoUnavailable) return;
-                var prefix = cell.textContent.trim().toLowerCase().match(/^[a-z]+/);
+                if (cell.querySelector('.pending-customer-label')) return;
+                var detail = cell.dataset.customerDetail || cell.textContent.trim();
+                var prefix = detail.toLowerCase().match(/^[a-z]+/);
                 if (!prefix) return;
                 var brand = aliases[prefix[0]] || prefix[0];
                 if (!Object.prototype.hasOwnProperty.call(labels, brand)) return;
-                var logo = document.createElement('img');
-                logo.className = 'pending-customer-logo';
-                logo.src = 'Content/customer-logos/' + brand + '.svg';
-                logo.alt = labels[brand] + ' logo';
-                logo.title = labels[brand];
-                logo.width = 54;
-                logo.height = 28;
-                logo.decoding = 'async';
-                logo.addEventListener('error', function () {
-                    cell.dataset.logoUnavailable = '1';
-                    logo.remove();
-                });
-                cell.insertBefore(logo, cell.firstChild);
+                cell.dataset.customerDetail = detail;
+                cell.querySelectorAll('.pending-customer-logo').forEach(function (logo) { logo.remove(); });
+                var label = document.createElement('span');
+                label.className = 'pending-customer-label';
+                label.textContent = labels[brand];
+                label.style.setProperty('--customer-brand', colors[brand]);
+                label.style.setProperty('--customer-ink', /^(hp|acer|toshiba)$/.test(brand) ? '#111111' : '#ffffff');
+                cell.insertBefore(label, cell.firstChild);
             });
         }
 
@@ -23746,7 +23748,7 @@ td:nth-child(odd), th:nth-child(odd) {
         function extractPendingFieldValue(text, field) {
             if (text && text.querySelector) {
                 var cell = text.querySelector('.pending-field-' + field);
-                return cell ? (cell.textContent || '').trim() : '';
+                return cell ? (cell.dataset.customerDetail || cell.textContent || '').trim() : '';
             }
             var lines = (text || '').split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
             for (var i = 0; i < lines.length; i++) {
@@ -23780,9 +23782,9 @@ td:nth-child(odd), th:nth-child(odd) {
             filterCmfPendingRows();
         }
 </script>
-    <script src="Scripts/cmf-portal-main.js?v=20261027-pending-multiselect"></script>
+    <script src="Scripts/cmf-portal-main.js?v=20261027-pending-platform-multiselect-2"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261027-pending-cell-12px" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261027-customer-brand-labels" />
 
 </head>
 
@@ -24530,11 +24532,11 @@ Submit
                     <div id="sharedFilterPanel" runat="server" visible="false" class="overview-platform-actions">
                         <div class="overview-platform-filter">
                             <label>Platform:</label>
-                            <asp:DropDownList ID="ddlSharedPlatform" runat="server" AutoPostBack="true"
+                            <asp:ListBox ID="ddlSharedPlatform" runat="server" AutoPostBack="true" Rows="1" SelectionMode="Single"
                                 OnSelectedIndexChanged="ddlSharedPlatform_SelectedIndexChanged"
                                 CssClass="form-control">
                                 <asp:ListItem Text="-- Select Platform --" Value="" />
-                            </asp:DropDownList>
+                            </asp:ListBox>
                         </div>
                         <div class="issue-external-links">
                             <a href="https://crtt.intel.com/Administration/SetupIDST.aspx?DNo=5343&PNo=135&Ing=92&CNo=1225" target="_blank">CRTT</a>
@@ -24959,7 +24961,7 @@ Submit
                                         <asp:BoundField DataField="days_open" HeaderText="Days Open" ItemStyle-CssClass="pending-field-days-open" HeaderStyle-CssClass="pending-field-days-open" NullDisplayText="N/A" />
                                         <asp:TemplateField HeaderText="AI CMF Recommendation" ItemStyle-CssClass="pending-field-ai-recommendation" HeaderStyle-CssClass="pending-field-ai-recommendation">
                                             <ItemTemplate>
-                                                <%# RenderPendingRecommendationCell(Eval("cp_id"), Eval("title"), Eval("component"), Eval("component_group"), Eval("cmf_request"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner")) %>
+                                                <%# RenderPendingRecommendationCell(Eval("cp_id"), Eval("title"), Eval("component"), Eval("component_group"), Eval("cmf_request"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner"), Eval("source_platform")) %>
                                             </ItemTemplate>
                                         </asp:TemplateField>
                                     </Columns>

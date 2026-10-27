@@ -216,6 +216,7 @@ public partial class CMF_Web_portal : System.Web.UI.Page
     private const string UserModeSessionKey = "portalUserMode";
     private const string DashboardPlatformSessionKey = "dashboardSelectedPlatform";
     private const string IssuePendingPlatformSessionKey = "issuePendingSelectedPlatform";
+    private const string PendingPlatformsSessionKey = "cmfPendingSelectedPlatforms";
     private const string DefaultIssuePendingPlatformTable = "CMF_NVL_H_ALL_COMPONENTS_TABLE";
     private const string OverallExcludedPlatformsSessionKey = "overallExcludedPlatforms";
     private const string IssueGridCacheKeySessionKey = "issueGridCacheKey";
@@ -2480,6 +2481,17 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         }
 
         return ResolveIssuePendingPlatformSelection(value);
+    }
+
+    private List<string> GetPendingPlatformSelections()
+    {
+        string[] selections = Session[PendingPlatformsSessionKey] as string[];
+        List<string> platforms = (selections ?? new string[0])
+            .Where(value => AllowedPlatformTables.Contains(value) && !IsOverallDashboardPlatform(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (platforms.Count == 0) platforms.Add(GetIssuePendingPlatform());
+        return platforms;
     }
 
     private void ApplyIssuePendingPlatformContext()
@@ -7745,18 +7757,18 @@ LEFT JOIN " + designTable + @" AS d
             JsEncode(customerOwnerValue));
     }
 
-    protected string RenderPendingRecommendationCell(object cpIdValue, object titleValue, object componentValue, object componentGroupValue, object cmfRequestValue, object impactValue, object idstValue, object reproOnRvpValue, object reproducibilityValue, object customerDetailValue, object customerOwnerValue)
+    protected string RenderPendingRecommendationCell(object cpIdValue, object titleValue, object componentValue, object componentGroupValue, object cmfRequestValue, object impactValue, object idstValue, object reproOnRvpValue, object reproducibilityValue, object customerDetailValue, object customerOwnerValue, object platformValue = null)
     {
         return "<span class=\"pending-ai-rec-cell\">" +
-            RenderPendingRecommendationButton(cpIdValue, titleValue, componentValue, componentGroupValue, cmfRequestValue, impactValue, idstValue, reproOnRvpValue, reproducibilityValue, customerDetailValue, customerOwnerValue) +
+            RenderPendingRecommendationButton(cpIdValue, titleValue, componentValue, componentGroupValue, cmfRequestValue, impactValue, idstValue, reproOnRvpValue, reproducibilityValue, customerDetailValue, customerOwnerValue, platformValue) +
             "</span>";
     }
 
-    protected string RenderPendingRecommendationButton(object cpIdValue, object titleValue, object componentValue, object componentGroupValue, object cmfRequestValue, object impactValue, object idstValue, object reproOnRvpValue, object reproducibilityValue, object customerDetailValue, object customerOwnerValue)
+    protected string RenderPendingRecommendationButton(object cpIdValue, object titleValue, object componentValue, object componentGroupValue, object cmfRequestValue, object impactValue, object idstValue, object reproOnRvpValue, object reproducibilityValue, object customerDetailValue, object customerOwnerValue, object platformValue = null)
     {
         string cpId = cpIdValue == null || cpIdValue == DBNull.Value ? string.Empty : cpIdValue.ToString();
         return string.Format(
-            "<button type=\"button\" class=\"pending-recommendation-btn pending-ai-rec-btn\" data-cmf-rec-id=\"{11}\" onclick='openCmfPendingRecommendationModal(\"{0}\", \"{1}\", \"{2}\", \"{3}\", \"{4}\", \"{5}\", \"{6}\", \"{7}\", \"{8}\", \"{9}\", \"{10}\")' title=\"Open CMF Analysis\" aria-label=\"Open CMF Analysis\"><span class=\"pending-ai-rec-icon\" aria-hidden=\"true\">&#10024;</span><span class=\"pending-ai-rec-label\">CMF Analysis</span></button>",
+            "<button type=\"button\" class=\"pending-recommendation-btn pending-ai-rec-btn\" data-cmf-rec-id=\"{11}\" data-cmf-platform=\"{12}\" onclick='openCmfPendingRecommendationModal(\"{0}\", \"{1}\", \"{2}\", \"{3}\", \"{4}\", \"{5}\", \"{6}\", \"{7}\", \"{8}\", \"{9}\", \"{10}\", this.getAttribute(\"data-cmf-platform\"))' title=\"Open CMF Analysis\" aria-label=\"Open CMF Analysis\"><span class=\"pending-ai-rec-icon\" aria-hidden=\"true\">&#10024;</span><span class=\"pending-ai-rec-label\">CMF Analysis</span></button>",
             JsEncode(cpIdValue),
             JsEncode(titleValue),
             JsEncode(componentValue),
@@ -7768,7 +7780,8 @@ LEFT JOIN " + designTable + @" AS d
             JsEncode(reproducibilityValue),
             JsEncode(customerDetailValue),
             JsEncode(customerOwnerValue),
-            HttpUtility.HtmlAttributeEncode(cpId));
+            HttpUtility.HtmlAttributeEncode(cpId),
+            HttpUtility.HtmlAttributeEncode(Convert.ToString(platformValue)));
     }
 
     protected string RenderSightingDetailsPanel(object cpIdValue, object titleValue, object componentValue, object cmfRequestValue, object impactValue, object idstValue, object reproOnRvpValue, object reproducibilityValue, object customerDetailValue, object customerOwnerValue)
@@ -11629,8 +11642,9 @@ firstPatternCaseStatements +
 
     private void BindGridView_cmf_pending()
     {
-        string platformSelection = ResolveIssuePendingPlatformSelection(selectedPlatform);
-        bool isOverallSelection = IsOverallDashboardPlatform(platformSelection);
+        List<string> pendingPlatforms = GetPendingPlatformSelections();
+        string platformSelection = pendingPlatforms[0];
+        bool isOverallSelection = pendingPlatforms.Count > 1;
         string basePlatform = isOverallSelection ? string.Empty : platformSelection.Replace("_ALL_COMPONENTS_TABLE", "");
         string designTable = basePlatform + "_CMF_ASK";
         string allComponentsTable = basePlatform + "_ALL_COMPONENTS_TABLE";
@@ -11642,8 +11656,10 @@ firstPatternCaseStatements +
             string main_query;
             if (isOverallSelection)
             {
-                string pendingCteSql = BuildPendingAskCteSql(con, platformSelection);
-                string issueCteSql = BuildIssueDataCteSql(platformSelection);
+                string pendingCteSql = string.Join(" UNION ALL ", pendingPlatforms
+                    .Select(platform => BuildPendingAskCteSql(con, platform))
+                    .Where(sql => !string.IsNullOrWhiteSpace(sql)));
+                string issueCteSql = string.Join(" UNION ALL ", pendingPlatforms.Select(BuildIssueDataCteSql));
                 if (string.IsNullOrWhiteSpace(pendingCteSql) || string.IsNullOrWhiteSpace(issueCteSql))
                 {
                     GridView_cmf_pending.DataSource = new DataTable();
@@ -11662,6 +11678,7 @@ firstPatternCaseStatements +
             )
             SELECT 
                 d.cp_id, 
+                d.source_platform,
                 d.title, 
                 d.component, 
                 d.component_group,
@@ -11694,6 +11711,7 @@ firstPatternCaseStatements +
                 main_query = @"
             SELECT 
                 d.cp_id, 
+                '" + platformSelection + @"' AS source_platform,
                 d.title, 
                 d.component, 
                 d.component_group,
@@ -16684,6 +16702,8 @@ ORDER BY
                 availablePlatforms.Select(option => option.TableName),
                 StringComparer.OrdinalIgnoreCase);
 
+            bool pendingActive = string.Equals(GetActiveFocusedTab(), "pending", StringComparison.OrdinalIgnoreCase);
+            ddlSharedPlatform.SelectionMode = pendingActive ? ListSelectionMode.Multiple : ListSelectionMode.Single;
             ddlSharedPlatform.Items.Clear();
             if (availablePlatforms.Count > 0)
             {
@@ -16691,6 +16711,21 @@ ORDER BY
                 {
                     ddlSharedPlatform.Items.Add(new ListItem(option.Label, option.TableName));
                 }
+            }
+
+            if (pendingActive)
+            {
+                HashSet<string> pendingSelections = new HashSet<string>(GetPendingPlatformSelections(), StringComparer.OrdinalIgnoreCase);
+                ddlSharedPlatform.ClearSelection();
+                foreach (ListItem option in ddlSharedPlatform.Items)
+                {
+                    option.Selected = pendingSelections.Contains(option.Value);
+                }
+                if (ddlSharedPlatform.SelectedIndex < 0 && ddlSharedPlatform.Items.Count > 0)
+                {
+                    ddlSharedPlatform.Items[0].Selected = true;
+                }
+                return;
             }
 
             string selectedValue = ResolveFirstAvailablePlatform(
@@ -16721,6 +16756,22 @@ ORDER BY
     {
         try
         {
+            if (string.Equals(GetActiveFocusedTab(), "pending", StringComparison.OrdinalIgnoreCase))
+            {
+                HashSet<string> available = new HashSet<string>(
+                    GetAvailableIndividualPlatforms().Select(option => option.TableName), StringComparer.OrdinalIgnoreCase);
+                string[] selections = (Request.Form.GetValues(ddlSharedPlatform.UniqueID) ?? new string[0])
+                    .Where(available.Contains)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+                Session[PendingPlatformsSessionKey] = selections.Length > 0
+                    ? selections : new[] { DefaultIssuePendingPlatformTable };
+                EnsurePendingTabVisibleForPostback();
+                RebindFocusedTabData(false);
+                PopulateSharedFilterDropdowns();
+                return;
+            }
+
             string postedPlatform = Request.Form[ddlSharedPlatform.UniqueID];
             string selectedPlatformTable = ResolveIssuePendingPlatformSelection(
                 string.IsNullOrWhiteSpace(postedPlatform) ? ddlSharedPlatform.SelectedValue : postedPlatform);
@@ -16920,7 +16971,14 @@ ORDER BY
     {
         try
         {
-            string currentPlatform = GetIssuePendingPlatform();
+            List<string> platforms = GetPendingPlatformSelections();
+            if (platforms.Count > 1)
+            {
+                lnkPlatformDashboardPending.Visible = false;
+                lnkPlatformDashboard.Visible = false;
+                return;
+            }
+            string currentPlatform = platforms[0];
             
             if (string.IsNullOrEmpty(currentPlatform))
             {
