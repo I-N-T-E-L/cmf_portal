@@ -10,7 +10,7 @@
 
     <!-- Stylesheets -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" type="text/css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" />
     <link rel="stylesheet" href="Content/cmf-portal.css">
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -42,7 +42,7 @@
             --portal-border: #cdd9e5;
             --portal-shadow: 0 18px 42px rgba(17, 43, 70, 0.12);
             --portal-radius: 18px;
-            --portal-font-ui: "Segoe UI", sans-serif;
+            --portal-font-ui: Cambria, Georgia, serif;
             --portal-font-body: var(--portal-font-ui);
             --portal-font-display: var(--portal-font-ui);
             --portal-font-card: var(--portal-font-ui);
@@ -23311,13 +23311,13 @@ td:nth-child(odd), th:nth-child(odd) {
             var table = document.getElementById('GridView_cmf_pending');
             if (!input || !table) return;
             var query = (input.value || '').toLowerCase().trim();
-            var component = getPendingFilterValue('cmfPendingComponentFilter');
+            var component = getPendingFilterValues('cmfPendingComponentFilter');
             var componentControl = document.getElementById('cmfPendingComponentFilter');
             if (componentControl) componentControl.title = componentControl.value || 'All Components';
-            var owner = getPendingFilterValue('cmfPendingOwnerFilter');
-            var customer = getPendingFilterValue('cmfPendingCustomerFilter');
-            var idst = getPendingFilterValue('cmfPendingIdstFilter');
-            var repro = getPendingFilterValue('cmfPendingRvpFilter');
+            var owner = getPendingFilterValues('cmfPendingOwnerFilter');
+            var customer = getPendingFilterValues('cmfPendingCustomerFilter');
+            var idst = getPendingFilterValues('cmfPendingIdstFilter');
+            var repro = getPendingFilterValues('cmfPendingRvpFilter');
             var from = getPendingFilterValue('cmfPendingDateFrom');
             var to = getPendingFilterValue('cmfPendingDateTo');
             var fromControl = document.getElementById('cmfPendingDateFrom');
@@ -23342,17 +23342,17 @@ td:nth-child(odd), th:nth-child(odd) {
                 var rowCustomer = extractPendingFieldValue(rows[i], 'customer').toLowerCase();
                 var rowIdst = extractPendingFieldValue(rows[i], 'idst').toLowerCase();
                 var matchesQuery = !query || rowText.indexOf(query) >= 0;
-                var matchesComponent = !component || rowComponent === component;
-                var matchesOwner = !owner || rowOwner === owner;
-                var matchesCustomer = !customer || rowCustomer === customer;
-                var matchesIdst = !idst || rowIdst === idst;
+                var matchesComponent = !component.length || component.indexOf(rowComponent) >= 0;
+                var matchesOwner = !owner.length || owner.indexOf(rowOwner) >= 0;
+                var matchesCustomer = !customer.length || customer.indexOf(rowCustomer) >= 0;
+                var matchesIdst = !idst.length || idst.indexOf(rowIdst) >= 0;
                 var reproNode = rows[i].querySelector('.pending-rvp-status');
                 var rowRepro = reproNode ? (reproNode.getAttribute('data-rvp') || '').toLowerCase() : '';
                 var dateNode = rows[i].querySelector('.pending-field-date');
                 var rowDate = dateNode ? Date.parse(dateNode.textContent.trim()) : NaN;
                 var matchesDate = (!from && !to) || (!isNaN(rowDate) && (!from || rowDate >= Date.parse(from + 'T00:00:00')) && (!to || rowDate <= Date.parse(to + 'T23:59:59')));
                 rows[i].style.display = 'none';
-                var matchesFilters = matchesQuery && matchesComponent && matchesOwner && matchesCustomer && matchesIdst && (!repro || rowRepro === repro) && matchesDate;
+                var matchesFilters = matchesQuery && matchesComponent && matchesOwner && matchesCustomer && matchesIdst && (!repro.length || repro.indexOf(rowRepro) >= 0) && matchesDate;
                 rows[i].setAttribute('data-pending-filter-match', matchesFilters ? '1' : '0');
                 if (matchesFilters) matches.push(rows[i]);
             }
@@ -23694,6 +23694,11 @@ td:nth-child(odd), th:nth-child(odd) {
             return element ? (element.value || '').toLowerCase().trim() : '';
         }
 
+        function getPendingFilterValues(id) {
+            var element = document.getElementById(id);
+            return element ? Array.from(element.selectedOptions).map(function (option) { return option.value.toLowerCase().trim(); }).filter(Boolean) : [];
+        }
+
         function populateCmfPendingFilterOptions() {
             var table = document.getElementById('GridView_cmf_pending');
             if (!table) return;
@@ -23710,7 +23715,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 var select = document.getElementById(filter.id);
                 if (!select) continue;
 
-                var currentValue = select.value;
+                var currentValues = Array.from(select.selectedOptions).map(function (option) { return option.value; });
                 var values = [];
                 var rows = table.querySelectorAll('tbody tr');
                 for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
@@ -23730,9 +23735,8 @@ td:nth-child(odd), th:nth-child(odd) {
                     option.title = values[valueIndex];
                     select.appendChild(option);
                 }
-                if (currentValue && values.indexOf(currentValue) >= 0) {
-                    select.value = currentValue;
-                }
+                Array.from(select.options).forEach(function (option) { option.selected = currentValues.indexOf(option.value) >= 0; });
+                if (!select.selectedOptions.length) select.options[0].selected = true;
                 if (filter.field === 'component') {
                     select.title = select.value || 'All Components';
                 }
@@ -23768,14 +23772,17 @@ td:nth-child(odd), th:nth-child(odd) {
             var selects = ['cmfPendingComponentFilter', 'cmfPendingOwnerFilter', 'cmfPendingCustomerFilter', 'cmfPendingIdstFilter', 'cmfPendingRvpFilter', 'cmfPendingDateFrom', 'cmfPendingDateTo'];
             for (var i = 0; i < selects.length; i++) {
                 var select = document.getElementById(selects[i]);
-                if (select) select.value = '';
+                if (select) {
+                    select.value = '';
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                }
             }
             filterCmfPendingRows();
         }
 </script>
-    <script src="Scripts/cmf-portal-main.js?v=20261027-filter-refresh"></script>
+    <script src="Scripts/cmf-portal-main.js?v=20261027-pending-multiselect"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261027-filter-refresh-4" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261027-pending-cell-12px" />
 
 </head>
 
@@ -24932,7 +24939,7 @@ Submit
                                         <asp:BoundField DataField="component" HeaderText="Component Name" ItemStyle-CssClass="pending-field-component" />
                                         <asp:BoundField DataField="customer_owner" HeaderText="Customer Owner" ItemStyle-CssClass="pending-field-owner" />
                                         <asp:BoundField DataField="customer_detail" HeaderText="Customer Details" ItemStyle-CssClass="pending-field-customer" />
-                                        <asp:BoundField DataField="idst" HeaderText="iDST Lead" ItemStyle-CssClass="pending-field-idst" />
+                                        <asp:BoundField DataField="idst" HeaderText="iDST" ItemStyle-CssClass="pending-field-idst" />
                                         <asp:TemplateField HeaderText="RVP Repro" ItemStyle-CssClass="pending-field-rvp">
                                             <ItemTemplate><span class="pending-rvp-status" data-rvp="<%#: string.IsNullOrWhiteSpace(Convert.ToString(Eval("repro_on_rvp"))) ? "unknown" : Convert.ToString(Eval("repro_on_rvp")).Trim() %>"><%#: string.IsNullOrWhiteSpace(Convert.ToString(Eval("repro_on_rvp"))) ? "unknown" : Convert.ToString(Eval("repro_on_rvp")).Trim() %></span></ItemTemplate>
                                         </asp:TemplateField>
@@ -24942,6 +24949,7 @@ Submit
                                                 <div class="pending-request-date">
                                                     <asp:Label ID="PendingRequestValue" runat="server" CssClass="pending-field-request" Text='<%# HttpUtility.HtmlEncode(Convert.ToString(Eval("cmf_request"))) %>' />
                                                     <asp:Label ID="PendingAskDateValue" runat="server" CssClass="pending-field-date" Text='<%# Eval("date_cmf_ask", "{0:dd-MMM-yyyy}") %>' />
+                                                    <%# RenderPendingStaleLabel(Eval("date_cmf_ask")) %>
                                                 </div>
                                             </ItemTemplate>
                                         </asp:TemplateField>

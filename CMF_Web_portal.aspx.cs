@@ -7835,6 +7835,13 @@ LEFT JOIN " + designTable + @" AS d
         return sb.ToString();
     }
 
+    protected string RenderPendingStaleLabel(object dateCmfAskValue)
+    {
+        DateTime askDate;
+        if (dateCmfAskValue == null || dateCmfAskValue == DBNull.Value || !DateTime.TryParse(Convert.ToString(dateCmfAskValue), out askDate) || DateTime.Now - askDate <= TimeSpan.FromDays(2)) return string.Empty;
+        return "<span class=\"pending-stale-label\" title=\"CMF ask is more than 2 days old; prioritize review\"><i class=\"fas fa-clock\" aria-hidden=\"true\"></i>Stale &middot; Review first</span>";
+    }
+
     protected string RenderPendingAskImpact(object cpIdValue, object titleValue, object componentValue, object dateCmfAskValue, object cmfRequestValue, object impactValue, object idstValue, object reproOnRvpValue, object reproducibilityValue, object customerDetailValue, object customerOwnerValue)
     {
         string dateCmfAsk = dateCmfAskValue == null || dateCmfAskValue == DBNull.Value ? string.Empty : dateCmfAskValue.ToString().Trim();

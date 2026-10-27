@@ -2199,7 +2199,7 @@ public static class AiSummaryService
         title = SafeText(title);
         contextDetails = SafeText(contextDetails);
 
-        string hash = ComputeHash("sighting-description-v22-100-words|" + GetAiProviderCacheSignature() + "|" + sightingId + "|" + title + "|" + contextDetails);
+        string hash = ComputeHash("sighting-description-v23-preserve-symptom|" + GetAiProviderCacheSignature() + "|" + sightingId + "|" + title + "|" + contextDetails);
         string cacheKey = "sighting-description:" + hash;
 
         using (CmfAssistantResponseCache.Enter(cacheKey))
@@ -2499,7 +2499,7 @@ public static class AiSummaryService
             string point = RepairUnbalancedTerminalPairs(candidate);
             if (!System.Text.RegularExpressions.Regex.IsMatch(point, @"[.!?]$")) point += ".";
             if (point.Length < 15 || point.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length < 3) continue;
-            if (!IsReviewerReadySentence(point)) continue;
+            if (point.Length < 35 || System.Text.RegularExpressions.Regex.IsMatch(point, @"^(?:[A-Z][A-Za-z0-9_-]+\s*){1,8}[.,]?$")) continue;
             if (System.Text.RegularExpressions.Regex.IsMatch(point, @"^(?:baseline|rebuild via|steps? to reproduce|environment|configuration)\s*:", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) continue;
 
             bool duplicate = false;

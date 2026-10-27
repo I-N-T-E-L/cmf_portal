@@ -28,18 +28,30 @@
 
     function sync(control) {
         var option = control.select.options[control.select.selectedIndex];
-        control.text.textContent = option ? option.textContent : 'All';
-        control.trigger.title = option ? option.title || option.textContent : control.label;
+        var selected = Array.from(control.select.selectedOptions).filter(function (item) { return item.value; });
+        control.text.textContent = control.select.multiple && selected.length ? (selected.length === 1 ? selected[0].textContent : selected.length + ' selected') : option ? option.textContent : 'All';
+        control.trigger.title = control.select.multiple && selected.length ? selected.map(function (item) { return item.title || item.textContent; }).join(', ') : option ? option.title || option.textContent : control.label;
         control.trigger.disabled = control.select.disabled;
         control.trigger.setAttribute('aria-label', control.label + ': ' + control.text.textContent);
     }
 
     function choose(control, index) {
-        closeMenu(true);
         if (!control.select.options[index] || control.select.options[index].disabled) return;
-        control.select.selectedIndex = index;
+        if (control.select.multiple) {
+            var option = control.select.options[index];
+            option.selected = !option.selected;
+            if (!option.value) {
+                Array.from(control.select.options).forEach(function (item) { item.selected = !item.value; });
+            } else {
+                control.select.options[0].selected = !Array.from(control.select.selectedOptions).some(function (item) { return item.value; });
+            }
+        } else {
+            closeMenu(true);
+            control.select.selectedIndex = index;
+        }
         sync(control);
         control.select.dispatchEvent(new Event('change', { bubbles: true }));
+        if (active && active.control === control) active.renderOptions();
     }
 
     function openMenu(control) {
@@ -76,9 +88,13 @@
         list.id = control.select.id + '_filterOptions';
         list.setAttribute('role', 'listbox');
         list.setAttribute('aria-label', control.label);
+        if (control.select.multiple) list.setAttribute('aria-multiselectable', 'true');
         popup.append(searchRow, summary, list);
 
         function renderOptions() {
+            var focusedIndex = document.activeElement.dataset.optionIndex;
+            var selectedCount = Array.from(control.select.selectedOptions).filter(function (item) { return item.value; }).length;
+            selected.textContent = selectedCount ? selectedCount + ' selected' : 'All';
             list.replaceChildren();
             var query = search.value.toLowerCase().trim();
             Array.from(control.select.options).forEach(function (item, index) {
@@ -87,22 +103,25 @@
                 button.type = 'button';
                 button.className = 'portal-filter-option';
                 button.setAttribute('role', 'option');
-                button.setAttribute('aria-selected', index === control.select.selectedIndex ? 'true' : 'false');
+                button.setAttribute('aria-selected', item.selected ? 'true' : 'false');
+                button.dataset.optionIndex = index;
                 button.tabIndex = -1;
                 button.disabled = item.disabled;
                 button.title = item.title || item.textContent;
                 var check = document.createElement('span');
                 check.className = 'portal-filter-option-check';
                 check.setAttribute('aria-hidden', 'true');
-                if (index === control.select.selectedIndex) check.appendChild(icon('check'));
+                if (item.selected) check.appendChild(icon('check'));
                 var text = document.createElement('span');
                 text.textContent = item.textContent;
                 button.append(check, text);
                 button.addEventListener('click', function (event) {
                     event.preventDefault();
+                    if (control.select.multiple) event.stopPropagation();
                     choose(control, index);
                 });
                 list.appendChild(button);
+                if (String(index) === focusedIndex) button.focus();
             });
             if (!list.children.length) {
                 var empty = document.createElement('div');
@@ -132,12 +151,13 @@
                 target.focus();
             }
         });
-        active = { control: control, popup: popup };
+        active = { control: control, popup: popup, renderOptions: renderOptions };
         document.body.appendChild(popup);
         renderOptions();
         var bounds = control.trigger.getBoundingClientRect();
-        popup.style.width = Math.min(Math.max(bounds.width, 272), window.innerWidth - 16) + 'px';
-        popup.style.left = Math.max(8, Math.min(bounds.left, window.innerWidth - popup.offsetWidth - 8)) + 'px';
+        var viewportWidth = document.documentElement.clientWidth;
+        popup.style.width = Math.min(Math.max(bounds.width, 336), viewportWidth - 16) + 'px';
+        popup.style.left = Math.max(8, Math.min(bounds.left, viewportWidth - popup.offsetWidth - 8)) + 'px';
         var below = window.innerHeight - bounds.bottom - 14;
         var above = bounds.top - 14;
         var openAbove = below < Math.min(popup.offsetHeight, 220) && above > below;
@@ -154,6 +174,11 @@
             if (!select.isConnected) controls.delete(select);
         });
         document.querySelectorAll(selector).forEach(function (select) {
+            if (select.matches('#pendingTabShell .cmf-pending-filter-select') && !select.multiple) {
+                var previousIndex = select.selectedIndex;
+                select.multiple = true;
+                if (previousIndex >= 0) select.options[previousIndex].selected = true;
+            }
             if (controls.has(select)) {
                 sync(controls.get(select));
                 return;
