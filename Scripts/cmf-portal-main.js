@@ -3,6 +3,233 @@
     if (!sidebar) return;
     sidebar.style.right = (sidebar.style.right === '0px' || sidebar.style.right === '0') ? '-250px' : '0px';
 }
+(function () {
+    var selector = '#issueTabShell .issue-top-filter-grid select, #pendingTabShell .cmf-pending-filter-select, #ddlSharedPlatform';
+    var controls = new Map();
+    var active = null;
+    var refreshQueued = false;
+
+    function icon(name) {
+        var element = document.createElement('i');
+        element.className = 'fas fa-' + name;
+        element.setAttribute('aria-hidden', 'true');
+        return element;
+    }
+
+    function closeMenu(restoreFocus) {
+        if (!active) return;
+        var trigger = active.control.trigger;
+        active.popup.remove();
+        active = null;
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.removeAttribute('aria-controls');
+        if (restoreFocus && trigger.isConnected) trigger.focus();
+    }
+
+    function sync(control) {
+        var option = control.select.options[control.select.selectedIndex];
+        control.text.textContent = option ? option.textContent : 'All';
+        control.trigger.title = option ? option.title || option.textContent : control.label;
+        control.trigger.disabled = control.select.disabled;
+        control.trigger.setAttribute('aria-label', control.label + ': ' + control.text.textContent);
+    }
+
+    function choose(control, index) {
+        closeMenu(true);
+        if (!control.select.options[index] || control.select.options[index].disabled) return;
+        control.select.selectedIndex = index;
+        sync(control);
+        control.select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function openMenu(control) {
+        if (active && active.control === control) {
+            closeMenu(true);
+            return;
+        }
+        closeMenu(false);
+        var popup = document.createElement('div');
+        popup.className = 'portal-filter-menu';
+        var searchRow = document.createElement('div');
+        searchRow.className = 'portal-filter-menu-search';
+        searchRow.appendChild(icon('search'));
+        var search = document.createElement('input');
+        search.type = 'search';
+        search.placeholder = 'Search ' + control.label.toLowerCase();
+        search.setAttribute('aria-label', search.placeholder);
+        searchRow.appendChild(search);
+        var summary = document.createElement('div');
+        summary.className = 'portal-filter-menu-summary';
+        var selected = document.createElement('span');
+        var option = control.select.options[control.select.selectedIndex];
+        selected.textContent = option && option.value && !/^all\b/i.test(option.textContent) ? '1 selected' : 'All';
+        summary.appendChild(selected);
+        var reset = document.createElement('button');
+        reset.type = 'button';
+        reset.title = 'Clear ' + control.label + ' filter';
+        reset.setAttribute('aria-label', reset.title);
+        reset.appendChild(icon('rotate-left'));
+        reset.addEventListener('click', function () { choose(control, 0); });
+        summary.appendChild(reset);
+        var list = document.createElement('div');
+        list.className = 'portal-filter-menu-options';
+        list.id = control.select.id + '_filterOptions';
+        list.setAttribute('role', 'listbox');
+        list.setAttribute('aria-label', control.label);
+        popup.append(searchRow, summary, list);
+
+        function renderOptions() {
+            list.replaceChildren();
+            var query = search.value.toLowerCase().trim();
+            Array.from(control.select.options).forEach(function (item, index) {
+                if (item.hidden || (item.textContent + ' ' + item.title).toLowerCase().indexOf(query) < 0) return;
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'portal-filter-option';
+                button.setAttribute('role', 'option');
+                button.setAttribute('aria-selected', index === control.select.selectedIndex ? 'true' : 'false');
+                button.tabIndex = -1;
+                button.disabled = item.disabled;
+                button.title = item.title || item.textContent;
+                var check = document.createElement('span');
+                check.className = 'portal-filter-option-check';
+                check.setAttribute('aria-hidden', 'true');
+                if (index === control.select.selectedIndex) check.appendChild(icon('check'));
+                var text = document.createElement('span');
+                text.textContent = item.textContent;
+                button.append(check, text);
+                button.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    choose(control, index);
+                });
+                list.appendChild(button);
+            });
+            if (!list.children.length) {
+                var empty = document.createElement('div');
+                empty.className = 'portal-filter-menu-empty';
+                empty.setAttribute('role', 'status');
+                empty.textContent = 'No matches';
+                list.appendChild(empty);
+            }
+        }
+
+        search.addEventListener('input', renderOptions);
+        popup.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeMenu(true);
+                return;
+            }
+            var options = Array.from(list.querySelectorAll('button:not(:disabled)'));
+            var index = options.indexOf(document.activeElement);
+            var target = null;
+            if (event.key === 'ArrowDown') target = options[Math.min(index + 1, options.length - 1)];
+            if (event.key === 'ArrowUp') target = options[Math.max(0, index - 1)];
+            if (event.key === 'Home' && index >= 0) target = options[0];
+            if (event.key === 'End' && index >= 0) target = options[options.length - 1];
+            if (target) {
+                event.preventDefault();
+                target.focus();
+            }
+        });
+        active = { control: control, popup: popup };
+        document.body.appendChild(popup);
+        renderOptions();
+        var bounds = control.trigger.getBoundingClientRect();
+        popup.style.width = Math.min(Math.max(bounds.width, 272), window.innerWidth - 16) + 'px';
+        popup.style.left = Math.max(8, Math.min(bounds.left, window.innerWidth - popup.offsetWidth - 8)) + 'px';
+        var below = window.innerHeight - bounds.bottom - 14;
+        var above = bounds.top - 14;
+        var openAbove = below < Math.min(popup.offsetHeight, 220) && above > below;
+        var available = Math.max(100, openAbove ? above : below);
+        list.style.maxHeight = Math.max(40, Math.min(256, available - 100)) + 'px';
+        popup.style.top = (openAbove ? Math.max(8, bounds.top - popup.offsetHeight - 6) : bounds.bottom + 6) + 'px';
+        control.trigger.setAttribute('aria-expanded', 'true');
+        control.trigger.setAttribute('aria-controls', list.id);
+        search.focus();
+    }
+
+    function initialize() {
+        controls.forEach(function (control, select) {
+            if (!select.isConnected) controls.delete(select);
+        });
+        document.querySelectorAll(selector).forEach(function (select) {
+            if (controls.has(select)) {
+                sync(controls.get(select));
+                return;
+            }
+            var field = select.closest('.issue-top-filter-item, .portal-filter-field, .overview-platform-filter') || select.parentElement;
+            var label = select.labels.length ? select.labels[0] : field.querySelector('label, :scope > span');
+            var name = label ? Array.from(label.childNodes).filter(function (node) { return node.nodeType === 3; }).map(function (node) { return node.textContent; }).join(' ').trim().replace(/:$/, '') : 'Filter';
+            var wrapper = document.createElement('div');
+            wrapper.className = 'portal-filter-dropdown';
+            var trigger = document.createElement('button');
+            trigger.type = 'button';
+            trigger.className = 'portal-filter-trigger';
+            trigger.setAttribute('aria-haspopup', 'listbox');
+            trigger.setAttribute('aria-expanded', 'false');
+            var text = document.createElement('span');
+            text.className = 'portal-filter-trigger-text';
+            trigger.append(text, icon('chevron-down'));
+            select.before(wrapper);
+            wrapper.append(select, trigger);
+            select.classList.add('portal-filter-native');
+            select.tabIndex = -1;
+            select.setAttribute('aria-hidden', 'true');
+            var control = { select: select, trigger: trigger, text: text, label: name || 'Filter' };
+            controls.set(select, control);
+            trigger.addEventListener('click', function (event) {
+                event.preventDefault();
+                openMenu(control);
+            });
+            trigger.addEventListener('keydown', function (event) {
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    openMenu(control);
+                }
+            });
+            select.addEventListener('change', function () { sync(control); });
+            select.addEventListener('focus', function () { trigger.focus(); });
+            sync(control);
+        });
+    }
+
+    document.addEventListener('click', function (event) {
+        if (active && !active.popup.contains(event.target) && !active.control.trigger.contains(event.target)) closeMenu(false);
+        controls.forEach(sync);
+    });
+    document.addEventListener('focusin', function (event) {
+        if (active && !active.popup.contains(event.target) && event.target !== active.control.trigger) closeMenu(false);
+    });
+    document.addEventListener('scroll', function (event) {
+        if (active && !active.popup.contains(event.target)) closeMenu(false);
+    }, true);
+    window.addEventListener('resize', function () { closeMenu(false); });
+    document.addEventListener('DOMContentLoaded', function () {
+        initialize();
+        window.CMF_PORTAL = window.CMF_PORTAL || {};
+        window.CMF_PORTAL.refreshFilterMenus = initialize;
+        new MutationObserver(function (records) {
+            var changed = records.some(function (record) {
+                return record.target.nodeName === 'SELECT' || Array.from(record.addedNodes).some(function (node) {
+                    return node.nodeType === 1 && (node.matches(selector) || node.querySelector(selector));
+                });
+            });
+            if (!changed || refreshQueued) return;
+            refreshQueued = true;
+            requestAnimationFrame(function () {
+                refreshQueued = false;
+                initialize();
+            });
+        }).observe(document.body, { childList: true, subtree: true });
+        if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) {
+            var manager = Sys.WebForms.PageRequestManager.getInstance();
+            manager.add_beginRequest(function () { closeMenu(false); });
+            manager.add_endRequest(initialize);
+        }
+    });
+}());
+
 $(document).ready(function () {
         if (!$.fn.select2) {
             return;

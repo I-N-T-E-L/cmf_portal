@@ -1,5 +1,5 @@
 :root {
-    --portal-font-ui: "Segoe UI Variable", "Segoe UI", sans-serif;
+    --portal-font-ui: "Segoe UI", sans-serif;
     --portal-font-body: var(--portal-font-ui);
     --portal-font-display: var(--portal-font-ui);
     --portal-font-card: var(--portal-font-ui);
@@ -70,6 +70,182 @@ html body .portal-app-header select.header-mode-dropdown {
     font-weight: 400 !important;
     cursor: pointer;
     transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.portal-filter-dropdown {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+}
+
+html body select.portal-filter-native {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden !important;
+    clip-path: inset(50%);
+}
+
+html body .portal-filter-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    height: 36px;
+    padding: 6px 10px;
+    border: 1px solid #d5dfeb;
+    border-radius: 6px;
+    background: #fff;
+    color: #3d506d;
+    font: 11px/1.35 var(--portal-font-ui);
+    text-align: left;
+    cursor: pointer;
+}
+
+html body .portal-filter-trigger:hover,
+html body .portal-filter-trigger[aria-expanded="true"] {
+    border-color: #80b9ef;
+    background: #f5f9fd;
+}
+
+.portal-filter-trigger-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.portal-filter-trigger > i {
+    flex-shrink: 0;
+    font-size: 10px;
+    color: #64738c;
+}
+
+.portal-filter-menu {
+    position: fixed;
+    z-index: 10050;
+    box-sizing: border-box;
+    padding: 12px 0 6px;
+    border: 1px solid #e1e6ec;
+    border-radius: 8px;
+    background: #fff;
+    color: #374760;
+    box-shadow: 0 8px 24px rgba(28, 44, 64, .16);
+    font: 12px/1.45 var(--portal-font-ui);
+}
+
+.portal-filter-menu-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 12px 8px;
+    padding: 8px 10px;
+    border: 1px solid #dce3eb;
+    border-radius: 4px;
+    color: #728092;
+}
+
+html body .portal-filter-menu-search input {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    outline: none;
+    background: transparent;
+    color: #374760;
+    font: inherit;
+    box-shadow: none;
+}
+
+.portal-filter-menu-search:focus-within {
+    border-color: #0073ed;
+    outline: 1px solid #0073ed;
+}
+
+.portal-filter-menu-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px 6px;
+    font-weight: 600;
+}
+
+html body .portal-filter-menu-summary button {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #64738c;
+    cursor: pointer;
+}
+
+.portal-filter-menu-options {
+    max-height: 256px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+html body .portal-filter-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    min-height: 36px;
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
+    color: #374760;
+    font: inherit;
+    text-align: left;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+
+html body .portal-filter-option:hover,
+html body .portal-filter-option[aria-selected="true"],
+html body .portal-filter-menu-summary button:hover {
+    background: #f0f6fc;
+}
+
+.portal-filter-option-check {
+    display: grid;
+    place-items: center;
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+    border: 1px solid #bec9d6;
+    border-radius: 2px;
+    color: #0073ed;
+    font-size: 10px;
+}
+
+.portal-filter-menu-empty {
+    padding: 12px 14px;
+    color: #64738c;
+}
+
+html body .portal-filter-trigger:focus-visible,
+html body .portal-filter-option:focus-visible,
+html body .portal-filter-menu-summary button:focus-visible {
+    outline: 2px solid #0073ed;
+    outline-offset: -2px;
+}
+
+html body .portal-filter-trigger:disabled,
+html body .portal-filter-option:disabled {
+    opacity: .55;
+    cursor: default;
 }
 
 html body select:hover:not(:disabled) {
@@ -731,14 +907,86 @@ body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th {
     font-weight: 700 !important;
 }
 
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns {
+    min-width: 0 !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td {
+    width: calc(7.142857% - 13.142857px) !important;
+}
+
 body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-title,
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-impact {
-    width: 14.285714% !important;
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-impact,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-ai-recommendation {
+    width: calc(14.285714% - 26.285714px) !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-reason,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-days-open {
+    width: 48px !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    text-align: center !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-ai-recommendation .pending-ai-rec-cell {
+    display: block !important;
+    width: 100% !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-ai-recommendation .pending-ai-rec-btn {
+    flex-direction: column !important;
+    gap: 4px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    padding: 4px 2px !important;
+    white-space: normal !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-ai-recommendation .pending-ai-rec-label {
+    display: block !important;
+    min-width: 0;
+    max-width: 100%;
+    font-size: 10px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+@media (max-width: 700px) {
+    body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th,
+    body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td {
+        width: calc(8.333333% - 18.333333px) !important;
+        padding-left: 1px !important;
+        padding-right: 1px !important;
+    }
+
+    body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-title,
+    body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-impact {
+        width: calc(16.666667% - 36.666667px) !important;
+    }
+
+    body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-reason,
+    body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-days-open {
+        width: 48px !important;
+    }
+
+    body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-ai-recommendation {
+        width: 36px !important;
+    }
+
+    body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-ai-recommendation .pending-ai-rec-btn {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
 }
 
 body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th:first-child,
 body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td:first-child {
-    width: 84px !important;
+    width: 88px !important;
 }
 
 body #pendingTabShell #GridView_cmf_pending .pending-id-actions > a,

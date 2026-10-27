@@ -42,7 +42,7 @@
             --portal-border: #cdd9e5;
             --portal-shadow: 0 18px 42px rgba(17, 43, 70, 0.12);
             --portal-radius: 18px;
-            --portal-font-ui: "Segoe UI Variable", "Segoe UI", sans-serif;
+            --portal-font-ui: "Segoe UI", sans-serif;
             --portal-font-body: var(--portal-font-ui);
             --portal-font-display: var(--portal-font-ui);
             --portal-font-card: var(--portal-font-ui);
@@ -10701,7 +10701,7 @@ td:nth-child(odd), th:nth-child(odd) {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 10px;
-        align-items: start;
+        align-items: stretch;
     }
 
     .cmf-sqa-score-pill {
@@ -11442,6 +11442,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
         .cmf-sqa-category-grid {
             grid-template-columns: 1fr;
+            grid-auto-rows: 1fr;
         }
     }
 
@@ -21546,8 +21547,8 @@ td:nth-child(odd), th:nth-child(odd) {
 
         function normalizeIssueDescriptionBullets(text) {
             return String(text || '')
-                .replace(/\s+([-*•])\s+/g, '\n$1 ')
-                .replace(/\s+(\d+[.)])\s+/g, '\n$1 ');
+                .replace(/\r\n?/g, '\n')
+                .replace(/^[ \t]*(?:[-*•]|\d+[.)])[ \t]+/gm, '- ');
         }
 
         function renderAssistantRichText(text) {
@@ -21719,7 +21720,7 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function formatSqaScoreOutOfTen(score) {
-            var value = Math.max(0, Math.min(10, (parseFloat(score) || 0) / 10));
+            var value = Math.round(Math.max(0, Math.min(10, (parseFloat(score) || 0) / 10)) * 2) / 2;
             return value % 1 === 0 ? String(value.toFixed(0)) : value.toFixed(1);
         }
 
@@ -21955,10 +21956,9 @@ td:nth-child(odd), th:nth-child(odd) {
         function renderSqaTemplateQualityOverview(assessment) {
             var score = Math.max(0, Math.min(100, parseFloat(assessment.score) || 0));
             var counts = getSqaStatusCounts(assessment.fields || []);
-            var quality = getSqaQualitySummary(score, counts);
-            var html = '<section class="cmf-quality-detail-card cmf-sqa-overview-template"><h4><span class="cmf-sqa-card-icon" aria-hidden="true">&#xf201;</span>Quality Overview</h4>';
+            var html = '<section class="cmf-quality-detail-card cmf-sqa-overview-template"><h4><span class="cmf-sqa-card-icon" style="font-family: sans-serif" aria-hidden="true">&#9636;</span>Quality Overview</h4>';
             html += '<div class="cmf-sqa-overview-grid">';
-            html += '<div class="cmf-sqa-score-block"><div class="cmf-quality-donut" style="--score:' + escapeHtml(score) + '"><div class="cmf-quality-donut-value">' + escapeHtml(formatSqaScoreOutOfTen(score)) + '<span>/10</span></div></div><div class="cmf-sqa-score-message ' + escapeHtml(getQualityStateClass(score)) + '"><strong>' + escapeHtml(quality.title) + '</strong><span>' + escapeHtml(quality.message) + '</span></div></div>';
+            html += '<div class="cmf-sqa-score-block"><div class="cmf-quality-donut" style="--score:' + escapeHtml(score) + '"><div class="cmf-quality-donut-value">' + escapeHtml(formatSqaScoreOutOfTen(score)) + '<span>/10</span></div></div></div>';
             html += '<div class="cmf-sqa-status-summary"><div class="cmf-quality-panel-label">Field Status Summary</div>';
             html += renderSqaStatusSummaryRow('Complete', counts.complete, 'present');
             html += renderSqaStatusSummaryRow('Partial', counts.partial, 'partial');
@@ -21993,44 +21993,42 @@ td:nth-child(odd), th:nth-child(odd) {
 
         function renderSqaFieldEvidenceTable(assessment) {
             var fields = (assessment.fields || []).filter(function (field) { return isSqaCoreField(field.fieldName); });
-            var html = '<section class="cmf-quality-detail-card cmf-sqa-evidence-card"><h4><span class="cmf-sqa-card-icon" aria-hidden="true">&#xf15c;</span>Field Evidence</h4>';
+            var html = '<section class="cmf-quality-detail-card cmf-sqa-evidence-card"><h4><span class="cmf-sqa-card-icon" style="font-family: sans-serif" aria-hidden="true">&#9776;</span>Field Evidence</h4>';
             html += '<div class="cmf-sqa-evidence-table"><div class="cmf-sqa-evidence-row is-header"><div>#</div><div>Field Name</div><div>Detected Value</div><div>Status</div></div>';
             for (var i = 0; i < fields.length; i++) {
                 var field = fields[i] || {};
                 var statusClass = getQualityStatusClass(field.status);
-                html += '<div class="cmf-sqa-evidence-row ' + escapeHtml(statusClass) + '"><div>' + escapeHtml(i + 1) + '</div><div>' + escapeHtml(field.fieldName || 'Field') + '</div><div>' + escapeHtml(getSqaDetectedValue(field)) + '</div><div>' + renderQualityStatusBadge(normalizeSqaFieldStatusLabel(field.status)) + '</div></div>';
+                html += '<div class="cmf-sqa-evidence-row ' + escapeHtml(statusClass) + '"><div>' + escapeHtml(i + 1) + '</div><div>' + escapeHtml(field.fieldName || 'Field') + '</div><div style="white-space: pre-line; overflow-wrap: anywhere">' + escapeHtml(getSqaDetectedValue(field)) + '</div><div>' + renderQualityStatusBadge(normalizeSqaFieldStatusLabel(field.status)) + '</div></div>';
             }
             html += '</div></section>';
             return html;
         }
 
         function getSqaDetectedValue(field) {
-            var evidence = summarizeSqaEvidenceForReason(field && field.evidence);
+            var evidence = String(field && field.evidence || '');
+            var parsed = new DOMParser().parseFromString(evidence, 'text/html');
+            if (parsed.body.textContent.indexOf('<') >= 0) parsed = new DOMParser().parseFromString(parsed.body.textContent, 'text/html');
+            parsed.querySelectorAll('script, style').forEach(function (node) { node.remove(); });
+            parsed.querySelectorAll('br').forEach(function (node) { node.replaceWith('\n'); });
+            parsed.querySelectorAll('p, div, li, tr').forEach(function (node) { node.append('\n'); });
+            evidence = stripSqaSourceLabels(parsed.body.textContent).replace(/\u00a0/g, ' ').replace(/[ \t]+/g, ' ').replace(/\n\s*\n/g, '\n').trim();
             if (!evidence || /^no usable value found/i.test(evidence)) return 'Not found in HSD';
-            return evidence.length > 92 ? evidence.slice(0, 89).replace(/\s+\S*$/, '') + '...' : evidence;
+            return evidence;
         }
 
         function renderSqaAssessmentSummary(assessment) {
             var fields = (assessment.fields || []).filter(function (field) { return isSqaCoreField(field.fieldName); });
-            var counts = getSqaStatusCounts(fields);
-            var score = Math.max(0, Math.min(100, parseFloat(assessment.score) || 0));
-            var quality = getSqaQualitySummary(score, counts);
             var explanations = [];
-            var suggestions = [];
             for (var i = 0; i < fields.length; i++) {
                 var field = fields[i] || {};
                 if (normalizeSqaFieldStatusLabel(field.status) === 'Complete') continue;
-                explanations.push((field.fieldName || 'Field') + ': ' + getSqaStatusReason(field));
-                var suggestion = String(field.recommendation || ('Clarify ' + (field.fieldName || 'this field') + '.')).trim();
-                if (suggestion && suggestions.indexOf(suggestion) < 0) suggestions.push(suggestion);
+                var reason = String(field.characteristic || '').trim();
+                if (!reason) reason = getSqaStatusReason(field);
+                explanations.push('<li><strong>' + escapeHtml(field.fieldName || 'Field') + ' (' + escapeHtml(normalizeSqaFieldStatusLabel(field.status)) + '):</strong> ' + escapeHtml(reason) + '</li>');
             }
-            var summary = 'The sighting has an information quality score of ' + formatSqaScoreOutOfTen(score) + '/10. ' + quality.message + ' Of the ' + fields.length + ' assessed fields, ' + counts.complete + ' are complete, ' + counts.partial + ' are partial, ' + counts.missing + ' are missing, and ' + counts.conflicting + ' contain conflicting information.';
             var html = '<section class="cmf-quality-detail-card cmf-sqa-assessment-summary"><h4><span class="cmf-sqa-sparkle" aria-hidden="true">&#10024;</span>Assessment Summary</h4>';
-            html += '<p>' + escapeHtml(summary) + '</p>';
-            for (var explanationIndex = 0; explanationIndex < explanations.length; explanationIndex++) {
-                html += '<p>' + escapeHtml(explanations[explanationIndex]) + '</p>';
-            }
-            html += '<p><strong>Next steps:</strong> ' + escapeHtml(suggestions.length ? suggestions.join(' ') : 'No immediate information-quality improvements are needed; proceed with CMF review.') + '</p></section>';
+            html += explanations.length ? '<ul>' + explanations.join('') + '</ul>' : '<p>No missing, partial, or conflicting fields were identified.</p>';
+            html += '</section>';
             return html;
         }
 
@@ -22645,7 +22643,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var score = calculateDisplayedCmfScore(rules);
             if (!score) score = normalizeWeightedCmfScore(result.OverallQualityScore || 0);
             var scoreDisplay = formatWeightedCmfScore(score) || '0.0';
-            var scorePercent = Math.max(0, Math.min(100, (score / 5) * 100));
+            var scorePercent = Math.max(0, Math.min(100, (parseFloat(scoreDisplay) / 5) * 100));
             var reasons = buildCmfAssistantRecommendationReasoning(recommendation, score, rules, result.Evidence || '', payload);
             var html = '<div class="cmf-assistant-rec-shell">';
             html += '<div class="cmf-assistant-rec-top">';
@@ -22669,8 +22667,8 @@ td:nth-child(odd), th:nth-child(odd) {
                     if (sentences[sentenceIndex]) points.push(sentences[sentenceIndex]);
                 }
             }
-            if (points.length > 4) points = [points[0], points[1], points.slice(2, -1).join(' '), points[points.length - 1]];
-            for (var pointIndex = 0; pointIndex < points.length; pointIndex++) html += '<li>' + escapeHtml(points[pointIndex]) + '</li>';
+            if (points.length > 6) points = points.slice(0, 5).concat(points.slice(5).join(' '));
+            for (var pointIndex = 0; pointIndex < points.length; pointIndex++) html += '<li>' + renderAssistantRichText(points[pointIndex]) + '</li>';
             return html + '</ul></div>';
         }
 
@@ -22748,7 +22746,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 return item.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').replace(/^\s*(?:observed(?:\s+facts)?|observation|reasoning|inference)\s*:\s*/i, '').replace(/\s+/g, ' ').trim();
             }).filter(function (item) {
                 return item.length > 0 && !/^(?:CMF\s+)?decision\s*(?:is|:)\s*(?:CMF_)?(?:REVIEW|OK|REJECT|INCOMPLETE)[.!?]?$/i.test(item);
-            }).slice(0, 5);
+            }).slice(0, 6);
         }
 
         function splitCmfReasoningItems(text) {
@@ -23064,7 +23062,7 @@ td:nth-child(odd), th:nth-child(odd) {
         function formatWeightedCmfScore(value) {
             var score = normalizeWeightedCmfScore(value);
             if (!score) return '';
-            return score.toFixed(2).replace(/\.00$/, '.0');
+            return (Math.round((score + 1e-9) * 2) / 2).toFixed(1);
         }
 
         function extractCmfReasonBullets(text) {
@@ -23775,9 +23773,9 @@ td:nth-child(odd), th:nth-child(odd) {
             filterCmfPendingRows();
         }
 </script>
-    <script src="Scripts/cmf-portal-main.js?v=20261023-popup-export-all"></script>
+    <script src="Scripts/cmf-portal-main.js?v=20261027-filter-refresh"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261026-pending-date-fixes" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261027-filter-refresh-4" />
 
 </head>
 
@@ -24916,7 +24914,7 @@ Submit
                                 <fieldset class="portal-filter-field portal-date-filter"><legend>CMF Ask Date</legend><div><input type="date" id="cmfPendingDateFrom" aria-label="CMF Ask Date from" onchange="filterCmfPendingRows()" /><span aria-hidden="true">to</span><input type="date" id="cmfPendingDateTo" aria-label="CMF Ask Date to" onchange="filterCmfPendingRows()" /></div></fieldset>
                                 <label class="portal-filter-field" for="cmfPendingComponentFilter">Component<select id="cmfPendingComponentFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All Components</option></select></label>
                                 <label class="portal-filter-field" for="cmfPendingOwnerFilter">Owner<select id="cmfPendingOwnerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All Owners</option></select></label>
-                                <button type="button" class="cmf-pending-filter-btn" onclick="resetCmfPendingClientFilters()"><i class="fas fa-rotate-left" aria-hidden="true"></i><span>Clear</span></button>
+                                <button type="button" class="cmf-pending-filter-btn" onclick="resetCmfPendingClientFilters()">Clear</button>
                             </div>
 
                             <!-- CMF PENDING LIST GRIDVIEW - INSIDE mainDataWrapper -->
@@ -24927,7 +24925,6 @@ Submit
                                             <ItemTemplate>
                                                 <div class="pending-id-actions">
                                                     <asp:HyperLink runat="server" Text='<%# Eval("cp_id") %>' NavigateUrl='<%# "https://hsdes.intel.com/appstore/article/#/" + HttpUtility.UrlEncode(Convert.ToString(Eval("cp_id"))) %>' Target="_blank" rel="noopener noreferrer" />
-                                                    <%# RenderPendingRecommendationCell(Eval("cp_id"), Eval("title"), Eval("component"), Eval("component_group"), Eval("cmf_request"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner")) %>
                                                 </div>
                                             </ItemTemplate>
                                         </asp:TemplateField>
@@ -24950,7 +24947,13 @@ Submit
                                         </asp:TemplateField>
                                         <asp:BoundField DataField="impact" HeaderText="Impact" ItemStyle-CssClass="pending-field-impact" HeaderStyle-CssClass="pending-field-impact" />
                                         <asp:BoundField DataField="why_cmf_change" HeaderText="Why CMF Change" ItemStyle-CssClass="pending-field-why" />
-                                        <asp:BoundField DataField="pending_reason" HeaderText="Pending Reason" />
+                                        <asp:BoundField DataField="pending_reason" HeaderText="Pending Reason" ItemStyle-CssClass="pending-field-reason" HeaderStyle-CssClass="pending-field-reason" />
+                                        <asp:BoundField DataField="days_open" HeaderText="Days Open" ItemStyle-CssClass="pending-field-days-open" HeaderStyle-CssClass="pending-field-days-open" NullDisplayText="N/A" />
+                                        <asp:TemplateField HeaderText="AI CMF Recommendation" ItemStyle-CssClass="pending-field-ai-recommendation" HeaderStyle-CssClass="pending-field-ai-recommendation">
+                                            <ItemTemplate>
+                                                <%# RenderPendingRecommendationCell(Eval("cp_id"), Eval("title"), Eval("component"), Eval("component_group"), Eval("cmf_request"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner")) %>
+                                            </ItemTemplate>
+                                        </asp:TemplateField>
                                     </Columns>
                                 </asp:GridView>
                                 <div id="cmfPendingFilterEmpty" class="portal-table-empty" hidden>No matching issues</div>
