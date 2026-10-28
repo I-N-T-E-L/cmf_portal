@@ -3,265 +3,239 @@
     if (!sidebar) return;
     sidebar.style.right = (sidebar.style.right === '0px' || sidebar.style.right === '0') ? '-250px' : '0px';
 }
-(function () {
-    var selector = '#issueTabShell .issue-top-filter-grid select, #pendingTabShell .cmf-pending-filter-select, #ddlSharedPlatform';
-    var controls = new Map();
-    var active = null;
-    var refreshQueued = false;
 
-    function icon(name) {
-        var element = document.createElement('i');
-        element.className = 'fas fa-' + name;
-        element.setAttribute('aria-hidden', 'true');
-        return element;
+function submitLegacyPostback(eventTarget, eventArgument) {
+    var form = document.forms && document.forms.length ? document.forms[0] : null;
+    if (!form) {
+        return false;
     }
 
-    function closeMenu(restoreFocus) {
-        if (!active) return;
-        var trigger = active.control.trigger;
-        active.popup.remove();
-        active = null;
-        trigger.setAttribute('aria-expanded', 'false');
-        trigger.removeAttribute('aria-controls');
-        if (restoreFocus && trigger.isConnected) trigger.focus();
+    if (form.__EVENTTARGET) {
+        form.__EVENTTARGET.value = eventTarget || '';
     }
 
-    function sync(control) {
-        var option = control.select.options[control.select.selectedIndex];
-        var selected = Array.from(control.select.selectedOptions).filter(function (item) { return item.value; });
-        control.text.textContent = control.select.multiple && selected.length ? (selected.length === 1 ? selected[0].textContent : selected.length + ' selected') : option ? option.textContent : 'All';
-        control.trigger.title = control.select.multiple && selected.length ? selected.map(function (item) { return item.title || item.textContent; }).join(', ') : option ? option.title || option.textContent : control.label;
-        control.trigger.disabled = control.select.disabled;
-        control.trigger.setAttribute('aria-label', control.label + ': ' + control.text.textContent);
+    if (form.__EVENTARGUMENT) {
+        form.__EVENTARGUMENT.value = eventArgument || '';
     }
 
-    function choose(control, index) {
-        if (!control.select.options[index] || control.select.options[index].disabled) return;
-        if (control.select.multiple) {
-            var option = control.select.options[index];
-            option.selected = !option.selected;
-            if (!option.value) {
-                Array.from(control.select.options).forEach(function (item) { item.selected = !item.value; });
-            } else if (control.select.options[0] && !control.select.options[0].value) {
-                control.select.options[0].selected = !Array.from(control.select.selectedOptions).some(function (item) { return item.value; });
-            }
-        } else {
-            closeMenu(true);
-            control.select.selectedIndex = index;
+    if (typeof form.onsubmit === 'function' && form.onsubmit() === false) {
+        return false;
+    }
+
+    form.submit();
+    return true;
+}
+
+function dispatchPopupAsyncFlow(action, arg1, arg2, arg3, fallbackEventTarget, fallbackEventArgument) {
+    var usesIssueTableFlow = action === 'ShowCMFIssues'
+        || action === 'ShowPendingSummaryIssues'
+        || action === 'ShowPendingAgeBucketIssues'
+        || action === 'ShowSummaryMetricIssues'
+        || action === 'ShowDriverIssues'
+        || action === 'ShowModal3';
+
+    // Keep issue-table popups on the legacy postback route so server-bound modal grids refresh reliably.
+    if (usesIssueTableFlow) {
+        markPopupTablePostbackFlow();
+        submitLegacyPostback(fallbackEventTarget || action || '', fallbackEventArgument || arg1 || '');
+        return false;
+    }
+
+    var ids = window.CMF_PORTAL && window.CMF_PORTAL.ids ? window.CMF_PORTAL.ids : null;
+    var actionInput = ids ? document.getElementById(ids.hfPopupAsyncAction || '') : null;
+    var arg1Input = ids ? document.getElementById(ids.hfPopupAsyncArg1 || '') : null;
+    var arg2Input = ids ? document.getElementById(ids.hfPopupAsyncArg2 || '') : null;
+    var arg3Input = ids ? document.getElementById(ids.hfPopupAsyncArg3 || '') : null;
+    var dispatchTarget = ids ? ids.btnPopupAsyncDispatch : '';
+
+    if (actionInput && arg1Input && arg2Input && arg3Input && dispatchTarget) {
+        actionInput.value = action || '';
+        arg1Input.value = arg1 || '';
+        arg2Input.value = arg2 || '';
+        arg3Input.value = arg3 || '';
+
+        var packedArgument = String(action || '')
+            + '||' + encodeURIComponent(String(arg1 || ''))
+            + '||' + encodeURIComponent(String(arg2 || ''))
+            + '||' + encodeURIComponent(String(arg3 || ''));
+
+        __doPostBack(dispatchTarget, packedArgument);
+        return false;
+    }
+
+    // Compatibility fallback for cases where async dispatcher fields are unavailable.
+    markPopupTablePostbackFlow();
+    submitLegacyPostback(fallbackEventTarget || '', fallbackEventArgument || '');
+    return false;
+}
+
+function isElementVisibleForPopupSnapshot(element) {
+    if (!element) {
+        return false;
+    }
+
+    var style = window.getComputedStyle ? window.getComputedStyle(element) : null;
+    if (!style) {
+        return true;
+    }
+
+    if (style.display === 'none' || style.visibility === 'hidden') {
+        return false;
+    }
+
+    return element.offsetParent !== null || style.position === 'fixed';
+}
+
+function sanitizePopupSnapshotMarkup(html) {
+    return String(html || '')
+        .replace(/\sid="[^"]*"/gi, '')
+        .replace(/\sfor="[^"]*"/gi, '');
+}
+
+function buildPopupFlowSnapshotHtml() {
+    var header = document.querySelector('header.portal-app-header');
+    var leftNav = document.getElementById('mainMenuSidebar');
+    var mainWorkspace = document.querySelector('.portal-main-workspace');
+
+    var preferredPanelIds = [
+        'homeWelcomePanel',
+        'homeCmfSummaryPanel',
+        'issueTabShell',
+        'pendingTabShell',
+        'analyticsPanel',
+        'configRulesPanel'
+    ];
+
+    var visiblePanel = null;
+    for (var i = 0; i < preferredPanelIds.length; i++) {
+        var candidate = document.getElementById(preferredPanelIds[i]);
+        if (isElementVisibleForPopupSnapshot(candidate)) {
+            visiblePanel = candidate;
+            break;
         }
-        sync(control);
-        control.select.dispatchEvent(new Event('change', { bubbles: true }));
-        if (active && active.control === control) active.renderOptions();
     }
 
-    function openMenu(control) {
-        if (active && active.control === control) {
-            closeMenu(true);
+    var shellHtml = '';
+    if (leftNav || visiblePanel || mainWorkspace) {
+        shellHtml += '<div class="portal-layout-shell">';
+        if (leftNav) {
+            shellHtml += leftNav.outerHTML;
+        }
+
+        shellHtml += '<div class="portal-main-workspace">';
+        if (visiblePanel) {
+            shellHtml += visiblePanel.outerHTML;
+        } else if (mainWorkspace) {
+            shellHtml += mainWorkspace.outerHTML;
+        }
+        shellHtml += '</div>';
+        shellHtml += '</div>';
+    }
+
+    if (!shellHtml && !header) {
+        return '';
+    }
+
+    var snapshotHtml = '<div class="cmf-popup-flow-snapshot-root">';
+    if (header) {
+        snapshotHtml += header.outerHTML;
+    }
+    snapshotHtml += '<div class="container-fluid page-body-wrapper">' + shellHtml + '</div>';
+    snapshotHtml += '</div>';
+
+    return sanitizePopupSnapshotMarkup(snapshotHtml);
+}
+
+function markPopupTablePostbackFlow() {
+    try {
+        if (window.sessionStorage) {
+            window.sessionStorage.setItem('cmfPopupTableFlow', '1');
+            window.sessionStorage.setItem('cmfPopupTableScrollY', String(window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0));
+
+            var snapshotHtml = buildPopupFlowSnapshotHtml();
+            if (snapshotHtml) {
+                window.sessionStorage.setItem('cmfPopupTableSnapshotHtml', snapshotHtml);
+            } else {
+                window.sessionStorage.removeItem('cmfPopupTableSnapshotHtml');
+            }
+        }
+    } catch (error) {
+        // Ignore storage availability issues.
+    }
+}
+
+function clearPopupTablePostbackFlowMask() {
+    document.documentElement.classList.remove('cmf-popup-flow-mask');
+
+    var frozenLayer = document.getElementById('cmfPopupFlowFrozenLayer');
+    if (frozenLayer) {
+        frozenLayer.classList.remove('active');
+        frozenLayer.innerHTML = '';
+    }
+
+    try {
+        if (window.sessionStorage) {
+            window.sessionStorage.removeItem('cmfPopupTableFlow');
+            window.sessionStorage.removeItem('cmfPopupTableScrollY');
+            window.sessionStorage.removeItem('cmfPopupTableSnapshotHtml');
+        }
+    } catch (error) {
+        // Ignore storage availability issues.
+    }
+}
+
+function bindPopupTableFlowMaskLifecycle() {
+    var flowArmed = false;
+    var restoreScrollY = null;
+    try {
+        flowArmed = !!(window.sessionStorage && window.sessionStorage.getItem('cmfPopupTableFlow') === '1');
+        if (flowArmed && window.sessionStorage) {
+            var storedScrollY = window.sessionStorage.getItem('cmfPopupTableScrollY');
+            if (storedScrollY !== null && storedScrollY !== '') {
+                var parsedScrollY = parseInt(storedScrollY, 10);
+                if (!isNaN(parsedScrollY) && parsedScrollY >= 0) {
+                    restoreScrollY = parsedScrollY;
+                }
+            }
+        }
+    } catch (error) {
+        flowArmed = false;
+        restoreScrollY = null;
+    }
+
+    if (!flowArmed) {
+        clearPopupTablePostbackFlowMask();
+        return;
+    }
+
+    var cleared = false;
+    var clearOnce = function () {
+        if (cleared) {
             return;
         }
-        closeMenu(false);
-        var popup = document.createElement('div');
-        popup.className = 'portal-filter-menu';
-        var searchRow = document.createElement('div');
-        searchRow.className = 'portal-filter-menu-search';
-        searchRow.appendChild(icon('search'));
-        var search = document.createElement('input');
-        search.type = 'search';
-        search.placeholder = 'Search ' + control.label.toLowerCase();
-        search.setAttribute('aria-label', search.placeholder);
-        searchRow.appendChild(search);
-        var summary = document.createElement('div');
-        summary.className = 'portal-filter-menu-summary';
-        var selected = document.createElement('span');
-        var option = control.select.options[control.select.selectedIndex];
-        selected.textContent = option && option.value && !/^all\b/i.test(option.textContent) ? '1 selected' : 'All';
-        summary.appendChild(selected);
-        var reset = document.createElement('button');
-        reset.type = 'button';
-        reset.title = 'Clear ' + control.label + ' filter';
-        reset.setAttribute('aria-label', reset.title);
-        reset.appendChild(icon('rotate-left'));
-        reset.addEventListener('click', function () {
-            if (control.select.id === 'ddlSharedPlatform' && control.select.multiple) {
-                control.select.selectedIndex = 0;
-                sync(control);
-                control.select.dispatchEvent(new Event('change', { bubbles: true }));
-                return;
-            }
-            choose(control, 0);
-        });
-        summary.appendChild(reset);
-        var list = document.createElement('div');
-        list.className = 'portal-filter-menu-options';
-        list.id = control.select.id + '_filterOptions';
-        list.setAttribute('role', 'listbox');
-        list.setAttribute('aria-label', control.label);
-        if (control.select.multiple) list.setAttribute('aria-multiselectable', 'true');
-        popup.append(searchRow, summary, list);
+        cleared = true;
 
-        function renderOptions() {
-            var focusedIndex = document.activeElement.dataset.optionIndex;
-            var selectedCount = Array.from(control.select.selectedOptions).filter(function (item) { return item.value; }).length;
-            selected.textContent = selectedCount ? selectedCount + ' selected' : 'All';
-            list.replaceChildren();
-            var query = search.value.toLowerCase().trim();
-            Array.from(control.select.options).forEach(function (item, index) {
-                if (item.hidden || (item.textContent + ' ' + item.title).toLowerCase().indexOf(query) < 0) return;
-                var button = document.createElement('button');
-                button.type = 'button';
-                button.className = 'portal-filter-option';
-                button.setAttribute('role', 'option');
-                button.setAttribute('aria-selected', item.selected ? 'true' : 'false');
-                button.dataset.optionIndex = index;
-                button.tabIndex = -1;
-                button.disabled = item.disabled;
-                button.title = item.title || item.textContent;
-                var check = document.createElement('span');
-                check.className = 'portal-filter-option-check';
-                check.setAttribute('aria-hidden', 'true');
-                if (item.selected) check.appendChild(icon('check'));
-                var text = document.createElement('span');
-                text.textContent = item.textContent;
-                button.append(check, text);
-                button.addEventListener('click', function (event) {
-                    event.preventDefault();
-                    if (control.select.multiple) event.stopPropagation();
-                    choose(control, index);
-                });
-                list.appendChild(button);
-                if (String(index) === focusedIndex) button.focus();
+        if (restoreScrollY !== null) {
+            window.requestAnimationFrame(function () {
+                window.scrollTo(0, restoreScrollY);
             });
-            if (!list.children.length) {
-                var empty = document.createElement('div');
-                empty.className = 'portal-filter-menu-empty';
-                empty.setAttribute('role', 'status');
-                empty.textContent = 'No matches';
-                list.appendChild(empty);
-            }
         }
 
-        search.addEventListener('input', renderOptions);
-        popup.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                closeMenu(true);
-                return;
-            }
-            var options = Array.from(list.querySelectorAll('button:not(:disabled)'));
-            var index = options.indexOf(document.activeElement);
-            var target = null;
-            if (event.key === 'ArrowDown') target = options[Math.min(index + 1, options.length - 1)];
-            if (event.key === 'ArrowUp') target = options[Math.max(0, index - 1)];
-            if (event.key === 'Home' && index >= 0) target = options[0];
-            if (event.key === 'End' && index >= 0) target = options[options.length - 1];
-            if (target) {
-                event.preventDefault();
-                target.focus();
-            }
-        });
-        active = { control: control, popup: popup, renderOptions: renderOptions };
-        document.body.appendChild(popup);
-        renderOptions();
-        var bounds = control.trigger.getBoundingClientRect();
-        var viewportWidth = document.documentElement.clientWidth;
-        popup.style.width = Math.min(Math.max(bounds.width, 336), viewportWidth - 16) + 'px';
-        popup.style.left = Math.max(8, Math.min(bounds.left, viewportWidth - popup.offsetWidth - 8)) + 'px';
-        var below = window.innerHeight - bounds.bottom - 14;
-        var above = bounds.top - 14;
-        var openAbove = below < Math.min(popup.offsetHeight, 220) && above > below;
-        var available = Math.max(100, openAbove ? above : below);
-        list.style.maxHeight = Math.max(40, Math.min(256, available - 100)) + 'px';
-        popup.style.top = (openAbove ? Math.max(8, bounds.top - popup.offsetHeight - 6) : bounds.bottom + 6) + 'px';
-        control.trigger.setAttribute('aria-expanded', 'true');
-        control.trigger.setAttribute('aria-controls', list.id);
-        search.focus();
-    }
-
-    function initialize() {
-        controls.forEach(function (control, select) {
-            if (!select.isConnected) controls.delete(select);
-        });
-        document.querySelectorAll(selector).forEach(function (select) {
-            if (select.matches('#pendingTabShell .cmf-pending-filter-select') && !select.multiple) {
-                var previousIndex = select.selectedIndex;
-                select.multiple = true;
-                if (previousIndex >= 0) select.options[previousIndex].selected = true;
-            }
-            if (controls.has(select)) {
-                sync(controls.get(select));
-                return;
-            }
-            var field = select.closest('.issue-top-filter-item, .portal-filter-field, .overview-platform-filter') || select.parentElement;
-            var label = select.labels.length ? select.labels[0] : field.querySelector('label, :scope > span');
-            var name = label ? Array.from(label.childNodes).filter(function (node) { return node.nodeType === 3; }).map(function (node) { return node.textContent; }).join(' ').trim().replace(/:$/, '') : 'Filter';
-            var wrapper = document.createElement('div');
-            wrapper.className = 'portal-filter-dropdown';
-            var trigger = document.createElement('button');
-            trigger.type = 'button';
-            trigger.className = 'portal-filter-trigger';
-            trigger.setAttribute('aria-haspopup', 'listbox');
-            trigger.setAttribute('aria-expanded', 'false');
-            var text = document.createElement('span');
-            text.className = 'portal-filter-trigger-text';
-            trigger.append(text, icon('chevron-down'));
-            select.before(wrapper);
-            wrapper.append(select, trigger);
-            select.classList.add('portal-filter-native');
-            select.tabIndex = -1;
-            select.setAttribute('aria-hidden', 'true');
-            var control = { select: select, trigger: trigger, text: text, label: name || 'Filter' };
-            controls.set(select, control);
-            trigger.addEventListener('click', function (event) {
-                event.preventDefault();
-                openMenu(control);
-            });
-            trigger.addEventListener('keydown', function (event) {
-                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-                    event.preventDefault();
-                    openMenu(control);
-                }
-            });
-            select.addEventListener('change', function () { sync(control); });
-            select.addEventListener('focus', function () { trigger.focus(); });
-            sync(control);
-        });
-    }
-
-    document.addEventListener('click', function (event) {
-        if (active && !active.popup.contains(event.target) && !active.control.trigger.contains(event.target)) closeMenu(false);
-        controls.forEach(sync);
-    });
-    document.addEventListener('focusin', function (event) {
-        if (active && !active.popup.contains(event.target) && event.target !== active.control.trigger) closeMenu(false);
-    });
-    document.addEventListener('scroll', function (event) {
-        if (active && !active.popup.contains(event.target)) closeMenu(false);
-    }, true);
-    window.addEventListener('resize', function () { closeMenu(false); });
-    document.addEventListener('DOMContentLoaded', function () {
-        initialize();
-        window.CMF_PORTAL = window.CMF_PORTAL || {};
-        window.CMF_PORTAL.refreshFilterMenus = initialize;
-        new MutationObserver(function (records) {
-            var changed = records.some(function (record) {
-                return record.target.nodeName === 'SELECT' || Array.from(record.addedNodes).some(function (node) {
-                    return node.nodeType === 1 && (node.matches(selector) || node.querySelector(selector));
-                });
-            });
-            if (!changed || refreshQueued) return;
-            refreshQueued = true;
-            requestAnimationFrame(function () {
-                refreshQueued = false;
-                initialize();
-            });
-        }).observe(document.body, { childList: true, subtree: true });
-        if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) {
-            var manager = Sys.WebForms.PageRequestManager.getInstance();
-            manager.add_beginRequest(function () { closeMenu(false); });
-            manager.add_endRequest(initialize);
+        clearPopupTablePostbackFlowMask();
+        if (window.jQuery) {
+            window.jQuery(document).off('shown.bs.modal.cmfPopupFlowMask');
         }
-    });
-}());
+    };
+
+    if (window.jQuery) {
+        var modalSelector = '#detailsModal,#detailsModal0,#detailsModal2,#detailsModal3,#detailsModalDesignIndicator,#detailsModalIngredientIndicator,#detailsModalOemIndicator,#detailsModalDrivers,#detailsModalDrivers1,#detailsModalSummaryMetrics';
+        window.jQuery(document)
+            .off('shown.bs.modal.cmfPopupFlowMask')
+            .on('shown.bs.modal.cmfPopupFlowMask', modalSelector, clearOnce);
+    }
+
+    window.setTimeout(clearOnce, 5000);
+}
 
 $(document).ready(function () {
         if (!$.fn.select2) {
@@ -401,7 +375,14 @@ $(document).ready(function () {
             if (hfDriver) hfDriver.value = driver || '';
             if (hfIssueType) hfIssueType.value = issueType || '';
 
-            __doPostBack('ShowCMFIssues', component + '|' + driver + '|' + issueType);
+                    return dispatchPopupAsyncFlow(
+                        'ShowCMFIssues',
+                        component || '',
+                        driver || '',
+                        issueType || '',
+                        'ShowCMFIssues',
+                        (component || '') + '|' + (driver || '') + '|' + (issueType || '')
+                    );
         }
 
         function getComponentValue() {
@@ -842,16 +823,28 @@ function showTotalImplementedVerifiedModal(design) {
             document.getElementById(window.CMF_PORTAL.ids.hiddenModalDesign).value = design;
                 document.getElementById(window.CMF_PORTAL.ids.hiddenModalDriver).value = driver;
 
-                // Trigger postback manually
-                __doPostBack('ShowDriverModal', design + ',' + driver);
+                return dispatchPopupAsyncFlow(
+                    'ShowDriverModal',
+                    design || '',
+                    driver || '',
+                    '',
+                    'ShowDriverModal',
+                    String(design || '') + ',' + String(driver || '')
+                );
         }
 
         function showImplementedVerifiedDetailsModal(design) {
             // Store design in a hidden field so server can access it
             document.getElementById(window.CMF_PORTAL.ids.hiddenModalDesign).value = design;
 
-                // Trigger postback manually
-                __doPostBack('ShowImplementedVerifiedModal', design);
+                return dispatchPopupAsyncFlow(
+                    'ShowImplementedVerifiedModal',
+                    design || '',
+                    '',
+                    '',
+                    'ShowImplementedVerifiedModal',
+                    design || ''
+                );
             }
 
         
@@ -860,22 +853,52 @@ function showTotalImplementedVerifiedModal(design) {
             // Store design in a hidden field so server can access it
             document.getElementById(window.CMF_PORTAL.ids.hiddenModalDesign).value = design;
 
-            // Trigger postback manually
-            __doPostBack('ShowModal', design);
+            return dispatchPopupAsyncFlow(
+                'ShowModal',
+                design || '',
+                '',
+                '',
+                'ShowModal',
+                design || ''
+            );
         }
 
+        function showDesignIndicatorSummaryModal() {
+            return dispatchPopupAsyncFlow('ShowDesignIndicatorSummaryModal', '', '', '', 'ShowDesignIndicatorSummaryModal', '');
+        }
+
+        function showIngredientIndicatorSummaryModal() {
+            return dispatchPopupAsyncFlow('ShowIngredientIndicatorSummaryModal', '', '', '', 'ShowIngredientIndicatorSummaryModal', '');
+        }
+
+        function showOemIndicatorSummaryModal() {
+            return dispatchPopupAsyncFlow('ShowOemIndicatorSummaryModal', '', '', '', 'ShowOemIndicatorSummaryModal', '');
+        }
 
         function showDetailsModal2(ingred) {
             // Store design in a hidden field so seriver can access it
             document.getElementById(window.CMF_PORTAL.ids.hiddenModalDesign).value = ingred;
 
-            // Trigger postback manually
-            __doPostBack('ShowModal2', ingred);
+            return dispatchPopupAsyncFlow(
+                'ShowModal2',
+                ingred || '',
+                '',
+                '',
+                'ShowModal2',
+                ingred || ''
+            );
         }
             function showDriverIssues(milestoneDriver) {
           var hf = document.getElementById(window.CMF_PORTAL.ids.hiddenDriverName);
           if (hf) hf.value = milestoneDriver || '';
-          __doPostBack('ShowDriverIssues', milestoneDriver || '');
+          return dispatchPopupAsyncFlow(
+              'ShowDriverIssues',
+              milestoneDriver || '',
+              '',
+              '',
+              'ShowDriverIssues',
+              milestoneDriver || ''
+          );
       }
 
       function exportDriverIssues(milestoneDriver) {
@@ -900,8 +923,14 @@ function showTotalImplementedVerifiedModal(design) {
             // Store design in a hidden field so seriver can access it
             document.getElementById(window.CMF_PORTAL.ids.hiddenModalDesign).value = oem;
 
-            // Trigger postback manually
-            __doPostBack('ShowModal3', oem);
+            return dispatchPopupAsyncFlow(
+                'ShowModal3',
+                oem || '',
+                '',
+                '',
+                'ShowModal3',
+                oem || ''
+            );
         }
 
         function exportToExcel(design) {
@@ -1100,6 +1129,364 @@ function showTotalImplementedVerifiedModal(design) {
             title.textContent = currentTitle + suffix;
         }
 
+        var cmfModalStackState = {
+            pendingRestore: false,
+            idsToRestore: []
+        };
+        var CMF_MODAL_STACK_STORAGE_KEY = 'cmf.modalStack.restore.v1';
+
+        function persistModalStackForReload(ids) {
+            try {
+                if (!window.sessionStorage) {
+                    return;
+                }
+                window.sessionStorage.setItem(CMF_MODAL_STACK_STORAGE_KEY, JSON.stringify(ids || []));
+            } catch (error) {
+                // Ignore storage errors and keep runtime behavior.
+            }
+        }
+
+        function readPersistedModalStack() {
+            try {
+                if (!window.sessionStorage) {
+                    return [];
+                }
+
+                var raw = window.sessionStorage.getItem(CMF_MODAL_STACK_STORAGE_KEY);
+                if (!raw) {
+                    return [];
+                }
+
+                var parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) {
+                    return [];
+                }
+
+                return parsed
+                    .filter(function (id) { return typeof id === 'string' && id.length > 0; });
+            } catch (error) {
+                return [];
+            }
+        }
+
+        function clearPersistedModalStack() {
+            try {
+                if (!window.sessionStorage) {
+                    return;
+                }
+                window.sessionStorage.removeItem(CMF_MODAL_STACK_STORAGE_KEY);
+            } catch (error) {
+                // Ignore storage errors.
+            }
+        }
+
+        function getVisibleBootstrapModals() {
+            return Array.prototype.slice.call(document.querySelectorAll('.modal.show'));
+        }
+
+        function getDashboardModalIds() {
+            return [
+                'detailsModalIngredientIndicator',
+                'detailsModalDesignIndicator',
+                'detailsModalOemIndicator',
+                'detailsModal',
+                'detailsModal2',
+                'detailsModal0',
+                'detailsModal3',
+                'detailsModalDrivers',
+                'detailsModalDrivers1',
+                'detailsModalSummaryMetrics'
+            ];
+        }
+
+        function hoistDashboardModalsToRoot() {
+            var host = document.getElementById('form1') || document.body;
+            if (!host) {
+                return;
+            }
+
+            var ids = getDashboardModalIds();
+            for (var i = 0; i < ids.length; i++) {
+                var modal = document.getElementById(ids[i]);
+                if (!modal || modal.parentNode === host) {
+                    continue;
+                }
+
+                host.appendChild(modal);
+            }
+        }
+
+        function applyBootstrapModalStacking() {
+            var modals = getVisibleBootstrapModals();
+
+            if (modals.length > 0 && document.querySelectorAll('.modal-backdrop').length === 0) {
+                var fallbackBackdrop = document.createElement('div');
+                fallbackBackdrop.className = 'modal-backdrop fade show';
+                document.body.appendChild(fallbackBackdrop);
+            }
+
+            for (var i = 0; i < modals.length; i++) {
+                modals[i].style.zIndex = String(1050 + (i * 20));
+            }
+
+            var backdrops = Array.prototype.slice.call(document.querySelectorAll('.modal-backdrop'));
+            for (var j = 0; j < backdrops.length; j++) {
+                if (!backdrops[j].classList.contains('show')) {
+                    backdrops[j].classList.add('show');
+                }
+                backdrops[j].style.zIndex = String(1040 + (j * 20));
+            }
+
+            if (modals.length > 0) {
+                document.body.classList.add('modal-open');
+                document.body.classList.add('cmf-modal-blur-active');
+            } else {
+                document.body.classList.remove('modal-open');
+                document.body.classList.remove('cmf-modal-blur-active');
+                // Guardrail: remove stale backdrops left by interrupted modal flows.
+                for (var k = 0; k < backdrops.length; k++) {
+                    if (backdrops[k] && backdrops[k].parentNode) {
+                        backdrops[k].parentNode.removeChild(backdrops[k]);
+                    }
+                }
+            }
+        }
+
+        function fallbackHideModalElement(modalEl) {
+            if (!modalEl) {
+                return;
+            }
+
+            if (window.jQuery && typeof window.jQuery(modalEl).modal === 'function') {
+                window.jQuery(modalEl).modal('hide');
+                return;
+            }
+
+            modalEl.classList.remove('show');
+            modalEl.style.display = 'none';
+            modalEl.setAttribute('aria-hidden', 'true');
+
+            var backdrops = Array.prototype.slice.call(document.querySelectorAll('.modal-backdrop'));
+            for (var i = 0; i < backdrops.length; i++) {
+                if (backdrops[i] && backdrops[i].parentNode) {
+                    backdrops[i].parentNode.removeChild(backdrops[i]);
+                }
+            }
+
+            document.body.classList.remove('modal-open');
+            document.body.classList.remove('cmf-modal-blur-active');
+        }
+
+        function bindModalDismissFallbackHandlers() {
+            if (!window.jQuery) {
+                return;
+            }
+
+            var $document = window.jQuery(document);
+            var selector = '.modal [data-dismiss="modal"], .modal [data-bs-dismiss="modal"], .modal .close';
+
+            $document.off('click.cmfModalDismissFallback', selector);
+            $document.on('click.cmfModalDismissFallback', selector, function (event) {
+                var modalEl = this.closest ? this.closest('.modal') : null;
+                if (!modalEl) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+                fallbackHideModalElement(modalEl);
+
+                setTimeout(function () {
+                    applyBootstrapModalStacking();
+                }, 0);
+            });
+        }
+
+        function wireModalCloseButtonsDirect() {
+            var buttons = document.querySelectorAll('.modal .close, .modal [data-dismiss="modal"], .modal [data-bs-dismiss="modal"]');
+            for (var i = 0; i < buttons.length; i++) {
+                var button = buttons[i];
+                if (!button || button.getAttribute('data-cmf-dismiss-bound') === '1') {
+                    continue;
+                }
+
+                button.setAttribute('data-cmf-dismiss-bound', '1');
+                button.addEventListener('click', function (event) {
+                    var modalEl = this.closest ? this.closest('.modal') : null;
+                    if (!modalEl) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    event.stopPropagation();
+                    fallbackHideModalElement(modalEl);
+
+                    setTimeout(function () {
+                        applyBootstrapModalStacking();
+                    }, 0);
+                });
+            }
+        }
+
+        function bindModalEscapeAndBackdropFallbacks() {
+            if (window.__cmfModalEscapeBackdropBound) {
+                return;
+            }
+
+            document.addEventListener('keydown', function (event) {
+                if ((event.key || '').toLowerCase() !== 'escape') {
+                    return;
+                }
+
+                var openModals = getVisibleBootstrapModals();
+                if (!openModals.length) {
+                    return;
+                }
+
+                fallbackHideModalElement(openModals[openModals.length - 1]);
+                applyBootstrapModalStacking();
+            });
+
+            document.addEventListener('click', function (event) {
+                var target = event.target;
+                if (!target) {
+                    return;
+                }
+
+                var modalEl = null;
+                if (target.classList && target.classList.contains('modal') && target.classList.contains('show')) {
+                    modalEl = target;
+                } else if (target.closest) {
+                    modalEl = target.closest('.modal.show');
+                }
+
+                if (!modalEl) {
+                    return;
+                }
+
+                var dialog = modalEl.querySelector('.modal-dialog');
+                if (dialog && dialog.contains(target)) {
+                    return;
+                }
+
+                fallbackHideModalElement(modalEl);
+                applyBootstrapModalStacking();
+            }, true);
+
+            window.__cmfModalEscapeBackdropBound = true;
+        }
+
+        function captureModalStackBeforePostback() {
+            var modals = getVisibleBootstrapModals();
+            cmfModalStackState.idsToRestore = modals
+                .map(function (modal) { return modal && modal.id ? modal.id : ''; })
+                .filter(function (id) { return !!id; });
+            cmfModalStackState.pendingRestore = cmfModalStackState.idsToRestore.length > 0;
+            persistModalStackForReload(cmfModalStackState.idsToRestore);
+        }
+
+        function restoreModalStackAfterPostback() {
+            if (!cmfModalStackState.pendingRestore) {
+                applyBootstrapModalStacking();
+                return;
+            }
+
+            var ids = cmfModalStackState.idsToRestore.slice();
+            cmfModalStackState.pendingRestore = false;
+            cmfModalStackState.idsToRestore = [];
+            clearPersistedModalStack();
+
+            for (var i = 0; i < ids.length; i++) {
+                var id = ids[i];
+                var modalEl = document.getElementById(id);
+                if (!modalEl || !window.jQuery) {
+                    continue;
+                }
+
+                var $modal = window.jQuery(modalEl);
+                if (!$modal.hasClass('show')) {
+                    $modal.modal('show');
+                }
+            }
+
+            setTimeout(function () {
+                applyBootstrapModalStacking();
+            }, 0);
+        }
+
+        function restorePersistedModalStackOnLoad() {
+            var ids = readPersistedModalStack();
+            if (!ids.length || !window.jQuery) {
+                return;
+            }
+
+            clearPersistedModalStack();
+
+            setTimeout(function () {
+                for (var i = 0; i < ids.length; i++) {
+                    var id = ids[i];
+                    var modalEl = document.getElementById(id);
+                    if (!modalEl) {
+                        continue;
+                    }
+
+                    var $modal = window.jQuery(modalEl);
+                    if (!$modal.hasClass('show')) {
+                        $modal.modal('show');
+                    }
+                }
+
+                applyBootstrapModalStacking();
+            }, 0);
+        }
+
+        function ensureModalPostbackCapture() {
+            if (window.__cmfDoPostBackWrapped || typeof window.__doPostBack !== 'function') {
+                return;
+            }
+
+            var originalDoPostBack = window.__doPostBack;
+            window.__doPostBack = function (eventTarget, eventArgument) {
+                captureModalStackBeforePostback();
+                return originalDoPostBack(eventTarget, eventArgument);
+            };
+            window.__cmfDoPostBackWrapped = true;
+        }
+
+        function bindModalStackPersistence() {
+            if (!window.jQuery) {
+                return;
+            }
+
+            hoistDashboardModalsToRoot();
+
+            var $document = window.jQuery(document);
+            $document.off('shown.bs.modal.cmfStack hidden.bs.modal.cmfStack', '.modal');
+
+            $document.on('shown.bs.modal.cmfStack', '.modal', function () {
+                applyBootstrapModalStacking();
+            });
+
+            $document.on('hidden.bs.modal.cmfStack', '.modal', function () {
+                setTimeout(function () {
+                    applyBootstrapModalStacking();
+                }, 0);
+            });
+
+            ensureModalPostbackCapture();
+
+            if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) {
+                Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function () {
+                    hoistDashboardModalsToRoot();
+                    ensureModalPostbackCapture();
+                    restoreModalStackAfterPostback();
+                    wireModalCloseButtonsDirect();
+                });
+            }
+
+            applyBootstrapModalStacking();
+        }
+
         function bindModalEntryCountHandlers() {
             if (!window.jQuery) {
                 return;
@@ -1123,6 +1510,132 @@ function showTotalImplementedVerifiedModal(design) {
             });
         }
 
+        function bindModalBackdropWatchdog() {
+            if (window.__cmfModalBackdropWatchdogBound) {
+                return;
+            }
+
+            window.__cmfModalBackdropWatchdogBound = true;
+            window.setInterval(function () {
+                var hasVisibleModals = getVisibleBootstrapModals().length > 0;
+                var hasBackdrop = document.querySelectorAll('.modal-backdrop').length > 0;
+                var hasModalOpenClass = document.body.classList.contains('modal-open');
+
+                if (hasVisibleModals && (!hasBackdrop || !hasModalOpenClass)) {
+                    applyBootstrapModalStacking();
+                    return;
+                }
+
+                if (!hasVisibleModals && (hasBackdrop || hasModalOpenClass)) {
+                    applyBootstrapModalStacking();
+                }
+            }, 250);
+        }
+
+        function clearSidebarViewportStickinessStyles(sidebar) {
+            if (!sidebar) {
+                return;
+            }
+
+            sidebar.style.removeProperty('position');
+            sidebar.style.removeProperty('top');
+            sidebar.style.removeProperty('left');
+            sidebar.style.removeProperty('height');
+            sidebar.style.removeProperty('max-height');
+            sidebar.style.removeProperty('min-height');
+            sidebar.style.removeProperty('z-index');
+        }
+
+        function syncSidebarViewportStickiness() {
+            var sidebar = document.getElementById('mainMenuSidebar');
+            if (!sidebar) {
+                return;
+            }
+
+            // Keep mobile/tablet behavior unchanged.
+            if (window.innerWidth <= 900) {
+                clearSidebarViewportStickinessStyles(sidebar);
+                return;
+            }
+
+            var shell = document.getElementById('portalLayoutShell');
+            var header = document.querySelector('header.portal-app-header');
+            var topOffset = 0;
+            var leftOffset = 0;
+
+            if (header) {
+                var headerRect = header.getBoundingClientRect();
+                topOffset = Math.max(0, Math.round(headerRect.bottom));
+            }
+
+            if (shell) {
+                var shellRect = shell.getBoundingClientRect();
+                leftOffset = Math.max(0, Math.round(shellRect.left));
+            }
+
+            sidebar.style.setProperty('position', 'fixed', 'important');
+            sidebar.style.setProperty('top', String(topOffset) + 'px', 'important');
+            sidebar.style.setProperty('left', String(leftOffset) + 'px', 'important');
+            sidebar.style.setProperty('height', 'calc(100vh - ' + String(topOffset) + 'px)', 'important');
+            sidebar.style.setProperty('max-height', 'calc(100vh - ' + String(topOffset) + 'px)', 'important');
+            sidebar.style.setProperty('min-height', '0px', 'important');
+            sidebar.style.setProperty('z-index', '90', 'important');
+        }
+
+        function bindSidebarViewportStickiness() {
+            if (window.__cmfSidebarViewportStickinessBound) {
+                syncSidebarViewportStickiness();
+                return;
+            }
+
+            window.__cmfSidebarViewportStickinessBound = true;
+
+            var scheduled = false;
+            var scheduleSync = function () {
+                if (scheduled) {
+                    return;
+                }
+
+                scheduled = true;
+                window.requestAnimationFrame(function () {
+                    scheduled = false;
+                    syncSidebarViewportStickiness();
+                });
+            };
+
+            window.addEventListener('scroll', scheduleSync, { passive: true });
+            window.addEventListener('resize', scheduleSync, { passive: true });
+            window.addEventListener('orientationchange', scheduleSync, { passive: true });
+
+            var sidebar = document.getElementById('mainMenuSidebar');
+            if (sidebar && window.MutationObserver) {
+                var observer = new MutationObserver(function () {
+                    scheduleSync();
+                });
+                observer.observe(sidebar, {
+                    attributes: true,
+                    attributeFilter: ['class', 'style']
+                });
+            }
+
+            if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) {
+                Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function () {
+                    scheduleSync();
+                });
+            }
+
+            scheduleSync();
+        }
+
         $(document).ready(function () {
+            bindPopupTableFlowMaskLifecycle();
+            hoistDashboardModalsToRoot();
+            bindModalStackPersistence();
+            bindModalDismissFallbackHandlers();
+            wireModalCloseButtonsDirect();
+            bindModalEscapeAndBackdropFallbacks();
+            restorePersistedModalStackOnLoad();
             bindModalEntryCountHandlers();
+            bindModalBackdropWatchdog();
+            bindSidebarViewportStickiness();
         });

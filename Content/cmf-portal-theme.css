@@ -1,30 +1,14 @@
-@font-face {
-    font-family: "IBM Plex Sans";
-    font-style: normal;
-    font-weight: 100 900;
-    font-display: swap;
-    src: url("fonts/ibm-plex-sans-latin-wght-normal.woff2") format("woff2");
-}
-
 :root {
-    --portal-font-ui: Cambria, Georgia, serif;
-    --portal-font-body: var(--portal-font-ui);
-    --portal-font-display: var(--portal-font-ui);
-    --portal-font-card: var(--portal-font-ui);
-    --portal-primary: #0073ed;
-    --portal-primary-dark: #005fc7;
-    --portal-bg: #f7f8fb;
-    --portal-surface: #ffffff;
-    --portal-surface-soft: #f9fafd;
-    --portal-ink: #24354e;
-    --portal-muted: #64738c;
-    --cmf-primary: #0073ed;
-    --cmf-primary-dark: #005fc7;
-    --cmf-primary-soft: #edf5ff;
-    --cmf-bg: #f7f8fb;
-    --cmf-border: #e4e9f1;
-    --cmf-text: #24354e;
-    --cmf-text-secondary: #64738c;
+    --portal-font-ui: "Segoe UI", Tahoma, sans-serif;
+    --portal-font-card: "Segoe UI", Tahoma, sans-serif;
+    --portal-primary: #0071e3;
+    --portal-primary-dark: #005bb8;
+    --portal-bg: #f3f6fa;
+    --portal-ink: #20344d;
+    --cmf-primary: #0071e3;
+    --cmf-bg: #f3f6fa;
+    --cmf-border: #dfe6ef;
+    --cmf-text: #20344d;
     --cmf-radius-sm: 4px;
     --cmf-radius-md: 6px;
     --cmf-radius-lg: 8px;
@@ -32,12 +16,9 @@
 
 html body {
     margin: 0;
-    background: var(--portal-bg) !important;
-    color: var(--portal-ink);
+    background: #f3f6fa !important;
+    color: #20344d;
     font-family: var(--portal-font-ui) !important;
-    font-size: 12px;
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
 }
 
 body input, body select, body textarea, body button,
@@ -51,234 +32,9 @@ body .portal-main-workspace [class*="label"] {
     letter-spacing: 0 !important;
 }
 
-html body :is(form, #portalLayoutShell, .portal-app-header, .ai-summary-drawer, .modal) :not(i):not(.fa):not(.fas):not(.far):not(.fab):not(.fa-solid):not(.fa-regular):not(.fa-brands),
-html body #pendingTabShell #cmfPendingExternalLinks .issue-external-links a,
-html body #issueTabShell #issueExternalLinks .issue-external-links a {
-    font-family: var(--portal-font-ui) !important;
-}
-
-html body select,
-html body #ddlSharedPlatform,
-html body #issueTabShell select.header-dropdown,
-html body #issueTabShell select.issue-page-size-select,
-html body #pendingTabShell select.cmf-pending-filter-select,
-html body .portal-app-header select.header-mode-dropdown {
-    appearance: none !important;
-    -webkit-appearance: none !important;
-    border: 1px solid #d5dfeb !important;
-    border-radius: 8px !important;
-    padding: 5px 28px 5px 10px !important;
-    background-color: #fff !important;
-    background-image: linear-gradient(45deg, transparent 50%, #64738c 50%), linear-gradient(135deg, #64738c 50%, transparent 50%) !important;
-    background-position: calc(100% - 14px) 50%, calc(100% - 10px) 50% !important;
-    background-size: 4px 4px !important;
-    background-repeat: no-repeat !important;
-    color: #3d506d !important;
-    font-family: var(--portal-font-ui) !important;
-    font-weight: 400 !important;
-    cursor: pointer;
-    transition: border-color .15s ease, box-shadow .15s ease;
-}
-
-.portal-filter-dropdown {
-    position: relative;
-    width: 100%;
-    min-width: 0;
-}
-
-html body select.portal-filter-native {
-    position: absolute !important;
-    width: 1px !important;
-    height: 1px !important;
-    min-height: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    overflow: hidden !important;
-    clip-path: inset(50%);
-}
-
-html body .portal-filter-trigger {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    width: 100%;
-    min-width: 0;
-    height: 36px;
-    padding: 6px 10px;
-    border: 1px solid #d5dfeb;
-    border-radius: 6px;
-    background: #fff;
-    color: #3d506d;
-    font: 11px/1.35 var(--portal-font-ui);
-    text-align: left;
-    cursor: pointer;
-}
-
-html body .portal-filter-trigger:hover,
-html body .portal-filter-trigger[aria-expanded="true"] {
-    border-color: #80b9ef;
-    background: #f5f9fd;
-}
-
-.portal-filter-trigger-text {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.portal-filter-trigger > i {
-    flex-shrink: 0;
-    font-size: 10px;
-    color: #64738c;
-}
-
-.portal-filter-menu {
-    position: fixed;
-    z-index: 10050;
-    box-sizing: border-box;
-    padding: 12px 0 6px;
-    border: 1px solid #e1e6ec;
-    border-radius: 8px;
-    background: #fff;
-    color: #374760;
-    box-shadow: 0 8px 24px rgba(28, 44, 64, .16);
-    font: 12px/1.45 var(--portal-font-ui);
-}
-
-.portal-filter-menu-search {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0 12px 8px;
-    padding: 10px 12px;
-    border: 1px solid #dce3eb;
-    border-radius: 4px;
-    color: #728092;
-}
-
-html body .portal-filter-menu-search input {
-    width: 100%;
-    min-width: 0;
-    height: 24px;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    outline: none;
-    background: transparent;
-    color: #374760;
-    font: inherit;
-    box-shadow: none;
-}
-
-.portal-filter-menu-search:focus-within {
-    border-color: #0073ed;
-    outline: 1px solid #0073ed;
-}
-
-.portal-filter-menu-summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 12px 6px;
-    font-weight: 600;
-}
-
-html body .portal-filter-menu-summary button {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    border: 0;
-    border-radius: 4px;
-    background: transparent;
-    color: #64738c;
-    cursor: pointer;
-}
-
-.portal-filter-menu-options {
-    max-height: 256px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-}
-
-html body .portal-filter-option {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    width: 100%;
-    min-height: 36px;
-    padding: 8px 14px;
-    border: 0;
-    border-radius: 0;
-    background: #fff;
-    color: #374760;
-    font: inherit;
-    text-align: left;
-    overflow-wrap: anywhere;
-    cursor: pointer;
-}
-
-html body .portal-filter-option:hover,
-html body .portal-filter-option[aria-selected="true"],
-html body .portal-filter-menu-summary button:hover {
-    background: #f0f6fc;
-}
-
-.portal-filter-option-check {
-    display: grid;
-    place-items: center;
-    flex: 0 0 16px;
-    width: 16px;
-    height: 16px;
-    margin-top: 1px;
-    border: 1px solid #bec9d6;
-    border-radius: 2px;
-    color: #0073ed;
-    font-size: 10px;
-}
-
-.portal-filter-menu-empty {
-    padding: 12px 14px;
-    color: #64738c;
-}
-
-html body .portal-filter-trigger:focus-visible,
-html body .portal-filter-option:focus-visible,
-html body .portal-filter-menu-summary button:focus-visible {
-    outline: 2px solid #0073ed;
-    outline-offset: -2px;
-}
-
-html body .portal-filter-trigger:disabled,
-html body .portal-filter-option:disabled {
-    opacity: .55;
-    cursor: default;
-}
-
-html body select:hover:not(:disabled) {
-    border-color: #80b9ef !important;
-}
-
-html body select:focus-visible {
-    border-color: #0073ed !important;
-    box-shadow: 0 0 0 3px rgba(0, 115, 237, .12) !important;
-}
-
-html body select:disabled {
-    opacity: .6;
-    cursor: not-allowed;
-}
-
-html body #issueTabShell #overall_request_details .field-los select {
-    padding: 4px 14px 4px 2px !important;
-    background-position: calc(100% - 9px) 50%, calc(100% - 5px) 50% !important;
-}
-
 body .portal-app-header {
-    position: sticky !important;
-    top: 0 !important;
+    position: relative !important;
+    top: auto !important;
     display: flex !important;
     flex-wrap: nowrap;
     align-items: center !important;
@@ -286,9 +42,9 @@ body .portal-app-header {
     height: 64px !important;
     min-height: 64px !important;
     padding: 0 20px !important;
-    background: linear-gradient(105deg, #193249 0%, #244767 100%) !important;
-    border-bottom: 1px solid #2d4b65 !important;
-    box-shadow: 0 1px 3px rgba(20, 38, 59, .08) !important;
+    background: #203c58 !important;
+    border-bottom: 1px solid #34516c !important;
+    box-shadow: none !important;
     color: #fff !important;
 }
 
@@ -331,8 +87,8 @@ body .portal-app-header .global-search-shell {
 
 body #globalPortalSearch {
     height: 36px;
-    background: #fcfdff;
-    border: 1px solid #d8e1ed;
+    background: #f8fafd;
+    border: 1px solid #cedaea;
     border-radius: 4px;
     padding-right: 38px;
     font-weight: 400;
@@ -365,8 +121,8 @@ body .header-user-mode label {
 body .portal-app-header .header-mode-dropdown {
     height: 34px !important;
     min-width: 145px !important;
-    background: #294a66 !important;
-    border: 1px solid #526e87 !important;
+    background: #294964 !important;
+    border: 1px solid #5c738b !important;
     border-radius: 4px !important;
     color: #fff !important;
     font-size: 12px !important;
@@ -398,12 +154,13 @@ body #mainMenuSidebar {
     width: 168px !important;
     min-width: 168px !important;
     max-width: 168px !important;
-    align-self: stretch !important;
-    height: auto !important;
-    min-height: calc(100vh - 64px) !important;
-    top: 64px !important;
+    align-self: flex-start !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
+    top: 0 !important;
     padding: 12px 0 !important;
-    background: #192f43 !important;
+    background: #1d344b !important;
     border: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -429,7 +186,7 @@ body #mainMenuSidebar .portal-nav-link {
     border-left: 3px solid transparent !important;
     border-radius: 0 !important;
     background: transparent !important;
-    color: #b9c8d8 !important;
+    color: #c7d5e4 !important;
     font-size: 12px !important;
     font-weight: 400 !important;
     transform: none !important;
@@ -449,13 +206,13 @@ body #mainMenuSidebar .portal-nav-link span {
 }
 
 body #mainMenuSidebar .portal-nav-link:hover {
-    background: #263f58 !important;
+    background: #29465f !important;
     color: #fff !important;
 }
 
 body #mainMenuSidebar .portal-nav-link.is-active {
-    background: #264c71 !important;
-    border-left-color: #009bff !important;
+    background: #284c6e !important;
+    border-left-color: #21a1ff !important;
     color: #fff !important;
     font-weight: 600 !important;
 }
@@ -492,7 +249,7 @@ body #portalLayoutShell > .portal-main-workspace {
     max-width: none !important;
     margin: 0 !important;
     padding: 18px !important;
-    background: var(--portal-bg) !important;
+    background: #f3f6fa !important;
 }
 
 body #portalLayoutShell > .gridview-container-wrapper {
@@ -532,7 +289,7 @@ body .portal-tab-title,
 body .pane-heading {
     font-size: 22px !important;
     font-weight: 600 !important;
-    color: #1b2d47 !important;
+    color: #1d324b !important;
     line-height: 1.3 !important;
     letter-spacing: 0 !important;
 }
@@ -541,7 +298,7 @@ body .issue-page-desc,
 body #pendingTabShell .cmf-pending-page-desc,
 body .ccip-dash-sub {
     margin-top: 4px !important;
-    color: #63738c !important;
+    color: #60728a !important;
     font-size: 12px !important;
     line-height: 1.5;
 }
@@ -564,10 +321,10 @@ body .ccip-summary-fact,
 body .overall-card,
 body .ccip-card,
 body .portal-surface-card {
-    border: 1px solid #e4e9f1 !important;
+    border: 1px solid #dfe6ef !important;
     border-radius: 6px !important;
     background: #fff !important;
-    box-shadow: 0 1px 3px rgba(23, 43, 68, .025) !important;
+    box-shadow: none !important;
 }
 
 body .issue-kpi {
@@ -575,7 +332,7 @@ body .issue-kpi {
 }
 
 body .issue-kpi-label {
-    color: #5b6c86 !important;
+    color: #536985 !important;
     font-size: 12px !important;
     font-weight: 400 !important;
     text-transform: none !important;
@@ -583,8 +340,8 @@ body .issue-kpi-label {
 
 body .issue-kpi-value {
     font-size: 24px !important;
-    font-weight: 700 !important;
-    color: #203650 !important;
+    font-weight: 600 !important;
+    color: #223b57 !important;
 }
 
 body #sharedFilterPanel.overview-platform-actions,
@@ -627,11 +384,11 @@ body .cmf-pending-searchbox input {
     max-width: 100%;
     min-width: 0 !important;
     height: 34px !important;
-    border: 1px solid #dce3ee !important;
+    border: 1px solid #d5dfeb !important;
     border-radius: 4px !important;
     background-color: #fff !important;
-    color: #3d506d !important;
-    font-size: 11px !important;
+    color: #304760 !important;
+    font-size: 12px !important;
     font-weight: 400 !important;
     box-shadow: none !important;
 }
@@ -648,10 +405,10 @@ body #pendingTabShell #cmfPendingExternalLinks a {
     gap: 7px;
     min-height: 34px;
     padding: 7px 10px !important;
-    border: 1px solid #dce3ee !important;
+    border: 1px solid #cfdaea !important;
     border-radius: 4px;
     background: #fff !important;
-    color: #476384 !important;
+    color: #315574 !important;
     font-weight: 500 !important;
     text-decoration: none !important;
 }
@@ -721,30 +478,6 @@ body #pendingTabShell .pending-tab-main .cmf-pending-filter-card {
 
 body #pendingTabShell .cmf-pending-searchbox {
     display: none !important;
-}
-
-body #pendingTabShell .cmf-pending-filter-btn {
-    box-sizing: border-box;
-    height: 36px !important;
-    min-height: 36px !important;
-    padding: 6px 12px !important;
-    align-self: end;
-}
-
-body #pendingTabShell .pending-stale-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    max-width: 100%;
-    padding: 3px 6px;
-    border: 1px solid #e6c46a;
-    border-left: 3px solid #b77900;
-    border-radius: 4px;
-    background: #fff8df;
-    color: #775400;
-    font-size: 10px;
-    line-height: 1.4;
-    white-space: normal;
 }
 
 body .portal-date-filter {
@@ -827,45 +560,32 @@ body .modern-button,
 body .filter-btn-primary,
 body .ccip-btn-primary,
 body .cmf-pending-action-btn.primary {
-    background: var(--portal-primary) !important;
+    background: #0071e3 !important;
     color: #fff !important;
-    border: 1px solid var(--portal-primary) !important;
+    border: 1px solid #0071e3 !important;
     border-radius: 4px !important;
     font-weight: 600 !important;
-    box-shadow: 0 1px 2px rgba(0, 96, 200, .10) !important;
+    box-shadow: none !important;
 }
 
 body .issue-grid-scroll,
 body #pendingTabShell .cmf-pending-grid-wrap {
-    border: 1px solid #e1e7f0 !important;
+    border: 1px solid #dfe6ef !important;
     border-radius: 4px !important;
     background: #fff !important;
     box-shadow: none !important;
 }
 
-#pendingTabShell .pending-cell-content,
-#issueTabShell .pending-cell-content {
+#pendingTabShell .pending-cell-content {
     position: relative;
     min-width: 0;
 }
 
-body #pendingTabShell #GridView_cmf_pending .pending-customer-label {
-    display: block;
-    width: fit-content;
-    max-width: 100%;
-    box-sizing: border-box;
-    margin: 0 auto 6px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    background: var(--customer-brand);
-    color: var(--customer-ink, #fff);
-    font-weight: 700;
-    line-height: 1.3;
-    overflow-wrap: anywhere;
+#pendingTabShell .pending-cell-content.has-overflow {
+    padding-right: 17px;
 }
 
-#pendingTabShell .pending-cell-text,
-#issueTabShell .pending-cell-text {
+#pendingTabShell .pending-cell-text {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 4;
@@ -876,15 +596,23 @@ body #pendingTabShell #GridView_cmf_pending .pending-customer-label {
     overflow-wrap: anywhere;
 }
 
-#pendingTabShell .pending-cell-text.is-truncated,
-#issueTabShell .pending-cell-text.is-truncated {
+#pendingTabShell .pending-cell-info {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 15px;
+    height: 16px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #0069d0;
+    font-size: 12px;
+    line-height: 16px;
     cursor: help;
 }
 
-#pendingTabShell .pending-cell-text:focus-visible,
-#issueTabShell .pending-cell-text:focus-visible {
-    outline: 2px solid var(--portal-primary);
-    outline-offset: 2px;
+#pendingTabShell .pending-cell-info[hidden] {
+    display: none;
 }
 
 body .pending-cell-tooltip {
@@ -900,14 +628,9 @@ body .pending-cell-tooltip {
     background: #fff;
     color: #20344d;
     box-shadow: 0 4px 16px rgba(20, 45, 70, .16);
-    font: 12px/1.5 var(--portal-font-ui);
+    font: 12px/1.5 "Segoe UI", Tahoma, sans-serif;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-}
-
-body .ai-summary-drawer:not(.show) {
-    visibility: hidden !important;
-    box-shadow: none !important;
 }
 
 body .portal-main-workspace .table-primary {
@@ -919,9 +642,9 @@ body .portal-main-workspace .table-primary {
 
 body .portal-main-workspace .table-primary th,
 body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th {
-    background: #edf1f7 !important;
-    color: #31445e !important;
-    border-color: #e1e7f0 !important;
+    background: #eaf0f7 !important;
+    color: #28425f !important;
+    border-color: #dfe6ef !important;
     font-size: 11px !important;
     font-weight: 600 !important;
     letter-spacing: 0 !important;
@@ -930,234 +653,18 @@ body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th {
 
 body .portal-main-workspace .table-primary td,
 body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td {
-    color: #374760 !important;
-    border-color: #e8ecf3 !important;
+    color: #30445e !important;
+    border-color: #e3e9f1 !important;
     font-size: 11px !important;
     line-height: 1.45 !important;
-}
-
-body #pendingTabShell .cmf-pending-page-title {
-    font-weight: 700 !important;
-    color: #1b2d47 !important;
-}
-
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th {
-    font-weight: 700 !important;
-}
-
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td,
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td :is(a, span:not(.pending-ai-rec-icon), button, div, strong, small) {
-    font-size: 12px !important;
-}
-
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns {
-    min-width: 0 !important;
-}
-
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th,
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td {
-    width: calc(7.142857% - 14.285714px) !important;
-    text-align: center !important;
-    vertical-align: middle !important;
-}
-
-body #pendingTabShell #GridView_cmf_pending .pending-id-actions,
-body #pendingTabShell #GridView_cmf_pending .pending-ai-rec-btn {
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-title,
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-impact {
-    width: calc(14.285714% - 28.571428px) !important;
-}
-
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th:nth-child(n+11),
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td:nth-child(n+11) {
-    width: calc(5.357143% + 13.285714px) !important;
-}
-
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-reason,
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-days-open {
-    padding-left: 2px !important;
-    padding-right: 2px !important;
-    text-align: center !important;
-}
-
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-ai-recommendation .pending-ai-rec-cell {
-    display: block !important;
-    width: 100% !important;
-}
-
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-ai-recommendation .pending-ai-rec-btn {
-    flex-direction: column !important;
-    gap: 4px !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-    height: auto !important;
-    padding: 4px 2px !important;
-    white-space: normal !important;
-}
-
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-ai-recommendation .pending-ai-rec-label {
-    display: block !important;
-    min-width: 0;
-    max-width: 100%;
-    font-size: 10px;
-    line-height: 1.35;
-    overflow-wrap: anywhere;
-    white-space: normal;
-}
-
-@media (max-width: 700px) {
-    body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th,
-    body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td {
-        padding-left: 1px !important;
-        padding-right: 1px !important;
-    }
-
-    body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-ai-recommendation .pending-ai-rec-btn {
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-    }
-}
-
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th:first-child,
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td:first-child {
-    width: 104px !important;
-}
-
-body #pendingTabShell #GridView_cmf_pending .pending-id-actions > a,
-body #issueTabShell #overall_request_details .issue-id-link {
-    white-space: nowrap !important;
-    overflow-wrap: normal !important;
-    word-break: normal !important;
-    font-variant-numeric: tabular-nums;
-}
-
-body #issueTabShell .issue-page-title {
-    font-weight: 700 !important;
-    color: #1b2d47 !important;
-}
-
-body #issueTabShell .issue-top-filter-item > span {
-    color: #536985 !important;
-    font-size: 11px !important;
-    font-weight: 400 !important;
-    text-transform: none !important;
-}
-
-body #issueTabShell .header-dropdown {
-    height: 34px !important;
-    border: 1px solid #dce3ee !important;
-    border-radius: 4px !important;
-    background: #fff !important;
-    color: #3d506d !important;
-    font-size: 11px !important;
-    font-weight: 400 !important;
-    box-shadow: none !important;
-}
-
-body #issueTabShell .filter-btn-secondary {
-    min-height: 34px !important;
-    border: 1px solid #dce3ee !important;
-    border-radius: 4px !important;
-    background: #fff !important;
-    color: #476384 !important;
-    box-shadow: none !important;
-}
-
-body #issueTabShell #overall_request_details {
-    margin-top: 0 !important;
-    border-collapse: collapse !important;
-    border-radius: 0 !important;
-    font-family: var(--portal-font-ui) !important;
-    box-shadow: none !important;
-}
-
-body #issueTabShell #overall_request_details th {
-    border: 1px solid #e1e7f0 !important;
-    background: #edf1f7 !important;
-    color: #31445e !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0 !important;
-    text-transform: none !important;
-}
-
-body #issueTabShell #overall_request_details td {
-    border: 1px solid #e8ecf3 !important;
-    background: #fff !important;
-    color: #374760 !important;
-    font-size: 11px !important;
-    font-weight: 400 !important;
-    line-height: 1.45 !important;
-}
-
-body #issueTabShell #overall_request_details tr:nth-child(even) > td {
-    background: #fafbfe !important;
-}
-
-body #issueTabShell #overall_request_details tr:hover > td {
-    background: #f0f6ff !important;
-}
-
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn,
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn:hover,
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn:active,
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn:focus {
-    background: transparent !important;
-    border-color: transparent !important;
-    color: #0069d0 !important;
-    box-shadow: none !important;
-}
-
-#pendingTabShell .pending-request-date {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-}
-
-#pendingTabShell .pending-request-date > .pending-cell-text {
-    display: block;
-    max-width: 100%;
-    white-space: nowrap;
-    word-break: normal;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 body .portal-main-workspace .table-primary tr:nth-child(even) > td {
-    background-color: #fafbfe !important;
+    background-color: #f7f9fc !important;
 }
 
 body .portal-main-workspace .table-primary tr:hover > td {
-    background-color: #f0f6ff !important;
-}
-
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns tr:nth-child(even) > td {
-    background-color: #fafbfe !important;
-}
-
-body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns tr:hover > td {
-    background-color: #f0f6ff !important;
-}
-
-body .portal-main-workspace .table-primary td a:not(.pending-ai-rec-btn) {
-    color: #0073ed;
-    text-decoration: none;
-}
-
-body #pendingTabShell #GridView_cmf_pending .pending-rvp-status {
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent !important;
-    color: inherit !important;
-    font-size: inherit;
-    font-weight: 400;
+    background-color: #edf5ff !important;
 }
 
 body .issue-pager-controls {
@@ -1168,450 +675,6 @@ body .issue-pager-controls {
     background: transparent !important;
     box-shadow: none !important;
     color: #536985;
-}
-
-body #issueTabShell .issue-page-hd {
-    display: block !important;
-}
-
-body #issueTabShell .issue-page-hd-top {
-    width: 100% !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-}
-
-body #issueTabShell .issue-page-title {
-    margin: 0 !important;
-}
-
-body #issueTabShell .issue-page-desc {
-    margin: 4px 0 0 !important;
-    text-align: left !important;
-}
-
-body #issueTabShell #issueExternalLinks {
-    margin-left: auto;
-}
-
-body #issueExternalLinks .issue-external-links {
-    gap: 8px !important;
-    justify-content: flex-end;
-}
-
-body #issueExternalLinks a {
-    display: inline-flex !important;
-    align-items: center;
-    gap: 7px;
-    min-height: 34px;
-    padding: 7px 10px !important;
-    border: 1px solid #dce3ee !important;
-    border-radius: 4px !important;
-    background: #fff !important;
-    color: #476384 !important;
-    font-size: 12px !important;
-    font-weight: 500 !important;
-    text-decoration: none !important;
-}
-
-body #issueExternalLinks a::after {
-    content: "\f35d";
-    font-family: "Font Awesome 6 Free";
-    font-size: 10px;
-    font-weight: 900;
-    color: #607d99;
-}
-
-body #issueExternalLinks a:hover {
-    background: #edf5ff !important;
-    border-color: #80b9ef !important;
-    color: #005bb8 !important;
-}
-
-body #issueTabShell .issue-kpi-row {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    gap: 10px !important;
-    margin: 0 0 12px !important;
-}
-
-body #issueTabShell .issue-kpi {
-    --issue-kpi-color: #536985;
-    --issue-kpi-tint: #edf1f7;
-    display: grid !important;
-    grid-template-columns: 38px minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    align-content: center;
-    column-gap: 12px;
-    row-gap: 1px;
-    min-height: 72px !important;
-    padding: 10px 12px !important;
-    border: 1px solid #e4e9f1 !important;
-    border-radius: 4px !important;
-    box-shadow: none !important;
-}
-
-body #issueTabShell .issue-kpi::before {
-    display: none !important;
-}
-
-body #issueTabShell .issue-kpi:nth-child(2) {
-    --issue-kpi-color: #0073ed;
-    --issue-kpi-tint: #e5f1ff;
-}
-
-body #issueTabShell .issue-kpi:nth-child(3) {
-    --issue-kpi-color: #208454;
-    --issue-kpi-tint: #e0f4e9;
-}
-
-body #issueTabShell .issue-kpi:nth-child(4) {
-    --issue-kpi-color: #157b86;
-    --issue-kpi-tint: #e0f2f3;
-}
-
-body #issueTabShell .issue-kpi-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    grid-column: 1;
-    grid-row: 1 / span 2;
-    align-self: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    background: var(--issue-kpi-tint);
-    color: var(--issue-kpi-color);
-    font-size: 19px;
-}
-
-body #issueTabShell .issue-kpi-label {
-    grid-column: 2;
-    margin: 0 !important;
-    font-size: 11px !important;
-    line-height: 1.4 !important;
-}
-
-body #issueTabShell .issue-kpi-value {
-    grid-column: 2;
-    margin: 0 !important;
-    color: var(--issue-kpi-color) !important;
-    font-size: 20px !important;
-    line-height: 1.2 !important;
-}
-
-body #issueTabShell .issue-top-filter-panel {
-    display: block !important;
-    margin: 0 0 12px !important;
-    padding: 0 !important;
-}
-
-body #issueTabShell #issueTopFilterBody,
-body #issueTabShell #issueTopFilterBody.is-collapsed {
-    display: grid !important;
-    grid-template-columns: repeat(9, minmax(0, 1fr)) max-content;
-    align-items: end !important;
-    gap: 8px !important;
-    max-height: none !important;
-    overflow: visible !important;
-}
-
-body #issueTabShell .issue-top-filter-grid {
-    display: contents !important;
-}
-
-body #issueTabShell .issue-top-filter-item {
-    display: flex !important;
-    flex-direction: column;
-    gap: 4px;
-    width: 100% !important;
-}
-
-body #issueTabShell .issue-top-filter-item > span {
-    white-space: normal !important;
-    line-height: 1.4;
-}
-
-body #issueTabShell .issue-top-filter-buttons {
-    width: auto !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-body #issueTabShell #btnClearFilters {
-    height: 34px !important;
-    padding: 0 12px !important;
-}
-
-body #issueTabShell .issue-user-toolbar {
-    min-height: 0 !important;
-    margin: 0 0 8px !important;
-    padding: 0 !important;
-}
-
-body #issueTabShell .issue-user-toolbar:has(#btnShowAllColumns[style*="display:none"]) {
-    display: none !important;
-}
-
-body #issueTabShell .issue-grid-scroll {
-    min-height: 0 !important;
-    max-height: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    overflow: visible !important;
-}
-
-body #issueTabShell .issue-grid-toolbar,
-body #issueTabShell #issue-grid-inner {
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-}
-
-body #issueTabShell #issue-grid-inner {
-    width: 100% !important;
-    scrollbar-gutter: auto !important;
-}
-
-body #issueTabShell #overall_request_details .impact-text {
-    color: #374760 !important;
-    font-size: 11px !important;
-    font-weight: 400 !important;
-    line-height: 1.45 !important;
-}
-
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary {
-    table-layout: fixed !important;
-}
-
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th,
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td {
-    width: calc((100% - 76px) / 15) !important;
-    min-width: 0 !important;
-    max-width: none !important;
-    padding: 7px 4px !important;
-    vertical-align: top !important;
-    white-space: normal !important;
-    overflow-wrap: anywhere !important;
-    word-break: normal !important;
-}
-
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.field-sno,
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.field-sno {
-    width: 36px !important;
-    font-size: 10px !important;
-}
-
-body #issueTabShell #overall_request_details .issue-sno-index {
-    font-size: 10px !important;
-}
-
-body #issueTabShell #overall_request_details .issue-sno-cell {
-    min-width: 0 !important;
-    max-width: 100%;
-}
-
-body #issueTabShell #overall_request_details .issue-inline-edit-btn,
-body #issueTabShell #overall_request_details .issue-inline-edit-action {
-    width: 24px !important;
-    min-width: 24px !important;
-    height: 24px !important;
-    padding: 0 !important;
-}
-
-body #issueTabShell #overall_request_details .issue-inline-edit-actions {
-    display: flex !important;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-}
-
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.field-los,
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.field-los {
-    width: 40px !important;
-}
-
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.hidden,
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.hidden {
-    display: none !important;
-}
-
-body #issueTabShell #overall_request_details .empty-data-container {
-    padding: 24px 12px !important;
-    text-align: center;
-    color: #63738c;
-}
-
-body #issueTabShell #overall_request_details .issue-cell-stack,
-body #issueTabShell #overall_request_details .issue-cell-stack > span {
-    display: block;
-    line-height: 1.45;
-}
-
-body #issueTabShell #overall_request_details .issue-meta-row-primary {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 6px !important;
-}
-
-body #issueTabShell #overall_request_details .issue-id-link {
-    max-width: 100% !important;
-    padding: 0 !important;
-    border: 0 !important;
-    background: transparent !important;
-    font-size: 10px !important;
-    font-weight: 600 !important;
-}
-
-body #issueTabShell #overall_request_details .issue-details-ai-btn {
-    flex: 0 0 24px;
-    width: 24px !important;
-    height: 24px !important;
-    padding: 2px !important;
-    border: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-body #issueTabShell #overall_request_details .status-cell-wrap,
-body #issueTabShell #overall_request_details .status-row,
-body #issueTabShell #overall_request_details .status-label-group {
-    min-width: 0 !important;
-    max-width: 100% !important;
-    flex-wrap: wrap !important;
-    gap: 4px !important;
-}
-
-body #issueTabShell #overall_request_details .status-pill,
-body #issueTabShell #overall_request_details .status-confidence-pill {
-    max-width: 100%;
-    padding: 3px 5px !important;
-    margin: 0 !important;
-    font-size: 9px !important;
-    white-space: normal !important;
-    overflow-wrap: anywhere;
-}
-
-body #issueTabShell #overall_request_details .status-one-line {
-    display: block !important;
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-    padding: 0 !important;
-    font-size: 11px !important;
-    line-height: 1.45 !important;
-}
-
-body #issueTabShell #overall_request_details .milestone-text-only,
-body #issueTabShell #overall_request_details .days-open-pill {
-    min-width: 0 !important;
-    max-width: 100% !important;
-    padding: 0 !important;
-    white-space: normal !important;
-    font-size: 11px !important;
-    line-height: 1.45 !important;
-}
-
-body #issueTabShell .issue-pager-controls {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 12px !important;
-    width: 100% !important;
-}
-
-body #issueTabShell .issue-page-size-control {
-    margin: 0 !important;
-    color: #536985 !important;
-    font-size: 12px !important;
-    font-weight: 400 !important;
-}
-
-body #issueTabShell .issue-page-status {
-    margin: 0 0 0 auto !important;
-    padding: 0 !important;
-    color: #63738c !important;
-    font-size: 11px !important;
-    white-space: nowrap;
-}
-
-body #issueTabShell .issue-page-nav {
-    display: flex !important;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 4px !important;
-    margin: 0 !important;
-}
-
-body #issueTabShell .issue-page-nav a,
-body #issueTabShell .issue-page-size-select {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 30px !important;
-    height: 30px !important;
-    padding: 4px 8px !important;
-    border: 1px solid #d5dfeb !important;
-    border-radius: 4px !important;
-    background: #fff !important;
-    color: #536985 !important;
-    font-size: 11px !important;
-    text-decoration: none !important;
-    box-shadow: none !important;
-}
-
-body #issueTabShell .issue-page-nav .issue-pager-current {
-    border-color: #80b9ef !important;
-    background: #edf5ff !important;
-    color: #0069d0 !important;
-}
-
-@media (max-width: 900px) {
-    body #issueTabShell #issueTopFilterBody,
-    body #issueTabShell #issueTopFilterBody.is-collapsed {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    body #issueTabShell .issue-page-hd-top {
-        align-items: flex-start !important;
-    }
-
-    body #issueTabShell #issueExternalLinks {
-        margin-left: 0;
-    }
-
-    body #issueTabShell .issue-kpi-row {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    }
-}
-
-@media (max-width: 600px) {
-    body #issueTabShell #issueTopFilterBody,
-    body #issueTabShell #issueTopFilterBody.is-collapsed {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    body #issueTabShell .issue-kpi {
-        grid-template-columns: 28px minmax(0, 1fr);
-        column-gap: 8px;
-        padding: 9px !important;
-    }
-
-    body #issueTabShell .issue-kpi-icon {
-        width: 28px;
-        height: 28px;
-        font-size: 15px;
-    }
-
-    body #issueTabShell .issue-page-nav {
-        flex: 1 1 100%;
-    }
 }
 
 body input:focus-visible, body select:focus-visible,
