@@ -4084,7 +4084,7 @@ body {
     white-space: nowrap;
 }
 
-.ccip-live-table.ccip-component-summary-table tr > *:first-child {
+.ccip-live-table.ccip-component-summary-table tr > *:first-child:not(.ccip-component-sub-header) {
     width: 92px;
     min-width: 92px;
     max-width: 92px;
@@ -4288,8 +4288,9 @@ body {
 }
 
 .ccip-live-table.ccip-component-summary-table .ccip-component-sub-header {
-    top: 36px;
-    z-index: 2;
+    position: sticky;
+    top: var(--ccip-component-group-header-height, 45.69px);
+    z-index: 3;
     box-sizing: border-box;
     height: 21px;
     min-height: 21px;
@@ -21073,6 +21074,7 @@ td:nth-child(odd), th:nth-child(odd) {
             firstCell.style.left = '0px';
             firstCell.style.zIndex = '8';
 
+            var groupHeaderHeight = 0;
             for (var i = 1; i < topCells.length; i++) {
                 var groupCell = topCells[i];
                 if (!groupCell.classList.contains('ccip-component-group-header')) {
@@ -21082,9 +21084,59 @@ td:nth-child(odd), th:nth-child(odd) {
                 // Keep vertical sticky behavior from base table header CSS.
                 // Do not pin group headers horizontally; they must slide with their two sub-columns.
                 groupCell.style.position = 'sticky';
+                groupCell.style.top = '0px';
                 groupCell.style.left = '';
-                groupCell.style.zIndex = '3';
+                groupCell.style.zIndex = '4';
                 groupCell.style.background = '#f2f4f7';
+
+                if (!groupHeaderHeight) {
+                    var measuredHeight = groupCell.getBoundingClientRect().height;
+                    if (measuredHeight && isFinite(measuredHeight) && measuredHeight > 0) {
+                        groupHeaderHeight = measuredHeight;
+                    }
+                }
+            }
+
+            if (!groupHeaderHeight) {
+                groupHeaderHeight = 45.69;
+            }
+
+            var topOffsetPx = groupHeaderHeight + 'px';
+            table.style.setProperty('--ccip-component-group-header-height', topOffsetPx);
+
+            var subCells = headerRows[1].querySelectorAll('th.ccip-component-sub-header');
+            for (var j = 0; j < subCells.length; j++) {
+                var subCell = subCells[j];
+                subCell.style.position = 'sticky';
+                subCell.style.top = topOffsetPx;
+                subCell.style.zIndex = '3';
+                subCell.style.background = '#f2f4f7';
+            }
+
+            if (!host._hasComponentSubHeaderStickySync) {
+                host._hasComponentSubHeaderStickySync = true;
+                host.addEventListener('scroll', function () {
+                    var currentTable = host.querySelector('table.ccip-component-summary-table');
+                    if (!currentTable) {
+                        return;
+                    }
+                    var currentGroupCell = currentTable.querySelector('thead tr:first-child th.ccip-component-group-header');
+                    if (!currentGroupCell) {
+                        return;
+                    }
+                    var liveHeight = currentGroupCell.getBoundingClientRect().height;
+                    if (!liveHeight || !isFinite(liveHeight) || liveHeight <= 0) {
+                        return;
+                    }
+                    var liveTopPx = liveHeight + 'px';
+                    if (currentTable.style.getPropertyValue('--ccip-component-group-header-height') !== liveTopPx) {
+                        currentTable.style.setProperty('--ccip-component-group-header-height', liveTopPx);
+                        var currentSubCells = currentTable.querySelectorAll('thead tr:nth-child(2) th.ccip-component-sub-header');
+                        for (var k = 0; k < currentSubCells.length; k++) {
+                            currentSubCells[k].style.top = liveTopPx;
+                        }
+                    }
+                }, { passive: true });
             }
         }
 
