@@ -37,6 +37,20 @@ bin/                       Runtime assemblies required by the Web Forms app
 
 The runtime entry point is `CMF_Web_portal.aspx`.
 
+### Issue List: AI Debug Summary
+
+AI Debug Summary produces a single list of plain-English bullets describing the
+debugging documented for the sighting and its linked promoted HSD articles:
+tests performed, findings, and recorded fix or validation outcomes. Suspected
+causes and planned work must remain distinct from confirmed results. It does not
+generate risk, escalation, decision, or next-action subsections.
+
+The summary uses retrieved HSD text, not attachment contents, and discussion
+history may be partial. Missing debugging evidence or article retrieval failures
+must be acknowledged rather than filled with assumptions. If the AI provider
+fails or returns an invalid output format, the feature shows a retryable error
+instead of a heuristic summary. The existing summary window is unchanged.
+
 ## First-Time Setup
 
 1. Clone or extract the project to a local folder.

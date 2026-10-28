@@ -1,4 +1,58 @@
-﻿function toggleSidebar() {
+﻿(function () {
+    var active = null;
+    function close(restoreFocus) {
+        if (!active) return;
+        var state = active;
+        active = null;
+        state.menu.hidden = true;
+        state.parent.appendChild(state.menu);
+        state.trigger.setAttribute('aria-expanded', 'false');
+        if (restoreFocus && state.trigger.isConnected) state.trigger.focus();
+    }
+    window.toggleIssueRowActions = function (trigger) {
+        if (active && active.trigger === trigger) { close(true); return; }
+        close(false);
+        var parent = trigger.closest('.issue-row-actions');
+        var menu = parent.querySelector('.issue-row-actions-menu');
+        active = { trigger: trigger, parent: parent, menu: menu };
+        document.body.appendChild(menu);
+        menu.hidden = false;
+        var bounds = trigger.getBoundingClientRect();
+        menu.style.left = Math.max(8, Math.min(bounds.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 8)) + 'px';
+        menu.style.top = (bounds.bottom + menu.offsetHeight + 8 < window.innerHeight ? bounds.bottom + 4 : Math.max(8, bounds.top - menu.offsetHeight - 4)) + 'px';
+        trigger.setAttribute('aria-expanded', 'true');
+        menu.querySelector('[role="menuitem"]').focus();
+    };
+    window.runIssueRowAiAction = function (mode) {
+        if (!active) return;
+        var row = active.trigger.closest('tr');
+        close(false);
+        var button = row.querySelector(mode === 'details' ? '.field-sightingid .issue-details-ai-btn' : '.field-status .issue-details-ai-btn');
+        if (button) button.click();
+    };
+    document.addEventListener('click', function (event) {
+        if (!active) return;
+        if (active.menu.contains(event.target)) {
+            if (event.target.closest('a')) close(false);
+        } else if (!active.trigger.contains(event.target)) close(false);
+    });
+    document.addEventListener('keydown', function (event) {
+        if (!active) return;
+        if (event.key === 'Escape') { event.preventDefault(); close(true); return; }
+        if (event.key === 'Tab') { close(false); return; }
+        var items = Array.from(active.menu.querySelectorAll('[role="menuitem"]'));
+        var index = items.indexOf(document.activeElement);
+        var next = event.key === 'ArrowDown' ? (index + 1) % items.length : event.key === 'ArrowUp' ? (index + items.length - 1) % items.length : event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : -1;
+        if (next >= 0) { event.preventDefault(); items[next].focus(); }
+    });
+    document.addEventListener('scroll', function (event) { if (active && !active.menu.contains(event.target)) close(false); }, true);
+    window.addEventListener('resize', function () { close(false); });
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) Sys.WebForms.PageRequestManager.getInstance().add_beginRequest(function () { close(false); });
+    });
+}());
+
+function toggleSidebar() {
     var sidebar = document.querySelector('.sidebar');
     if (!sidebar) return;
     sidebar.style.right = (sidebar.style.right === '0px' || sidebar.style.right === '0') ? '-250px' : '0px';

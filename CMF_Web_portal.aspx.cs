@@ -7684,7 +7684,7 @@ LEFT JOIN " + designTable + @" AS d
         if (!string.IsNullOrWhiteSpace(sightingId))
         {
             sb.AppendFormat(
-                "<a class=\"issue-id-link\" href=\"https://hsdes.intel.com/appstore/article/#{0}\" target=\"_blank\">#{1}</a>",
+                "<a class=\"issue-id-link\" href=\"https://hsdes.intel.com/appstore/article/#{0}\" target=\"_blank\">{1}</a>",
                 HttpUtility.HtmlAttributeEncode(sightingId),
                 HttpUtility.HtmlEncode(sightingId));
         }
@@ -7989,9 +7989,9 @@ LEFT JOIN " + designTable + @" AS d
 
     protected string RenderDaysOpen(object daysOpenValue)
     {
-        string daysOpen = daysOpenValue == null || daysOpenValue == DBNull.Value ? "0" : daysOpenValue.ToString().Trim();
-        if (string.IsNullOrWhiteSpace(daysOpen)) daysOpen = "0";
-        return string.Format("<span class=\"days-open-pill\">{0}</span>", HttpUtility.HtmlEncode(daysOpen));
+        string daysOpen = daysOpenValue == null || daysOpenValue == DBNull.Value ? "unknown" : daysOpenValue.ToString().Trim();
+        if (string.IsNullOrWhiteSpace(daysOpen)) daysOpen = "unknown";
+        return HttpUtility.HtmlEncode(daysOpen);
     }
 
     protected string RenderCustomerDetailWithCompanyAndProcessor(
@@ -8166,18 +8166,16 @@ LEFT JOIN " + designTable + @" AS d
         else primaryStatusToDisplay = status;
 
         string sysdebug = sysdebugValue == null || sysdebugValue == DBNull.Value ? string.Empty : sysdebugValue.ToString().Replace("\r", " ").Replace("\n", " ").Trim();
-        string sightingId = sightingIdValue == null || sightingIdValue == DBNull.Value ? string.Empty : sightingIdValue.ToString();
         string onclick = "openAiSummaryModal(\"" + JsEncode(sightingIdValue) + "\", \"" + JsEncode(titleValue) + "\", \"" + JsEncode(FormatDateOnly(submittedDateValue)) + "\", \"" + JsEncode(statusValue) + "\", \"" + JsEncode(sysdebugValue) + "\", \"AI Summary\")";
 
         return "<div class=\"status-cell-wrap status-cell-wrap-compact\">" +
             "<div class=\"status-row status-row-primary\">" +
                 "<span class=\"status-label-group\">" +
-                "<span class=\"status-pill\" style=\"margin-right: 6px;\">" + HttpUtility.HtmlEncode(status) + "</span>" +
+                "<span class=\"status-pill\" style=\"margin-right: 6px;\">" + HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(status) ? "unknown" : status) + "</span>" +
                 "<button type=\"button\" class=\"ai-summary-btn ai-summary-btn-inline issue-details-ai-btn\" style=\"padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid #7cb5ec; background-color: #f3f9ff; font-size: 14px; width: 26px; height: 26px; margin-right: 6px;\" onclick='" + onclick + "' title=\"AI Debug Summary\" aria-label=\"AI Debug Summary\">&#10024;</button>" +
                 "</span>" +
-                "<span class=\"status-confidence-pill status-confidence-empty\" data-ai-confidence-issue=\"" + HttpUtility.HtmlAttributeEncode(sightingId) + "\">AI not run</span>" +
             "</div>" +
-            "<div class=\"status-one-line\">" + HttpUtility.HtmlEncode(primaryStatusToDisplay) + "</div>" +
+            "<div class=\"status-one-line\">" + HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(primaryStatusToDisplay) ? "unknown" : primaryStatusToDisplay) + "</div>" +
             "</div>";
     }
 
@@ -15096,6 +15094,11 @@ ORDER BY
             return;
         }
 
+        if (e.Row.RowType == DataControlRowType.DataRow && e.Row.RowIndex != overall_request_details.EditIndex)
+        {
+            FillEmptyIssueListCells(e.Row);
+        }
+
         if (e.Row.RowType == DataControlRowType.DataRow && e.Row.RowIndex == overall_request_details.EditIndex)
         {
 
@@ -15178,6 +15181,27 @@ ORDER BY
             }
 
 
+        }
+    }
+
+    private static void FillEmptyIssueListCells(GridViewRow row)
+    {
+        foreach (TableCell cell in row.Cells)
+        {
+            if (!cell.Visible || cell.CssClass.Split(' ').Contains("field-actions")) continue;
+
+            using (StringWriter buffer = new StringWriter())
+            using (HtmlTextWriter writer = new HtmlTextWriter(buffer))
+            {
+                cell.RenderControl(writer);
+                string text = HttpUtility.HtmlDecode(
+                    System.Text.RegularExpressions.Regex.Replace(buffer.ToString(), "<[^>]*>", string.Empty));
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    cell.Controls.Clear();
+                    cell.Text = "unknown";
+                }
+            }
         }
     }
 

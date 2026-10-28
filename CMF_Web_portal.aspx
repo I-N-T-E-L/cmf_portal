@@ -1348,21 +1348,6 @@
                     overflow-wrap: anywhere;
                 }
 
-                .status-confidence-pill {
-                    display: inline-flex;
-                    align-items: center;
-                    min-height: 22px;
-                    padding: 4px 8px;
-                    border-radius: 999px;
-                    font-size: 10px;
-                    font-weight: 800;
-                    color: #5b21b6;
-                    background: #f4efff;
-                    border: 1px solid #dfd2ff;
-                    white-space: normal;
-                    overflow-wrap: anywhere;
-                }
-
                 .ai-summary-btn-inline {
                     height: 22px;
                     min-width: 26px;
@@ -15509,6 +15494,7 @@ td:nth-child(odd), th:nth-child(odd) {
             if (!actionsNode) actionsNode = document.getElementById('aiSummaryActions');
 
             bodyNode.className = 'ai-summary-body';
+            if (payload.mode !== 'AI issue details') bodyNode.style.display = '';
 
             // Only inject the banner if it's the chat/summary mode; details mode already injected a shimmer.
             if (payload.mode !== 'AI issue details' || bodyNode.innerHTML.indexOf('ai-skeleton-loader') === -1) {
@@ -15552,7 +15538,10 @@ td:nth-child(odd), th:nth-child(odd) {
                     return;
                 }
                 var summary = result.Summary || 'No summary content returned.';
-                var preparedSummary = prepareAiSummaryForDrawer(summary);
+                var isDebugSummary = payload.mode !== 'AI issue details';
+                var preparedSummary = isDebugSummary
+                    ? { body: summary, confidence: '', status: payload.status || 'N/A' }
+                    : prepareAiSummaryForDrawer(summary);
                 if (result.Confidence && !preparedSummary.confidence) {
                     preparedSummary.confidence = result.Confidence + '%';
                 }
@@ -15566,16 +15555,10 @@ td:nth-child(odd), th:nth-child(odd) {
                     statusBadgeNode.textContent = 'Status: ' + summaryStatus;
                     statusBadgeNode.className = 'ai-summary-status-value ' + getAiStatusClass(summaryStatus);
                 }
-                updateIssueListConfidenceBadge(payload.issueId, preparedSummary.confidence);
                 // Build the assistant message that represents the summary (chat-first layout)
-                var assistantSummary = '';
-                if (payload.mode === 'AI issue details') {
-                    assistantSummary = prepareIssueDetailsForDrawer(summary);
-                } else if (preparedSummary.hasDecisionSections) {
-                    assistantSummary = preparedSummary.body;
-                } else {
-                    assistantSummary = '### Debug Summary\n\n' + preparedSummary.body + '\n\n### Next Steps\n' + (preparedSummary.followUp || '- No further action identified from available details.');
-                }
+                var assistantSummary = isDebugSummary
+                    ? preparedSummary.body
+                    : prepareIssueDetailsForDrawer(summary);
 
                 window._aiSummaryLastText = payload.mode === 'AI issue details' ? summary : assistantSummary;
 
@@ -15586,7 +15569,8 @@ td:nth-child(odd), th:nth-child(odd) {
 
                 // Chat-first UI: hide the standalone body and render the summary as the first assistant message
                 if (!window._aiChatStore) window._aiChatStore = {}; // issueId => [{role,text}, ...]
-                window._aiCurrentIssueId = (payload.issueId || '') + '_' + (payload.mode || 'AI Summary');
+                window._aiCurrentIssueId = (payload.issueId || '') + '_' + (payload.mode || 'AI Summary')
+                    + (isDebugSummary ? '_debug-bullets-v8' : '');
 
                 var chat = document.getElementById('aiSummaryChat');
                 var messages = document.getElementById('aiSummaryChatMessages');
@@ -15597,6 +15581,9 @@ td:nth-child(odd), th:nth-child(odd) {
 
                     // If we have stored conversation for this issue, render it; otherwise seed with summary
                     var hist = window._aiChatStore[window._aiCurrentIssueId];
+                    if (isDebugSummary && hist && hist.length && hist[0].role === 'assistant') {
+                        hist[0].text = assistantSummary;
+                    }
                     messages.innerHTML = '';
                     if (hist && hist.length) {
                         for (var i = 0; i < hist.length; i++) {
@@ -15624,16 +15611,6 @@ td:nth-child(odd), th:nth-child(odd) {
                 bodyNode.innerHTML = 'Error while calling summary service. <a href="#" onclick="regenerateAiSummary(); return false;" style="color:var(--portal-primary); text-decoration:underline;">↻ Retry</a>';
                 bodyNode.className = 'ai-summary-body';
             });
-        }
-
-        function updateIssueListConfidenceBadge(issueId, confidence) {
-            if (!issueId || !confidence) return;
-            var selector = '.status-confidence-pill[data-ai-confidence-issue="' + cssEscapeValue(issueId) + '"]';
-            var nodes = document.querySelectorAll(selector);
-            for (var i = 0; i < nodes.length; i++) {
-                nodes[i].textContent = 'Confidence: ' + confidence;
-                nodes[i].classList.remove('status-confidence-empty');
-            }
         }
 
         function prepareIssueDetailsForDrawer(summary) {
@@ -23414,7 +23391,8 @@ td:nth-child(odd), th:nth-child(odd) {
                 issueCellObservedTable = table;
                 issueCellResizeObserver.observe(table);
             }
-            var targets = document.querySelectorAll('#overall_request_details > tbody > tr > td:not([colspan]):not(.field-sno):not(.field-sightingid):not(.field-status), #overall_request_details .status-one-line');
+            formatPendingCustomerLogos();
+            var targets = document.querySelectorAll('#overall_request_details > tbody > tr > td:not([colspan]):not(.field-actions):not(.field-sightingid):not(.field-status), #overall_request_details .status-one-line');
             targets.forEach(function (cell) {
                 var row = cell.closest('tr');
                 if (row.querySelector('textarea, input, select') || !cell.textContent.trim()) return;
@@ -23441,36 +23419,39 @@ td:nth-child(odd), th:nth-child(odd) {
                 lenovo: 'Lenovo', hp: 'HP', dell: 'Dell', asus: 'ASUS', acer: 'Acer',
                 samsung: 'Samsung', apple: 'Apple', msi: 'MSI', lg: 'LG',
                 panasonic: 'Panasonic', sony: 'Sony', toshiba: 'Toshiba',
-                huawei: 'Huawei', honor: 'Honor', fujitsu: 'Fujitsu', mechrevo: 'Mechrevo', nec: 'NEC'
-            };
-            var colors = {
-                lenovo: '#E2231A', hp: '#0096D6', dell: '#007DB8', asus: '#000000', acer: '#83B81A',
-                samsung: '#1428A0', apple: '#555555', msi: '#C8102E', lg: '#A50034',
-                panasonic: '#0041C0', sony: '#000000', toshiba: '#FF0000',
-                huawei: '#CF0A2C', honor: '#000000', fujitsu: '#E60012', mechrevo: '#111111', nec: '#1414A0'
+                huawei: 'Huawei', honor: 'Honor', fujitsu: 'Fujitsu', mechrevo: 'Mechrevo', nec: 'NEC',
+                microsoft: 'Microsoft', razer: 'Razer', google: 'Google', alienware: 'Alienware'
             };
             var aliases = {
                 le: 'lenovo', hewlett: 'hp', de: 'dell', as: 'asus', asustek: 'asus',
                 ac: 'acer', sa: 'samsung', ap: 'apple', pa: 'panasonic', so: 'sony',
-                to: 'toshiba', ts: 'toshiba', hu: 'huawei', ho: 'honor', fu: 'fujitsu'
+                to: 'toshiba', ts: 'toshiba', hu: 'huawei', ho: 'honor', fu: 'fujitsu',
+                ne: 'nec', ms: 'msi', mi: 'microsoft', ra: 'razer', go: 'google', al: 'alienware'
             };
-            document.querySelectorAll('#GridView_cmf_pending td.pending-field-customer').forEach(function (cell) {
+            document.querySelectorAll('#GridView_cmf_pending td.pending-field-customer, #overall_request_details .issue-company-name').forEach(function (cell) {
                 if (cell.querySelector('.pending-customer-label')) return;
+                var issueCompany = cell.classList.contains('issue-company-name');
                 var detail = cell.dataset.customerDetail || cell.textContent.trim();
                 var prefix = detail.toLowerCase().match(/^[a-z]+/);
                 if (!prefix) return;
                 var brand = aliases[prefix[0]] || prefix[0];
-                if (!Object.prototype.hasOwnProperty.call(labels, brand)) return;
+                if (!Object.prototype.hasOwnProperty.call(labels, brand) && !issueCompany) return;
                 cell.dataset.customerDetail = detail;
                 cell.querySelectorAll('.pending-customer-logo').forEach(function (logo) { logo.remove(); });
+                if (issueCompany) cell.textContent = '';
                 var label = document.createElement('span');
                 label.className = 'pending-customer-label';
-                label.textContent = labels[brand];
-                label.style.setProperty('--customer-brand', colors[brand]);
-                label.style.setProperty('--customer-ink', /^(hp|acer|toshiba)$/.test(brand) ? '#111111' : '#ffffff');
+                label.textContent = labels[brand] || detail;
                 cell.insertBefore(label, cell.firstChild);
             });
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            formatPendingCustomerLogos();
+            if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) {
+                Sys.WebForms.PageRequestManager.getInstance().add_endRequest(formatPendingCustomerLogos);
+            }
+        });
 
         var pendingCellResizeObserver = null;
         var pendingCellObservedTable = null;
@@ -23489,7 +23470,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 pendingCellResizeObserver.observe(table);
             }
             formatPendingCustomerLogos();
-            var cells = document.querySelectorAll('#GridView_cmf_pending td.pending-field-title, #GridView_cmf_pending td.pending-field-impact, #GridView_cmf_pending td.pending-field-why');
+            var cells = document.querySelectorAll('#GridView_cmf_pending td.pending-field-title, #GridView_cmf_pending td.pending-field-impact, #GridView_cmf_pending td.pending-field-why, #GridView_cmf_pending td.pending-field-days-open');
             cells.forEach(function (cell) {
                 var text = cell.querySelector('.pending-cell-text');
                 if (!text) {
@@ -23782,9 +23763,9 @@ td:nth-child(odd), th:nth-child(odd) {
             filterCmfPendingRows();
         }
 </script>
-    <script src="Scripts/cmf-portal-main.js?v=20261027-pending-platform-multiselect-2"></script>
+    <script src="Scripts/cmf-portal-main.js?v=20261028-issue-actions"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261027-customer-brand-labels" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261028-pending-labels-2" />
 
 </head>
 
@@ -24647,31 +24628,6 @@ Submit
 
     <Columns>
 
-        <asp:TemplateField HeaderText="#" ItemStyle-Width="50px" HeaderStyle-Width="50px"
-            ItemStyle-CssClass="field-sno" HeaderStyle-CssClass="field-sno">
-            <ItemTemplate>
-                <div class="issue-sno-cell">
-                    <span class="issue-sno-index"><%# Container.DataItemIndex + 1 %></span>
-                    <asp:LinkButton ID="btnRowEdit" runat="server" CommandName="Edit" CausesValidation="false" CssClass="issue-inline-edit-btn" ToolTip="Edit row" aria-label="Edit row">
-                        <i class="fas fa-pencil-alt" aria-hidden="true"></i>
-                    </asp:LinkButton>
-                </div>
-            </ItemTemplate>
-            <EditItemTemplate>
-                <div class="issue-sno-cell">
-                    <span class="issue-sno-index"><%# Container.DataItemIndex + 1 %></span>
-                    <span class="issue-inline-edit-actions">
-                        <asp:LinkButton ID="btnRowUpdate" runat="server" CommandName="Update" CssClass="issue-inline-edit-action" ToolTip="Save changes" aria-label="Save changes">
-                            <i class="fas fa-check" aria-hidden="true"></i>
-                        </asp:LinkButton>
-                        <asp:LinkButton ID="btnRowCancel" runat="server" CommandName="Cancel" CausesValidation="false" CssClass="issue-inline-edit-action" ToolTip="Cancel edit" aria-label="Cancel edit">
-                            <i class="fas fa-times" aria-hidden="true"></i>
-                        </asp:LinkButton>
-                    </span>
-                </div>
-            </EditItemTemplate>
-        </asp:TemplateField>
-
         <asp:TemplateField HeaderText="Sighting ID" ItemStyle-CssClass="field-sightingid" HeaderStyle-CssClass="field-sightingid">
             <ItemTemplate>
                 <%# RenderIssueDetails(Eval("SightingID"), Eval("Merged_PromotedID"), Eval("title"), Eval("cmf_request"), Eval("SubmittedDate"), Eval("IssueStatus"), Eval("sysdebug"), false) %>
@@ -24713,16 +24669,16 @@ Submit
             </ItemTemplate>
         </asp:TemplateField>
 
-        <asp:TemplateField HeaderText="Customer Company / Detail" ItemStyle-CssClass="field-customer_detail" HeaderStyle-CssClass="field-customer_detail">
+        <asp:TemplateField HeaderText="Customer Detail" ItemStyle-CssClass="field-customer_detail" HeaderStyle-CssClass="field-customer_detail">
             <ItemTemplate>
-                <span class="issue-cell-stack"><span><%#: Eval("customer_company") %></span><span><%#: Eval("customer_detail") %></span></span>
+                <span class="issue-cell-stack"><span class="issue-company-name"><%#: Eval("customer_company") %></span><span><%#: Eval("customer_detail") %></span></span>
             </ItemTemplate>
         </asp:TemplateField>
 
-        <asp:TemplateField HeaderText="Component Group / Component" ItemStyle-CssClass="field-component" HeaderStyle-CssClass="field-component">
+        <asp:TemplateField HeaderText="Component" ItemStyle-CssClass="field-component" HeaderStyle-CssClass="field-component">
             <HeaderTemplate>
                 <div class="filter-header-container">
-                    <div class="filter-header-text">Component Group / Component</div>
+                    <div class="filter-header-text">Component</div>
                     <div class="filter-container">
                         <asp:DropDownList ID="ddlComponentHeader" runat="server" AutoPostBack="true"
                             OnSelectedIndexChanged="ddlComponentHeader_SelectedIndexChanged" CssClass="header-dropdown" />
@@ -24730,7 +24686,7 @@ Submit
                 </div>
             </HeaderTemplate>
             <ItemTemplate>
-                <span class="issue-cell-stack"><span><%#: Eval("component_group") %></span><span><%#: Eval("component") %></span></span>
+                <span><%#: Eval("component") %></span>
             </ItemTemplate>
         </asp:TemplateField>
 
@@ -24827,6 +24783,27 @@ Submit
 
         <asp:BoundField DataField="ClosedDetails" HeaderText="Closed Reason / Fixed Version" ReadOnly="True"
             ItemStyle-CssClass="cmfrequest-column field-closed_reason" HeaderStyle-CssClass="field-closed_reason" />
+
+        <asp:TemplateField HeaderText="Actions" ItemStyle-CssClass="field-actions" HeaderStyle-CssClass="field-actions">
+            <ItemTemplate>
+                <div class="issue-row-actions">
+                    <button type="button" class="issue-row-actions-trigger" onclick="toggleIssueRowActions(this)" aria-haspopup="menu" aria-expanded="false" title="Actions" aria-label="Actions">
+                        <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                    </button>
+                    <div class="issue-row-actions-menu" role="menu" hidden>
+                        <button type="button" role="menuitem" onclick="runIssueRowAiAction('details')"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>AI Issue Details</button>
+                        <button type="button" role="menuitem" onclick="runIssueRowAiAction('debug')"><i class="fas fa-file-alt" aria-hidden="true"></i>AI Debug Summary</button>
+                        <asp:LinkButton ID="btnRowEdit" runat="server" CommandName="Edit" CausesValidation="false" role="menuitem"><i class="fas fa-pencil-alt" aria-hidden="true"></i>Edit</asp:LinkButton>
+                    </div>
+                </div>
+            </ItemTemplate>
+            <EditItemTemplate>
+                <span class="issue-inline-edit-actions">
+                    <asp:LinkButton ID="btnRowUpdate" runat="server" CommandName="Update" CssClass="issue-inline-edit-action" ToolTip="Save changes" aria-label="Save changes"><i class="fas fa-check" aria-hidden="true"></i></asp:LinkButton>
+                    <asp:LinkButton ID="btnRowCancel" runat="server" CommandName="Cancel" CausesValidation="false" CssClass="issue-inline-edit-action" ToolTip="Cancel edit" aria-label="Cancel edit"><i class="fas fa-times" aria-hidden="true"></i></asp:LinkButton>
+                </span>
+            </EditItemTemplate>
+        </asp:TemplateField>
 
         <asp:BoundField DataField="progress" HeaderText="Progress" ReadOnly="True" Visible="false"
             ItemStyle-CssClass="field-progress" HeaderStyle-CssClass="field-progress" />
@@ -24938,14 +24915,14 @@ Submit
                                             </ItemTemplate>
                                         </asp:TemplateField>
                                         <asp:BoundField DataField="title" HeaderText="Issue Title" ItemStyle-CssClass="pending-field-title" HeaderStyle-CssClass="pending-field-title" />
-                                        <asp:BoundField DataField="component" HeaderText="Component Name" ItemStyle-CssClass="pending-field-component" />
-                                        <asp:BoundField DataField="customer_owner" HeaderText="Customer Owner" ItemStyle-CssClass="pending-field-owner" />
-                                        <asp:BoundField DataField="customer_detail" HeaderText="Customer Details" ItemStyle-CssClass="pending-field-customer" />
+                                        <asp:BoundField DataField="component" HeaderText="Component" ItemStyle-CssClass="pending-field-component" />
+                                        <asp:BoundField DataField="customer_owner" HeaderText="Owner" ItemStyle-CssClass="pending-field-owner" />
+                                        <asp:BoundField DataField="customer_detail" HeaderText="Customer Detail" ItemStyle-CssClass="pending-field-customer" />
                                         <asp:BoundField DataField="idst" HeaderText="iDST" ItemStyle-CssClass="pending-field-idst" />
                                         <asp:TemplateField HeaderText="RVP Repro" ItemStyle-CssClass="pending-field-rvp">
                                             <ItemTemplate><span class="pending-rvp-status" data-rvp="<%#: string.IsNullOrWhiteSpace(Convert.ToString(Eval("repro_on_rvp"))) ? "unknown" : Convert.ToString(Eval("repro_on_rvp")).Trim() %>"><%#: string.IsNullOrWhiteSpace(Convert.ToString(Eval("repro_on_rvp"))) ? "unknown" : Convert.ToString(Eval("repro_on_rvp")).Trim() %></span></ItemTemplate>
                                         </asp:TemplateField>
-                                        <asp:BoundField DataField="reproducibility" HeaderText="Repro Rate" ItemStyle-CssClass="pending-field-reproducibility" />
+                                        <asp:BoundField DataField="reproducibility" HeaderText="Occurrence" ItemStyle-CssClass="pending-field-reproducibility" />
                                         <asp:TemplateField HeaderText="CMF Request / Ask Date" ItemStyle-CssClass="pending-field-request-date">
                                             <ItemTemplate>
                                                 <div class="pending-request-date">

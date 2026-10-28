@@ -202,6 +202,38 @@ public static class HsdPortalService
         return sb.ToString().Trim();
     }
 
+    public static string FormatForDebugSummary(HsdArticleData data, string sectionLabel)
+    {
+        if (data == null || !data.FetchSuccess) return string.Empty;
+
+        StringBuilder builder = new StringBuilder();
+        builder.AppendLine("--- " + sectionLabel + " (HSD Debug Evidence) ---");
+        AppendIfSet(builder, "Article ID", data.ArticleId);
+        AppendIfSet(builder, "Last Updated", data.UpdatedDate);
+        AppendIfSet(builder, "Title", data.Title);
+        AppendIfSet(builder, "Problem Description", data.Description);
+        AppendIfSet(builder, "Repro Steps", data.StepsToReproduce);
+        AppendIfSet(builder, "Actual Behavior", data.ActualBehavior);
+        AppendIfSet(builder, "Expected Behavior", data.ExpectedBehavior);
+        AppendIfSet(builder, "What Happened", data.WhatHappened);
+        AppendIfSet(builder, "Sysdebug Forum", data.SysdebugForum);
+        AppendIfSet(builder, "Investigation History", data.InvestigationHistory);
+        AppendIfSet(builder, "Fix Description", data.FixDescription);
+        AppendIfSet(builder, "Fixed Version", data.FixedVersion);
+        AppendIfSet(builder, "Status", data.Status);
+        AppendIfSet(builder, "Closed Reason", data.ClosedReason);
+        AppendIfSet(builder, "Implemented Date", data.ImplementedDate);
+        AppendIfSet(builder, "Verified Date", data.VerifiedDate);
+        AppendIfSet(builder, "Closed Date", data.ClosedDate);
+        if (data.Comments != null)
+        {
+            foreach (string comment in data.Comments)
+                AppendIfSet(builder, "Discussion Comment", comment);
+        }
+        builder.AppendLine("Evidence scope: Only retrieved text is supplied; discussion history may be partial and attachment contents are not included.");
+        return builder.ToString().Trim();
+    }
+
     private static HsdArticleData CreateEmptyArticleData(string articleId)
     {
         return new HsdArticleData
