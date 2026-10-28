@@ -27,20 +27,6 @@ function submitLegacyPostback(eventTarget, eventArgument) {
 }
 
 function dispatchPopupAsyncFlow(action, arg1, arg2, arg3, fallbackEventTarget, fallbackEventArgument) {
-    var usesIssueTableFlow = action === 'ShowCMFIssues'
-        || action === 'ShowPendingSummaryIssues'
-        || action === 'ShowPendingAgeBucketIssues'
-        || action === 'ShowSummaryMetricIssues'
-        || action === 'ShowDriverIssues'
-        || action === 'ShowModal3';
-
-    // Keep issue-table popups on the legacy postback route so server-bound modal grids refresh reliably.
-    if (usesIssueTableFlow) {
-        markPopupTablePostbackFlow();
-        submitLegacyPostback(fallbackEventTarget || action || '', fallbackEventArgument || arg1 || '');
-        return false;
-    }
-
     var ids = window.CMF_PORTAL && window.CMF_PORTAL.ids ? window.CMF_PORTAL.ids : null;
     var actionInput = ids ? document.getElementById(ids.hfPopupAsyncAction || '') : null;
     var arg1Input = ids ? document.getElementById(ids.hfPopupAsyncArg1 || '') : null;
@@ -49,6 +35,9 @@ function dispatchPopupAsyncFlow(action, arg1, arg2, arg3, fallbackEventTarget, f
     var dispatchTarget = ids ? ids.btnPopupAsyncDispatch : '';
 
     if (actionInput && arg1Input && arg2Input && arg3Input && dispatchTarget) {
+        if (window.CMF_PORTAL) {
+            window.CMF_PORTAL.isPopupAsyncDispatchInFlight = true;
+        }
         actionInput.value = action || '';
         arg1Input.value = arg1 || '';
         arg2Input.value = arg2 || '';
@@ -1207,14 +1196,54 @@ function showTotalImplementedVerifiedModal(design) {
 
             var ids = getDashboardModalIds();
             for (var i = 0; i < ids.length; i++) {
-                var modal = document.getElementById(ids[i]);
-                if (!modal || modal.parentNode === host) {
+                var id = ids[i];
+                var matches = document.querySelectorAll('[id="' + id + '"]');
+                if (!matches || !matches.length) {
                     continue;
                 }
 
-                host.appendChild(modal);
+                if (matches.length === 1) {
+                    var singleModal = matches[0];
+                    if (singleModal.parentNode !== host) {
+                        host.appendChild(singleModal);
+                    }
+                    continue;
+                }
+
+                var hoistedModal = null;
+                var freshModal = null;
+                for (var m = 0; m < matches.length; m++) {
+                    if (matches[m].parentNode === host && !hoistedModal) {
+                        hoistedModal = matches[m];
+                    } else {
+                        freshModal = matches[m];
+                    }
+                }
+
+                if (!hoistedModal) {
+                    hoistedModal = matches[0];
+                    freshModal = matches[matches.length - 1];
+                }
+
+                if (freshModal && freshModal !== hoistedModal) {
+                    hoistedModal.innerHTML = freshModal.innerHTML;
+                    for (var k = 0; k < matches.length; k++) {
+                        if (matches[k] !== hoistedModal && matches[k].parentNode) {
+                            matches[k].parentNode.removeChild(matches[k]);
+                        }
+                    }
+                    if (typeof updateModalTitleWithEntryCount === 'function') {
+                        updateModalTitleWithEntryCount(hoistedModal);
+                    }
+                }
+
+                if (hoistedModal.parentNode !== host) {
+                    host.appendChild(hoistedModal);
+                }
             }
         }
+
+        window.hoistDashboardModalsToRoot = hoistDashboardModalsToRoot;
 
         function applyBootstrapModalStacking() {
             var modals = getVisibleBootstrapModals();
@@ -1476,7 +1505,12 @@ function showTotalImplementedVerifiedModal(design) {
             ensureModalPostbackCapture();
 
             if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) {
-                Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function () {
+                var prm = Sys.WebForms.PageRequestManager.getInstance();
+                prm.add_pageLoaded(function () {
+                    hoistDashboardModalsToRoot();
+                    wireModalCloseButtonsDirect();
+                });
+                prm.add_endRequest(function () {
                     hoistDashboardModalsToRoot();
                     ensureModalPostbackCapture();
                     restoreModalStackAfterPostback();

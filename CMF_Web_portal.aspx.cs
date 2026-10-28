@@ -1371,7 +1371,6 @@ END";
     {
         List<string> options = new List<string>
         {
-            "issue",
             "ingredient"
         };
 
@@ -1384,6 +1383,7 @@ END";
         options.Add("design");
         options.Add("component");
         options.Add("owner");
+        options.Add("idst");
         return options;
     }
 
@@ -1391,7 +1391,7 @@ END";
     {
         string normalized = (groupBy ?? string.Empty).Trim().ToLowerInvariant();
         List<string> allowed = BuildTrendGroupByOptions(isOverallScope);
-        return allowed.Contains(normalized, StringComparer.OrdinalIgnoreCase) ? normalized : "issue";
+        return allowed.Contains(normalized, StringComparer.OrdinalIgnoreCase) ? normalized : "ingredient";
     }
 
     private static string GetDashboardDriverFilterValueForWeb()
@@ -1867,7 +1867,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
 
         if (!response.AvailableGroupBy.Contains(response.GroupBy, StringComparer.OrdinalIgnoreCase))
         {
-            response.GroupBy = "issue";
+            response.GroupBy = "ingredient";
         }
 
         string normalizedWeekLabel = string.IsNullOrWhiteSpace(weekLabel) ? "Selected Week" : weekLabel.Trim();
@@ -1896,9 +1896,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
                 string sourceSql = "(" + BuildSummaryIssueComponentSourceSql(resolvedPlatform) + ") AS src";
                 string statusPredicate;
                 string weekPredicate;
-                string groupExpression = string.Equals(response.GroupBy, "issue", StringComparison.OrdinalIgnoreCase)
-                    ? "''"
-                    : BuildSummaryGroupExpression(response.GroupBy);
+                string groupExpression = BuildSummaryGroupExpression(response.GroupBy);
 
                 StringBuilder baseWhere = new StringBuilder();
                 baseWhere.Append("LOWER(LTRIM(RTRIM(ISNULL(src.cmf_request, '')))) = 'cmf_ok'");
@@ -1969,9 +1967,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
                                 continue;
                             }
 
-                            string groupName = string.Equals(response.GroupBy, "issue", StringComparison.OrdinalIgnoreCase)
-                                ? normalizedWeekLabel
-                                : ReadString(reader, 1).Trim();
+                            string groupName = ReadString(reader, 1).Trim();
                             if (string.IsNullOrWhiteSpace(groupName))
                             {
                                 groupName = "Unassigned";
@@ -2372,37 +2368,37 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
 
     private void ShowModal0()
     {
-        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "$('#detailsModal0').modal('show');", true);
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModal0').modal('show');", true);
     }
 
     private void ShowModal()
     {
-        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "$('#detailsModal').modal('show');", true);
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModal').modal('show');", true);
     }
 
     private void ShowModal2()
     {
-        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "$('#detailsModal2').modal('show');", true);
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModal2').modal('show');", true);
     }
 
     private void ShowIngredientIndicatorSummaryModal()
     {
-        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowIngredientIndicatorSummaryModalScript", "$('#detailsModalIngredientIndicator').modal('show');", true);
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowIngredientIndicatorSummaryModalScript", "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModalIngredientIndicator').modal('show');", true);
     }
 
     private void ShowModal3()
     {
-        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "$('#detailsModal3').modal('show');", true);
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModal3').modal('show');", true);
     }
 
     private void ShowOemIndicatorSummaryModal()
     {
-        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowOemIndicatorSummaryModalScript", "$('#detailsModalOemIndicator').modal('show');", true);
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowOemIndicatorSummaryModalScript", "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModalOemIndicator').modal('show');", true);
     }
 
     private void ShowDesignIndicatorSummaryModal()
     {
-        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDesignIndicatorSummaryModalScript", "$('#detailsModalDesignIndicator').modal('show');", true);
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDesignIndicatorSummaryModalScript", "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModalDesignIndicator').modal('show');", true);
     }
 
     private void BindImplementedVerifiedDetailsModal(string design)
@@ -2718,6 +2714,12 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
 
     private void PrepareHomeQuickLinkPopupFlow()
     {
+        if (ScriptManager1 != null && ScriptManager1.IsInAsyncPostBack)
+        {
+            selectedPlatform = ResolveDashboardPlatformSelection();
+            return;
+        }
+
         SetActiveFocusedTab("home");
         ShowWelcomeHome();
     }
@@ -12971,7 +12973,7 @@ ORDER BY
     {
         ScriptManager.RegisterStartupScript(this, GetType(),
             "ShowSummaryMetricIssuesModal",
-            "$('#detailsModalSummaryMetrics').modal('show');", true);
+            "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModalSummaryMetrics').modal('show');", true);
     }
 
     private static bool TryParsePendingAgeBucketRange(string bucketLabel, out int minDays, out int maxDays, out bool isGreaterThanRange)
@@ -13619,7 +13621,7 @@ INNER JOIN (
     {
         ScriptManager.RegisterStartupScript(this, GetType(),
             "ShowCMFIssuesModal",
-            "$('#detailsModalDrivers1').modal('show');", true);
+            "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModalDrivers1').modal('show');", true);
     }
 
     private void ExportCMFIssues(string component, string driver, string issueType)
@@ -13974,7 +13976,7 @@ ORDER BY cp_id";
     {
         ScriptManager.RegisterStartupScript(this, GetType(),
             "ShowDriverIssuesModal",
-            "$('#detailsModalDrivers').modal('show');", true);
+            "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModalDrivers').modal('show');", true);
     }
 
     private DataTable GetDriverIssuesData(string driver)
