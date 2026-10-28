@@ -7919,7 +7919,7 @@ td:nth-child(odd), th:nth-child(odd) {
 #detailsModal0 .modal-dialog.custom-modal-dialog {
     width: var(--overall-quick-modal-width, min(1760px, calc(100vw - 24px)));
     max-width: var(--overall-quick-modal-max-width, calc(100vw - 24px));
-    margin-left: var(--overall-quick-modal-left, auto);
+    margin-left: auto;
     margin-right: auto;
 }
 
@@ -7963,7 +7963,7 @@ td:nth-child(odd), th:nth-child(odd) {
 #detailsModal3 .modal-dialog.custom-modal-dialog {
     width: var(--overall-quick-modal-width, min(1760px, calc(100vw - 24px)));
     max-width: var(--overall-quick-modal-max-width, calc(100vw - 24px));
-    margin-left: var(--overall-quick-modal-left, auto);
+    margin-left: auto;
     margin-right: auto;
 }
 
@@ -8008,7 +8008,7 @@ td:nth-child(odd), th:nth-child(odd) {
 #detailsModal2 .modal-dialog.custom-modal-dialog {
     width: var(--overall-quick-modal-width, min(1760px, calc(100vw - 24px)));
     max-width: var(--overall-quick-modal-max-width, calc(100vw - 24px));
-    margin-left: var(--overall-quick-modal-left, auto);
+    margin-left: auto;
     margin-right: auto;
 }
 
@@ -8059,7 +8059,7 @@ td:nth-child(odd), th:nth-child(odd) {
 #detailsModalOemIndicator .modal-dialog.custom-modal-dialog {
     width: var(--overall-quick-modal-width, min(1760px, calc(100vw - 24px)));
     max-width: var(--overall-quick-modal-max-width, calc(100vw - 24px));
-    margin-left: var(--overall-quick-modal-left, auto);
+    margin-left: auto;
     margin-right: auto;
 }
 
@@ -8114,7 +8114,7 @@ td:nth-child(odd), th:nth-child(odd) {
 #detailsModalDrivers1 .modal-dialog.custom-modal-dialog {
     width: var(--overall-quick-modal-width, min(1760px, calc(100vw - 24px)));
     max-width: var(--overall-quick-modal-max-width, calc(100vw - 24px));
-    margin-left: var(--overall-quick-modal-left, auto);
+    margin-left: auto;
     margin-right: auto;
 }
 
@@ -8163,7 +8163,7 @@ td:nth-child(odd), th:nth-child(odd) {
 #detailsModalSummaryMetrics .modal-dialog.custom-modal-dialog {
     width: var(--overall-quick-modal-width, min(1760px, calc(100vw - 24px)));
     max-width: var(--overall-quick-modal-max-width, calc(100vw - 24px));
-    margin-left: var(--overall-quick-modal-left, auto);
+    margin-left: auto;
     margin-right: auto;
 }
 
@@ -15593,7 +15593,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 }
             }
 
-            root.style.setProperty('--overall-quick-modal-left', geometry.left.toFixed(2) + 'px');
+            root.style.setProperty('--overall-quick-modal-left', 'auto');
             root.style.setProperty('--overall-quick-modal-width', geometry.width.toFixed(2) + 'px');
             root.style.setProperty('--overall-quick-modal-max-width', geometry.width.toFixed(2) + 'px');
             root.style.setProperty('--overall-quick-modal-top', geometry.top.toFixed(2) + 'px');
@@ -18666,11 +18666,7 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function buildTrendIssueGroupByOptions(isOverallScope) {
-            var options = ['issue', 'ingredient', 'milestone', 'design', 'component', 'owner', 'idst'];
-            if (isOverallScope) {
-                options.splice(2, 0, 'platform');
-            }
-            return options;
+            return buildSummaryIssueGroupByOptions(isOverallScope);
         }
 
         function closeSummaryIssueLinksPopup() {
@@ -18701,6 +18697,18 @@ td:nth-child(odd), th:nth-child(odd) {
             return false;
         }
 
+        function encodeForInlineJsDecodeArg(value) {
+            return encodeURIComponent(String(value == null ? '' : value)).replace(/'/g, '%27');
+        }
+
+        function formatSummaryIssueCountText(count) {
+            var numericCount = parseInt(count, 10);
+            if (isNaN(numericCount)) {
+                numericCount = 0;
+            }
+            return String(numericCount) + (numericCount === 1 ? ' issue' : ' issues');
+        }
+
         function renderSummaryIssueLinks(result) {
             var body = document.getElementById('summaryIssuesPopupBody');
             var meta = document.getElementById('summaryIssuesPopupMeta');
@@ -18726,8 +18734,9 @@ td:nth-child(odd), th:nth-child(odd) {
             if (isNaN(totalIssues)) {
                 totalIssues = 0;
             }
+            var totalIssuesText = formatSummaryIssueCountText(totalIssues);
 
-            var metaParts = [String(totalIssues) + ' issues'];
+            var metaParts = [totalIssuesText];
             var idstMetaLine = '';
             if (popupState.sourceType === 'trend-week') {
                 var weekLabel = String(popupState.weekLabel || '').trim();
@@ -18809,9 +18818,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
             var html = '';
             var isPendingSummaryMetric = String(popupState.metricKey || '').toLowerCase() === 'pending';
-            var canOpenSummaryMetricDetails =
-                !isPendingSummaryMetric &&
-                String(popupState.sourceType || 'summary').toLowerCase() === 'summary';
+            var canOpenSummaryMetricDetails = !isPendingSummaryMetric;
             var metricLabelForDetails = String(popupState.metricLabel || popupState.metricKey || 'Summary Metric');
             var pendingMetricIds = [];
             var pendingMetricSeen = {};
@@ -18854,16 +18861,16 @@ td:nth-child(odd), th:nth-child(odd) {
                     issueCount += 1;
                 }
 
-                var countText = String(issueCount) + ' issues';
+                var countText = formatSummaryIssueCountText(issueCount);
                 var countHtml = '<span class="summary-issues-group-count">' + escapeHtml(countText) + '</span>';
                 if (isPendingSummaryMetric && normalizedIds.length > 0) {
-                    var encodedGroupName = encodeURIComponent(String(group.GroupName || 'Pending Summary'));
-                    var encodedIds = encodeURIComponent(normalizedIds.join(','));
+                    var encodedGroupName = encodeForInlineJsDecodeArg(String(group.GroupName || 'Pending Summary'));
+                    var encodedIds = encodeForInlineJsDecodeArg(normalizedIds.join(','));
                     countHtml = '<span class="summary-issues-group-count"><a href="javascript:void(0);" class="summary-issues-group-count-link" onclick="return openPendingSummaryDetailsFromSummaryPopup(decodeURIComponent(\'' + encodedGroupName + '\'), decodeURIComponent(\'' + encodedIds + '\'))">' + escapeHtml(countText) + '</a></span>';
                 } else if (canOpenSummaryMetricDetails && normalizedIds.length > 0) {
-                    var encodedMetricLabel = encodeURIComponent(metricLabelForDetails);
-                    var encodedSummaryGroup = encodeURIComponent(String(group.GroupName || 'Unassigned'));
-                    var encodedSummaryIds = encodeURIComponent(normalizedIds.join(','));
+                    var encodedMetricLabel = encodeForInlineJsDecodeArg(metricLabelForDetails);
+                    var encodedSummaryGroup = encodeForInlineJsDecodeArg(String(group.GroupName || 'Unassigned'));
+                    var encodedSummaryIds = encodeForInlineJsDecodeArg(normalizedIds.join(','));
                     countHtml = '<span class="summary-issues-group-count"><a href="javascript:void(0);" class="summary-issues-group-count-link" onclick="return openSummaryMetricDetailsFromSummaryPopup(decodeURIComponent(\'' + encodedMetricLabel + '\'), decodeURIComponent(\'' + encodedSummaryGroup + '\'), decodeURIComponent(\'' + encodedSummaryIds + '\'))">' + escapeHtml(countText) + '</a></span>';
                 }
 
@@ -18875,15 +18882,15 @@ td:nth-child(odd), th:nth-child(odd) {
             body.innerHTML = html;
 
             if (isPendingSummaryMetric && pendingMetricIds.length > 0) {
-                var encodedMetaIds = encodeURIComponent(pendingMetricIds.join(','));
-                var metaLinkHtml = '<a href="javascript:void(0);" class="summary-issues-popup-meta-link" onclick="return openPendingSummaryDetailsFromSummaryPopup(\'Total Pending\', decodeURIComponent(\'' + encodedMetaIds + '\'))">' + escapeHtml(String(totalIssues) + ' issues') + '</a>';
+                var encodedMetaIds = encodeForInlineJsDecodeArg(pendingMetricIds.join(','));
+                var metaLinkHtml = '<a href="javascript:void(0);" class="summary-issues-popup-meta-link" onclick="return openPendingSummaryDetailsFromSummaryPopup(\'Total Pending\', decodeURIComponent(\'' + encodedMetaIds + '\'))">' + escapeHtml(totalIssuesText) + '</a>';
                 var metaExtraText = metaParts.length > 1 ? (' • ' + escapeHtml(metaParts.slice(1).join(' • '))) : '';
                 meta.innerHTML = metaLinkHtml + metaExtraText;
             } else if (canOpenSummaryMetricDetails && summaryMetricIds.length > 0) {
-                var encodedSummaryMetaMetric = encodeURIComponent(metricLabelForDetails);
-                var encodedSummaryMetaGroup = encodeURIComponent('All Groups');
-                var encodedSummaryMetaIds = encodeURIComponent(summaryMetricIds.join(','));
-                var summaryMetaLinkHtml = '<a href="javascript:void(0);" class="summary-issues-popup-meta-link" onclick="return openSummaryMetricDetailsFromSummaryPopup(decodeURIComponent(\'' + encodedSummaryMetaMetric + '\'), decodeURIComponent(\'' + encodedSummaryMetaGroup + '\'), decodeURIComponent(\'' + encodedSummaryMetaIds + '\'))">' + escapeHtml(String(totalIssues) + ' issues') + '</a>';
+                var encodedSummaryMetaMetric = encodeForInlineJsDecodeArg(metricLabelForDetails);
+                var encodedSummaryMetaGroup = encodeForInlineJsDecodeArg('All Groups');
+                var encodedSummaryMetaIds = encodeForInlineJsDecodeArg(summaryMetricIds.join(','));
+                var summaryMetaLinkHtml = '<a href="javascript:void(0);" class="summary-issues-popup-meta-link" onclick="return openSummaryMetricDetailsFromSummaryPopup(decodeURIComponent(\'' + encodedSummaryMetaMetric + '\'), decodeURIComponent(\'' + encodedSummaryMetaGroup + '\'), decodeURIComponent(\'' + encodedSummaryMetaIds + '\'))">' + escapeHtml(totalIssuesText) + '</a>';
                 var summaryMetaExtraText = metaParts.length > 1 ? (' • ' + escapeHtml(metaParts.slice(1).join(' • '))) : '';
                 meta.innerHTML = summaryMetaLinkHtml + summaryMetaExtraText;
             }
@@ -21583,74 +21590,12 @@ td:nth-child(odd), th:nth-child(odd) {
 
             if (isComponentSummary) {
                 componentSummaryColumnMeta = [null];
-
-                if (hasMilestoneColumns) {
-                    var augmentedColumns = [
-                        columns[0],
-                        'Total:::Open',
-                        'Total:::Impl/Verified'
-                    ];
-
+                for (var componentColumnIndex = 1; componentColumnIndex < columns.length; componentColumnIndex++) {
                     componentSummaryColumnMeta.push({
-                        isTotal: true,
-                        issueType: 'OpenCombined',
-                        milestoneName: COMPONENT_SUMMARY_ALL_MILESTONES_DRIVER_TOKEN
+                        isTotal: false,
+                        issueType: (componentColumnIndex % 2 === 1) ? 'OpenCombined' : 'ImplementedCombined',
+                        milestoneName: getComponentSummaryMilestoneFromColumn(columns[componentColumnIndex])
                     });
-                    componentSummaryColumnMeta.push({
-                        isTotal: true,
-                        issueType: 'ImplementedCombined',
-                        milestoneName: COMPONENT_SUMMARY_ALL_MILESTONES_DRIVER_TOKEN
-                    });
-
-                    for (var sourceColumnIndex = 1; sourceColumnIndex < columns.length; sourceColumnIndex++) {
-                        augmentedColumns.push(columns[sourceColumnIndex]);
-                        componentSummaryColumnMeta.push({
-                            isTotal: false,
-                            issueType: (sourceColumnIndex % 2 === 1) ? 'OpenCombined' : 'ImplementedCombined',
-                            milestoneName: getComponentSummaryMilestoneFromColumn(columns[sourceColumnIndex])
-                        });
-                    }
-
-                    renderColumns = augmentedColumns;
-                    renderRows = [];
-
-                    for (var sourceRowIndex = 0; sourceRowIndex < rows.length; sourceRowIndex++) {
-                        var sourceRow = rows[sourceRowIndex] || [];
-                        var totalOpenParts = [0, 0, 0, 0];
-                        var totalImplParts = [0, 0];
-
-                        for (var metricColumnIndex = 1; metricColumnIndex < columns.length; metricColumnIndex += 2) {
-                            var openParts = parseComponentOpenMetricParts(sourceRow[metricColumnIndex]);
-                            var implParts = parseComponentImplMetricParts(sourceRow[metricColumnIndex + 1]);
-
-                            totalOpenParts[0] += openParts[0];
-                            totalOpenParts[1] += openParts[1];
-                            totalOpenParts[2] += openParts[2];
-                            totalOpenParts[3] += openParts[3];
-                            totalImplParts[0] += implParts[0];
-                            totalImplParts[1] += implParts[1];
-                        }
-
-                        var augmentedRow = [
-                            sourceRow[0],
-                            formatComponentOpenMetric(totalOpenParts),
-                            formatComponentImplMetric(totalImplParts)
-                        ];
-
-                        for (var sourceMetricIndex = 1; sourceMetricIndex < columns.length; sourceMetricIndex++) {
-                            augmentedRow.push(sourceRow[sourceMetricIndex]);
-                        }
-
-                        renderRows.push(augmentedRow);
-                    }
-                } else {
-                    for (var componentColumnIndex = 1; componentColumnIndex < columns.length; componentColumnIndex++) {
-                        componentSummaryColumnMeta.push({
-                            isTotal: false,
-                            issueType: (componentColumnIndex % 2 === 1) ? 'OpenCombined' : 'ImplementedCombined',
-                            milestoneName: getComponentSummaryMilestoneFromColumn(columns[componentColumnIndex])
-                        });
-                    }
                 }
             }
 
@@ -22302,6 +22247,10 @@ td:nth-child(odd), th:nth-child(odd) {
 
         if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) {
             Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function () {
+                if (window.CMF_PORTAL && window.CMF_PORTAL.isPopupAsyncDispatchInFlight) {
+                    window.CMF_PORTAL.isPopupAsyncDispatchInFlight = false;
+                    return;
+                }
                 window.CMF_PORTAL.currentPlatform = getCurrentPlatformValue();
                 window.CMF_PORTAL.currentDashboardPlatform = '<%= ResolveDashboardPlatformSelection() %>';
                 window.CMF_PORTAL.availablePlatforms = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(AvailablePlatformTablesJson) %>');
@@ -24783,7 +24732,7 @@ td:nth-child(odd), th:nth-child(odd) {
             filterCmfPendingRows();
         }
 </script>
-    <script src="Scripts/cmf-portal-main.js?v=20261027-popup-async-flow-v16"></script>
+    <script src="Scripts/cmf-portal-main.js?v=20261028-popup-async-flow-v17"></script>
 
     <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261027-header-scroll-v1" />
 
@@ -24929,43 +24878,6 @@ Submit
                                 <div class="ccip-dash-top">
                                     <div>
                                         <asp:Label ID="lblHomeGreeting" runat="server" CssClass="ccip-dash-greeting" Text="Good Morning" />
-
-                                    <!-- Bootstrap Modal for Ingredient Indicator Summary -->
-                                    <div class="modal fade" id="detailsModalIngredientIndicator" tabindex="-1" role="dialog" aria-hidden="true">
-                                        <div class="modal-dialog custom-modal-dialog" role="document">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <div class="modal-title-container">
-                                                        <h5 class="modal-title">Ingredient Indicator Summary</h5>
-                                                        <button type="button" class="modern-button2 export-btn" onclick="return exportGridViewTableToExcel('<%= GridView_ingredient_indicator_modal.ClientID %>', 'Ingredient_Indicator');">Export to Excel</button>
-                                                    </div>
-                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                        <span aria-hidden="true">&times;</span>
-                                                    </button>
-                                                </div>
-                                                <div class="modal-body custom-modal-body">
-                                                    <div class="gridview-container">
-                                                        <asp:GridView ID="GridView_ingredient_indicator_modal" CssClass="table-primary custom-gridview" runat="server" AutoGenerateColumns="False" EmptyDataText="No Ingredient Indicator data" Visible="true" OnRowDataBound="GridView6_RowDataBound">
-                                                            <Columns>
-                                                                <asp:BoundField DataField="Component" HeaderText="Ingredient" />
-                                                                <asp:BoundField DataField="Total_CMF_Approved" HeaderText="Total CMF_Approved" />
-                                                                <asp:BoundField DataField="Total_CMF_REJECT" HeaderText="Total CMF_REJECT" />
-                                                                <asp:BoundField DataField="Issues_in_CMF_ASK" HeaderText="Issues in CMF_ASK" />
-                                                                <asp:BoundField DataField="CMFOpenPercentage" HeaderText="CMF Open %" />
-                                                                <asp:BoundField DataField="disp_tpt" HeaderText="CMF disposition TPT" />
-                                                                <asp:BoundField DataField="crit_tpt" HeaderText="CMF Overall TPT" />
-                                                                <asp:BoundField DataField="resolve_tpt" HeaderText="CMF Resolution TPT" />
-                                                                <asp:BoundField DataField="Noise" HeaderText="Noise%" />
-                                                                <asp:BoundField DataField="IntelIssuePercentage" HeaderText="Intel Issue %" />
-                                                                <asp:BoundField DataField="ThirdPartyPercentage" HeaderText="3rd Party %" />
-                                                                <asp:BoundField DataField="CustomerIssuePercentage" HeaderText="Customer Issue %" />
-                                                            </Columns>
-                                                        </asp:GridView>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
                                         <p class="ccip-dash-sub">Here is what is happening with your critical issues today on <%: HomeDashboardPlatformLabel %>.</p>
                                         <asp:Label ID="lblWelcomeMode" runat="server" Visible="false" />
                                     </div>
@@ -26213,15 +26125,6 @@ Submit
                         </aside>
                     </div>
 
-                    </div>
-                </div>
-            </ContentTemplate>
-        </asp:UpdatePanel>
-    </div>
-</div>
-
-                 
-
                                     <div class="gridview-container">
                                         <asp:GridView ID="GridView_design_open" CssClass="table-primary2" runat="server" AutoGenerateColumns="False" EmptyDataText="No Open CMFs" Visible="false" OnRowEditing="GridView_design_open_RowEditing" OnRowDataBound="GridView_design_open_RowDataBound" DataKeyNames="Design">
                                         </asp:GridView>
@@ -26323,6 +26226,43 @@ Submit
                             <asp:BoundField DataField="disp_tpt" HeaderText="CMF Disposition TPT" />
                             <asp:BoundField DataField="resolve_tpt" HeaderText="CMF Resolution TPT" />
                             <asp:BoundField DataField="CMFOpenPercentage" HeaderText="CMF Open %" />
+                            <asp:BoundField DataField="Noise" HeaderText="Noise%" />
+                            <asp:BoundField DataField="IntelIssuePercentage" HeaderText="Intel Issue %" />
+                            <asp:BoundField DataField="ThirdPartyPercentage" HeaderText="3rd Party %" />
+                            <asp:BoundField DataField="CustomerIssuePercentage" HeaderText="Customer Issue %" />
+                        </Columns>
+                    </asp:GridView>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Modal for Ingredient Indicator Summary -->
+<div class="modal fade" id="detailsModalIngredientIndicator" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog custom-modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title-container">
+                    <h5 class="modal-title">Ingredient Indicator Summary</h5>
+                    <button type="button" class="modern-button2 export-btn" onclick="return exportGridViewTableToExcel('<%= GridView_ingredient_indicator_modal.ClientID %>', 'Ingredient_Indicator');">Export to Excel</button>
+                </div>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body custom-modal-body">
+                <div class="gridview-container">
+                    <asp:GridView ID="GridView_ingredient_indicator_modal" CssClass="table-primary custom-gridview" runat="server" AutoGenerateColumns="False" EmptyDataText="No Ingredient Indicator data" Visible="true" OnRowDataBound="GridView6_RowDataBound">
+                        <Columns>
+                            <asp:BoundField DataField="Component" HeaderText="Ingredient" />
+                            <asp:BoundField DataField="Total_CMF_Approved" HeaderText="Total CMF_Approved" />
+                            <asp:BoundField DataField="Total_CMF_REJECT" HeaderText="Total CMF_REJECT" />
+                            <asp:BoundField DataField="Issues_in_CMF_ASK" HeaderText="Issues in CMF_ASK" />
+                            <asp:BoundField DataField="CMFOpenPercentage" HeaderText="CMF Open %" />
+                            <asp:BoundField DataField="disp_tpt" HeaderText="CMF disposition TPT" />
+                            <asp:BoundField DataField="crit_tpt" HeaderText="CMF Overall TPT" />
+                            <asp:BoundField DataField="resolve_tpt" HeaderText="CMF Resolution TPT" />
                             <asp:BoundField DataField="Noise" HeaderText="Noise%" />
                             <asp:BoundField DataField="IntelIssuePercentage" HeaderText="Intel Issue %" />
                             <asp:BoundField DataField="ThirdPartyPercentage" HeaderText="3rd Party %" />
