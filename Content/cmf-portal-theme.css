@@ -277,8 +277,8 @@ html body #issueTabShell #overall_request_details .field-los select {
 }
 
 body .portal-app-header {
-    position: sticky !important;
-    top: 0 !important;
+    position: relative !important;
+    top: auto !important;
     display: flex !important;
     flex-wrap: nowrap;
     align-items: center !important;
@@ -398,10 +398,11 @@ body #mainMenuSidebar {
     width: 168px !important;
     min-width: 168px !important;
     max-width: 168px !important;
-    align-self: stretch !important;
-    height: auto !important;
-    min-height: calc(100vh - 64px) !important;
-    top: 64px !important;
+    align-self: flex-start !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
+    top: 0 !important;
     padding: 12px 0 !important;
     background: #192f43 !important;
     border: 0 !important;
