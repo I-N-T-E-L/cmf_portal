@@ -49,12 +49,52 @@ Today, Last 7 Days, and Last 30 Days include the current calendar day; Last 12
 Months starts on the same calendar date twelve months earlier. Custom Range
 includes both selected dates and is applied using the filter icon button.
 Calendar boundaries use the web server's local date, consistent with the existing
-portal. No historical-status reconstruction or timezone conversion is performed.
+portal. Date filtering itself does not reconstruct historical status or convert timezones.
 Null dates remain visible under All Time and are excluded by an active range.
 The selection persists in the session while switching dashboard platforms.
 The existing dashboard snapshot's **Updated** date and time appear immediately
 to the right of **Mode** in the shared navigation bar and remain visible on every
 portal tab.
+
+### Dashboard Line Trend: Week-End Balances
+
+The Overall and platform line charts stack blue **Implemented** area above maroon **Open**
+area. A single blue upper boundary with a marker at each weekly data point shows
+their combined total; there is no separate line between the two areas.
+Each historical point is a balance at the end of a Monday-Sunday work week, not
+the number of changes during that week. The current point uses the summary
+cards' current-status counts minus their duplicate counts. Open follows the
+card's broad definition: statuses other than complete, rejected, or implemented;
+Implemented uses status implemented only. The line uses the same platform/date
+scope as the cards, without the activity chart's additional driver/column filters.
+Historical Open includes earlier requests not yet implemented or closed at the
+cutoff, with other active statuses retained in the Open bucket. Historical
+Implemented includes implementations before the cutoff that were not yet closed.
+Weekly drilldowns use the same cutoff and lifecycle predicates as the line chart.
+Each dashboard's title dropdown selects **OPEN BACKLOG TREND BY WORK WEEK**
+(line) or **WEEKLY ISSUE FLOW** (clustered bars). Both support 6- and 12-week
+ranges. Clustered bars retain their weekly activity counts.
+
+Balances are reconstructed from `date_cmf_ask`, `implemented_date`, and
+`closed_date`, assuming a single request-to-implementation-to-closure lifecycle.
+They are not historical snapshots: reopened records, previous CMF eligibility,
+and missing or incorrect transition dates cannot be reconstructed exactly.
+Records without a request date are excluded from historical balances, but the
+current point includes them when the summary card does.
+
+### Issue-Count Popup Filters
+
+The shared issue-count popup for summary cards, heatmaps, and weekly charts
+includes independent **Unique** and **Duplicates** checkboxes, styled like the
+Open/Implemented status selectors. Both are
+selected whenever a popup opens. Unique selects `cmf_ok`; Duplicates selects
+`cmf_duplicate`. Selecting neither returns no issues. The selections apply
+before grouping and update the total, group counts, and linked issue lists.
+They persist while changing grouping, sorting, or trend status filters.
+Pending-card popups omit these controls: active pending requests use pending
+request states such as `cmf_ask` and `cmf_incomplete`, rather than the approved
+Unique/Duplicates classification. Their counts remain unfiltered by record type.
+These popup filters do not change dashboard cards or chart counts.
 
 ### Issue List: AI Debug Summary
 
