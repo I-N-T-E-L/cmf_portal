@@ -141,6 +141,7 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
         echarts: { init: () => chart },
         getComputedStyle: () => ({ fontFamily: 'Cambria' }),
         getTextById: () => '',
+        escapeHtml: value => String(value),
         openTrendWeekIssueLinksPopup: (...args) => popups.push(args)
     });
     const definition = page.match(/        function renderHomeTrendChart\([^)]*\) \{[\s\S]*?\r?\n        \}/);
@@ -152,12 +153,12 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     })) };
     context.renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'overallChart', 6);
     assert.equal(options[0].series[0].type, 'line');
-    assert.equal(options[0].series[0].name, 'Open');
+    assert.equal(options[0].series[0].name, 'Implemented');
     assert.equal(options[0].series[0].itemStyle.color, '#800000');
-    assert.equal(options[0].series[0].data[0].value, 46);
-    assert.equal(options[0].series[1].name, 'Implemented');
+    assert.equal(options[0].series[0].data[0].value, 86);
+    assert.equal(options[0].series[1].name, 'Open');
     assert.equal(options[0].series[1].itemStyle.color, '#0369a1');
-    assert.equal(options[0].series[1].data[0].value, 86);
+    assert.equal(options[0].series[1].data[0].value, 46);
     assert.ok(options[0].series.every(series => series.stack === 'cmf-status'));
     assert.equal(options[0].series[0].lineStyle.width, 0);
     assert.equal(options[0].series[0].emphasis.lineStyle.width, 0);
@@ -168,6 +169,13 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.equal(options[0].series[1].showAllSymbol, true);
     assert.equal(options[0].series[0].areaStyle.color, 'rgba(128,0,0,0.12)');
     assert.equal(options[0].series[1].areaStyle.color, 'rgba(3,105,161,0.12)');
+    const tooltip = options[0].tooltip.formatter([
+        { seriesName: 'Open', value: 46, axisValueLabel: 'WW6', marker: '[blue]' },
+        { seriesName: 'Implemented', value: 86, axisValueLabel: 'WW6', marker: '[maroon]' }
+    ]);
+    assert.match(tooltip, /WW6<\/span><span style="font-weight:900">Total: 132/);
+    assert.match(tooltip, /\[maroon\]Implemented[\s\S]*86[\s\S]*\[blue\]Open[\s\S]*46/);
+    assert.equal(options[0].tooltip.formatter([]), '');
     chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
     assert.deepEqual(popups[0], ['Open and Implemented', 'WW6', 5]);
     view.value = 'bar';
@@ -175,6 +183,7 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     const bars = options[1];
     assert.equal(bars.series[0].type, 'bar');
     assert.equal(bars.series[1].type, 'bar');
+    assert.equal(bars.tooltip.formatter, undefined);
     assert.equal(bars.color[0], '#0369a1');
     assert.equal(bars.color[1], '#16a34a');
     assert.ok(bars.series.every(series => series.barMaxWidth === 18 && series.itemStyle.borderWidth === 1));
@@ -191,16 +200,17 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.deepEqual(popups[1], ['All', 'WW6', 5]);
     context.renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'overallChart', 12);
     assert.equal(options[2].series[0].data.length, 12);
-    assert.ok(options[2].series.every(series => series.barMaxWidth === 6));
+    assert.ok(options[2].series.every(series => series.barMaxWidth === 8));
     view.value = 'line';
     context.renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'overallChart', 12);
     assert.equal(options[3].series[0].type, 'line');
-    assert.equal(options[3].series[0].data[0].value, 40);
-    assert.equal(options[3].series[1].data[0].value, 80);
+    assert.equal(options[3].series[0].data[0].value, 80);
+    assert.equal(options[3].series[1].data[0].value, 40);
     view.value = 'bar';
     context.renderHomeTrendChart(snapshot, 'homeTrendChart', 'specificChart', 6);
     assert.equal(options[4].series[0].type, 'line');
     assert.equal(options[4].series[1].name, 'Implemented');
+    assert.equal(options[4].tooltip.formatter, undefined);
     assert.equal(options[4].series[0].data[0].value, 46);
     assert.equal(options[4].series[1].data[0].value, 86);
     assert.equal(options[4].series[1].lineStyle.color, '#0369a1');
