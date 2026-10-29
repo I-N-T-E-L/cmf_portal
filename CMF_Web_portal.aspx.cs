@@ -10582,6 +10582,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
     protected void btnExportToExcel_Click_cmf_pending(object sender, EventArgs e)
     {
         HashSet<string> selectedIds = null;
+        List<int> selectedColumns = null;
         if (sender == btnPendingViewExport)
         {
             try
@@ -10589,6 +10590,11 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 var ids = new JavaScriptSerializer().Deserialize<List<string>>(hfPendingExportIds.Value);
                 if (ids == null || ids.Count == 0) return;
                 selectedIds = new HashSet<string>(ids, StringComparer.Ordinal);
+                var requestedColumns = new JavaScriptSerializer().Deserialize<List<int>>(hfPendingExportColumns.Value);
+                if (requestedColumns == null || requestedColumns.Count == 0 || requestedColumns.Count > GridView_cmf_pending.Columns.Count) return;
+                if (requestedColumns.Any(index => index < 0 || index >= GridView_cmf_pending.Columns.Count
+                    || GridView_cmf_pending.Columns[index].ItemStyle.CssClass.Contains("pending-field-ai-recommendation"))) return;
+                selectedColumns = requestedColumns.Distinct().ToList();
             }
             catch (ArgumentException)
             {
@@ -10601,6 +10607,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         }
 
         BindGridView_cmf_pending();
+        var exportColumns = selectedColumns ?? Enumerable.Range(0, GridView_cmf_pending.Columns.Count).ToList();
         byte[] workbookBytes;
         using (var stream = new MemoryStream())
         {
@@ -10611,13 +10618,14 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
                 var sheetData = new Spreadsheet.SheetData();
                 var columns = new Spreadsheet.Columns();
-                for (int columnIndex = 0; columnIndex < GridView_cmf_pending.Columns.Count; columnIndex++)
+                for (int outputIndex = 0; outputIndex < exportColumns.Count; outputIndex++)
                 {
+                    int columnIndex = exportColumns[outputIndex];
                     var field = GridView_cmf_pending.Columns[columnIndex] as BoundField;
                     columns.Append(new Spreadsheet.Column
                     {
-                        Min = (uint)columnIndex + 1,
-                        Max = (uint)columnIndex + 1,
+                        Min = (uint)outputIndex + 1,
+                        Max = (uint)outputIndex + 1,
                         Width = field != null && (field.DataField == "title" || field.DataField == "impact") ? 60 : 24,
                         CustomWidth = true
                     });
@@ -10626,8 +10634,9 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 var sheets = workbookPart.Workbook.AppendChild(new Spreadsheet.Sheets());
                 sheets.Append(new Spreadsheet.Sheet { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "CMF Pending List" });
                 var headerRow = new Spreadsheet.Row();
-                foreach (DataControlField column in GridView_cmf_pending.Columns)
+                foreach (int columnIndex in exportColumns)
                 {
+                    var column = GridView_cmf_pending.Columns[columnIndex];
                     headerRow.Append(CreatePendingExportCell(column.HeaderText));
                 }
                 sheetData.Append(headerRow);
@@ -10638,7 +10647,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                     string issueId = Convert.ToString(keys.Values["cp_id"], CultureInfo.InvariantCulture);
                     if (selectedIds != null && !selectedIds.Contains(issueId)) continue;
                     var exportRow = new Spreadsheet.Row();
-                    for (int columnIndex = 0; columnIndex < GridView_cmf_pending.Columns.Count; columnIndex++)
+                    foreach (int columnIndex in exportColumns)
                     {
                         var column = GridView_cmf_pending.Columns[columnIndex];
                         string value;

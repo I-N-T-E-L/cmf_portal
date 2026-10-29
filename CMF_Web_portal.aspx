@@ -22802,7 +22802,7 @@ td:nth-child(odd), th:nth-child(odd) {
             if (pendingWrap) {
                 pendingWrap.style.setProperty('max-height', 'min(64vh, 640px)', 'important');
                 pendingWrap.style.setProperty('min-height', '0', 'important');
-                pendingWrap.style.setProperty('overflow-x', 'auto', 'important');
+                pendingWrap.style.setProperty('overflow-x', 'hidden', 'important');
                 pendingWrap.style.setProperty('overflow-y', 'auto', 'important');
                 pendingWrap.style.setProperty('scrollbar-gutter', 'auto', 'important');
             }
@@ -24855,6 +24855,7 @@ td:nth-child(odd), th:nth-child(odd) {
         function formatPendingLongCells() {
             var table = document.getElementById('GridView_cmf_pending');
             if (!table) return;
+            PendingColumnPicker.sync();
             if (window.ResizeObserver && pendingCellObservedTable !== table) {
                 if (!pendingCellResizeObserver) {
                     pendingCellResizeObserver = new ResizeObserver(function () {
@@ -24881,7 +24882,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     cell.appendChild(content);
                 }
                 if (!cell.getClientRects().length) return;
-                var clipped = text.scrollHeight > text.clientHeight + 1;
+                var clipped = !cell.matches('.pending-field-title, .pending-field-impact') && text.scrollHeight > text.clientHeight + 1;
                 configureCellPreview(text, clipped);
             });
             table.querySelectorAll('.pending-field-request, .pending-field-date').forEach(function (text) {
@@ -24944,7 +24945,165 @@ td:nth-child(odd), th:nth-child(odd) {
             filterCmfPendingRows((parseInt(pager.getAttribute('data-page'), 10) || 0) + offset);
         }
 
+        var PendingColumnPicker = (function () {
+            var storageKey = 'cmf_pending_column_layout_v1';
+            var draft = null;
+            var cachedLayout = null;
+            function notice(message) {
+                document.getElementById('pendingColumnMessage').textContent = message;
+                document.getElementById('pendingColumnStatus').textContent = document.getElementById('pendingColumnPicker').open ? '' : message;
+            }
+            function columns() {
+                var table = document.getElementById('GridView_cmf_pending');
+                if (!table) return [];
+                var headers = Array.from(table.querySelectorAll('th'));
+                Array.from(table.rows).forEach(function (row) {
+                    if (row.cells.length !== headers.length) return;
+                    Array.from(row.cells).forEach(function (cell, index) {
+                        if (!cell.hasAttribute('data-pending-column-index')) cell.dataset.pendingColumnIndex = index;
+                    });
+                });
+                return headers.map(function (header) {
+                    return { index: Number(header.dataset.pendingColumnIndex), title: header.textContent.trim(), exportable: !header.classList.contains('pending-field-ai-recommendation') };
+                }).sort(function (first, second) { return first.index - second.index; });
+            }
+            function layout(items) {
+                var fields = items.map(function (item) { return item.index; });
+                try {
+                    if (!cachedLayout) cachedLayout = JSON.parse(localStorage.getItem(storageKey) || 'null') || { order: fields, hidden: [] };
+                    if (!Array.isArray(cachedLayout.order) || !Array.isArray(cachedLayout.hidden)) throw new TypeError('Invalid column layout.');
+                    var order = Array.from(new Set(cachedLayout.order.concat(fields))).filter(function (index) { return fields.indexOf(index) >= 0; });
+                    var hidden = Array.from(new Set(cachedLayout.hidden)).filter(function (index) { return fields.indexOf(index) >= 0; });
+                    return { order: order, hidden: hidden.length === fields.length ? [] : hidden };
+                } catch (error) {
+                    cachedLayout = { order: fields, hidden: [] };
+                    notice('Saved columns could not be loaded. Default columns are shown.');
+                    return cachedLayout;
+                }
+            }
+            function sync() {
+                var items = columns();
+                if (!items.length) return;
+                var state = layout(items);
+                var selected = state.order.filter(function (index) { return state.hidden.indexOf(index) < 0; });
+                var table = document.getElementById('GridView_cmf_pending');
+                var headers = Array.from(table.querySelectorAll('th'));
+                var weights = selected.reduce(function (total, index) {
+                    var header = headers.find(function (item) { return Number(item.dataset.pendingColumnIndex) === index; });
+                    return total + (header.matches('.pending-field-title,.pending-field-impact') ? 2 : 1);
+                }, 0);
+                Array.from(table.rows).forEach(function (row) {
+                    var cells = Array.from(row.cells);
+                    if (cells.length !== items.length) return;
+                    state.order.forEach(function (index) {
+                        var cell = cells.find(function (item) { return Number(item.dataset.pendingColumnIndex) === index; });
+                        cell.classList.toggle('pending-column-hidden', state.hidden.indexOf(index) >= 0);
+                        var header = headers.find(function (item) { return Number(item.dataset.pendingColumnIndex) === index; });
+                        cell.style.setProperty('width', ((header.matches('.pending-field-title,.pending-field-impact') ? 2 : 1) * 100 / weights) + '%', 'important');
+                        cell.style.setProperty('min-width', '0', 'important');
+                        cell.style.setProperty('max-width', 'none', 'important');
+                        row.appendChild(cell);
+                    });
+                });
+            }
+            function render(highlighted) {
+                if (!draft) return;
+                var available = draft.columns.filter(function (item) { return draft.selected.indexOf(item.index) < 0; })
+                    .sort(function (first, second) { return first.title.localeCompare(second.title); });
+                var selected = draft.selected.map(function (index) { return draft.columns.find(function (item) { return item.index === index; }); });
+                [available, selected].forEach(function (items, position) {
+                    var list = document.getElementById(position ? 'pendingColumnsSelected' : 'pendingColumnsAvailable');
+                    list.textContent = '';
+                    items.forEach(function (item) {
+                        var option = document.createElement('option');
+                        option.value = item.index;
+                        option.textContent = item.title;
+                        option.title = item.title;
+                        option.selected = !!highlighted && highlighted.indexOf(item.index) >= 0;
+                        list.appendChild(option);
+                    });
+                });
+                updateButtons();
+            }
+            function updateButtons() {
+                var available = document.getElementById('pendingColumnsAvailable');
+                var selected = document.getElementById('pendingColumnsSelected');
+                var options = Array.from(selected.options);
+                document.getElementById('pendingColumnAdd').disabled = !available.selectedOptions.length;
+                document.getElementById('pendingColumnRemove').disabled = !selected.selectedOptions.length;
+                document.getElementById('pendingColumnUp').disabled = !options.some(function (option, index) { return option.selected && index > 0 && !options[index - 1].selected; });
+                document.getElementById('pendingColumnDown').disabled = !options.some(function (option, index) { return option.selected && index < options.length - 1 && !options[index + 1].selected; });
+            }
+            function close() {
+                document.getElementById('pendingColumnPicker').close();
+                draft = null;
+            }
+            function move(toSelected) {
+                var source = document.getElementById(toSelected ? 'pendingColumnsAvailable' : 'pendingColumnsSelected');
+                var fields = Array.from(source.selectedOptions).map(function (option) { return Number(option.value); });
+                if (!fields.length) return;
+                if (!toSelected && draft.selected.length === fields.length) { notice('Keep at least one column selected.'); return; }
+                draft.selected = toSelected ? draft.selected.concat(fields) : draft.selected.filter(function (index) { return fields.indexOf(index) < 0; });
+                notice('');
+                render(fields);
+                document.getElementById(toSelected ? 'pendingColumnsSelected' : 'pendingColumnsAvailable').focus();
+            }
+            function reorder(direction) {
+                var fields = Array.from(document.getElementById('pendingColumnsSelected').selectedOptions).map(function (option) { return Number(option.value); });
+                var order = draft.selected;
+                for (var position = direction < 0 ? 1 : order.length - 2; position >= 0 && position < order.length; position += direction < 0 ? 1 : -1) {
+                    var next = position + direction;
+                    if (fields.indexOf(order[position]) >= 0 && fields.indexOf(order[next]) < 0) {
+                        var field = order[position];
+                        order[position] = order[next];
+                        order[next] = field;
+                    }
+                }
+                render(fields);
+                document.getElementById('pendingColumnsSelected').focus();
+            }
+            function apply() {
+                var fields = draft.columns.map(function (item) { return item.index; });
+                var hidden = fields.filter(function (index) { return draft.selected.indexOf(index) < 0; });
+                var state = { order: draft.selected.concat(hidden), hidden: hidden };
+                try { localStorage.setItem(storageKey, JSON.stringify(state)); }
+                catch (error) { notice('Columns could not be saved. Check browser storage settings.'); return; }
+                cachedLayout = state;
+                sync();
+                close();
+                formatPendingLongCells();
+            }
+            return {
+                sync: sync, move: move, reorder: reorder, apply: apply, close: close, updateButtons: updateButtons,
+                open: function () {
+                    var items = columns();
+                    if (!items.length) { notice('Columns are unavailable until the Pending List loads.'); return; }
+                    var state = layout(items);
+                    draft = { columns: items, selected: state.order.filter(function (index) { return state.hidden.indexOf(index) < 0; }) };
+                    notice('');
+                    render();
+                    document.getElementById('pendingColumnPicker').showModal();
+                    document.getElementById('pendingColumnsSelected').focus();
+                },
+                reset: function () { draft.selected = draft.columns.map(function (item) { return item.index; }); notice(''); render(); },
+                keydown: function (event) {
+                    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); }
+                    else if (event.key === 'Enter' && event.target.tagName === 'SELECT') { event.preventDefault(); apply(); }
+                },
+                exportColumns: function () {
+                    var items = columns(), state = layout(items);
+                    return state.order.filter(function (index) {
+                        return state.hidden.indexOf(index) < 0 && items.some(function (item) { return item.index === index && item.exportable; });
+                    });
+                }
+            };
+        }());
+
         function preparePendingViewExport() {
+            PendingColumnPicker.sync();
+            var columns = PendingColumnPicker.exportColumns();
+            if (!columns.length) { showPortalToast('Select at least one data column to export.'); return false; }
+            document.getElementById('<%= hfPendingExportColumns.ClientID %>').value = JSON.stringify(columns);
             var pager = document.getElementById('cmfPendingPager');
             filterCmfPendingRows(pager ? parseInt(pager.getAttribute('data-page'), 10) || 0 : 0);
             var rows = document.querySelectorAll('#GridView_cmf_pending tr[data-pending-filter-match="1"]');
@@ -25161,7 +25320,7 @@ td:nth-child(odd), th:nth-child(odd) {
 </script>
     <script src="Scripts/cmf-portal-main.js?v=20261028-organic-merge"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261029-shared-header-updated" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261029-pending-full-text-columns-2" />
 
 </head>
 
@@ -25201,6 +25360,7 @@ td:nth-child(odd), th:nth-child(odd) {
     <asp:HiddenField ID="HiddenIssueType" runat="server" />
     <asp:HiddenField ID="hfIssueGlobalSearch" runat="server" />
     <asp:HiddenField ID="hfPendingExportIds" runat="server" />
+    <asp:HiddenField ID="hfPendingExportColumns" runat="server" />
     <asp:LinkButton ID="btnIssueGlobalSearchApply" runat="server" OnClick="btnIssueGlobalSearchApply_Click" Style="display:none;" />
 <!-- You already have HiddenDriverName -->
     <asp:HiddenField ID="dw_trigger" runat="server" />
@@ -26355,12 +26515,46 @@ Submit
                                         </div>
                                         <div class="cmf-pending-actions">
                                             <div id="cmfPendingExternalLinks"></div>
+                                            <button type="button" class="cmf-pending-action-btn" aria-haspopup="dialog" aria-controls="pendingColumnPicker" onclick="PendingColumnPicker.open()"><i class="fas fa-table-columns" aria-hidden="true"></i><span>Columns</span></button>
                                             <asp:LinkButton ID="btnPendingViewExport" runat="server" CssClass="cmf-pending-action-btn primary" CausesValidation="false" OnClientClick="if (!preparePendingViewExport()) return false;" OnClick="btnExportToExcel_Click_cmf_pending" ToolTip="Export all issues matching the current filters to Excel"><i class="fas fa-download" aria-hidden="true"></i><span>Export</span></asp:LinkButton>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
+                            <dialog id="pendingColumnPicker" class="issue-column-dialog" aria-labelledby="pendingColumnTitle" onkeydown="PendingColumnPicker.keydown(event)">
+                                <div class="issue-column-dialog-header">
+                                    <h2 id="pendingColumnTitle">Personalize List Columns</h2>
+                                    <button type="button" class="issue-column-close" aria-label="Close column personalization" onclick="PendingColumnPicker.close()">&times;</button>
+                                </div>
+                                <div class="issue-column-dialog-body">
+                                    <div class="issue-column-lists">
+                                        <div class="issue-column-list">
+                                            <label for="pendingColumnsAvailable">Available</label>
+                                            <select id="pendingColumnsAvailable" multiple size="14" onchange="PendingColumnPicker.updateButtons()" ondblclick="PendingColumnPicker.move(true)"></select>
+                                        </div>
+                                        <div class="issue-column-controls">
+                                            <button id="pendingColumnAdd" type="button" title="Add selected columns" aria-label="Add selected columns" onclick="PendingColumnPicker.move(true)"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                                            <button id="pendingColumnRemove" type="button" title="Remove selected columns" aria-label="Remove selected columns" onclick="PendingColumnPicker.move(false)"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                                        </div>
+                                        <div class="issue-column-list">
+                                            <label for="pendingColumnsSelected">Selected</label>
+                                            <select id="pendingColumnsSelected" multiple size="14" onchange="PendingColumnPicker.updateButtons()" ondblclick="PendingColumnPicker.move(false)"></select>
+                                        </div>
+                                        <div class="issue-column-controls">
+                                            <button id="pendingColumnUp" type="button" title="Move selected columns up" aria-label="Move selected columns up" onclick="PendingColumnPicker.reorder(-1)"><i class="fas fa-chevron-up" aria-hidden="true"></i></button>
+                                            <button id="pendingColumnDown" type="button" title="Move selected columns down" aria-label="Move selected columns down" onclick="PendingColumnPicker.reorder(1)"><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+                                        </div>
+                                    </div>
+                                    <div id="pendingColumnMessage" role="status" aria-live="polite"></div>
+                                </div>
+                                <div class="issue-column-dialog-footer">
+                                    <button type="button" class="issue-column-reset" onclick="PendingColumnPicker.reset()">Reset to column defaults</button>
+                                    <button type="button" onclick="PendingColumnPicker.close()">Cancel</button>
+                                    <button type="button" class="issue-column-apply" onclick="PendingColumnPicker.apply()">OK</button>
+                                </div>
+                            </dialog>
+                            <span id="pendingColumnStatus" role="status" aria-live="polite"></span>
                             <asp:Panel ID="cmf_pending_header_panel" runat="server" Visible="false"></asp:Panel>
 
                             <div class="cmf-pending-kpi-row template-kpi-row">
