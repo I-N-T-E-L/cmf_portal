@@ -51,6 +51,23 @@ must be acknowledged rather than filled with assumptions. If the AI provider
 fails or returns an invalid output format, the feature shows a retryable error
 instead of a heuristic summary. The existing summary window is unchanged.
 
+### Issue List: columns and export
+
+The Issue List follows the reference portal's column order. Progress displays the
+issue status against the database progress color, with black or white text chosen
+for contrast. Title and Status show their full wrapped text in a horizontally
+scrollable table. Short-value columns use compact widths; the filter row wraps
+on smaller screens, keeping the Platform selector accessible.
+
+Use **Columns** to choose visible columns or restore all columns. Choices are
+saved in this browser and retained across filtering and paging. The **Status**
+filter selects issue lifecycle states, independently of the debug updates in
+the Status column.
+
+**Export** downloads an `.xlsx` workbook containing all rows matching the current
+platform, filters, and search, across every page. Only selected data columns are
+exported, in table order; the Actions column and UI controls are excluded.
+
 ## First-Time Setup
 
 1. Clone or extract the project to a local folder.

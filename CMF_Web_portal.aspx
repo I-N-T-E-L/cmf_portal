@@ -22136,7 +22136,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var panel = document.getElementById('sharedFilterPanel');
             var platformSlot = document.getElementById('cmfPendingPlatformSlot');
             var linksSlot = document.getElementById('cmfPendingExternalLinks');
-            if (!panel || !platformSlot || !linksSlot) return;
+            if (!panel) return;
 
             var platform = document.querySelector('#sharedFilterPanel .overview-platform-filter, #cmfPendingPlatformSlot .overview-platform-filter, #issuePlatformSlot .overview-platform-filter');
             var links = document.querySelector('#sharedFilterPanel .issue-external-links, #cmfPendingExternalLinks .issue-external-links, #issueExternalLinks .issue-external-links');
@@ -22327,7 +22327,7 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         // ── Column hide buttons ──────────────────────────────────────────────
-        var CMF_HIDDEN_COLS_KEY = 'cmf_hidden_cols';
+        var CMF_HIDDEN_COLS_KEY = 'cmf_issue_columns_v2';
         var CMF_COLHIDE_TIMER = null;
 
         function scheduleInitColumnHideButtons(delay) {
@@ -22376,41 +22376,75 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function hideColumnByClass(fieldClass) {
-            document.querySelectorAll('.' + fieldClass).forEach(function (el) {
-                el.classList.add('hidden');
-            });
-            var hidden = JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]');
-            if (hidden.indexOf(fieldClass) === -1) {
-                hidden.push(fieldClass);
-                localStorage.setItem(CMF_HIDDEN_COLS_KEY, JSON.stringify(hidden));
+            setIssueColumnVisible(fieldClass, false);
+        }
+
+        function setIssueColumnVisible(fieldClass, visible) {
+            var grid = document.getElementById('overall_request_details');
+            if (!grid || !/^field-[a-z_]+$/.test(fieldClass)) return;
+            var headers = Array.from(grid.querySelectorAll('th[class*="field-"]'));
+            if (!visible && headers.filter(function (header) { return !header.classList.contains('hidden'); }).length <= 1) {
+                document.getElementById('issueColumnMessage').textContent = 'Keep at least one column visible.';
+                restoreHiddenColumns();
+                return;
             }
-            var btn = document.getElementById('btnShowAllColumns');
-            if (btn) btn.style.display = '';
+            var hidden = JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]');
+            hidden = hidden.filter(function (field) { return field !== fieldClass; });
+            if (!visible) hidden.push(fieldClass);
+            localStorage.setItem(CMF_HIDDEN_COLS_KEY, JSON.stringify(hidden));
+            document.getElementById('issueColumnMessage').textContent = '';
+            restoreHiddenColumns();
             requestAnimationFrame(formatIssueLongCells);
         }
 
         function restoreHiddenColumns() {
             var hidden = JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]');
-            hidden.forEach(function (fieldClass) {
-                document.querySelectorAll('.' + fieldClass).forEach(function (el) {
-                    el.classList.add('hidden');
-                });
+            document.querySelectorAll('#overall_request_details th[class*="field-"], #overall_request_details td[class*="field-"]').forEach(function (cell) {
+                var fieldClass = Array.from(cell.classList).find(function (name) { return name.indexOf('field-') === 0; });
+                cell.classList.toggle('hidden', hidden.indexOf(fieldClass) >= 0);
             });
-            var btn = document.getElementById('btnShowAllColumns');
-            if (btn) btn.style.display = hidden.length > 0 ? '' : 'none';
+            renderIssueColumnChoices();
         }
 
         function showAllColumns() {
-            var hidden = JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]');
-            hidden.forEach(function (fieldClass) {
-                document.querySelectorAll('.' + fieldClass).forEach(function (el) {
-                    el.classList.remove('hidden');
-                });
-            });
             localStorage.removeItem(CMF_HIDDEN_COLS_KEY);
-            var btn = document.getElementById('btnShowAllColumns');
-            if (btn) btn.style.display = 'none';
+            restoreHiddenColumns();
             requestAnimationFrame(formatIssueLongCells);
+        }
+
+        function renderIssueColumnChoices() {
+            var choices = document.getElementById('issueColumnChoices');
+            if (!choices) return;
+            var headers = Array.from(document.querySelectorAll('#overall_request_details th[class*="field-"]'));
+            var signature = headers.map(function (header) { return header.className; }).join('|');
+            if (choices.getAttribute('data-columns') === signature) return;
+            choices.setAttribute('data-columns', signature);
+            choices.textContent = '';
+            headers.forEach(function (header) {
+                var field = Array.from(header.classList).find(function (name) { return name.indexOf('field-') === 0; });
+                var label = document.createElement('label');
+                var checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = !header.classList.contains('hidden');
+                checkbox.value = field;
+                checkbox.addEventListener('change', function () { setIssueColumnVisible(field, checkbox.checked); });
+                var title = header.querySelector('.filter-header-text') || header;
+                var text = title.cloneNode(true);
+                text.querySelectorAll('button,select,.filter-container').forEach(function (node) { node.remove(); });
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(text.textContent.trim()));
+                choices.appendChild(label);
+            });
+        }
+
+        function prepareIssueViewExport() {
+            restoreHiddenColumns();
+            var columns = Array.from(document.querySelectorAll('#overall_request_details th[class*="field-"]'))
+                .filter(function (header) { return !header.classList.contains('hidden') && !header.classList.contains('field-actions'); })
+                .map(function (header) { return Array.from(header.classList).find(function (name) { return name.indexOf('field-') === 0; }); });
+            document.getElementById('<%= hfIssueExportColumns.ClientID %>').value = JSON.stringify(columns);
+            document.getElementById('<%= issueExportMessage.ClientID %>').textContent = columns.length ? '' : 'Select at least one data column to export.';
+            return columns.length > 0;
         }
 
         function filterGridRowsByQuery(grid, query) {
@@ -22547,8 +22581,8 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             if (issueTable) {
-                issueTable.style.setProperty('width', '100%', 'important');
-                issueTable.style.setProperty('min-width', window.innerWidth > 1200 ? '0' : '1320px', 'important');
+                issueTable.style.setProperty('width', 'max-content', 'important');
+                issueTable.style.setProperty('min-width', '100%', 'important');
                 issueTable.style.setProperty('max-width', 'none', 'important');
             }
 
@@ -22563,6 +22597,9 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function bootstrapPortalLoadHooks() {
+            if (window.CMF_PORTAL.activeFocusedTab === 'issue') {
+                syncPendingPlatformControls(false, true);
+            }
             applyTableOnlyScroll();
             syncGlobalSearchVisibility();
             populateCmfPendingFilterOptions();
@@ -24534,7 +24571,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 issueCellResizeObserver.observe(table);
             }
             formatPendingCustomerLogos();
-            var targets = document.querySelectorAll('#overall_request_details > tbody > tr > td:not([colspan]):not(.field-actions):not(.field-sightingid):not(.field-status), #overall_request_details .status-one-line');
+            var targets = document.querySelectorAll('#overall_request_details > tbody > tr > td:not([colspan]):not(.field-actions):not(.field-sightingid):not(.field-status):not(.field-title):not(.field-progress)');
             targets.forEach(function (cell) {
                 var row = cell.closest('tr');
                 if (row.querySelector('textarea, input, select') || !cell.textContent.trim()) return;
@@ -24590,8 +24627,12 @@ td:nth-child(odd), th:nth-child(odd) {
 
         document.addEventListener('DOMContentLoaded', function () {
             formatPendingCustomerLogos();
+            scheduleInitColumnHideButtons(0);
             if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) {
                 Sys.WebForms.PageRequestManager.getInstance().add_endRequest(formatPendingCustomerLogos);
+                Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function () {
+                    scheduleInitColumnHideButtons(0);
+                });
             }
         });
 
@@ -24907,7 +24948,7 @@ td:nth-child(odd), th:nth-child(odd) {
 </script>
     <script src="Scripts/cmf-portal-main.js?v=20261028-organic-merge"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261028-organic-merge" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261029-pending-stale-badge" />
 
 </head>
 
@@ -24963,6 +25004,13 @@ td:nth-child(odd), th:nth-child(odd) {
             <input type="text" id="globalPortalSearch" placeholder="Search issues, customers, components..." autocomplete="off" value="<%= HttpUtility.HtmlAttributeEncode(GetIssueGlobalSearchQuery()) %>" oninput="scheduleIssueGlobalSearch()" />
             <button type="button" id="globalSearchClear" class="global-search-clear" onclick="clearGlobalPortalSearch()" aria-label="Clear search">&times;</button>
             <span class="global-search-shortcut">Ctrl + K</span>
+        </div>
+        <div class="header-user-mode">
+            <label for="ddlUserMode">Mode</label>
+            <asp:DropDownList ID="ddlUserMode" runat="server" CssClass="header-mode-dropdown" AutoPostBack="true" OnSelectedIndexChanged="ddlUserMode_SelectedIndexChanged">
+                <asp:ListItem Text="Program Manager" Value="program_manager" />
+                <asp:ListItem Text="Admin" Value="admin" />
+            </asp:DropDownList>
         </div>
         <div class="sidebar-toggle-div">
             <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
@@ -25055,13 +25103,6 @@ Submit
                                         <asp:Label ID="lblWelcomeMode" runat="server" Visible="false" />
                                     </div>
                                     <div class="ccip-dash-top-tools">
-                                        <div class="dash-user-mode">
-                                            <label for="ddlUserMode">Mode</label>
-                                            <asp:DropDownList ID="ddlUserMode" runat="server" CssClass="header-mode-dropdown" AutoPostBack="true" OnSelectedIndexChanged="ddlUserMode_SelectedIndexChanged">
-                                                <asp:ListItem Text="Program Manager" Value="program_manager" />
-                                                <asp:ListItem Text="Admin" Value="admin" />
-                                            </asp:DropDownList>
-                                        </div>
                                         <div class="ccip-dash-updated">Updated  <asp:Label ID="lblHomeDashboardGeneratedAt" runat="server" /></div>
                                         <asp:HyperLink ID="lnkPlatformDashboardHome" runat="server" Target="_blank" CssClass="ccip-link-btn" Visible="false">Open platform dashboard</asp:HyperLink>
                                     </div>
@@ -25766,6 +25807,7 @@ Submit
                                     <div class="issue-top-filter-item"><span>Company</span><asp:DropDownList ID="ddlCompanyTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlCompanyHeader_SelectedIndexChanged" CssClass="header-dropdown" /></div>
                                     <div class="issue-top-filter-item"><span>Customer Detail</span><asp:DropDownList ID="ddlDetailTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlDetailHeader_SelectedIndexChanged" CssClass="header-dropdown" /></div>
                                     <div class="issue-top-filter-item"><span>Component Group</span><asp:DropDownList ID="ddlComponentTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlComponentHeader_SelectedIndexChanged" CssClass="header-dropdown" /></div>
+                                    <div class="issue-top-filter-item"><span>Status</span><asp:DropDownList ID="ddlStatusTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlStatusTop_SelectedIndexChanged" CssClass="header-dropdown" /></div>
                                 </div>
                                 <div class="issue-top-filter-buttons">
                                     <asp:Button ID="btnClearFilters" runat="server" CssClass="filter-btn filter-btn-secondary" Text="Clear" OnClick="btnClearFilters_Click" />
@@ -25786,23 +25828,22 @@ Submit
 
                     <div class="issue-user-toolbar">
                         <div class="issue-user-actions">
-                            <button
-                                type="button"
-                                id="btnShowAllColumns"
-                                class="issue-toolbar-btn secondary"
-                                onclick="showAllColumns()"
-                                style="display:none">
-                                <i class="fas fa-table-columns" aria-hidden="true"></i>
-                                Show Columns
-                            </button>
+                            <details id="issueColumnPicker" class="issue-column-picker">
+                                <summary class="issue-toolbar-btn secondary"><i class="fas fa-table-columns" aria-hidden="true"></i> Columns</summary>
+                                <div class="issue-column-panel">
+                                    <div id="issueColumnChoices" class="issue-column-choices"></div>
+                                    <button type="button" class="issue-toolbar-btn secondary" onclick="showAllColumns()">Show all columns</button>
+                                    <span id="issueColumnMessage" role="status" aria-live="polite"></span>
+                                </div>
+                            </details>
+                            <asp:HiddenField ID="hfIssueExportColumns" runat="server" />
+                            <asp:LinkButton ID="btnIssueViewExport" runat="server" CssClass="cmf-pending-action-btn primary" CausesValidation="false" OnClientClick="if (!prepareIssueViewExport()) return false;" OnClick="btnIssueViewExport_Click" ToolTip="Export all filtered issues and selected columns to Excel"><i class="fas fa-download" aria-hidden="true"></i><span>Export</span></asp:LinkButton>
+                            <span id="issueExportMessage" runat="server" role="status" aria-live="polite"></span>
                         </div>
                     </div>
 
 
                     <div class="gridview-container issue-grid-scroll">
-                        <div class="issue-grid-toolbar">
-                            <button type="button" id="btnShowAllColumns" class="show-cols-btn" onclick="showAllColumns()" style="display:none" title="Restore all hidden columns">&#x21BA; Show All Columns</button>
-                        </div>
                         <!-- MODIFY YOUR GRIDVIEW TO ADD DATA-FIELD ATTRIBUTES -->
                         <div id="issue-grid-inner" class="issue-grid-inner">
 
@@ -25816,30 +25857,8 @@ Submit
 
     <Columns>
 
-        <asp:TemplateField HeaderText="Sighting ID" ItemStyle-CssClass="field-sightingid" HeaderStyle-CssClass="field-sightingid">
-            <ItemTemplate>
-                <%# RenderIssueDetails(Eval("SightingID"), Eval("Merged_PromotedID"), Eval("title"), Eval("cmf_request"), Eval("SubmittedDate"), Eval("IssueStatus"), Eval("sysdebug"), false) %>
-            </ItemTemplate>
-        </asp:TemplateField>
-
-        <asp:BoundField DataField="title" HeaderText="Title" ReadOnly="True"
-            ItemStyle-CssClass="field-title" HeaderStyle-CssClass="field-title" />
-
-        <asp:TemplateField HeaderText="Owner" ItemStyle-CssClass="field-owner" HeaderStyle-CssClass="field-owner">
-            <HeaderTemplate>
-                <div class="filter-header-container">
-                    <div class="filter-header-text">Owner</div>
-                    <div class="filter-container">
-                        <asp:DropDownList ID="ddlOwnerHeader" runat="server" AutoPostBack="true"
-                            OnSelectedIndexChanged="ddlOwnerHeader_SelectedIndexChanged" CssClass="header-dropdown" />
-                    </div>
-                </div>
-            </HeaderTemplate>
-            <ItemTemplate><%#: Eval("Owner") %></ItemTemplate>
-            <EditItemTemplate>
-                <asp:TextBox ID="txtOwner" runat="server" TextMode="MultiLine" Text='<%# Bind("Owner") %>'
-                    CssClass="form-control"></asp:TextBox>
-            </EditItemTemplate>
+        <asp:TemplateField HeaderText="S.No" ItemStyle-CssClass="field-sno" HeaderStyle-CssClass="field-sno">
+            <ItemTemplate><%# Container.DataItemIndex + 1 %></ItemTemplate>
         </asp:TemplateField>
 
         <asp:TemplateField HeaderText="Milestone" ItemStyle-CssClass="field-milestone" HeaderStyle-CssClass="field-milestone">
@@ -25857,11 +25876,39 @@ Submit
             </ItemTemplate>
         </asp:TemplateField>
 
-        <asp:TemplateField HeaderText="Customer Detail" ItemStyle-CssClass="field-customer_detail" HeaderStyle-CssClass="field-customer_detail">
+        <asp:BoundField DataField="IssueStatus" HeaderText="Progress" ReadOnly="True"
+            ItemStyle-CssClass="field-progress" HeaderStyle-CssClass="field-progress" />
+
+        <asp:TemplateField HeaderText="Sighting ID" ItemStyle-CssClass="field-sightingid" HeaderStyle-CssClass="field-sightingid">
             <ItemTemplate>
-                <span class="issue-cell-stack"><span class="issue-company-name"><%#: Eval("customer_company") %></span><span><%#: Eval("customer_detail") %></span></span>
+                <%# RenderIssueDetails(Eval("SightingID"), Eval("Merged_PromotedID"), Eval("title"), Eval("cmf_request"), Eval("SubmittedDate"), Eval("IssueStatus"), Eval("sysdebug"), false) %>
             </ItemTemplate>
         </asp:TemplateField>
+
+        <asp:HyperLinkField DataTextField="Merged_PromotedID" HeaderText="Promoted ID"
+            DataNavigateUrlFields="Merged_PromotedID" DataNavigateUrlFormatString="https://hsdes.intel.com/appstore/article/#/{0}" Target="_blank"
+            ItemStyle-CssClass="field-promotedid" HeaderStyle-CssClass="field-promotedid" />
+
+        <asp:TemplateField HeaderText="Customer Detail" ItemStyle-CssClass="field-customer_detail" HeaderStyle-CssClass="field-customer_detail">
+            <ItemTemplate>
+                <%#: Eval("customer_detail") %>
+            </ItemTemplate>
+        </asp:TemplateField>
+
+        <asp:BoundField DataField="ImageFreeze" HeaderText="Image Freeze" ReadOnly="True"
+            ItemStyle-CssClass="field-imagefreeze" HeaderStyle-CssClass="field-imagefreeze" />
+
+        <asp:TemplateField HeaderText="Duplicate Details"
+            ItemStyle-CssClass="field-duplicatedetails" HeaderStyle-CssClass="field-duplicatedetails">
+            <ItemTemplate><%# CreateDuplicateLinks(Eval("DuplicateDetails")) %></ItemTemplate>
+        </asp:TemplateField>
+
+        <asp:TemplateField HeaderText="Customer Company" ItemStyle-CssClass="field-customer_company" HeaderStyle-CssClass="field-customer_company">
+            <ItemTemplate><span class="issue-company-name"><%#: Eval("customer_company") %></span></ItemTemplate>
+        </asp:TemplateField>
+
+        <asp:BoundField DataField="title" HeaderText="Title" ReadOnly="True"
+            ItemStyle-CssClass="field-title" HeaderStyle-CssClass="field-title" />
 
         <asp:TemplateField HeaderText="Component" ItemStyle-CssClass="field-component" HeaderStyle-CssClass="field-component">
             <HeaderTemplate>
@@ -25878,29 +25925,19 @@ Submit
             </ItemTemplate>
         </asp:TemplateField>
 
-        <asp:TemplateField HeaderText="Promoted ID / Owner" ItemStyle-CssClass="field-promoted" HeaderStyle-CssClass="field-promoted">
-            <ItemTemplate>
-                <span class="issue-cell-stack"><span><%#: Eval("Merged_PromotedID") %></span><span><%#: Eval("owners_name") %></span></span>
-            </ItemTemplate>
+        <asp:BoundField DataField="component_group" HeaderText="Component Group" ReadOnly="True"
+            ItemStyle-CssClass="field-component_group" HeaderStyle-CssClass="field-component_group" />
+
+        <asp:TemplateField HeaderText="Owner" ItemStyle-CssClass="field-owner" HeaderStyle-CssClass="field-owner">
+            <ItemTemplate><%#: Eval("Owner") %></ItemTemplate>
+            <EditItemTemplate>
+                <asp:TextBox ID="txtOwner" runat="server" TextMode="MultiLine" Text='<%# Bind("Owner") %>'
+                    CssClass="form-control"></asp:TextBox>
+            </EditItemTemplate>
         </asp:TemplateField>
 
-        <asp:TemplateField HeaderText="Status" ItemStyle-CssClass="field-status" HeaderStyle-CssClass="field-status">
-            <ItemTemplate>
-                <%# RenderStatusWithAiSummaryButton(Eval("IssueStatus"), Eval("Status"), Eval("SightingID"), Eval("title"), Eval("SubmittedDate"), Eval("sysdebug"), Container.DataItem) %>
-            </ItemTemplate>
-        </asp:TemplateField>
-
-        <asp:BoundField DataField="Status" HeaderText="CMF Status" ReadOnly="True" Visible="false"
-            ItemStyle-CssClass="field-cmf_status" HeaderStyle-CssClass="field-cmf_status" />
-
-        <asp:BoundField DataField="ImageFreeze" HeaderText="Image Freeze" ReadOnly="True"
-    ItemStyle-CssClass="field-imagefreeze" HeaderStyle-CssClass="field-imagefreeze" />
-
-        <asp:TemplateField HeaderText="Duplicate Details"
-            ItemStyle-CssClass="field-duplicatedetails" HeaderStyle-CssClass="field-duplicatedetails">
-            <ItemTemplate><%# CreateDuplicateLinks(Eval("DuplicateDetails")) %></ItemTemplate>
-        </asp:TemplateField>
-
+        <asp:BoundField DataField="owners_name" HeaderText="Promoted Owner" ReadOnly="True"
+            ItemStyle-CssClass="field-promoted_owner" HeaderStyle-CssClass="field-promoted_owner" />
 
         <asp:TemplateField HeaderText="RVP Repro" ItemStyle-CssClass="field-rvp_repro" HeaderStyle-CssClass="field-rvp_repro">
             <HeaderTemplate>
@@ -25913,6 +25950,12 @@ Submit
                 </div>
             </HeaderTemplate>
             <ItemTemplate><span><%# Eval("repro_on_rvp") %></span></ItemTemplate>
+        </asp:TemplateField>
+
+        <asp:TemplateField HeaderText="Status" ItemStyle-CssClass="field-status" HeaderStyle-CssClass="field-status">
+            <ItemTemplate>
+                <%# RenderStatusWithAiSummaryButton(Eval("IssueStatus"), Eval("Status"), Eval("SightingID"), Eval("title"), Eval("SubmittedDate"), Eval("sysdebug"), Container.DataItem) %>
+            </ItemTemplate>
         </asp:TemplateField>
 
         <asp:TemplateField HeaderText="iDST" ItemStyle-CssClass="field-idst" HeaderStyle-CssClass="field-idst">
@@ -25953,7 +25996,7 @@ Submit
 
 
         <asp:BoundField DataField="processor" HeaderText="Processor" ReadOnly="True"
-            ItemStyle-CssClass="field-processor" HeaderStyle-CssClass="field-processor" Visible="false" />
+            ItemStyle-CssClass="field-processor" HeaderStyle-CssClass="field-processor" />
 
 
     <asp:TemplateField HeaderText="Impact" ItemStyle-CssClass="field-impact_processor" HeaderStyle-CssClass="field-impact_processor">
@@ -25992,9 +26035,6 @@ Submit
                 </span>
             </EditItemTemplate>
         </asp:TemplateField>
-
-        <asp:BoundField DataField="progress" HeaderText="Progress" ReadOnly="True" Visible="false"
-            ItemStyle-CssClass="field-progress" HeaderStyle-CssClass="field-progress" />
 
     </Columns>
 
@@ -26114,9 +26154,9 @@ Submit
                                         <asp:TemplateField HeaderText="CMF Request / Ask Date" ItemStyle-CssClass="pending-field-request-date">
                                             <ItemTemplate>
                                                 <div class="pending-request-date">
-                                                    <asp:Label ID="PendingRequestValue" runat="server" CssClass="pending-field-request" Text='<%# HttpUtility.HtmlEncode(Convert.ToString(Eval("cmf_request"))) %>' />
+                                                    <asp:Label ID="PendingStaleBadge" runat="server" CssClass="pending-stale-badge" Text="Stale" Visible='<%# IsPendingRequestStale(Eval("date_cmf_ask")) %>' ToolTip="CMF ask is more than 2 days old" />
+                                                    <asp:Label ID="PendingRequestValue" runat="server" CssClass='<%# IsPendingRequestStale(Eval("date_cmf_ask")) ? "pending-field-request pending-request-stale" : "pending-field-request" %>' Text='<%# HttpUtility.HtmlEncode(Convert.ToString(Eval("cmf_request"))) %>' />
                                                     <asp:Label ID="PendingAskDateValue" runat="server" CssClass="pending-field-date" Text='<%# Eval("date_cmf_ask", "{0:dd-MMM-yyyy}") %>' />
-                                                    <%# RenderPendingStaleLabel(Eval("date_cmf_ask")) %>
                                                 </div>
                                             </ItemTemplate>
                                         </asp:TemplateField>

@@ -2564,6 +2564,10 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         {
             ScriptManager1.RegisterPostBackControl(btnPendingViewExport);
         }
+        if (ScriptManager1 != null && btnIssueViewExport != null)
+        {
+            ScriptManager1.RegisterPostBackControl(btnIssueViewExport);
+        }
         RegisterActiveTabClientState();
         base.OnPreRender(e);
     }
@@ -2982,6 +2986,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         Session["companyFilter"] = "All";
         Session["detailFilter"] = "All";
         Session["componentFilter"] = "All";
+        Session["issueStatusFilter"] = "All";
     }
 
     private void SetIssuePagerVisible(bool isVisible)
@@ -6083,6 +6088,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         Session["companyFilter"] = null;
         Session["detailFilter"] = null;
         Session["componentFilter"] = null;
+        Session["issueStatusFilter"] = null;
 
         // Reset dropdown selections to "All"
         ddlOwnerTop.SelectedValue = "All";
@@ -6093,6 +6099,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         ddlCompanyTop.SelectedValue = "All";
         ddlDetailTop.SelectedValue = "All";
         ddlComponentTop.SelectedValue = "All";
+        ddlStatusTop.SelectedValue = "All";
 
         // Apply the cleared filters
         ApplyAllFilters();
@@ -6108,6 +6115,12 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         BindGridView(filterValue, filters, bindRelatedGrids: false);
     }
 
+    protected void ddlStatusTop_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        Session["issueStatusFilter"] = ddlStatusTop.SelectedValue;
+        ApplyAllFilters();
+    }
+
     // Updated to remove progress and component filters
     private Dictionary<string, string> GetAllFilterValues()
     {
@@ -6121,6 +6134,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         {"Company", Session["companyFilter"] as string ?? "All"},      // Fixed: use "companyFilter"
         {"Detail", Session["detailFilter"] as string ?? "All"},        // Fixed: use "detailFilter"
         {"Component", Session["componentFilter"] as string ?? "All"},  // Fixed: use "componentFilter"
+        {"IssueStatus", Session["issueStatusFilter"] as string ?? "All"},
     };
     }
 
@@ -6348,6 +6362,9 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                 case "Component":
                     cmd.Parameters.AddWithValue("@ComponentFilter", filter.Value);
                     break;
+                case "IssueStatus":
+                    cmd.Parameters.AddWithValue("@IssueStatusFilter", filter.Value);
+                    break;
             }
         }
     }
@@ -6373,6 +6390,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             BindFilterData(con, "customer_company", "CompanyItems", currentPlatform, activeFilters, "Company");
             BindFilterData(con, "customer_detail", "DetailItems", currentPlatform, activeFilters, "Detail");
             BindFilterData(con, "component_group", "ComponentItems", currentPlatform, activeFilters, "Component");
+            BindFilterData(con, "status", "IssueStatusItems", currentPlatform, activeFilters, "IssueStatus");
         }
 
         PopulateTopFilterDropdowns();
@@ -6388,6 +6406,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         PopulateTopFilterDropdown("ddlDetailTop", "DetailItems", "detailFilter");
         PopulateTopFilterDropdown("ddlComponentTop", "ComponentItems", "componentFilter");
         PopulateTopFilterDropdown("ddlMilestoneTop", "MilestoneItems", "milestoneFilter");
+        PopulateTopFilterDropdown("ddlStatusTop", "IssueStatusItems", "issueStatusFilter");
     }
 
     private void BindFilterData(SqlConnection con, string columnName, string viewStateKey, string platform, Dictionary<string, string> activeFilters, string excludeFilterKey)
@@ -6691,6 +6710,9 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                         break;
                     case "Component":
                         clauses.Add(" AND LTRIM(RTRIM(" + prefix + "component_group)) = @ComponentFilter ");
+                        break;
+                    case "IssueStatus":
+                        clauses.Add(" AND LTRIM(RTRIM(" + prefix + "status)) = @IssueStatusFilter ");
                         break;
                     //case "los":
                     //    clauses.Add(" AND LTRIM(RTRIM(los)) = @LosFilter ");
@@ -7923,6 +7945,9 @@ LEFT JOIN " + designTable + @" AS d
                                 case "Component":
                                     sda.SelectCommand.Parameters.AddWithValue("@ComponentFilter", filter.Value);
                                     break;
+                                case "IssueStatus":
+                                    sda.SelectCommand.Parameters.AddWithValue("@IssueStatusFilter", filter.Value);
+                                    break;
                             }
                         }
                     }
@@ -8328,11 +8353,12 @@ LEFT JOIN " + designTable + @" AS d
         return sb.ToString();
     }
 
-    protected string RenderPendingStaleLabel(object dateCmfAskValue)
+    protected bool IsPendingRequestStale(object dateCmfAskValue)
     {
         DateTime askDate;
-        if (dateCmfAskValue == null || dateCmfAskValue == DBNull.Value || !DateTime.TryParse(Convert.ToString(dateCmfAskValue), out askDate) || DateTime.Now - askDate <= TimeSpan.FromDays(2)) return string.Empty;
-        return "<span class=\"pending-stale-label\" title=\"CMF ask is more than 2 days old; prioritize review\"><i class=\"fas fa-clock\" aria-hidden=\"true\"></i>Stale &middot; Review first</span>";
+        return dateCmfAskValue != null && dateCmfAskValue != DBNull.Value
+            && DateTime.TryParse(Convert.ToString(dateCmfAskValue), out askDate)
+            && DateTime.Now - askDate > TimeSpan.FromDays(2);
     }
 
     protected string RenderPendingAskImpact(object cpIdValue, object titleValue, object componentValue, object dateCmfAskValue, object cmfRequestValue, object impactValue, object idstValue, object reproOnRvpValue, object reproducibilityValue, object customerDetailValue, object customerOwnerValue)
@@ -8639,11 +8665,18 @@ LEFT JOIN " + designTable + @" AS d
             }
         } catch { }
 
-        // Determine main status to display in pill - prioritize sysdebugForum, then rawStatus, then statusValue (IssueStatus)
+        // Lifecycle status is shown in Progress; this column contains only debug updates.
         string primaryStatusToDisplay = string.Empty;
         if (!string.IsNullOrWhiteSpace(sysdebugForum)) primaryStatusToDisplay = sysdebugForum;
         else if (!string.IsNullOrWhiteSpace(rawStatus)) primaryStatusToDisplay = rawStatus;
-        else primaryStatusToDisplay = status;
+        else primaryStatusToDisplay = string.Empty;
+
+        if (string.Equals(primaryStatusToDisplay, status, StringComparison.OrdinalIgnoreCase)
+            || new[] { "open", "closed", "complete", "implemented", "verified", "rejected" }
+            .Contains(primaryStatusToDisplay, StringComparer.OrdinalIgnoreCase))
+        {
+            primaryStatusToDisplay = string.Empty;
+        }
 
         string sysdebug = sysdebugValue == null || sysdebugValue == DBNull.Value ? string.Empty : sysdebugValue.ToString().Replace("\r", " ").Replace("\n", " ").Trim();
         string onclick = "openAiSummaryModal(\"" + JsEncode(sightingIdValue) + "\", \"" + JsEncode(titleValue) + "\", \"" + JsEncode(FormatDateOnly(submittedDateValue)) + "\", \"" + JsEncode(statusValue) + "\", \"" + JsEncode(sysdebugValue) + "\", \"AI Summary\")";
@@ -8651,7 +8684,6 @@ LEFT JOIN " + designTable + @" AS d
         return "<div class=\"status-cell-wrap status-cell-wrap-compact\">" +
             "<div class=\"status-row status-row-primary\">" +
                 "<span class=\"status-label-group\">" +
-                "<span class=\"status-pill\" style=\"margin-right: 6px;\">" + HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(status) ? "unknown" : status) + "</span>" +
                 "<button type=\"button\" class=\"ai-summary-btn ai-summary-btn-inline issue-details-ai-btn\" style=\"padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid #7cb5ec; background-color: #f3f9ff; font-size: 14px; width: 26px; height: 26px; margin-right: 6px;\" onclick='" + onclick + "' title=\"AI Debug Summary\" aria-label=\"AI Debug Summary\">&#10024;</button>" +
                 "</span>" +
             "</div>" +
@@ -10346,6 +10378,128 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
 
         // Re-enable the visibility of the last column after the export
         GridView_design_open.Columns[GridView_design_open.Columns.Count - 1].Visible = true;
+    }
+
+    protected void btnIssueViewExport_Click(object sender, EventArgs e)
+    {
+        List<string> requestedColumns;
+        try
+        {
+            requestedColumns = new JavaScriptSerializer().Deserialize<List<string>>(hfIssueExportColumns.Value);
+        }
+        catch (ArgumentException)
+        {
+            issueExportMessage.InnerText = "Unable to export: invalid column selection.";
+            return;
+        }
+        catch (InvalidOperationException)
+        {
+            issueExportMessage.InnerText = "Unable to export: invalid column selection.";
+            return;
+        }
+
+        var selected = new HashSet<string>(requestedColumns ?? new List<string>(), StringComparer.Ordinal);
+        var indexes = new List<int>();
+        for (int i = 0; i < overall_request_details.Columns.Count; i++)
+        {
+            DataControlField column = overall_request_details.Columns[i];
+            string field = GetIssueFieldClass(column.ItemStyle.CssClass);
+            if (column.Visible && field != "field-actions" && selected.Contains(field)) indexes.Add(i);
+        }
+        if (indexes.Count == 0)
+        {
+            issueExportMessage.InnerText = "Select at least one data column to export.";
+            return;
+        }
+
+        bool paging = overall_request_details.AllowPaging;
+        int pageIndex = overall_request_details.PageIndex;
+        int editIndex = overall_request_details.EditIndex;
+        byte[] bytes;
+        try
+        {
+            overall_request_details.AllowPaging = false;
+            overall_request_details.PageIndex = 0;
+            overall_request_details.EditIndex = -1;
+            ApplyIssuePendingPlatformContext();
+            BindGridView(Session["filterValue"] as string, GetAllFilterValues(), bindRelatedGrids: false);
+            if (overall_request_details.Rows.Count == 0)
+            {
+                issueExportMessage.InnerText = "No matching issues to export.";
+                return;
+            }
+            using (var stream = new MemoryStream())
+            {
+                using (var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook))
+                {
+                    var workbookPart = document.AddWorkbookPart();
+                    workbookPart.Workbook = new Spreadsheet.Workbook();
+                    var styles = workbookPart.AddNewPart<WorkbookStylesPart>();
+                    styles.Stylesheet = new Spreadsheet.Stylesheet(
+                        new Spreadsheet.Fonts(new Spreadsheet.Font()),
+                        new Spreadsheet.Fills(new Spreadsheet.Fill(new Spreadsheet.PatternFill { PatternType = Spreadsheet.PatternValues.None }),
+                            new Spreadsheet.Fill(new Spreadsheet.PatternFill { PatternType = Spreadsheet.PatternValues.Gray125 })),
+                        new Spreadsheet.Borders(new Spreadsheet.Border()),
+                        new Spreadsheet.CellStyleFormats(new Spreadsheet.CellFormat()),
+                        new Spreadsheet.CellFormats(new Spreadsheet.CellFormat {
+                            Alignment = new Spreadsheet.Alignment { WrapText = true, Vertical = Spreadsheet.VerticalAlignmentValues.Top },
+                            ApplyAlignment = true
+                        }));
+                    var part = workbookPart.AddNewPart<WorksheetPart>();
+                    var data = new Spreadsheet.SheetData();
+                    var columns = new Spreadsheet.Columns();
+                    for (int i = 0; i < indexes.Count; i++)
+                    {
+                        string field = GetIssueFieldClass(overall_request_details.Columns[indexes[i]].ItemStyle.CssClass);
+                        columns.Append(new Spreadsheet.Column { Min = (uint)i + 1, Max = (uint)i + 1,
+                            Width = field == "field-title" || field == "field-status" ? 65 : 24, CustomWidth = true });
+                    }
+                    part.Worksheet = new Spreadsheet.Worksheet(columns, data);
+                    var sheets = workbookPart.Workbook.AppendChild(new Spreadsheet.Sheets());
+                    sheets.Append(new Spreadsheet.Sheet { Id = workbookPart.GetIdOfPart(part), SheetId = 1, Name = "Issue List" });
+                    var header = new Spreadsheet.Row();
+                    foreach (int i in indexes) header.Append(CreatePendingExportCell(overall_request_details.Columns[i].HeaderText));
+                    data.Append(header);
+                    foreach (GridViewRow row in overall_request_details.Rows)
+                    {
+                        var exportRow = new Spreadsheet.Row();
+                        foreach (int i in indexes) exportRow.Append(CreatePendingExportCell(GetIssueExportCellText(row.Cells[i])));
+                        data.Append(exportRow);
+                    }
+                    styles.Stylesheet.Save();
+                    part.Worksheet.Save();
+                    workbookPart.Workbook.Save();
+                }
+                bytes = stream.ToArray();
+            }
+        }
+        finally
+        {
+            overall_request_details.AllowPaging = paging;
+            overall_request_details.PageIndex = pageIndex;
+            overall_request_details.EditIndex = editIndex;
+        }
+        Response.Clear();
+        Response.Buffer = true;
+        Response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        Response.AddHeader("Content-Disposition", "attachment;filename=IssueList_" + DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture) + ".xlsx");
+        Response.Cache.SetCacheability(HttpCacheability.NoCache);
+        Response.Cache.SetNoStore();
+        Response.BinaryWrite(bytes);
+        Response.End();
+    }
+
+    private static string GetIssueExportCellText(TableCell cell)
+    {
+        using (var buffer = new StringWriter())
+        using (var writer = new HtmlTextWriter(buffer))
+        {
+            cell.RenderControl(writer);
+            string html = System.Text.RegularExpressions.Regex.Replace(buffer.ToString(), @"<button\b[^>]*>[\s\S]*?</button>", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            html = System.Text.RegularExpressions.Regex.Replace(html, @"<br\s*/?>|</(?:div|p)>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            string text = HttpUtility.HtmlDecode(System.Text.RegularExpressions.Regex.Replace(html, "<[^>]*>", "")).Replace('\u00a0', ' ').Trim();
+            return string.IsNullOrWhiteSpace(text) ? "unknown" : text;
+        }
     }
 
     // Export to Excel for CMF Pending List
@@ -16559,8 +16713,7 @@ ORDER BY Total_CMF_Approved DESC";
                 for (int cellIndex = 0; cellIndex < e.Row.Cells.Count; cellIndex++)
                 {
                     TableCell candidate = e.Row.Cells[cellIndex];
-                    if (!string.IsNullOrEmpty(candidate.CssClass)
-                        && candidate.CssClass.IndexOf("field-progress", StringComparison.OrdinalIgnoreCase) >= 0)
+                    if (GetIssueFieldClass(overall_request_details.Columns[cellIndex].ItemStyle.CssClass) == "field-progress")
                     {
                         progressCell = candidate;
                         break;
@@ -16585,25 +16738,31 @@ ORDER BY Total_CMF_Approved DESC";
                     try
                     {
                         // Set the background color and text color based on the cell value
-                        progressCell.BackColor = System.Drawing.Color.FromName(cellValue);
-                        // Show a pure color swatch (no visible text) as requested.
-                        progressCell.ForeColor = progressCell.BackColor;
+                        System.Drawing.Color background = System.Drawing.ColorTranslator.FromHtml(cellValue);
+                        progressCell.BackColor = background;
+                        progressCell.ForeColor = GetIssueProgressTextColor(background);
+                        progressCell.Attributes["style"] = "background-color:" + System.Drawing.ColorTranslator.ToHtml(background)
+                            + " !important;color:" + System.Drawing.ColorTranslator.ToHtml(progressCell.ForeColor) + " !important;";
                         progressCell.ToolTip = cellValue;
-                        progressCell.Text = "&nbsp;";
                     }
-                    catch (Exception ex)
+                    catch (ArgumentException)
                     {
-                        // Handle invalid color names (e.g., if the cell contains a non-color value)
-                        // Optionally log the exception or use default colors
-                        progressCell.BackColor = System.Drawing.Color.Gray;  // Default background color
-                        progressCell.ForeColor = System.Drawing.Color.Gray;
-                        progressCell.Text = "&nbsp;";
+                        System.Diagnostics.Trace.TraceWarning("Invalid Issue List progress color: {0}", cellValue);
+                        progressCell.ToolTip = "Progress color is unavailable.";
                     }
                 }
             }
 
-
         }
+    }
+
+    private static System.Drawing.Color GetIssueProgressTextColor(System.Drawing.Color background)
+    {
+        double[] channels = { background.R / 255.0, background.G / 255.0, background.B / 255.0 };
+        for (int i = 0; i < channels.Length; i++)
+            channels[i] = channels[i] <= 0.04045 ? channels[i] / 12.92 : Math.Pow((channels[i] + 0.055) / 1.055, 2.4);
+        double luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+        return luminance > 0.179 ? System.Drawing.Color.Black : System.Drawing.Color.White;
     }
 
     private static void FillEmptyIssueListCells(GridViewRow row)

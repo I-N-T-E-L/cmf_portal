@@ -324,9 +324,14 @@ body .portal-app-header .header-title {
 
 body .portal-app-header .global-search-shell {
     flex: 0 1 440px;
+    position: absolute !important;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) !important;
     width: 440px;
     min-width: 160px;
-    margin: 0 0 0 auto;
+    max-width: calc(100% - 620px);
+    margin: 0 !important;
 }
 
 body #globalPortalSearch {
@@ -851,6 +856,7 @@ body #pendingTabShell .cmf-pending-grid-wrap {
 }
 
 body #pendingTabShell #GridView_cmf_pending .pending-customer-label,
+body #pendingTabShell #GridView_cmf_pending .pending-stale-badge,
 body #issueTabShell #overall_request_details .pending-customer-label {
     display: block;
     width: fit-content;
@@ -991,19 +997,27 @@ body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-a
     width: 100% !important;
 }
 
+body #issueTabShell #overall_request_details .field-days_open span,
 body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-days-open .pending-cell-text {
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    min-width: 28px;
-    min-height: 22px;
-    padding: 3px 8px;
-    border: 1px solid #f2d394;
-    border-radius: 999px;
-    background: #fff7e6;
-    color: #9a6500 !important;
+    display: inline !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: inherit !important;
+    font-weight: 400 !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-field-request.pending-request-stale {
+    color: #b42318 !important;
     font-weight: 700 !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-stale-badge {
+    color: #b42318 !important;
 }
 
 body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn.pending-ai-rec-ready .pending-ai-rec-label {
@@ -1361,7 +1375,7 @@ body #issueTabShell .issue-top-filter-panel {
 body #issueTabShell #issueTopFilterBody,
 body #issueTabShell #issueTopFilterBody.is-collapsed {
     display: grid !important;
-    grid-template-columns: repeat(9, minmax(0, 1fr)) max-content;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     align-items: end !important;
     gap: 8px !important;
     max-height: none !important;
@@ -1396,13 +1410,13 @@ body #issueTabShell #btnClearFilters {
 }
 
 body #issueTabShell .issue-user-toolbar {
+    display: flex !important;
+    justify-content: flex-end !important;
+    position: relative;
+    z-index: 101;
     min-height: 0 !important;
     margin: 0 0 8px !important;
     padding: 0 !important;
-}
-
-body #issueTabShell .issue-user-toolbar:has(#btnShowAllColumns[style*="display:none"]) {
-    display: none !important;
 }
 
 body #issueTabShell .issue-grid-scroll {
@@ -1430,6 +1444,9 @@ body #issueTabShell #issue-grid-inner {
 body #issueTabShell #issue-grid-inner {
     width: 100% !important;
     scrollbar-gutter: auto !important;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    max-width: 100% !important;
 }
 
 body #issueTabShell #overall_request_details .impact-text {
@@ -1440,14 +1457,16 @@ body #issueTabShell #overall_request_details .impact-text {
 }
 
 body #issueTabShell .issue-grid-inner #overall_request_details.table-primary {
-    table-layout: fixed !important;
+    table-layout: auto !important;
+    width: max-content !important;
+    min-width: 100% !important;
 }
 
 body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th,
 body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td {
-    width: calc((100% - 92px) / 15) !important;
-    min-width: 0 !important;
-    max-width: none !important;
+    width: var(--issue-column-width, auto) !important;
+    min-width: var(--issue-column-width, 96px) !important;
+    max-width: var(--issue-column-width, 180px) !important;
     padding: 7px 4px !important;
     vertical-align: middle !important;
     text-align: center !important;
@@ -1456,9 +1475,31 @@ body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td 
     word-break: normal !important;
 }
 
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-sno {
+    --issue-column-width: 52px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-milestone {
+    --issue-column-width: 96px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-progress {
+    --issue-column-width: 88px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td):is(.field-rvp_repro, .field-imagefreeze) {
+    --issue-column-width: 80px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-days_open {
+    --issue-column-width: 72px;
+}
+
 body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.field-actions,
 body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.field-actions {
     width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
 }
 
 body #issueTabShell #overall_request_details .issue-sno-index {
@@ -1487,7 +1528,77 @@ body #issueTabShell #overall_request_details .issue-inline-edit-actions {
 
 body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.field-los,
 body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.field-los {
-    width: 40px !important;
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td):is(.field-title, .field-status) {
+    width: 400px !important;
+    min-width: 400px !important;
+    max-width: 400px !important;
+}
+
+body #issueTabShell #overall_request_details :is(.field-title, .field-status) :is(.pending-cell-text, .status-one-line) {
+    display: block !important;
+    white-space: pre-wrap !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    -webkit-line-clamp: unset !important;
+    line-clamp: unset !important;
+    text-overflow: clip !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.field-progress {
+    font-weight: 600 !important;
+}
+
+body #issueTabShell .issue-user-actions {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+body #issueTabShell .issue-column-picker {
+    position: relative;
+}
+
+body #issueTabShell .issue-column-picker summary {
+    cursor: pointer;
+    list-style: none;
+}
+
+body #issueTabShell .issue-column-panel {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    z-index: 100;
+    width: min(440px, 85vw);
+    padding: 14px;
+    border: 1px solid #d5dfeb;
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 6px 20px rgba(28, 44, 64, .16);
+}
+
+body #issueTabShell .issue-column-choices {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+    max-height: 55vh;
+    overflow-y: auto;
+}
+
+body #issueTabShell .issue-column-choices label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 12px;
+    cursor: pointer;
 }
 
 body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.hidden,
@@ -1783,7 +1894,12 @@ body a:focus-visible {
     body .portal-app-header .global-search-shell {
         order: 3;
         flex: 1 1 100%;
+        position: relative !important;
+        top: auto;
+        left: auto;
+        transform: none !important;
         width: 100%;
+        max-width: none;
     }
 
     body #mainMenuSidebar {
