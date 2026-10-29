@@ -22390,6 +22390,8 @@ td:nth-child(odd), th:nth-child(odd) {
 
         // ── Column hide buttons ──────────────────────────────────────────────
         var CMF_HIDDEN_COLS_KEY = 'cmf_issue_columns_v2';
+        var CMF_COLUMN_LAYOUT_KEY = 'cmf_issue_column_layout_v1';
+        var CMF_ISSUE_COLUMN_DRAFT = null;
         var CMF_COLHIDE_TIMER = null;
 
         function scheduleInitColumnHideButtons(delay) {
@@ -22442,61 +22444,210 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function setIssueColumnVisible(fieldClass, visible) {
-            var grid = document.getElementById('overall_request_details');
-            if (!grid || !/^field-[a-z_]+$/.test(fieldClass)) return;
-            var headers = Array.from(grid.querySelectorAll('th[class*="field-"]'));
-            if (!visible && headers.filter(function (header) { return !header.classList.contains('hidden'); }).length <= 1) {
-                document.getElementById('issueColumnMessage').textContent = 'Keep at least one column visible.';
-                restoreHiddenColumns();
+            var columns = getIssueColumns();
+            if (!columns.some(function (column) { return column.field === fieldClass; })) return;
+            var layout = readIssueColumnLayout(columns);
+            if (!visible && layout.hidden.indexOf(fieldClass) < 0 && columns.length - layout.hidden.length <= 1) {
+                setIssueColumnNotice('Keep at least one column visible.');
                 return;
             }
-            var hidden = JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]');
-            hidden = hidden.filter(function (field) { return field !== fieldClass; });
-            if (!visible) hidden.push(fieldClass);
-            localStorage.setItem(CMF_HIDDEN_COLS_KEY, JSON.stringify(hidden));
-            document.getElementById('issueColumnMessage').textContent = '';
+            layout.hidden = layout.hidden.filter(function (field) { return field !== fieldClass; });
+            if (!visible) layout.hidden.push(fieldClass);
+            if (!saveIssueColumnLayout(layout)) return;
             restoreHiddenColumns();
             requestAnimationFrame(formatIssueLongCells);
+        }
+
+        function getIssueColumns() {
+            return Array.from(document.querySelectorAll('#overall_request_details th[class*="field-"]')).map(function (header, index) {
+                if (!header.hasAttribute('data-issue-column-index')) header.setAttribute('data-issue-column-index', index);
+                var text = (header.querySelector('.filter-header-text') || header).cloneNode(true);
+                text.querySelectorAll('button,select,.filter-container,.cmf-sort-ic').forEach(function (node) { node.remove(); });
+                return {
+                    field: Array.from(header.classList).find(function (name) { return name.indexOf('field-') === 0; }),
+                    title: text.textContent.trim(),
+                    index: Number(header.getAttribute('data-issue-column-index'))
+                };
+            }).sort(function (a, b) { return a.index - b.index; });
+        }
+
+        function setIssueColumnNotice(message) {
+            document.getElementById('issueColumnMessage').textContent = message;
+            var dialog = document.getElementById('issueColumnPicker');
+            document.getElementById('issueColumnStatus').textContent = dialog.open ? '' : message;
+        }
+
+        function readIssueColumnLayout(columns) {
+            var fields = columns.map(function (column) { return column.field; });
+            try {
+                var saved = localStorage.getItem(CMF_COLUMN_LAYOUT_KEY);
+                var layout = saved ? JSON.parse(saved) : {
+                    order: fields,
+                    hidden: JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]')
+                };
+                if (!layout || !Array.isArray(layout.order) || !Array.isArray(layout.hidden)) {
+                    throw new TypeError('Invalid column layout.');
+                }
+                return {
+                    order: Array.from(new Set(layout.order.concat(fields))).filter(function (field) { return fields.indexOf(field) >= 0; }),
+                    hidden: Array.from(new Set(layout.hidden)).filter(function (field) { return fields.indexOf(field) >= 0; })
+                };
+            } catch (error) {
+                if (error.name !== 'SyntaxError' && error.name !== 'TypeError' && error.name !== 'SecurityError') throw error;
+                console.warn('Unable to load Issue List column preferences.', error);
+                setIssueColumnNotice('Unable to load saved columns. Default columns are shown; use Reset and OK to save them again.');
+                return { order: fields, hidden: [] };
+            }
+        }
+
+        function saveIssueColumnLayout(layout) {
+            try {
+                localStorage.setItem(CMF_COLUMN_LAYOUT_KEY, JSON.stringify(layout));
+            } catch (error) {
+                if (error.name !== 'SecurityError' && error.name !== 'QuotaExceededError') throw error;
+                console.error('Unable to save Issue List column preferences.', error);
+                setIssueColumnNotice('Unable to save columns. Check browser storage settings and try again.');
+                return false;
+            }
+            setIssueColumnNotice('');
+            return true;
         }
 
         function restoreHiddenColumns() {
-            var hidden = JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]');
-            document.querySelectorAll('#overall_request_details th[class*="field-"], #overall_request_details td[class*="field-"]').forEach(function (cell) {
-                var fieldClass = Array.from(cell.classList).find(function (name) { return name.indexOf('field-') === 0; });
-                cell.classList.toggle('hidden', hidden.indexOf(fieldClass) >= 0);
+            var grid = document.getElementById('overall_request_details');
+            if (!grid) return;
+            var layout = readIssueColumnLayout(getIssueColumns());
+            Array.from(grid.rows).forEach(function (row) {
+                var cells = Array.from(row.cells);
+                var ordered = layout.order.map(function (field) {
+                    var cell = cells.find(function (item) { return item.classList.contains(field); });
+                    if (cell) cell.classList.toggle('hidden', layout.hidden.indexOf(field) >= 0);
+                    return cell;
+                }).filter(Boolean);
+                ordered.forEach(function (cell, index) {
+                    if (row.cells[index] !== cell) row.insertBefore(cell, row.cells[index] || null);
+                });
             });
+        }
+
+        function openIssueColumnPicker() {
+            setIssueColumnNotice('');
+            var columns = getIssueColumns();
+            if (!columns.length) {
+                setIssueColumnNotice('Columns are unavailable until the Issue List loads.');
+                return;
+            }
+            var layout = readIssueColumnLayout(columns);
+            CMF_ISSUE_COLUMN_DRAFT = {
+                columns: columns,
+                selected: layout.order.filter(function (field) { return layout.hidden.indexOf(field) < 0; })
+            };
+            renderIssueColumnChoices();
+            document.getElementById('issueColumnPicker').showModal();
+            document.getElementById('issueColumnsSelected').focus();
+        }
+
+        function renderIssueColumnChoices(highlighted) {
+            var draft = CMF_ISSUE_COLUMN_DRAFT;
+            if (!draft) return;
+            var available = draft.columns.filter(function (column) { return draft.selected.indexOf(column.field) < 0; })
+                .sort(function (a, b) { return a.title.localeCompare(b.title); });
+            var selected = draft.selected.map(function (field) {
+                return draft.columns.find(function (column) { return column.field === field; });
+            });
+            [available, selected].forEach(function (columns, index) {
+                var list = document.getElementById(index === 0 ? 'issueColumnsAvailable' : 'issueColumnsSelected');
+                list.textContent = '';
+                columns.forEach(function (column) {
+                    var option = document.createElement('option');
+                    option.value = column.field;
+                    option.textContent = column.title;
+                    option.title = column.title;
+                    option.selected = !!highlighted && highlighted.indexOf(column.field) >= 0;
+                    list.appendChild(option);
+                });
+            });
+            updateIssueColumnButtons();
+        }
+
+        function updateIssueColumnButtons() {
+            var available = document.getElementById('issueColumnsAvailable');
+            var selected = document.getElementById('issueColumnsSelected');
+            var options = Array.from(selected.options);
+            document.getElementById('issueColumnAdd').disabled = available.selectedOptions.length === 0;
+            document.getElementById('issueColumnRemove').disabled = selected.selectedOptions.length === 0;
+            document.getElementById('issueColumnUp').disabled = !options.some(function (option, index) {
+                return option.selected && index > 0 && !options[index - 1].selected;
+            });
+            document.getElementById('issueColumnDown').disabled = !options.some(function (option, index) {
+                return option.selected && index < options.length - 1 && !options[index + 1].selected;
+            });
+        }
+
+        function moveIssueColumns(toSelected) {
+            var draft = CMF_ISSUE_COLUMN_DRAFT;
+            if (!draft) return;
+            var source = document.getElementById(toSelected ? 'issueColumnsAvailable' : 'issueColumnsSelected');
+            var fields = Array.from(source.selectedOptions).map(function (option) { return option.value; });
+            if (!fields.length) return;
+            if (!toSelected && draft.selected.length === fields.length) {
+                setIssueColumnNotice('Keep at least one column selected.');
+                return;
+            }
+            draft.selected = toSelected ? draft.selected.concat(fields) :
+                draft.selected.filter(function (field) { return fields.indexOf(field) < 0; });
+            setIssueColumnNotice('');
+            renderIssueColumnChoices(fields);
+            document.getElementById(toSelected ? 'issueColumnsSelected' : 'issueColumnsAvailable').focus();
+        }
+
+        function reorderIssueColumns(direction) {
+            var draft = CMF_ISSUE_COLUMN_DRAFT;
+            if (!draft) return;
+            var fields = Array.from(document.getElementById('issueColumnsSelected').selectedOptions).map(function (option) { return option.value; });
+            var order = draft.selected;
+            for (var i = direction < 0 ? 1 : order.length - 2; i >= 0 && i < order.length; i += direction < 0 ? 1 : -1) {
+                var next = i + direction;
+                if (fields.indexOf(order[i]) >= 0 && fields.indexOf(order[next]) < 0) {
+                    var field = order[i];
+                    order[i] = order[next];
+                    order[next] = field;
+                }
+            }
+            renderIssueColumnChoices(fields);
+            document.getElementById('issueColumnsSelected').focus();
+        }
+
+        function resetIssueColumnChoices() {
+            if (!CMF_ISSUE_COLUMN_DRAFT) return;
+            CMF_ISSUE_COLUMN_DRAFT.selected = CMF_ISSUE_COLUMN_DRAFT.columns.map(function (column) { return column.field; });
+            setIssueColumnNotice('');
             renderIssueColumnChoices();
         }
 
-        function showAllColumns() {
-            localStorage.removeItem(CMF_HIDDEN_COLS_KEY);
+        function applyIssueColumnChoices() {
+            var draft = CMF_ISSUE_COLUMN_DRAFT;
+            if (!draft || !draft.selected.length) {
+                setIssueColumnNotice('Keep at least one column selected.');
+                return;
+            }
+            var hidden = draft.columns.map(function (column) { return column.field; })
+                .filter(function (field) { return draft.selected.indexOf(field) < 0; });
+            if (!saveIssueColumnLayout({ order: draft.selected.concat(hidden), hidden: hidden })) return;
             restoreHiddenColumns();
             requestAnimationFrame(formatIssueLongCells);
+            document.getElementById('issueColumnPicker').close();
         }
 
-        function renderIssueColumnChoices() {
-            var choices = document.getElementById('issueColumnChoices');
-            if (!choices) return;
-            var headers = Array.from(document.querySelectorAll('#overall_request_details th[class*="field-"]'));
-            var signature = headers.map(function (header) { return header.className; }).join('|');
-            if (choices.getAttribute('data-columns') === signature) return;
-            choices.setAttribute('data-columns', signature);
-            choices.textContent = '';
-            headers.forEach(function (header) {
-                var field = Array.from(header.classList).find(function (name) { return name.indexOf('field-') === 0; });
-                var label = document.createElement('label');
-                var checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.checked = !header.classList.contains('hidden');
-                checkbox.value = field;
-                checkbox.addEventListener('change', function () { setIssueColumnVisible(field, checkbox.checked); });
-                var title = header.querySelector('.filter-header-text') || header;
-                var text = title.cloneNode(true);
-                text.querySelectorAll('button,select,.filter-container').forEach(function (node) { node.remove(); });
-                label.appendChild(checkbox);
-                label.appendChild(document.createTextNode(text.textContent.trim()));
-                choices.appendChild(label);
-            });
+        function handleIssueColumnDialogKeydown(event) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                document.getElementById('issueColumnPicker').close();
+            } else if (event.key === 'Enter' && event.target.tagName === 'SELECT') {
+                event.preventDefault();
+                applyIssueColumnChoices();
+            }
         }
 
         function prepareIssueViewExport() {
@@ -25010,7 +25161,7 @@ td:nth-child(odd), th:nth-child(odd) {
 </script>
     <script src="Scripts/cmf-portal-main.js?v=20261028-organic-merge"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261029-dashboard-updated-position" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261029-shared-header-updated" />
 
 </head>
 
@@ -25073,6 +25224,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 <asp:ListItem Text="Program Manager" Value="program_manager" />
                 <asp:ListItem Text="Admin" Value="admin" />
             </asp:DropDownList>
+            <div class="portal-header-updated">Updated <asp:Label ID="lblHomeDashboardGeneratedAt" runat="server" /></div>
         </div>
         <div class="sidebar-toggle-div">
             <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
@@ -25193,7 +25345,6 @@ Submit
 
                                 <div class="dashboard-platform-toolbar">
                                     <div class="platform-chip-rail" data-chip-source="server" role="tablist" aria-label="Dashboard platform switch"></div>
-                                    <div class="ccip-dash-updated dashboard-platform-updated">Updated <asp:Label ID="lblHomeDashboardGeneratedAt" runat="server" /></div>
                                 </div>
 
                                 <asp:Label ID="lblHomeAiNewTodayValue" runat="server" style="display:none;" />
@@ -25406,7 +25557,6 @@ Submit
                                         <h2 class="ccip-dash-greeting" style="margin:0;">CMF Summary</h2>
                                         <p class="ccip-dash-sub">Platform-specific CMF process metrics, milestone counts, component breakdown, and pending CMF count for <%: HomeDashboardPlatformLabel %>.</p>
                                     </div>
-                                    <div class="ccip-dash-updated">Updated <asp:Label ID="lblCmfSummaryGeneratedAt" runat="server" /></div>
                                 </div>
 
                                 <div class="platform-chip-rail" data-chip-source="server" role="tablist" aria-label="CMF Summary platform switch" style="margin-bottom:14px;"></div>
@@ -25914,14 +26064,41 @@ Submit
 
                     <div class="issue-user-toolbar">
                         <div class="issue-user-actions">
-                            <details id="issueColumnPicker" class="issue-column-picker">
-                                <summary class="issue-toolbar-btn secondary"><i class="fas fa-table-columns" aria-hidden="true"></i> Columns</summary>
-                                <div class="issue-column-panel">
-                                    <div id="issueColumnChoices" class="issue-column-choices"></div>
-                                    <button type="button" class="issue-toolbar-btn secondary" onclick="showAllColumns()">Show all columns</button>
-                                    <span id="issueColumnMessage" role="status" aria-live="polite"></span>
+                            <button id="issueColumnPickerButton" type="button" class="issue-toolbar-btn secondary" aria-haspopup="dialog" aria-controls="issueColumnPicker" onclick="openIssueColumnPicker()"><i class="fas fa-table-columns" aria-hidden="true"></i> Columns</button>
+                            <dialog id="issueColumnPicker" class="issue-column-dialog" aria-labelledby="issueColumnTitle" aria-describedby="issueColumnHelp" onclose="CMF_ISSUE_COLUMN_DRAFT = null" onkeydown="handleIssueColumnDialogKeydown(event)">
+                                <div class="issue-column-dialog-header">
+                                    <h2 id="issueColumnTitle">Personalize List Columns</h2>
+                                    <button type="button" class="issue-column-close" aria-label="Close column personalization" onclick="document.getElementById('issueColumnPicker').close()">&times;</button>
                                 </div>
-                            </details>
+                                <div class="issue-column-dialog-body">
+                                    <div class="issue-column-lists">
+                                        <div class="issue-column-list">
+                                            <label for="issueColumnsAvailable">Available</label>
+                                            <select id="issueColumnsAvailable" multiple size="14" onchange="updateIssueColumnButtons()" ondblclick="moveIssueColumns(true)"></select>
+                                        </div>
+                                        <div class="issue-column-controls">
+                                            <button id="issueColumnAdd" type="button" aria-label="Add selected columns" title="Add selected columns" onclick="moveIssueColumns(true)"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                                            <button id="issueColumnRemove" type="button" aria-label="Remove selected columns" title="Remove selected columns" onclick="moveIssueColumns(false)"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                                        </div>
+                                        <div class="issue-column-list">
+                                            <label for="issueColumnsSelected">Selected</label>
+                                            <select id="issueColumnsSelected" multiple size="14" onchange="updateIssueColumnButtons()" ondblclick="moveIssueColumns(false)"></select>
+                                        </div>
+                                        <div class="issue-column-controls">
+                                            <button id="issueColumnUp" type="button" aria-label="Move selected columns up" title="Move selected columns up" onclick="reorderIssueColumns(-1)"><i class="fas fa-chevron-up" aria-hidden="true"></i></button>
+                                            <button id="issueColumnDown" type="button" aria-label="Move selected columns down" title="Move selected columns down" onclick="reorderIssueColumns(1)"><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+                                        </div>
+                                    </div>
+                                    <p id="issueColumnHelp">Use the arrows to choose and order columns. Hold Ctrl (Command on Mac) to select multiple columns.</p>
+                                    <div id="issueColumnMessage" role="status" aria-live="polite"></div>
+                                </div>
+                                <div class="issue-column-dialog-footer">
+                                    <button type="button" class="issue-column-reset" onclick="resetIssueColumnChoices()">Reset to column defaults</button>
+                                    <button type="button" onclick="document.getElementById('issueColumnPicker').close()">Cancel</button>
+                                    <button type="button" class="issue-column-apply" onclick="applyIssueColumnChoices()">OK</button>
+                                </div>
+                            </dialog>
+                            <span id="issueColumnStatus" role="status" aria-live="polite"></span>
                             <asp:HiddenField ID="hfIssueExportColumns" runat="server" />
                             <asp:LinkButton ID="btnIssueViewExport" runat="server" CssClass="cmf-pending-action-btn primary" CausesValidation="false" OnClientClick="if (!prepareIssueViewExport()) return false;" OnClick="btnIssueViewExport_Click" ToolTip="Export all filtered issues and selected columns to Excel"><i class="fas fa-download" aria-hidden="true"></i><span>Export</span></asp:LinkButton>
                             <span id="issueExportMessage" runat="server" role="status" aria-live="polite"></span>

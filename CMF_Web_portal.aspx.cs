@@ -3352,11 +3352,6 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
             lblHomeDashboardGeneratedAt.Text = snapshot.GeneratedAt;
         }
 
-        if (lblCmfSummaryGeneratedAt != null)
-        {
-            lblCmfSummaryGeneratedAt.Text = snapshot.GeneratedAt;
-        }
-
         if (lnkPlatformDashboard != null)
         {
             lnkPlatformDashboard.Visible = lnkPlatformDashboard.Visible;
@@ -10468,14 +10463,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
             return;
         }
 
-        var selected = new HashSet<string>(requestedColumns ?? new List<string>(), StringComparer.Ordinal);
-        var indexes = new List<int>();
-        for (int i = 0; i < overall_request_details.Columns.Count; i++)
-        {
-            DataControlField column = overall_request_details.Columns[i];
-            string field = GetIssueFieldClass(column.ItemStyle.CssClass);
-            if (column.Visible && field != "field-actions" && selected.Contains(field)) indexes.Add(i);
-        }
+        var indexes = GetIssueExportColumnIndexes(overall_request_details.Columns, requestedColumns);
         if (indexes.Count == 0)
         {
             issueExportMessage.InnerText = "Select at least one data column to export.";
@@ -10557,6 +10545,24 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         Response.Cache.SetNoStore();
         Response.BinaryWrite(bytes);
         Response.End();
+    }
+
+    private static List<int> GetIssueExportColumnIndexes(DataControlFieldCollection columns, IEnumerable<string> requestedColumns)
+    {
+        var allowed = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (int i = 0; i < columns.Count; i++)
+        {
+            string field = GetIssueFieldClass(columns[i].ItemStyle.CssClass);
+            if (columns[i].Visible && !string.IsNullOrEmpty(field) && field != "field-actions") allowed[field] = i;
+        }
+        var indexes = new List<int>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string field in requestedColumns ?? new List<string>())
+        {
+            int index;
+            if (field != null && allowed.TryGetValue(field, out index) && seen.Add(field)) indexes.Add(index);
+        }
+        return indexes;
     }
 
     private static string GetIssueExportCellText(TableCell cell)

@@ -330,7 +330,7 @@ body .portal-app-header .global-search-shell {
     transform: translate(-50%, -50%) !important;
     width: 440px;
     min-width: 160px;
-    max-width: calc(100% - 620px);
+    max-width: calc(100% - 860px);
     margin: 0 !important;
 }
 
@@ -361,6 +361,17 @@ body .portal-app-header .header-user-mode {
     gap: 8px;
     margin-left: auto !important;
     color: #dce5f0 !important;
+}
+
+body .portal-app-header .portal-header-updated {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #dce5f0;
+    font-size: 12px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 body .portal-app-header .dashboard-header-tools {
@@ -406,12 +417,6 @@ body #homeWelcomePanel .dashboard-platform-toolbar > .platform-chip-rail {
     min-width: 0 !important;
     max-width: 100% !important;
     margin-bottom: 0 !important;
-}
-
-body #homeWelcomePanel .dashboard-platform-updated {
-    flex: 0 0 auto;
-    margin-left: auto;
-    white-space: nowrap;
 }
 
 body .portal-app-header .header-mode-dropdown {
@@ -1608,44 +1613,187 @@ body #issueTabShell .issue-user-actions {
     gap: 8px;
 }
 
-body #issueTabShell .issue-column-picker {
-    position: relative;
-}
-
-body #issueTabShell .issue-column-picker summary {
-    cursor: pointer;
-    list-style: none;
-}
-
-body #issueTabShell .issue-column-panel {
-    position: absolute;
-    right: 0;
-    top: 100%;
-    z-index: 100;
-    width: min(440px, 85vw);
-    padding: 14px;
-    border: 1px solid #d5dfeb;
-    border-radius: 4px;
+body #issueTabShell .issue-column-dialog {
+    --issue-columns-accent: #5850b8;
+    width: min(640px, calc(100vw - 24px));
+    max-width: none;
+    max-height: calc(100vh - 24px);
+    margin: auto;
+    padding: 0;
+    border: 1px solid #d0d5df;
+    border-radius: 8px;
     background: #fff;
-    box-shadow: 0 6px 20px rgba(28, 44, 64, .16);
+    color: #242733;
+    box-shadow: 0 12px 40px rgba(28, 44, 64, .24);
+    overflow: auto;
 }
 
-body #issueTabShell .issue-column-choices {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    margin-bottom: 12px;
-    max-height: 55vh;
-    overflow-y: auto;
+body #issueTabShell .issue-column-dialog::backdrop {
+    background: rgba(0, 0, 0, .48);
 }
 
-body #issueTabShell .issue-column-choices label {
+body #issueTabShell .issue-column-dialog-header,
+body #issueTabShell .issue-column-dialog-footer {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
+    padding: 12px 16px;
+}
+
+body #issueTabShell .issue-column-dialog-header {
+    justify-content: space-between;
+    border-bottom: 1px solid #d5d8e1;
+}
+
+body #issueTabShell #issueColumnTitle {
     margin: 0;
-    font-size: 12px;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+body #issueTabShell .issue-column-dialog button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 5px 12px;
+    border: 1px solid var(--issue-columns-accent);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--issue-columns-accent);
+    font-size: 14px;
+    line-height: 1.25;
     cursor: pointer;
+}
+
+body #issueTabShell .issue-column-dialog button:hover:not(:disabled) {
+    background: #f0effb;
+}
+
+body #issueTabShell .issue-column-dialog button:focus-visible,
+body #issueTabShell .issue-column-dialog select:focus-visible {
+    outline: 2px solid var(--issue-columns-accent);
+    outline-offset: 2px;
+}
+
+body #issueTabShell .issue-column-dialog button:disabled {
+    opacity: .4;
+    cursor: default;
+}
+
+body #issueTabShell .issue-column-dialog .issue-column-close {
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0;
+    border: 0;
+    color: #333;
+    font-size: 22px;
+}
+
+body #issueTabShell .issue-column-dialog-body {
+    padding: 14px 16px 0;
+}
+
+body #issueTabShell .issue-column-lists {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr) 32px;
+    gap: 14px;
+}
+
+body #issueTabShell .issue-column-list {
+    min-width: 0;
+}
+
+body #issueTabShell .issue-column-list label {
+    display: block;
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+body #issueTabShell .issue-column-list select {
+    display: block !important;
+    width: 100% !important;
+    height: clamp(160px, 40vh, 300px) !important;
+    padding: 4px !important;
+    border: 1px solid #9399ab !important;
+    border-radius: 3px !important;
+    background: #fff !important;
+    color: #242733 !important;
+    font-size: 14px !important;
+    line-height: 1.4;
+    appearance: auto !important;
+    overflow: auto;
+}
+
+body #issueTabShell .issue-column-controls {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    padding-top: 24px;
+}
+
+body #issueTabShell .issue-column-controls button {
+    width: 32px;
+    padding: 0;
+}
+
+body #issueTabShell #issueColumnHelp {
+    margin: 10px 0 0;
+    color: #64738c;
+    font-size: 12px;
+}
+
+body #issueTabShell #issueColumnMessage,
+body #issueTabShell #issueColumnStatus {
+    color: #a12622;
+    font-size: 12px;
+}
+
+body #issueTabShell .issue-column-dialog-footer {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    padding-top: 18px;
+}
+
+body #issueTabShell .issue-column-reset {
+    margin-right: auto;
+}
+
+body #issueTabShell .issue-column-dialog .issue-column-apply {
+    min-width: 70px;
+    background: var(--issue-columns-accent);
+    color: #fff;
+    font-weight: 600;
+}
+
+body #issueTabShell .issue-column-dialog .issue-column-apply:hover:not(:disabled) {
+    background: #49419f;
+}
+
+@media (max-width: 560px) {
+    body #issueTabShell .issue-column-lists {
+        gap: 8px;
+        grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr) 28px;
+    }
+
+    body #issueTabShell .issue-column-controls button {
+        width: 28px;
+    }
+
+    body #issueTabShell .issue-column-list select,
+    body #issueTabShell .issue-column-dialog button {
+        font-size: 12px !important;
+    }
+}
+
+body #issueTabShell #issueColumnStatus:empty {
+    display: none;
+}
+
+body #issueTabShell #issueColumnMessage:empty {
+    margin: 0;
 }
 
 body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.hidden,

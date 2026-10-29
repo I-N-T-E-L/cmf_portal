@@ -52,6 +52,9 @@ Calendar boundaries use the web server's local date, consistent with the existin
 portal. No historical-status reconstruction or timezone conversion is performed.
 Null dates remain visible under All Time and are excluded by an active range.
 The selection persists in the session while switching dashboard platforms.
+The existing dashboard snapshot's **Updated** date and time appear immediately
+to the right of **Mode** in the shared navigation bar and remain visible on every
+portal tab.
 
 ### Issue List: AI Debug Summary
 
@@ -75,10 +78,17 @@ for contrast. Title and Status show their full wrapped text in a horizontally
 scrollable table. Short-value columns use compact widths; the filter row wraps
 on smaller screens, keeping the Platform selector accessible.
 
-Use **Columns** to choose visible columns or restore all columns. Choices are
-saved in this browser and retained across filtering and paging. The **Status**
-filter selects issue lifecycle states, independently of the debug updates in
-the Status column.
+Use **Columns** to open **Personalize List Columns**. Move columns between
+Available and Selected with the left/right arrows; use the up/down arrows to
+order the selected columns. **OK** saves the layout in this browser and applies
+it across filtering and paging. **Cancel**, the close button, or Escape discards
+unapplied changes. **Reset to column defaults** stages all columns in their
+original order; select **OK** to save the reset. At least one column must remain
+selected. Existing saved column visibility is retained when first using the
+dialog. Row styling, editing, and text wrapping are unchanged.
+
+The **Status** filter selects issue lifecycle states, independently of the debug
+updates in the Status column.
 
 **Export** downloads an `.xlsx` workbook containing all rows matching the current
 platform, filters, and search, across every page. Only selected data columns are
