@@ -362,6 +362,27 @@ body .portal-app-header .header-user-mode {
     color: #dce5f0 !important;
 }
 
+body .portal-app-header .dashboard-header-tools {
+    margin-left: auto;
+    min-width: 0;
+    max-width: 100%;
+}
+
+body .portal-app-header .dashboard-header-tools .dash-user-mode,
+body .portal-app-header .dashboard-header-tools .dash-user-mode label,
+body .portal-app-header .dashboard-header-tools .ccip-dash-updated {
+    color: #dce5f0 !important;
+    white-space: nowrap;
+}
+
+body .portal-app-header .dashboard-header-tools .ccip-dash-updated {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    gap: 4px;
+}
+
 body .header-user-mode label {
     margin: 0;
     font-size: 11px;

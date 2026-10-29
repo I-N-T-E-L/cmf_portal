@@ -3184,6 +3184,44 @@ body {
     margin-right: 0;
 }
 
+.dashboard-greeting-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+}
+
+.dashboard-date-filter {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: auto;
+    min-width: 0;
+}
+
+#homeWelcomePanel .dashboard-date-filter select,
+#homeWelcomePanel .dashboard-date-filter input {
+    height: 28px;
+    font-size: 12px;
+    padding: 3px 6px;
+    max-width: 100%;
+}
+
+.dashboard-date-custom {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.dashboard-date-error {
+    display: block;
+    color: #b42318;
+    font-size: 12px;
+}
+
 .ccip-dash-top-tools {
     display: inline-flex;
     gap: 8px;
@@ -3645,6 +3683,12 @@ body {
     width: 100%;
     min-width: 100%;
     max-width: 100%;
+    margin-bottom: 8px;
+}
+
+#homeLegacyTablesGrid .ccip-pending-summary-card .pending-summary-threshold-legend {
+    flex-shrink: 0;
+    min-height: 15px;
 }
 
 #homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-live-table {
@@ -5871,10 +5915,19 @@ body .overall-quick-links .overall-quick-link-btn:active {
     appearance: none;
 }
 
-#homeComponentSummaryTable .component-summary-legend .component-summary-legend-input,
-#homeComponentSummaryTable .component-summary-legend .component-summary-legend-input.component-summary-legend-value,
-#homeOverallHeatmap .component-summary-legend .component-summary-legend-input,
+.overall-pending-legend .component-summary-legend-input.component-summary-legend-value,
 #homeOverallHeatmap .component-summary-legend .component-summary-legend-input.component-summary-legend-value {
+    flex: 0 0 22px;
+    width: 22px;
+    min-width: 22px;
+    max-width: 22px;
+    height: 15px;
+    padding: 0 3px;
+    border-radius: var(--cmf-radius-sm, 4px) !important;
+}
+
+#homeComponentSummaryTable .component-summary-legend .component-summary-legend-input,
+#homeComponentSummaryTable .component-summary-legend .component-summary-legend-input.component-summary-legend-value {
     border: 1px solid #d0d5dd !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -18726,12 +18779,6 @@ td:nth-child(odd), th:nth-child(odd) {
 
             var metaParts = [totalIssuesText];
             var idstMetaLine = '';
-            if (popupState.sourceType === 'trend-week') {
-                var weekLabel = String(popupState.weekLabel || '').trim();
-                if (weekLabel) {
-                    metaParts.push(weekLabel);
-                }
-            }
 
             if (popupState.sourceType === 'overall-heatmap') {
                 var platformLabel = String(popupState.platformLabel || '').trim();
@@ -18814,6 +18861,10 @@ td:nth-child(odd), th:nth-child(odd) {
             var summaryMetricSeen = {};
             for (var i = 0; i < sortedGroups.length; i++) {
                 var group = sortedGroups[i] || {};
+                var displayGroupName = String(group.GroupName || 'Unassigned');
+                if (popupState.groupBy === 'platform') {
+                    displayGroupName = displayGroupName.replace(/_COMPONENTS_TABLE$/i, '');
+                }
                 var ids = group.HsdIds || [];
                 var issueCount = 0;
                 var normalizedIds = [];
@@ -18863,7 +18914,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 }
 
                 html += '<section class="summary-issues-group">';
-                html += '<div class="summary-issues-group-title"><span class="summary-issues-group-name">' + escapeHtml(group.GroupName || 'Unassigned') + '</span>' + countHtml + '</div>';
+                html += '<div class="summary-issues-group-title"><span class="summary-issues-group-name">' + escapeHtml(displayGroupName) + '</span>' + countHtml + '</div>';
                 html += '</section>';
             }
 
@@ -20159,16 +20210,19 @@ td:nth-child(odd), th:nth-child(odd) {
                 };
             }
 
-            function buildPendingSummaryBreakdownLinkHtml(ingredientName, idsCsv, text, cssClass) {
+            function buildPendingSummaryBreakdownLinkHtml(ingredientName, idsCsv, text, cssClass, parenthesized) {
                 var safeText = String(text == null ? '' : text);
+                var contentHtml = parenthesized
+                    ? '(<span class="overall-break-over-two-days-count">' + escapeHtml(safeText) + '</span>)'
+                    : escapeHtml(safeText);
                 var normalizedIdsCsv = normalizePendingSummaryIdsCsv(idsCsv);
                 if (!normalizedIdsCsv) {
-                    return escapeHtml(safeText);
+                    return contentHtml;
                 }
 
                 var encodedIngredient = encodeURIComponent(String(ingredientName == null ? '' : ingredientName));
                 var encodedIds = encodeURIComponent(normalizedIdsCsv);
-                return '<a href="javascript:void(0);" class="' + cssClass + '" onclick="return showPendingSummaryIssues(decodeURIComponent(\'' + encodedIngredient + '\'), decodeURIComponent(\'' + encodedIds + '\'));">' + escapeHtml(safeText) + '</a>';
+                return '<a href="javascript:void(0);" class="' + cssClass + '" onclick="return showPendingSummaryIssues(decodeURIComponent(\'' + encodedIngredient + '\'), decodeURIComponent(\'' + encodedIds + '\'));">' + contentHtml + '</a>';
             }
 
             function parseMetricInt(value) {
@@ -20268,12 +20322,13 @@ td:nth-child(odd), th:nth-child(odd) {
                 for (var k = 0; k < topBreakdown.length; k++) {
                     var item = topBreakdown[k];
                     var dot = pieColors[k % pieColors.length];
-                    var countHtml = buildPendingSummaryBreakdownLinkHtml(item.name, item.idsCsv, String(item.value), 'overall-break-count-link');
                     var overTwoDaysValue = parseMetricInt(item.overTwoDaysCount || 0);
+                    var allOverTwoDays = overTwoDaysValue > 0 && overTwoDaysValue === item.value;
+                    var countHtml = buildPendingSummaryBreakdownLinkHtml(item.name, item.idsCsv, String(item.value), allOverTwoDays ? 'overall-break-count-link overall-break-over-two-days-link' : 'overall-break-count-link', allOverTwoDays);
                     var canOpenOverTwoDaysPopup = overTwoDaysValue > 0
                         && overTwoDaysValue < item.value
                         && !!String(item.overTwoDaysIdsCsv || '').trim();
-                    var overTwoDaysHtml = overTwoDaysValue > 0
+                    var overTwoDaysHtml = overTwoDaysValue > 0 && !allOverTwoDays
                         ? (canOpenOverTwoDaysPopup
                             ? (function () {
                                 var encodedOverTwoIngredient = encodeURIComponent(item.name + ' (>' + String(pendingAgeThresholdDays) + ' days)');
@@ -20288,7 +20343,7 @@ td:nth-child(odd), th:nth-child(odd) {
                             '<span class="overall-break-name">' + escapeHtml(item.name) + '</span>' +
                         '</span>' +
                         '<span class="overall-break-metrics">' +
-                            '<strong class="overall-break-count">' + countHtml + '</strong>' +
+                            '<strong class="overall-break-count' + (allOverTwoDays ? ' overall-break-over-two-days' : '') + '">' + countHtml + '</strong>' +
                             overTwoDaysHtml +
                         '</span>' +
                         '</div>';
@@ -22034,14 +22089,21 @@ td:nth-child(odd), th:nth-child(odd) {
 
             var countValue = parseCountValue(countText);
 
-            var countHtml = escapeHtml(countText);
+            var allOverThreshold = overThresholdCount > 0 && overThresholdCount === countValue;
+            var countContentHtml = allOverThreshold
+                ? '(<span class="overall-break-over-two-days-count">' + escapeHtml(countText) + '</span>)'
+                : escapeHtml(countText);
+            var countHtml = allOverThreshold
+                ? '<span class="overall-break-over-two-days">' + countContentHtml + '</span>'
+                : countContentHtml;
             if (normalizedIds.length) {
                 var encodedIngredient = encodeURIComponent(String(ingredientName == null ? '' : ingredientName));
                 var encodedIds = encodeURIComponent(normalizedIds.join(','));
-                countHtml = '<a href="javascript:void(0);" class="ccip-pending-summary-count-link" onclick="return showPendingSummaryIssues(decodeURIComponent(\'' + encodedIngredient + '\'), decodeURIComponent(\'' + encodedIds + '\'));">' + escapeHtml(countText) + '</a>';
+                var countLinkClass = 'ccip-pending-summary-count-link' + (allOverThreshold ? ' overall-break-over-two-days-link' : '');
+                countHtml = '<a href="javascript:void(0);" class="' + countLinkClass + '" onclick="return showPendingSummaryIssues(decodeURIComponent(\'' + encodedIngredient + '\'), decodeURIComponent(\'' + encodedIds + '\'));">' + countContentHtml + '</a>';
             }
 
-            if (overThresholdCount <= 0) {
+            if (overThresholdCount <= 0 || allOverThreshold) {
                 return countHtml;
             }
 
@@ -24948,7 +25010,7 @@ td:nth-child(odd), th:nth-child(odd) {
 </script>
     <script src="Scripts/cmf-portal-main.js?v=20261028-organic-merge"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261029-pending-stale-badge" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261028-organic-merge" />
 
 </head>
 
@@ -25015,6 +25077,18 @@ td:nth-child(odd), th:nth-child(odd) {
         <div class="sidebar-toggle-div">
             <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
         </div>
+
+        <asp:Panel ID="dashboardHeaderTools" runat="server" CssClass="ccip-dash-top-tools dashboard-header-tools">
+            <div class="dash-user-mode">
+                <label for="ddlUserMode">Mode</label>
+                <asp:DropDownList ID="ddlUserMode" runat="server" CssClass="header-mode-dropdown" AutoPostBack="true" OnSelectedIndexChanged="ddlUserMode_SelectedIndexChanged">
+                    <asp:ListItem Text="Program Manager" Value="program_manager" />
+                    <asp:ListItem Text="Admin" Value="admin" />
+                </asp:DropDownList>
+            </div>
+            <div class="ccip-dash-updated">Updated <asp:Label ID="lblHomeDashboardGeneratedAt" runat="server" /></div>
+            <asp:HyperLink ID="lnkPlatformDashboardHome" runat="server" Target="_blank" CssClass="ccip-link-btn" Visible="false">Open platform dashboard</asp:HyperLink>
+        </asp:Panel>
 
               <div id="updateinfo" runat="server">
   <div id="last-update">Last Updated: </div>
@@ -25103,6 +25177,13 @@ Submit
                                         <asp:Label ID="lblWelcomeMode" runat="server" Visible="false" />
                                     </div>
                                     <div class="ccip-dash-top-tools">
+                                        <div class="dash-user-mode">
+                                            <label for="ddlUserMode">Mode</label>
+                                            <asp:DropDownList ID="ddlUserMode" runat="server" CssClass="header-mode-dropdown" AutoPostBack="true" OnSelectedIndexChanged="ddlUserMode_SelectedIndexChanged">
+                                                <asp:ListItem Text="Program Manager" Value="program_manager" />
+                                                <asp:ListItem Text="Admin" Value="admin" />
+                                            </asp:DropDownList>
+                                        </div>
                                         <div class="ccip-dash-updated">Updated  <asp:Label ID="lblHomeDashboardGeneratedAt" runat="server" /></div>
                                         <asp:HyperLink ID="lnkPlatformDashboardHome" runat="server" Target="_blank" CssClass="ccip-link-btn" Visible="false">Open platform dashboard</asp:HyperLink>
                                     </div>
