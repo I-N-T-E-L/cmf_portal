@@ -58,9 +58,12 @@ portal tab.
 
 ### Dashboard Line Trend: Week-End Balances
 
-The Overall and platform line charts stack blue **Implemented** area above maroon **Open**
-area. A single blue upper boundary with a marker at each weekly data point shows
+The Overall line chart stacks blue **Open** area above contrasting maroon
+**Implemented** area. Platform line charts retain blue Implemented above maroon
+Open. A single blue upper boundary with a marker at each weekly data point shows
 their combined total; there is no separate line between the two areas.
+The Overall line tooltip lists Implemented above Open and shows their combined
+total to the right of the work-week heading.
 Each historical point is a balance at the end of a Monday-Sunday work week, not
 the number of changes during that week. The current point uses the summary
 cards' current-status counts minus their duplicate counts. Open follows the
