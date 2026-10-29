@@ -871,12 +871,53 @@ public partial class CMF_Web_portal : System.Web.UI.Page
         }
     }
 
-    private string BuildDashboardComponentSourceSql(string platformSelection)
+    private static CmfDashboardDateFilter GetDashboardDateFilter()
+    {
+        var saved = HttpContext.Current.Session["DashboardDateFilter"] as CmfDashboardDateFilter;
+        CmfDashboardDateFilter filter;
+        string error;
+        CmfDashboardDateFilter.TryCreate(saved == null ? "all" : saved.Mode,
+            saved == null ? "cmf-request" : saved.Basis,
+            saved != null && saved.Start.HasValue ? saved.Start.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : string.Empty,
+            saved != null && saved.EndExclusive.HasValue ? saved.EndExclusive.Value.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : string.Empty,
+            DateTime.Today, out filter, out error);
+        return filter;
+    }
+
+    private static string FilterDashboardTableSource(string tableName)
+    {
+        var filter = GetDashboardDateFilter();
+        return filter.Start.HasValue
+            ? "(SELECT * FROM " + tableName + " WHERE " + filter.BuildPredicate(null) + ")"
+            : tableName;
+    }
+
+    protected void DashboardDateFilter_Changed(object sender, EventArgs e)
+    {
+        dashboardCustomDates.Visible = ddlDashboardDateMode.SelectedValue == "custom";
+        CmfDashboardDateFilter filter;
+        string error;
+        if (!CmfDashboardDateFilter.TryCreate(ddlDashboardDateMode.SelectedValue,
+            ddlDashboardDateBasis.SelectedValue, txtDashboardDateStart.Text, txtDashboardDateEnd.Text,
+            DateTime.Today, out filter, out error))
+        {
+            ShowWelcomeHome();
+            lblDashboardDateError.Text = error;
+            return;
+        }
+
+        Session["DashboardDateFilter"] = filter;
+        lblDashboardDateError.Text = string.Empty;
+        ShowWelcomeHome();
+        SetActiveFocusedTab("home");
+    }
+
+    private string BuildDashboardComponentSourceSql(string platformSelection, bool applyDashboardDateFilter = false)
     {
         string resolvedSelection = ResolveDashboardPlatformSelection(platformSelection);
         if (!IsOverallDashboardPlatform(resolvedSelection))
         {
-            return resolvedSelection;
+            return applyDashboardDateFilter ? FilterDashboardTableSource(resolvedSelection) + " AS dashboard_platform" : resolvedSelection;
         }
 
         List<string> unionParts = new List<string>();
@@ -891,6 +932,7 @@ public partial class CMF_Web_portal : System.Web.UI.Page
     implemented_date,
     date_cmf_decided,
     date_cmf_ask,
+    submitted_date,
     must_fix_for,
     component_group,
     drivers,
@@ -903,7 +945,7 @@ public partial class CMF_Web_portal : System.Web.UI.Page
     cmf_request,
     sysdebug,
     days_active
-FROM " + tableName);
+FROM " + tableName + (applyDashboardDateFilter ? " WHERE " + GetDashboardDateFilter().BuildPredicate(null) : string.Empty));
         }
 
         return "(" + string.Join(" UNION ALL ", unionParts) + ") AS overall_platform";
@@ -1014,6 +1056,7 @@ FROM " + tableName);
     customer_owner,
     customer_detail,
     date_cmf_ask,
+    submitted_date,
     cmf_request,
     why_cmf_change,
     impact,
@@ -1176,7 +1219,7 @@ FROM " + pendingTable);
         return new List<string> { dashboardPlatform };
     }
 
-    private static string BuildSummaryIssueComponentSourceSql(string dashboardPlatform)
+    private static string BuildSummaryIssueComponentSourceSql(string dashboardPlatform, bool applyDashboardDateFilter = true)
     {
         List<string> sourceTables = GetSummaryIssueSourceTablesForWeb(dashboardPlatform);
         List<string> unionParts = new List<string>();
@@ -1191,6 +1234,7 @@ FROM " + pendingTable);
     sysdebug,
     closed_reason,
     date_cmf_ask,
+    submitted_date,
     implemented_date,
             must_fix_for,
     component_group,
@@ -1203,7 +1247,7 @@ FROM " + pendingTable);
     component,
     customer_owner,
     '" + tableName + @"' AS source_platform
-FROM " + tableName);
+FROM " + tableName + (applyDashboardDateFilter ? " WHERE " + GetDashboardDateFilter().BuildPredicate(null) : string.Empty));
         }
 
         return string.Join(" UNION ALL ", unionParts);
@@ -1257,7 +1301,7 @@ FROM " + tableName);
     component,
     customer_owner,
     '" + tableName + @"' AS source_platform
-FROM " + pendingTable);
+FROM " + pendingTable + " WHERE " + GetDashboardDateFilter().BuildPredicate(null));
         }
 
         return unionParts.Count == 0 ? null : string.Join(" UNION ALL ", unionParts);
@@ -1564,7 +1608,7 @@ END";
                         return response;
                     }
 
-                    string componentSource = BuildSummaryIssueComponentSourceSql(resolvedPlatform);
+                    string componentSource = BuildSummaryIssueComponentSourceSql(resolvedPlatform, false);
                     sourceSql = @"(
 SELECT
     CAST(p.cp_id AS VARCHAR(64)) AS cp_id,
@@ -2038,7 +2082,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
             string pendingTable = basePlatform + "_CMF_ASK";
             if (SqlTableExists(connection, pendingTable))
             {
-                unionParts.Add("SELECT cp_id, status, component_group, date_cmf_ask, '" + tableName + "' AS source_platform FROM " + pendingTable);
+                unionParts.Add("SELECT cp_id, status, component_group, date_cmf_ask, '" + tableName + "' AS source_platform FROM " + pendingTable + " WHERE " + GetDashboardDateFilter().BuildPredicate(null));
             }
         }
 
@@ -2556,6 +2600,18 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     protected override void OnPreRender(EventArgs e)
     {
         ApplyFocusedPortalMode();
+        dashboardHeaderTools.Visible = homeWelcomePanel.Visible;
+        ddlDashboardDateBasis.Visible = ddlDashboardDateMode.SelectedValue != "all";
+        bool isTodayRange = ddlDashboardDateMode.SelectedValue == "today";
+        ddlDashboardDateBasis.Items.FindByValue("cmf-request").Text = isTodayRange ? "CMFs Requested" : "CMFs Requested in";
+        ddlDashboardDateBasis.Items.FindByValue("submitted").Text = isTodayRange ? "Issues submitted" : "Issues Submitted in";
+        string target = Request["__EVENTTARGET"] ?? string.Empty;
+        if (IsPostBack && string.IsNullOrWhiteSpace(HomeDashboardSnapshotJson)
+            && (target == ddlDashboardDateMode.UniqueID || target == ddlDashboardDateBasis.UniqueID
+                || target == btnApplyDashboardDates.UniqueID))
+        {
+            BindHomeDashboard();
+        }
         if (ScriptManager1 != null && lnkPendingBreadcrumbHome != null)
         {
             ScriptManager1.RegisterPostBackControl(lnkPendingBreadcrumbHome);
@@ -3339,7 +3395,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     private string BuildHomeDashboardSourceSql(string platformTable)
     {
         platformTable = ResolveDashboardPlatformSelection(platformTable);
-        string dashboardSourceSql = BuildDashboardComponentSourceSql(platformTable);
+        string dashboardSourceSql = BuildDashboardComponentSourceSql(platformTable, true);
         string filterValue = Session["filterValue"] as string;
         if (string.IsNullOrWhiteSpace(filterValue) || filterValue == "AllDrivers")
         {
@@ -3765,7 +3821,7 @@ FROM " + dashboardSourceSql, con))
             return;
         }
 
-        string overallComponentSourceSql = BuildDashboardComponentSourceSql(OverallDashboardPlatformTable);
+        string overallComponentSourceSql = BuildDashboardComponentSourceSql(OverallDashboardPlatformTable, true);
         if (string.IsNullOrWhiteSpace(overallComponentSourceSql))
         {
             return;
@@ -3913,6 +3969,7 @@ WHERE status = 'open'
     AND cmf_request = 'cmf_ok'
     AND ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
     AND sysdebug LIKE '%customer_must_fix%'
+    AND " + GetDashboardDateFilter().BuildPredicate(null) + @"
 GROUP BY
         CASE WHEN ISNULL(LTRIM(RTRIM(component_group)), '') = '' THEN 'Unassigned' ELSE LTRIM(RTRIM(component_group)) END";
 
@@ -4072,10 +4129,13 @@ GROUP BY
             return;
         }
 
-        string pendingSourceSql = BuildPendingAskSourceSql(connection, dashboardPlatform, "pending_age_src");
+        string pendingAgeCte = BuildPendingAskCteSql(connection, dashboardPlatform);
+        string pendingSourceSql = string.IsNullOrWhiteSpace(pendingAgeCte) ? null
+            : "(SELECT * FROM (" + pendingAgeCte + ") AS pending_dates WHERE "
+                + GetDashboardDateFilter().BuildPredicate("pending_dates") + ") AS pending_age_src";
         if (string.IsNullOrWhiteSpace(pendingSourceSql))
         {
-            string componentSourceSql = BuildDashboardComponentSourceSql(dashboardPlatform);
+            string componentSourceSql = BuildDashboardComponentSourceSql(dashboardPlatform, true);
             if (!string.IsNullOrWhiteSpace(componentSourceSql))
             {
                 pendingSourceSql = @"(
@@ -4211,7 +4271,7 @@ GROUP BY
         if (snapshot == null) return;
         platformTable = ResolveDashboardPlatformSelection(platformTable);
         bool isOverall = IsOverallDashboardPlatform(platformTable);
-        string componentSourceSql = BuildDashboardComponentSourceSql(platformTable);
+        string componentSourceSql = BuildDashboardComponentSourceSql(platformTable, true);
         string basePlatform = platformTable.Replace("_ALL_COMPONENTS_TABLE", string.Empty);
         string pendingTable = basePlatform + "_CMF_ASK";
         decimal averageResolutionDays = 0m;
@@ -4559,14 +4619,14 @@ ORDER BY Component, Driver", con))
             }
             else if (SqlTableExists(con, pendingTable))
             {
-                pendingSourceSql = "SELECT cp_id, status, component_group, date_cmf_ask, '" + platformTable + "' AS source_platform FROM " + pendingTable;
+                pendingSourceSql = "SELECT cp_id, status, component_group, date_cmf_ask, '" + platformTable + "' AS source_platform FROM " + pendingTable + " WHERE " + GetDashboardDateFilter().BuildPredicate(null);
             }
             else
             {
                 pendingSourceSql = null;
             }
 
-            string componentLookupSourceSql = "(" + BuildSummaryIssueComponentSourceSql(platformTable) + ") AS src_comp";
+            string componentLookupSourceSql = "(" + BuildSummaryIssueComponentSourceSql(platformTable, false) + ") AS src_comp";
             if (!string.IsNullOrWhiteSpace(pendingSourceSql))
             {
                 int pendingAgeThresholdDays = GetPendingSummaryAgeThresholdDays();
@@ -4825,9 +4885,10 @@ ORDER BY component_group, idst_name", con))
         List<string> dynamicDrivers = new List<string>();
         Dictionary<string, string> dynamicDriverMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
+        string datedPlatformSource = FilterDashboardTableSource(resolvedPlatformTable);
         string dynamicDriverSql = @"
 SELECT DISTINCT LTRIM(RTRIM(ISNULL(drivers, ''))) AS driver_name
-FROM " + resolvedPlatformTable + @"
+    FROM " + datedPlatformSource + @" AS design_drivers
 WHERE LOWER(LTRIM(RTRIM(ISNULL(sysdebug, '')))) LIKE '%customer_must_fix%'
   AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) = 'open'
   AND LOWER(LTRIM(RTRIM(ISNULL(cmf_request, '')))) <> 'cmf_reject'
@@ -4869,7 +4930,7 @@ SELECT
     ISNULL(NULLIF(LTRIM(RTRIM(B.support_model)), ''), '') AS support_model,
     LOWER(LTRIM(RTRIM(ISNULL(A.status, '')))) AS status_norm,
     LTRIM(RTRIM(ISNULL(A.drivers, ''))) AS driver_name
-FROM " + resolvedPlatformTable + @" A
+FROM " + datedPlatformSource + @" A
 INNER JOIN " + designTable + @" B ON A.customer_detail = B.customer_detail
 WHERE LOWER(LTRIM(RTRIM(ISNULL(A.sysdebug, '')))) LIKE '%customer_must_fix%'
   AND LOWER(LTRIM(RTRIM(ISNULL(A.status, '')))) IN ('open', 'implemented', 'verified')
@@ -6867,6 +6928,15 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
     protected void Page_Load(object sender, EventArgs e)
     {
         overall_request_details.DataBound += overall_request_details_DataBound;
+        if (!IsPostBack)
+        {
+            var dateFilter = GetDashboardDateFilter();
+            ddlDashboardDateMode.SelectedValue = dateFilter.Mode;
+            ddlDashboardDateBasis.SelectedValue = dateFilter.Basis;
+            txtDashboardDateStart.Text = (dateFilter.Start ?? DateTime.Today.AddDays(-6)).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            txtDashboardDateEnd.Text = (dateFilter.EndExclusive.HasValue ? dateFilter.EndExclusive.Value.AddDays(-1) : DateTime.Today).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            dashboardCustomDates.Visible = dateFilter.Mode == "custom";
+        }
         //GridView_cmf_summary.RowCreated += GridView_cmf_summary_RowCreated;
 
         if (ddlUserMode != null && !IsPostBack)
@@ -12462,11 +12532,11 @@ ORDER BY Total_CMF_Approved DESC";
             return;
         }
 
-        string selectedPlatform = summaryPlatform;
+        string selectedPlatform = FilterDashboardTableSource(summaryPlatform) + " AS dated_summary";
         string basePlatform = summaryPlatform.Replace("_ALL_COMPONENTS_TABLE", "");
         string designTable = basePlatform + "_DESIGN_TABLE";
         string swImageFreezeSelect = "B.sw_image_freeze AS SWImageFreeze,";
-        string designFromClause = summaryPlatform + " A INNER JOIN " + designTable + " B ON A.customer_detail = B.customer_detail";
+        string designFromClause = FilterDashboardTableSource(summaryPlatform) + " A INNER JOIN " + designTable + " B ON A.customer_detail = B.customer_detail";
         string designGroupByClause = "A.customer_detail, B.sw_image_freeze";
 
         string main_query = @"SELECT
@@ -13101,7 +13171,8 @@ SELECT DISTINCT CAST(pending_bucket_src.cp_id AS VARCHAR(64)) AS cp_id
 FROM " + pendingSourceSql + @"
 WHERE LOWER(LTRIM(RTRIM(ISNULL(pending_bucket_src.status, '')))) NOT IN ('complete', 'rejected')
   AND TRY_CAST(pending_bucket_src.date_cmf_ask AS DATE) IS NOT NULL
-  AND " + agePredicate + @"
+    AND " + GetDashboardDateFilter().BuildPredicate("pending_bucket_src") + @"
+    AND " + agePredicate + @"
 ORDER BY cp_id";
 
                     using (SqlCommand cmd = new SqlCommand(sql, con))
@@ -15202,8 +15273,8 @@ ORDER BY Total_CMF_Approved DESC";
             return;
         }
 
-        string selectedPlatform = summaryPlatform;
-        string componentFromClause = summaryPlatform + " A";
+        string selectedPlatform = FilterDashboardTableSource(summaryPlatform) + " AS dated_summary";
+        string componentFromClause = FilterDashboardTableSource(summaryPlatform) + " A";
 
 
 
@@ -15600,8 +15671,8 @@ ORDER BY Total_CMF_Approved DESC";
             return;
         }
 
-        string selectedPlatform = summaryPlatform;
-        string oemFromClause = summaryPlatform + " A";
+        string selectedPlatform = FilterDashboardTableSource(summaryPlatform) + " AS dated_summary";
+        string oemFromClause = FilterDashboardTableSource(summaryPlatform) + " A";
 
         string main_query = @"SELECT
                             CASE 

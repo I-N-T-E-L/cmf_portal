@@ -37,6 +37,22 @@ bin/                       Runtime assemblies required by the Web Forms app
 
 The runtime entry point is `CMF_Web_portal.aspx`.
 
+### Dashboard Date Filter
+
+The controls beside the dashboard greeting filter Overall and platform dashboards,
+including their charts, summaries, and dashboard drill-downs. Issue List, CMF
+Pending, and Reports & Analytics retain their independent scopes.
+
+The defaults are **All Time** and **CMF Request Date** (`date_cmf_ask`).
+**Issue Submission Date** uses the database's `submitted_date` instead.
+Today, Last 7 Days, and Last 30 Days include the current calendar day; Last 12
+Months starts on the same calendar date twelve months earlier. Custom Range
+includes both selected dates and is applied using the filter icon button.
+Calendar boundaries use the web server's local date, consistent with the existing
+portal. No historical-status reconstruction or timezone conversion is performed.
+Null dates remain visible under All Time and are excluded by an active range.
+The selection persists in the session while switching dashboard platforms.
+
 ### Issue List: AI Debug Summary
 
 AI Debug Summary produces a single list of plain-English bullets describing the
