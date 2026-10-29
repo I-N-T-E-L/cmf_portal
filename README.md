@@ -58,11 +58,12 @@ portal tab.
 
 ### Dashboard Line Trend: Week-End Balances
 
-The Overall line chart stacks blue **Open** area above contrasting maroon
-**Implemented** area. Platform line charts retain blue Implemented above maroon
-Open. A single blue upper boundary with a marker at each weekly data point shows
+Overall and platform tabs share the same SVG-rendered line/bar chart, heading
+styling, dark labels, and controls, using each tab's own data. Line charts stack
+blue **Open** area above contrasting maroon **Implemented** area. A single blue
+upper boundary with a marker at each weekly data point shows
 their combined total; there is no separate line between the two areas.
-The Overall line tooltip lists Open above Implemented and shows their combined
+The line tooltip lists Open above Implemented and shows their combined
 total to the right of the work-week heading.
 Each historical point is a balance at the end of a Monday-Sunday work week, not
 the number of changes during that week. The current point uses the summary
@@ -86,6 +87,11 @@ Records without a request date are excluded from historical balances, but the
 current point includes them when the summary card does.
 
 ### Issue-Count Popup Filters
+
+Overall summary detail tables resolve ImageFreeze and duplicate ImageFreeze dates
+from each issue's source-platform design table and customer detail. Missing
+tables, unmatched designs, and empty dates retain the Unknown fallback. Grouped
+design metadata prevents additional issue rows from duplicate design matches.
 
 The shared issue-count popup for summary cards, heatmaps, and weekly charts
 includes independent **Unique** and **Duplicates** checkboxes, styled like the

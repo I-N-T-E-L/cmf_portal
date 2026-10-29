@@ -209,10 +209,18 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     view.value = 'bar';
     context.renderHomeTrendChart(snapshot, 'homeTrendChart', 'specificChart', 6);
     assert.equal(options[4].series[0].type, 'line');
-    assert.equal(options[4].series[1].name, 'Implemented');
-    assert.equal(options[4].tooltip.formatter, undefined);
-    assert.equal(options[4].series[0].data[0].value, 46);
-    assert.equal(options[4].series[1].data[0].value, 86);
+    assert.equal(options[4].series[0].name, 'Implemented');
+    assert.equal(options[4].series[1].name, 'Open');
+    assert.equal(options[4].series[0].data[0].value, 86);
+    assert.equal(options[4].series[1].data[0].value, 46);
+    assert.equal(options[4].tooltip.formatter([
+        { seriesName: 'Open', value: 46, axisValueLabel: 'WW6', marker: '[blue]' },
+        { seriesName: 'Implemented', value: 86, axisValueLabel: 'WW6', marker: '[maroon]' }
+    ]), tooltip);
+    assert.equal(JSON.stringify(options[4].series), JSON.stringify(options[0].series));
+    assert.equal(JSON.stringify(options[4].legend), JSON.stringify(options[0].legend));
+    assert.equal(JSON.stringify(options[4].xAxis), JSON.stringify(options[0].xAxis));
+    assert.equal(JSON.stringify(options[4].yAxis), JSON.stringify(options[0].yAxis));
     assert.equal(options[4].series[1].lineStyle.color, '#0369a1');
     assert.ok(options[4].series.every(series => series.stack === 'cmf-status'));
     chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
@@ -225,7 +233,8 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.equal(options[5].series[1].data[0].value, 6);
     assert.ok(options[5].series.every(series => !series.stack && series.barMaxWidth === 18));
     context.renderHomeTrendChart(snapshot, 'homeTrendChart', 'specificChart', 12);
-    assert.ok(options[6].series.every(series => series.data.length === 12 && series.barMaxWidth === 6));
+    assert.ok(options[6].series.every(series => series.data.length === 12 && series.barMaxWidth === 8));
+    assert.equal(JSON.stringify(options[6].series), JSON.stringify(options[2].series));
 });
 
 test('Overall week-end line uses summary-card scope and current status buckets without duplicates', () => {
@@ -240,6 +249,21 @@ test('Overall week-end line uses summary-card scope and current status buckets w
     const drilldown = server.match(/    public static SummaryIssueLinksResponse GetTrendWeekIssueLinks\([^)]*\)[\s\S]*?\r?\n    \}/);
     assert.ok(drilldown);
     assert.match(drilldown[0], /if \(!isWeekEndBalance\)\s*\{\s*AppendDashboardDriverFilter\(baseWhere, driverFilterValue\);\s*AppendDashboardColumnFilters\(baseWhere, columnFilters\);/);
+});
+
+test('Overall summary detail freeze dates use platform-aware metadata without multiplying design rows', () => {
+    const details = server.match(/    private DataTable GetSummaryMetricIssueDetailsData\([^)]*\)[\s\S]*?\r?\n    \}/);
+    const metadata = server.match(/    private static string BuildSummaryDesignMetadataSourceSql\([^)]*\)[\s\S]*?\r?\n    \}/);
+    assert.ok(details);
+    assert.ok(metadata);
+    assert.match(details[0], /BuildSummaryDesignMetadataSourceSql\(dashboardPlatform, con\)/);
+    assert.match(details[0], /design_src\.source_platform = issue_src\.source_platform/);
+    assert.match(details[0], /dup_design\.source_platform = dup_src\.source_platform/);
+    assert.match(details[0], /NULLIF\(sw_image_freeze, 'N\/A'\)/);
+    assert.match(details[0], /'Unknown'\) AS ImageFreeze/);
+    assert.match(metadata[0], /connection != null && !SqlTableExists\(connection, designTable\)/);
+    assert.match(metadata[0], /GROUP BY LTRIM\(RTRIM\(customer_detail\)\)/);
+    assert.match(metadata[0], /MAX\(NULLIF\(LTRIM\(RTRIM\(sw_image_freeze\)\), ''\)\)/);
 });
 
 test('Issue List omits confidence badges and their update path, but keeps drawer confidence', () => {
