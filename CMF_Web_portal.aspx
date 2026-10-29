@@ -25079,13 +25079,6 @@ td:nth-child(odd), th:nth-child(odd) {
         </div>
 
         <asp:Panel ID="dashboardHeaderTools" runat="server" CssClass="ccip-dash-top-tools dashboard-header-tools">
-            <div class="dash-user-mode">
-                <label for="ddlUserMode">Mode</label>
-                <asp:DropDownList ID="ddlUserMode" runat="server" CssClass="header-mode-dropdown" AutoPostBack="true" OnSelectedIndexChanged="ddlUserMode_SelectedIndexChanged">
-                    <asp:ListItem Text="Program Manager" Value="program_manager" />
-                    <asp:ListItem Text="Admin" Value="admin" />
-                </asp:DropDownList>
-            </div>
             <div class="ccip-dash-updated">Updated <asp:Label ID="lblHomeDashboardGeneratedAt" runat="server" /></div>
             <asp:HyperLink ID="lnkPlatformDashboardHome" runat="server" Target="_blank" CssClass="ccip-link-btn" Visible="false">Open platform dashboard</asp:HyperLink>
         </asp:Panel>
@@ -25176,17 +25169,27 @@ Submit
                                         <p class="ccip-dash-sub">Here is what is happening with your critical issues today on <%: HomeDashboardPlatformLabel %>.</p>
                                         <asp:Label ID="lblWelcomeMode" runat="server" Visible="false" />
                                     </div>
-                                    <div class="ccip-dash-top-tools">
-                                        <div class="dash-user-mode">
-                                            <label for="ddlUserMode">Mode</label>
-                                            <asp:DropDownList ID="ddlUserMode" runat="server" CssClass="header-mode-dropdown" AutoPostBack="true" OnSelectedIndexChanged="ddlUserMode_SelectedIndexChanged">
-                                                <asp:ListItem Text="Program Manager" Value="program_manager" />
-                                                <asp:ListItem Text="Admin" Value="admin" />
-                                            </asp:DropDownList>
-                                        </div>
-                                        <div class="ccip-dash-updated">Updated  <asp:Label ID="lblHomeDashboardGeneratedAt" runat="server" /></div>
-                                        <asp:HyperLink ID="lnkPlatformDashboardHome" runat="server" Target="_blank" CssClass="ccip-link-btn" Visible="false">Open platform dashboard</asp:HyperLink>
-                                    </div>
+                                </div>
+
+                                <div class="dashboard-date-filter">
+                                    <asp:DropDownList ID="ddlDashboardDateMode" runat="server" AutoPostBack="true" OnSelectedIndexChanged="DashboardDateFilter_Changed" aria-label="Dashboard date range">
+                                        <asp:ListItem Text="All dates" Value="all" />
+                                        <asp:ListItem Text="Today" Value="today" />
+                                        <asp:ListItem Text="Last 7 days" Value="7days" />
+                                        <asp:ListItem Text="Last 30 days" Value="30days" />
+                                        <asp:ListItem Text="Last 12 months" Value="12months" />
+                                        <asp:ListItem Text="Custom range" Value="custom" />
+                                    </asp:DropDownList>
+                                    <asp:DropDownList ID="ddlDashboardDateBasis" runat="server" AutoPostBack="true" OnSelectedIndexChanged="DashboardDateFilter_Changed" aria-label="Dashboard date basis">
+                                        <asp:ListItem Text="CMFs Requested in" Value="cmf-request" />
+                                        <asp:ListItem Text="Issues Submitted in" Value="submitted" />
+                                    </asp:DropDownList>
+                                    <asp:Panel ID="dashboardCustomDates" runat="server" Visible="false">
+                                        <asp:TextBox ID="txtDashboardDateStart" runat="server" TextMode="Date" aria-label="Start date" />
+                                        <asp:TextBox ID="txtDashboardDateEnd" runat="server" TextMode="Date" aria-label="End date" />
+                                    </asp:Panel>
+                                    <asp:Button ID="btnApplyDashboardDates" runat="server" Text="Apply" OnClick="DashboardDateFilter_Changed" />
+                                    <asp:Label ID="lblDashboardDateError" runat="server" />
                                 </div>
 
                                 <div class="platform-chip-rail" data-chip-source="server" role="tablist" aria-label="Dashboard platform switch" style="margin-bottom:14px;"></div>
