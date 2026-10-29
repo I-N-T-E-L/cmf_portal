@@ -356,6 +356,7 @@ body .global-search-clear {
 body .portal-app-header .header-user-mode {
     position: static !important;
     display: flex;
+    order: 2;
     align-items: center;
     gap: 8px;
     margin-left: auto !important;
@@ -363,6 +364,7 @@ body .portal-app-header .header-user-mode {
 }
 
 body .portal-app-header .dashboard-header-tools {
+    order: 1;
     margin-left: auto;
     min-width: 0;
     max-width: 100%;
@@ -386,6 +388,30 @@ body .portal-app-header .dashboard-header-tools .ccip-dash-updated {
 body .header-user-mode label {
     margin: 0;
     font-size: 11px;
+}
+
+body #homeWelcomePanel .dashboard-platform-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+body #homeWelcomePanel .dashboard-platform-toolbar > .platform-chip-rail {
+    flex: 1 1 560px !important;
+    align-self: center !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin-bottom: 0 !important;
+}
+
+body #homeWelcomePanel .dashboard-platform-updated {
+    flex: 0 0 auto;
+    margin-left: auto;
+    white-space: nowrap;
 }
 
 body .portal-app-header .header-mode-dropdown {
@@ -1910,6 +1936,13 @@ body a:focus-visible {
 
     body .portal-app-header .header-user-mode {
         margin-left: auto !important;
+    }
+
+    body .portal-app-header .dashboard-header-tools {
+        order: 4;
+        flex: 1 1 100%;
+        margin-left: 0;
+        justify-content: flex-end;
     }
 
     body .portal-app-header .global-search-shell {

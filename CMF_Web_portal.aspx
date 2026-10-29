@@ -25010,7 +25010,7 @@ td:nth-child(odd), th:nth-child(odd) {
 </script>
     <script src="Scripts/cmf-portal-main.js?v=20261028-organic-merge"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261028-organic-merge" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261029-dashboard-updated-position" />
 
 </head>
 
@@ -25079,7 +25079,6 @@ td:nth-child(odd), th:nth-child(odd) {
         </div>
 
         <asp:Panel ID="dashboardHeaderTools" runat="server" CssClass="ccip-dash-top-tools dashboard-header-tools">
-            <div class="ccip-dash-updated">Updated <asp:Label ID="lblHomeDashboardGeneratedAt" runat="server" /></div>
             <asp:HyperLink ID="lnkPlatformDashboardHome" runat="server" Target="_blank" CssClass="ccip-link-btn" Visible="false">Open platform dashboard</asp:HyperLink>
         </asp:Panel>
 
@@ -25185,14 +25184,17 @@ Submit
                                         <asp:ListItem Text="Issues Submitted in" Value="submitted" />
                                     </asp:DropDownList>
                                     <asp:Panel ID="dashboardCustomDates" runat="server" Visible="false">
-                                        <asp:TextBox ID="txtDashboardDateStart" runat="server" TextMode="Date" aria-label="Start date" />
-                                        <asp:TextBox ID="txtDashboardDateEnd" runat="server" TextMode="Date" aria-label="End date" />
+                                        <asp:TextBox ID="txtDashboardDateStart" runat="server" TextMode="Date" AutoPostBack="true" OnTextChanged="DashboardDateFilter_Changed" aria-label="Start date" />
+                                        <asp:TextBox ID="txtDashboardDateEnd" runat="server" TextMode="Date" AutoPostBack="true" OnTextChanged="DashboardDateFilter_Changed" aria-label="End date" />
                                     </asp:Panel>
-                                    <asp:Button ID="btnApplyDashboardDates" runat="server" Text="Apply" OnClick="DashboardDateFilter_Changed" />
+                                    <asp:Button ID="btnApplyDashboardDates" runat="server" Text="Apply" OnClick="DashboardDateFilter_Changed" Visible="false" />
                                     <asp:Label ID="lblDashboardDateError" runat="server" />
                                 </div>
 
-                                <div class="platform-chip-rail" data-chip-source="server" role="tablist" aria-label="Dashboard platform switch" style="margin-bottom:14px;"></div>
+                                <div class="dashboard-platform-toolbar">
+                                    <div class="platform-chip-rail" data-chip-source="server" role="tablist" aria-label="Dashboard platform switch"></div>
+                                    <div class="ccip-dash-updated dashboard-platform-updated">Updated <asp:Label ID="lblHomeDashboardGeneratedAt" runat="server" /></div>
+                                </div>
 
                                 <asp:Label ID="lblHomeAiNewTodayValue" runat="server" style="display:none;" />
                                 <asp:Label ID="lblHomeAiClosedTodayValue" runat="server" style="display:none;" />
