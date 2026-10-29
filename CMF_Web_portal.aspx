@@ -18198,7 +18198,7 @@ td:nth-child(odd), th:nth-child(odd) {
                         var points = params || [];
                         if (!points.length) return '';
                         var orderedPoints = [];
-                        ['Implemented', 'Open'].forEach(function (name) {
+                        ['Open', 'Implemented'].forEach(function (name) {
                             points.forEach(function (point) {
                                 if (point.seriesName === name) orderedPoints.push(point);
                             });

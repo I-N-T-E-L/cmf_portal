@@ -174,7 +174,7 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
         { seriesName: 'Implemented', value: 86, axisValueLabel: 'WW6', marker: '[maroon]' }
     ]);
     assert.match(tooltip, /WW6<\/span><span style="font-weight:900">Total: 132/);
-    assert.match(tooltip, /\[maroon\]Implemented[\s\S]*86[\s\S]*\[blue\]Open[\s\S]*46/);
+    assert.match(tooltip, /\[blue\]Open[\s\S]*46[\s\S]*\[maroon\]Implemented[\s\S]*86/);
     assert.equal(options[0].tooltip.formatter([]), '');
     chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
     assert.deepEqual(popups[0], ['Open and Implemented', 'WW6', 5]);
