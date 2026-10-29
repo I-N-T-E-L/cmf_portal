@@ -18779,12 +18779,6 @@ td:nth-child(odd), th:nth-child(odd) {
 
             var metaParts = [totalIssuesText];
             var idstMetaLine = '';
-            if (popupState.sourceType === 'trend-week') {
-                var weekLabel = String(popupState.weekLabel || '').trim();
-                if (weekLabel) {
-                    metaParts.push(weekLabel);
-                }
-            }
 
             if (popupState.sourceType === 'overall-heatmap') {
                 var platformLabel = String(popupState.platformLabel || '').trim();
