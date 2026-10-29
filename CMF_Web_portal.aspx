@@ -3177,11 +3177,11 @@ body {
     min-width: 0;
 }
 
-.portal-layout-shell.main-menu-collapsed #homeWelcomePanel .ccip-dash-top {
-    width: 1836.72px;
-    min-width: 1836.72px;
-    max-width: 1836.72px;
-    margin-right: 0;
+#homeWelcomePanel > .ccip-dash-top {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin-bottom: 14px;
 }
 
 .dashboard-greeting-row {
@@ -5261,6 +5261,44 @@ body .overall-quick-links .overall-quick-link-btn:active {
     font-size: 11px;
     font-weight: 700;
     padding: 0 8px;
+}
+
+.overall-trend-card .overall-card-head,
+.overall-trend-card .overall-trend-range {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.overall-trend-card .overall-trend-title {
+    display: flex;
+    align-items: center;
+    flex: 1 1 400px;
+    min-width: 0;
+    gap: 6px;
+}
+
+#homeOverallTrendView.overall-trend-title-select,
+#homeSpecificTrendView.overall-trend-title-select {
+    width: 390px;
+    max-width: calc(100% - 22px);
+    min-width: 0;
+    height: 28px;
+    padding: 0 4px 0 0;
+    border: 0 !important;
+    border-radius: 4px;
+    background: transparent !important;
+    color: #1e3a60 !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    letter-spacing: 0;
+    appearance: auto !important;
+    cursor: pointer;
+}
+
+#homeOverallTrendView.overall-trend-title-select:focus-visible,
+#homeSpecificTrendView.overall-trend-title-select:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
 }
 
 .overall-ai-blank {
@@ -17956,47 +17994,51 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function bindOverallTrendRangeSelector() {
-            var selector = document.getElementById('homeOverallTrendRange');
-            if (!selector || selector.dataset.boundChange === '1') {
-                return;
-            }
-
-            selector.addEventListener('change', function () {
-                if (!isOverallDashboardSelection()) {
+            ['homeOverallTrendRange', 'homeOverallTrendView'].forEach(function (selectorId) {
+                var selector = document.getElementById(selectorId);
+                if (!selector || selector.dataset.boundChange === '1') {
                     return;
                 }
 
-                var snapshot = window.CMF_PORTAL.homeDashboardSnapshot;
-                if (!snapshot) {
-                    return;
-                }
+                selector.addEventListener('change', function () {
+                    if (!isOverallDashboardSelection()) {
+                        return;
+                    }
 
-                renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'homeOverallTrendChartRef', getOverallTrendRangeWeeks());
+                    var snapshot = window.CMF_PORTAL.homeDashboardSnapshot;
+                    if (!snapshot) {
+                        return;
+                    }
+
+                    renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'homeOverallTrendChartRef', getOverallTrendRangeWeeks());
+                });
+
+                selector.dataset.boundChange = '1';
             });
-
-            selector.dataset.boundChange = '1';
         }
 
         function bindSpecificTrendRangeSelector() {
-            var selector = document.getElementById('homeSpecificTrendRange');
-            if (!selector || selector.dataset.boundChange === '1') {
-                return;
-            }
-
-            selector.addEventListener('change', function () {
-                if (isOverallDashboardSelection()) {
+            ['homeSpecificTrendRange', 'homeSpecificTrendView'].forEach(function (selectorId) {
+                var selector = document.getElementById(selectorId);
+                if (!selector || selector.dataset.boundChange === '1') {
                     return;
                 }
 
-                var snapshot = window.CMF_PORTAL.homeDashboardSnapshot;
-                if (!snapshot) {
-                    return;
-                }
+                selector.addEventListener('change', function () {
+                    if (isOverallDashboardSelection()) {
+                        return;
+                    }
 
-                renderHomeTrendChart(snapshot, 'homeTrendChart', 'homeTrendChartRef', getSpecificTrendRangeWeeks());
+                    var snapshot = window.CMF_PORTAL.homeDashboardSnapshot;
+                    if (!snapshot) {
+                        return;
+                    }
+
+                    renderHomeTrendChart(snapshot, 'homeTrendChart', 'homeTrendChartRef', getSpecificTrendRangeWeeks());
+                });
+
+                selector.dataset.boundChange = '1';
             });
-
-            selector.dataset.boundChange = '1';
         }
 
         function renderHomeTrendChart(snapshot, hostId, chartRefKey, rangeWeeks) {
@@ -18005,6 +18047,10 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
+            var viewSelector = document.getElementById(hostId === 'homeOverallTrendChart' ? 'homeOverallTrendView' : 'homeSpecificTrendView');
+            var chartType = viewSelector && viewSelector.value === 'bar' ? 'bar' : 'line';
+            var isClusteredBar = chartType === 'bar';
+            var isStackedLine = !isClusteredBar;
             var fullTrend = snapshot.Trend || [];
             var selectedRangeWeeks = parseInt(rangeWeeks || 0, 10);
             if (isNaN(selectedRangeWeeks) || selectedRangeWeeks <= 0) {
@@ -18022,8 +18068,8 @@ td:nth-child(odd), th:nth-child(odd) {
                 visibleTrendPoints.push({
                     weekLabel: String(visibleItem.WeekLabel || ''),
                     weekOffset: Math.max(0, (fullTrend.length - 1) - (trendStartIndex + visibleIndex)),
-                    openValue: Number(visibleItem.NewIssues || 0),
-                    closedValue: Number(visibleItem.ResolvedIssues || 0)
+                    openValue: Number((isStackedLine ? visibleItem.WeekEndOpenIssues : visibleItem.NewIssues) || 0),
+                    closedValue: Number((isStackedLine ? visibleItem.WeekEndImplementedIssues : visibleItem.ResolvedIssues) || 0)
                 });
             }
 
@@ -18045,6 +18091,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var snapshotKey = [
                 window.CMF_PORTAL.currentPlatform || '',
                 hostId,
+                chartType,
                 selectedRangeWeeks,
                 fullTrend.length,
                 trend.length,
@@ -18060,14 +18107,14 @@ td:nth-child(odd), th:nth-child(odd) {
                 window.CMF_PORTAL[chartRefKey] = echarts.init(trendHost, { textStyle: { fontFamily: getComputedStyle(document.body).fontFamily } });
             }
 
-            window.CMF_PORTAL[chartRefKey].setOption({
+            var trendOptions = {
                 animation: false,
-                color: ['#ef4444', '#16a34a'],
-                tooltip: { trigger: 'axis' },
+                color: isStackedLine ? ['#800000', '#0369a1'] : [isClusteredBar ? '#0369a1' : '#ef4444', '#16a34a'],
+                tooltip: { trigger: 'axis', axisPointer: { type: isClusteredBar ? 'shadow' : 'line' } },
                 legend: {
                     top: 0,
                     right: 8,
-                    icon: 'circle',
+                    icon: isClusteredBar ? 'rect' : 'circle',
                     itemWidth: 8,
                     itemHeight: 8,
                     textStyle: { color: '#475467', fontSize: 11 }
@@ -18076,7 +18123,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 xAxis: {
                     type: 'category',
                     data: trend.map(function (item) { return item.WeekLabel; }),
-                    boundaryGap: false,
+                    boundaryGap: isClusteredBar,
                     axisLine: { lineStyle: { color: '#e4e7ec' } },
                     axisLabel: { color: '#667085', fontSize: 11, margin: 8 }
                 },
@@ -18089,25 +18136,39 @@ td:nth-child(odd), th:nth-child(odd) {
                 series: [
                     {
                         name: 'Open',
-                        type: 'line',
-                        smooth: true,
-                        data: toTrendSeriesData(trend, function (item) { return item.NewIssues; }),
-                        lineStyle: { width: 3 },
-                        symbol: 'circle',
+                        type: chartType,
+                        stack: isStackedLine ? 'cmf-status' : undefined,
+                        smooth: !isClusteredBar,
+                        barMaxWidth: selectedRangeWeeks === 6 ? 18 : 6,
+                        barGap: '20%',
+                        itemStyle: isClusteredBar ? { color: '#f0f9ff', borderColor: '#0369a1', borderWidth: 1 } : (isStackedLine ? { color: '#800000' } : undefined),
+                        data: toTrendSeriesData(trend, function (item) { return isStackedLine ? item.WeekEndOpenIssues : item.NewIssues; }),
+                        areaStyle: isStackedLine ? { color: 'rgba(128,0,0,0.12)' } : undefined,
+                        lineStyle: { width: isStackedLine ? 0 : 3 },
+                        emphasis: isStackedLine ? { lineStyle: { width: 0 } } : undefined,
+                        symbol: isStackedLine ? 'none' : 'circle',
                         symbolSize: 6
                     },
                     {
-                        name: 'Closed',
-                        type: 'line',
-                        smooth: true,
-                        data: toTrendSeriesData(trend, function (item) { return item.ResolvedIssues; }),
-                        lineStyle: { width: 3 },
+                        name: isStackedLine ? 'Implemented' : 'Closed',
+                        type: chartType,
+                        stack: isStackedLine ? 'cmf-status' : undefined,
+                        smooth: !isClusteredBar,
+                        barMaxWidth: selectedRangeWeeks === 6 ? 18 : 6,
+                        itemStyle: isClusteredBar ? { color: '#dcfce7', borderColor: '#16a34a', borderWidth: 1 } : (isStackedLine ? { color: '#0369a1' } : undefined),
+                        data: toTrendSeriesData(trend, function (item) { return isStackedLine ? item.WeekEndImplementedIssues : item.ResolvedIssues; }),
+                        lineStyle: { width: 3, color: isStackedLine ? '#0369a1' : undefined },
                         symbol: 'circle',
+                        showAllSymbol: isStackedLine ? true : undefined,
                         symbolSize: 6,
-                        areaStyle: { color: 'rgba(22,163,74,0.12)' }
+                        areaStyle: isClusteredBar ? undefined : { color: isStackedLine ? 'rgba(3,105,161,0.12)' : 'rgba(22,163,74,0.12)' }
                     }
                 ]
-            }, true);
+            };
+            if (isStackedLine) {
+                trendOptions.legend.data = ['Open', 'Implemented'];
+            }
+            window.CMF_PORTAL[chartRefKey].setOption(trendOptions, true);
 
             var trendChart = window.CMF_PORTAL[chartRefKey];
             if (trendChart) {
@@ -18157,7 +18218,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
                     var axisIndex = parseInt(trendChart.__cmfTrendLastAxisIndex, 10);
                     if (isNaN(axisIndex) || axisIndex < 0 || axisIndex >= visibleTrendPoints.length) {
-                        var xValue = trendChart.convertFromPixel({ xAxisIndex: 0 }, [offsetX, offsetY])[0];
+                        var xValue = trendChart.convertFromPixel({ xAxisIndex: 0 }, offsetX);
                         axisIndex = Math.round(Number(xValue));
                     }
 
@@ -18175,7 +18236,7 @@ td:nth-child(odd), th:nth-child(odd) {
                         return;
                     }
 
-                    openTrendWeekIssueLinksPopup('All', point.weekLabel, point.weekOffset);
+                    openTrendWeekIssueLinksPopup(isStackedLine ? 'Open and Implemented' : 'All', point.weekLabel, point.weekOffset);
                 };
 
                 trendChart.__cmfTrendZrClickHandler = trendZrClickHandler;
@@ -18589,8 +18650,9 @@ td:nth-child(odd), th:nth-child(odd) {
             return 'Alphabetical';
         }
 
-        function syncSummaryIssuePopupControls(sourceType) {
+        function syncSummaryIssuePopupControls(sourceType, metricKey) {
             var normalizedSource = String(sourceType || 'summary').toLowerCase();
+            var isPendingSummary = normalizedSource === 'summary' && String(metricKey || '').trim().toLowerCase() === 'pending';
             var groupBySelect = document.getElementById('summaryIssuesGroupBy');
             var groupByLabel = document.querySelector('label[for="summaryIssuesGroupBy"]');
             var sortBySelect = document.getElementById('summaryIssuesSortBy');
@@ -18609,6 +18671,12 @@ td:nth-child(odd), th:nth-child(odd) {
             sortByLabel.style.display = showGrouping ? '' : 'none';
             trendStatusLabel.style.display = showTrendStatus ? '' : 'none';
             trendStatusChecks.style.display = showTrendStatus ? 'flex' : 'none';
+            var recordTypeLabel = document.getElementById('summaryIssuesRecordTypeLabel');
+            var recordTypeChecks = document.getElementById('summaryIssuesRecordTypeChecks');
+            if (recordTypeLabel && recordTypeChecks) {
+                recordTypeLabel.style.display = isPendingSummary ? 'none' : '';
+                recordTypeChecks.style.display = isPendingSummary ? 'none' : 'flex';
+            }
         }
 
         function syncSummaryTrendIssueStatusControls(showOpen, showClosed) {
@@ -18759,7 +18827,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
             var popupState = window.CMF_PORTAL.summaryIssuesPopupState || {};
             window.CMF_PORTAL.summaryIssuesPopupLastResult = result || null;
-            syncSummaryIssuePopupControls(popupState.sourceType || 'summary');
+            syncSummaryIssuePopupControls(popupState.sourceType || 'summary', popupState.metricKey);
             var syncedGroupBy = syncSummaryIssueGroupByOptions(
                 result && result.AvailableGroupBy ? result.AvailableGroupBy : null,
                 result && result.GroupBy ? result.GroupBy : popupState.groupBy
@@ -18956,6 +19024,8 @@ td:nth-child(odd), th:nth-child(odd) {
 
             body.innerHTML = '<div class="summary-issues-popup-empty">Loading issues...</div>';
 
+            var requestId = (window.CMF_PORTAL.summaryIssuesPopupRequestId || 0) + 1;
+            window.CMF_PORTAL.summaryIssuesPopupRequestId = requestId;
             var endpoint = 'CMF_Web_portal.aspx/GetSummaryCardIssueLinks';
             var payload = {
                 metricKey: metricKey,
@@ -18983,6 +19053,9 @@ td:nth-child(odd), th:nth-child(odd) {
                 };
             }
 
+            payload.includeUnique = popupState.includeUnique !== false;
+            payload.includeDuplicates = popupState.includeDuplicates !== false;
+
             fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json; charset=utf-8' },
@@ -18990,10 +19063,12 @@ td:nth-child(odd), th:nth-child(odd) {
             })
             .then(function (response) { return response.json(); })
             .then(function (data) {
+                if (window.CMF_PORTAL.summaryIssuesPopupRequestId !== requestId) return;
                 var result = data && data.d ? data.d : data;
                 renderSummaryIssueLinks(result);
             })
             .catch(function () {
+                if (window.CMF_PORTAL.summaryIssuesPopupRequestId !== requestId) return;
                 renderSummaryIssueLinks({ Success: false, Message: 'Unable to load issue links right now.' });
             });
         }
@@ -19036,7 +19111,8 @@ td:nth-child(odd), th:nth-child(odd) {
             var initialGroupBy = syncSummaryIssueGroupByOptions(options, options.length > 0 ? options[0] : 'ingredient');
             var initialSortBy = syncSummaryIssueSortByOptions('alphabetical');
             var initialTrendStatus = syncSummaryTrendIssueStatusControls(true, true);
-            syncSummaryIssuePopupControls(sourceType);
+            document.getElementById('summaryIssuesClosedLabel').textContent = popupOptions && popupOptions.seriesName === 'Open and Implemented' ? 'Implemented' : 'Closed';
+            syncSummaryIssuePopupControls(sourceType, metricKey);
 
             window.CMF_PORTAL.summaryIssuesPopupState = {
                 metricKey: String(metricKey || ''),
@@ -19045,6 +19121,8 @@ td:nth-child(odd), th:nth-child(odd) {
                 sortBy: initialSortBy,
                 showOpen: initialTrendStatus.showOpen,
                 showClosed: initialTrendStatus.showClosed,
+                includeUnique: true,
+                includeDuplicates: true,
                 sourceType: sourceType,
                 ingredient: popupOptions && popupOptions.ingredient ? String(popupOptions.ingredient || '').trim() : '',
                 platformLabel: popupOptions && popupOptions.platformLabel ? String(popupOptions.platformLabel || '').trim() : '',
@@ -19053,6 +19131,20 @@ td:nth-child(odd), th:nth-child(odd) {
                 weekOffset: popupOptions && popupOptions.weekOffset != null ? parseInt(popupOptions.weekOffset, 10) : 0
             };
             window.CMF_PORTAL.summaryIssuesPopupLastResult = null;
+
+            [
+                { id: 'summaryIssuesIncludeUnique', key: 'includeUnique' },
+                { id: 'summaryIssuesIncludeDuplicates', key: 'includeDuplicates' }
+            ].forEach(function (toggle) {
+                var checkbox = document.getElementById(toggle.id);
+                checkbox.checked = true;
+                checkbox.onchange = function () {
+                    var state = window.CMF_PORTAL.summaryIssuesPopupState || {};
+                    state[toggle.key] = checkbox.checked;
+                    window.CMF_PORTAL.summaryIssuesPopupState = state;
+                    loadSummaryIssueLinks(state.metricKey, state.metricLabel, state.groupBy);
+                };
+            });
 
             groupBySelect.onchange = function () {
                 var state = window.CMF_PORTAL.summaryIssuesPopupState || {};
@@ -25313,7 +25405,6 @@ Submit
 
                     <div class="portal-main-workspace">
                         <asp:Panel ID="homeWelcomePanel" runat="server" Visible="false" CssClass="ccip-dashboard-host">
-                            <div class="ccip-dashboard">
                                 <div class="ccip-dash-top">
                                     <div>
                                         <asp:Label ID="lblHomeGreeting" runat="server" CssClass="ccip-dash-greeting" Text="Good Morning" />
@@ -25343,6 +25434,7 @@ Submit
                                     </div>
                                 </div>
 
+                            <div class="ccip-dashboard">
                                 <div class="dashboard-platform-toolbar">
                                     <div class="platform-chip-rail" data-chip-source="server" role="tablist" aria-label="Dashboard platform switch"></div>
                                 </div>
@@ -25393,7 +25485,13 @@ Submit
                                     <section class="overall-row overall-row-second">
                                         <article class="overall-card overall-trend-card">
                                             <div class="overall-card-head">
-                                                <h4 class="overall-card-title"><i class="fas fa-chart-line" aria-hidden="true" style="color:#3b82f6; margin-right:6px;"></i>Issue Trend by Work Week</h4>
+                                                <h4 class="overall-card-title overall-trend-title">
+                                                    <i class="fas fa-chart-line" aria-hidden="true" style="color:#3b82f6;"></i>
+                                                    <select id="homeOverallTrendView" class="overall-trend-title-select" aria-label="Trend chart title and view">
+                                                        <option value="line" selected="selected">OPEN BACKLOG TREND BY WORK WEEK</option>
+                                                        <option value="bar">WEEKLY ISSUE FLOW</option>
+                                                    </select>
+                                                </h4>
                                                 <div class="overall-trend-range">
                                                     <select id="homeOverallTrendRange" class="overall-trend-range-select" aria-label="Issue trend time range">
                                                         <option value="6" selected="selected">Last 6 Weeks</option>
@@ -25482,7 +25580,13 @@ Submit
                                             </div>
                                             <section class="ccip-card ccip-trend-card-inline overall-card overall-trend-card">
                                                 <div class="overall-card-head">
-                                                    <h4 class="overall-card-title"><i class="fas fa-chart-line" aria-hidden="true" style="color:#3b82f6; margin-right:6px;"></i>Issue Trend by Work Week</h4>
+                                                    <h4 class="overall-card-title overall-trend-title">
+                                                        <i class="fas fa-chart-line" aria-hidden="true" style="color:#3b82f6;"></i>
+                                                        <select id="homeSpecificTrendView" class="overall-trend-title-select" aria-label="Trend chart title and view">
+                                                            <option value="line" selected="selected">OPEN BACKLOG TREND BY WORK WEEK</option>
+                                                            <option value="bar">WEEKLY ISSUE FLOW</option>
+                                                        </select>
+                                                    </h4>
                                                     <div class="overall-trend-range">
                                                         <select id="homeSpecificTrendRange" class="overall-trend-range-select" aria-label="Issue trend time range">
                                                             <option value="6" selected="selected">Last 6 Weeks</option>
@@ -25869,10 +25973,15 @@ Submit
                             <select id="summaryIssuesGroupBy"></select>
                             <label for="summaryIssuesSortBy">Sort by</label>
                             <select id="summaryIssuesSortBy"></select>
+                            <label id="summaryIssuesRecordTypeLabel">Records</label>
+                            <div id="summaryIssuesRecordTypeChecks" class="summary-issues-popup-checkers" role="group" aria-labelledby="summaryIssuesRecordTypeLabel">
+                                <label><input type="checkbox" id="summaryIssuesIncludeUnique" checked="checked" />Unique</label>
+                                <label><input type="checkbox" id="summaryIssuesIncludeDuplicates" checked="checked" />Duplicates</label>
+                            </div>
                             <label for="summaryIssuesShowOpen" id="summaryIssuesTrendStatusLabel">Show issues</label>
                             <div id="summaryIssuesTrendStatusChecks" class="summary-issues-popup-checkers">
                                 <label><input type="checkbox" id="summaryIssuesShowOpen" checked="checked" />Open</label>
-                                <label><input type="checkbox" id="summaryIssuesShowClosed" checked="checked" />Closed</label>
+                                <label><input type="checkbox" id="summaryIssuesShowClosed" checked="checked" /><span id="summaryIssuesClosedLabel">Closed</span></label>
                             </div>
                         </div>
                         <span id="summaryIssuesPopupMeta" class="summary-issues-popup-meta"></span>

@@ -46,6 +46,192 @@ test('platform group headings omit the table suffix without changing group ident
     assert.match(body.innerHTML, /summary-issues-group-name">CMF_NVL_H_ALL_COMPONENTS_TABLE<\/span>/);
 });
 
+test('record-type controls are hidden only for Pending summary-card popups', () => {
+    const nodes = new Map();
+    const getNode = key => {
+        if (!nodes.has(key)) nodes.set(key, { style: {} });
+        return nodes.get(key);
+    };
+    const context = vm.createContext({ document: { getElementById: getNode, querySelector: getNode } });
+    const definition = page.match(/        function syncSummaryIssuePopupControls\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    vm.runInContext(definition[0], context);
+    for (const [source, metric, hidden] of [
+        ['summary', 'pending', true], ['summary', 'open', false],
+        ['summary', ' Pending ', true], ['summary', 'implemented', false],
+        ['overall-heatmap', 'open', false], ['trend-week', 'open', false]
+    ]) {
+        context.syncSummaryIssuePopupControls(source, metric);
+        assert.equal(getNode('summaryIssuesRecordTypeLabel').style.display, hidden ? 'none' : '');
+        assert.equal(getNode('summaryIssuesRecordTypeChecks').style.display, hidden ? 'none' : 'flex');
+        assert.notEqual(getNode('summaryIssuesGroupBy').style.display, 'none');
+    }
+    assert.match(page, /syncSummaryIssuePopupControls\(sourceType, metricKey\)/);
+    assert.match(page, /syncSummaryIssuePopupControls\(popupState\.sourceType \|\| 'summary', popupState\.metricKey\)/);
+});
+
+test('issue-count popup requests share record-type filters and ignore stale responses', async () => {
+    const requests = [];
+    const rendered = [];
+    const state = { metricKey: 'open', metricLabel: 'Open', groupBy: 'ingredient' };
+    const context = vm.createContext({
+        document: { getElementById: () => ({}) },
+        window: { CMF_PORTAL: { summaryIssuesPopupState: state, currentDashboardPlatform: 'Overall' } },
+        fetch: (endpoint, options) => {
+            requests.push({ endpoint, payload: JSON.parse(options.body) });
+            return Promise.resolve({ json: () => Promise.resolve({ d: { Success: true } }) });
+        },
+        renderSummaryIssueLinks: result => rendered.push(result)
+    });
+    const definition = page.match(/        function loadSummaryIssueLinks\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    vm.runInContext(definition[0], context);
+    const flush = () => new Promise(resolve => setImmediate(resolve));
+    for (const sourceType of ['summary', 'overall-heatmap', 'trend-week']) {
+        state.sourceType = sourceType;
+        delete state.includeUnique;
+        delete state.includeDuplicates;
+        context.loadSummaryIssueLinks('open', 'Open', 'ingredient');
+        await flush();
+        assert.equal(requests[requests.length - 1].payload.includeUnique, true);
+        assert.equal(requests[requests.length - 1].payload.includeDuplicates, true);
+        state.includeUnique = false;
+        state.includeDuplicates = true;
+        context.loadSummaryIssueLinks('open', 'Open', 'ingredient');
+        await flush();
+        assert.equal(requests[requests.length - 1].payload.includeUnique, false);
+        assert.equal(requests[requests.length - 1].payload.includeDuplicates, true);
+    }
+    const pending = [];
+    context.fetch = () => new Promise(resolve => pending.push(resolve));
+    context.loadSummaryIssueLinks('open', 'Open', 'ingredient');
+    context.loadSummaryIssueLinks('open', 'Open', 'ingredient');
+    pending[1]({ json: () => Promise.resolve({ d: { TotalIssues: 6 } }) });
+    await flush();
+    pending[0]({ json: () => Promise.resolve({ d: { TotalIssues: 23 } }) });
+    await flush();
+    assert.equal(rendered[rendered.length - 1].TotalIssues, 6);
+    for (const id of ['summaryIssuesIncludeUnique', 'summaryIssuesIncludeDuplicates']) {
+        assert.match(page, new RegExp('type="checkbox" id="' + id + '" checked="checked"'));
+    }
+});
+
+test('Overall and platform trend titles select backlog or weekly flow without a separate view selector', () => {
+    for (const selectorId of ['homeOverallTrendView', 'homeSpecificTrendView']) {
+        assert.equal((page.match(new RegExp('id="' + selectorId + '"', 'g')) || []).length, 1);
+        assert.match(page, new RegExp('<h4 class="overall-card-title overall-trend-title">[\\s\\S]*?<select id="' + selectorId + '" class="overall-trend-title-select"[\\s\\S]*?<option value="line" selected="selected">OPEN BACKLOG TREND BY WORK WEEK</option>[\\s\\S]*?<option value="bar">WEEKLY ISSUE FLOW</option>[\\s\\S]*?</select>\\s*</h4>'));
+    }
+});
+
+test('Overall trend stacks week-end balances and retains weekly clustered bars and drilldowns', () => {
+    const options = [];
+    const popups = [];
+    const view = { value: 'line' };
+    const specificView = { value: 'line' };
+    const chart = {
+        setOption: option => options.push(option),
+        on() {}, off() {}, resize() {},
+        getZr: () => ({ on() {}, off() {} }),
+        containPixel: () => true,
+        convertFromPixel: () => 0
+    };
+    const context = vm.createContext({
+        document: { getElementById: id => id === 'homeOverallTrendView' ? view : (id === 'homeSpecificTrendView' ? specificView : {}), body: {} },
+        window: { CMF_PORTAL: { ids: {}, currentPlatform: 'Overall' } },
+        echarts: { init: () => chart },
+        getComputedStyle: () => ({ fontFamily: 'Cambria' }),
+        getTextById: () => '',
+        openTrendWeekIssueLinksPopup: (...args) => popups.push(args)
+    });
+    const definition = page.match(/        function renderHomeTrendChart\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    vm.runInContext(definition[0], context);
+    const snapshot = { Trend: Array.from({ length: 12 }, (_, index) => ({
+        WeekLabel: 'WW' + index, NewIssues: index + 1, ResolvedIssues: index, ImplementedIssues: index + 2,
+        WeekEndOpenIssues: index + 40, WeekEndImplementedIssues: index + 80
+    })) };
+    context.renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'overallChart', 6);
+    assert.equal(options[0].series[0].type, 'line');
+    assert.equal(options[0].series[0].name, 'Open');
+    assert.equal(options[0].series[0].itemStyle.color, '#800000');
+    assert.equal(options[0].series[0].data[0].value, 46);
+    assert.equal(options[0].series[1].name, 'Implemented');
+    assert.equal(options[0].series[1].itemStyle.color, '#0369a1');
+    assert.equal(options[0].series[1].data[0].value, 86);
+    assert.ok(options[0].series.every(series => series.stack === 'cmf-status'));
+    assert.equal(options[0].series[0].lineStyle.width, 0);
+    assert.equal(options[0].series[0].emphasis.lineStyle.width, 0);
+    assert.equal(options[0].series[1].lineStyle.color, '#0369a1');
+    assert.equal(options[0].series[1].lineStyle.width, 3);
+    assert.equal(options[0].series[0].symbol, 'none');
+    assert.equal(options[0].series[1].symbol, 'circle');
+    assert.equal(options[0].series[1].showAllSymbol, true);
+    assert.equal(options[0].series[0].areaStyle.color, 'rgba(128,0,0,0.12)');
+    assert.equal(options[0].series[1].areaStyle.color, 'rgba(3,105,161,0.12)');
+    chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
+    assert.deepEqual(popups[0], ['Open and Implemented', 'WW6', 5]);
+    view.value = 'bar';
+    context.renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'overallChart', 6);
+    const bars = options[1];
+    assert.equal(bars.series[0].type, 'bar');
+    assert.equal(bars.series[1].type, 'bar');
+    assert.equal(bars.color[0], '#0369a1');
+    assert.equal(bars.color[1], '#16a34a');
+    assert.ok(bars.series.every(series => series.barMaxWidth === 18 && series.itemStyle.borderWidth === 1));
+    assert.equal(bars.series[0].itemStyle.color, '#f0f9ff');
+    assert.equal(bars.series[0].itemStyle.borderColor, '#0369a1');
+    assert.equal(bars.series[1].itemStyle.color, '#dcfce7');
+    assert.equal(bars.series[1].itemStyle.borderColor, '#16a34a');
+    assert.equal(bars.xAxis.boundaryGap, true);
+    assert.ok(bars.series.every(series => !series.stack));
+    assert.equal(bars.series[0].data[0].value, 7);
+    assert.equal(bars.series[1].name, 'Closed');
+    assert.equal(bars.series[1].data[0].value, 6);
+    chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
+    assert.deepEqual(popups[1], ['All', 'WW6', 5]);
+    context.renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'overallChart', 12);
+    assert.equal(options[2].series[0].data.length, 12);
+    assert.ok(options[2].series.every(series => series.barMaxWidth === 6));
+    view.value = 'line';
+    context.renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'overallChart', 12);
+    assert.equal(options[3].series[0].type, 'line');
+    assert.equal(options[3].series[0].data[0].value, 40);
+    assert.equal(options[3].series[1].data[0].value, 80);
+    view.value = 'bar';
+    context.renderHomeTrendChart(snapshot, 'homeTrendChart', 'specificChart', 6);
+    assert.equal(options[4].series[0].type, 'line');
+    assert.equal(options[4].series[1].name, 'Implemented');
+    assert.equal(options[4].series[0].data[0].value, 46);
+    assert.equal(options[4].series[1].data[0].value, 86);
+    assert.equal(options[4].series[1].lineStyle.color, '#0369a1');
+    assert.ok(options[4].series.every(series => series.stack === 'cmf-status'));
+    chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
+    assert.deepEqual(popups[2], ['Open and Implemented', 'WW6', 5]);
+    specificView.value = 'bar';
+    context.renderHomeTrendChart(snapshot, 'homeTrendChart', 'specificChart', 6);
+    assert.equal(options[5].series[0].type, 'bar');
+    assert.equal(options[5].series[1].name, 'Closed');
+    assert.equal(options[5].series[0].data[0].value, 7);
+    assert.equal(options[5].series[1].data[0].value, 6);
+    assert.ok(options[5].series.every(series => !series.stack && series.barMaxWidth === 18));
+    context.renderHomeTrendChart(snapshot, 'homeTrendChart', 'specificChart', 12);
+    assert.ok(options[6].series.every(series => series.data.length === 12 && series.barMaxWidth === 6));
+});
+
+test('Overall week-end line uses summary-card scope and current status buckets without duplicates', () => {
+    assert.match(server, /string weekEndSourceSql = "\(SELECT \* FROM " \+ BuildDashboardComponentSourceSql\(dashboardPlatform, true\)/);
+    assert.match(server, /WHERE cmf_request = 'cmf_ok' AND sysdebug LIKE '%customer_must_fix%'/);
+    const predicate = server.match(/    private static string BuildTrendWeekEndStatusPredicate\([^)]*\)[\s\S]*?\r?\n    \}/);
+    assert.ok(predicate);
+    assert.match(predicate[0], /status NOT IN \('complete', 'rejected', 'implemented'\)/);
+    assert.match(predicate[0], /status = 'implemented'/);
+    assert.match(predicate[0], /weekOffsetSql \+ " = 0 AND " \+ currentStatusPredicate/);
+    assert.match(predicate[0], /weekOffsetSql \+ " > 0 AND " \+ historicalPredicate/);
+    const drilldown = server.match(/    public static SummaryIssueLinksResponse GetTrendWeekIssueLinks\([^)]*\)[\s\S]*?\r?\n    \}/);
+    assert.ok(drilldown);
+    assert.match(drilldown[0], /if \(!isWeekEndBalance\)\s*\{\s*AppendDashboardDriverFilter\(baseWhere, driverFilterValue\);\s*AppendDashboardColumnFilters\(baseWhere, columnFilters\);/);
+});
+
 test('Issue List omits confidence badges and their update path, but keeps drawer confidence', () => {
     assert.doesNotMatch(server, /status-confidence-pill|data-ai-confidence-issue/);
     assert.doesNotMatch(page, /updateIssueListConfidenceBadge|status-confidence-pill/);
