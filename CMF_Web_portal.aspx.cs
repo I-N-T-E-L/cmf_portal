@@ -1258,7 +1258,7 @@ FROM " + tableName + (applyDashboardDateFilter ? " WHERE " + GetDashboardDateFil
         return string.Join(" UNION ALL ", unionParts);
     }
 
-    private static string BuildSummaryDesignMetadataSourceSql(string dashboardPlatform)
+    private static string BuildSummaryDesignMetadataSourceSql(string dashboardPlatform, SqlConnection connection = null)
     {
         List<string> sourceTables = GetSummaryIssueSourceTablesForWeb(dashboardPlatform);
         List<string> unionParts = new List<string>();
@@ -1267,6 +1267,10 @@ FROM " + tableName + (applyDashboardDateFilter ? " WHERE " + GetDashboardDateFil
         {
             string tableName = sourceTables[index];
             string designTable = tableName.Replace("_ALL_COMPONENTS_TABLE", string.Empty) + "_DESIGN_TABLE";
+            if (connection != null && !SqlTableExists(connection, designTable))
+            {
+                continue;
+            }
 
                 unionParts.Add(@"SELECT
             LTRIM(RTRIM(customer_detail)) AS customer_detail,
@@ -13224,7 +13228,17 @@ ORDER BY Total_CMF_Approved DESC";
 
             string designTable = string.Empty;
             bool includeDesignTable = false;
-            if (!isOverallSelection)
+            if (isOverallSelection)
+            {
+                string metadataSql = BuildSummaryDesignMetadataSourceSql(dashboardPlatform, con);
+                if (!string.IsNullOrWhiteSpace(metadataSql))
+                {
+                    designTable = "(SELECT customer_detail, NULLIF(sw_image_freeze, 'N/A') AS sw_image_freeze, source_platform FROM ("
+                        + metadataSql + ") AS design_metadata)";
+                    includeDesignTable = true;
+                }
+            }
+            else
             {
                 string resolvedPlatform = ResolvePlatformTable(dashboardPlatform);
                 string basePlatform = resolvedPlatform.Replace("_ALL_COMPONENTS_TABLE", string.Empty);
@@ -13248,7 +13262,8 @@ ORDER BY Total_CMF_Approved DESC";
             duplicateDetailsBuilder.Append("    FROM " + issueSourceSql + " AS dup_src\n");
             if (includeDesignTable)
             {
-                duplicateDetailsBuilder.Append("    LEFT JOIN " + designTable + " AS dup_design ON dup_design.customer_detail = dup_src.customer_detail\n");
+                duplicateDetailsBuilder.Append("    LEFT JOIN " + designTable + " AS dup_design ON dup_design.customer_detail = dup_src.customer_detail"
+                    + (isOverallSelection ? " AND dup_design.source_platform = dup_src.source_platform" : string.Empty) + "\n");
             }
 
             duplicateDetailsBuilder.Append("    WHERE LOWER(LTRIM(RTRIM(ISNULL(dup_src.cmf_request, '')))) = 'cmf_duplicate'\n");
@@ -13297,7 +13312,8 @@ SELECT
             ELSE ISNULL(NULLIF(LTRIM(RTRIM(issue_src.fixed_in_version)), ''), 'N/A')
           END AS ClosedDetails
 FROM " + issueSourceSql + @" AS issue_src
-" + (includeDesignTable ? ("LEFT JOIN " + designTable + " AS design_src ON design_src.customer_detail = issue_src.customer_detail") : string.Empty) + @"
+" + (includeDesignTable ? ("LEFT JOIN " + designTable + " AS design_src ON design_src.customer_detail = issue_src.customer_detail"
+    + (isOverallSelection ? " AND design_src.source_platform = issue_src.source_platform" : string.Empty)) : string.Empty) + @"
 INNER JOIN (
     SELECT DISTINCT LTRIM(RTRIM(value)) AS cp_id
     FROM STRING_SPLIT(@cpIds, ',')

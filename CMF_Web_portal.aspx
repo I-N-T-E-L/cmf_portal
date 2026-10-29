@@ -5274,7 +5274,7 @@ body .overall-quick-links .overall-quick-link-btn:active {
     align-items: center;
     flex: 1 1 400px;
     min-width: 0;
-    gap: 6px;
+    gap: 0.21em;
 }
 
 #homeOverallTrendView.overall-trend-title-select,
@@ -5295,15 +5295,12 @@ body .overall-quick-links .overall-quick-link-btn:active {
     cursor: pointer;
 }
 
-#homeOverallLayoutV2 .overall-trend-title {
-    gap: 0.21em;
-}
-
-#homeOverallLayoutV2 .overall-trend-title > i {
+.overall-trend-card .overall-trend-title > i {
     color: inherit !important;
 }
 
-#homeOverallTrendView.overall-trend-title-select {
+#homeOverallTrendView.overall-trend-title-select,
+#homeSpecificTrendView.overall-trend-title-select {
     width: auto;
     padding: 0 18px 0 0 !important;
     appearance: none !important;
@@ -18123,7 +18120,7 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             if (!window.CMF_PORTAL[chartRefKey]) {
-                window.CMF_PORTAL[chartRefKey] = echarts.init(trendHost, { textStyle: { fontFamily: getComputedStyle(document.body).fontFamily } }, hostId === 'homeOverallTrendChart' ? { renderer: 'svg' } : undefined);
+                window.CMF_PORTAL[chartRefKey] = echarts.init(trendHost, { textStyle: { fontFamily: getComputedStyle(document.body).fontFamily } }, { renderer: 'svg' });
             }
 
             var trendOptions = {
@@ -18136,7 +18133,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     icon: isClusteredBar ? 'rect' : 'circle',
                     itemWidth: 8,
                     itemHeight: 8,
-                    textStyle: { color: hostId === 'homeOverallTrendChart' ? '#24354e' : '#475467', fontSize: 11 }
+                    textStyle: { color: '#24354e', fontSize: 11 }
                 },
                 grid: { left: 10, right: 24, top: 30, bottom: 10, containLabel: true },
                 xAxis: {
@@ -18144,13 +18141,13 @@ td:nth-child(odd), th:nth-child(odd) {
                     data: trend.map(function (item) { return item.WeekLabel; }),
                     boundaryGap: isClusteredBar,
                     axisLine: { lineStyle: { color: '#e4e7ec' } },
-                    axisLabel: { color: hostId === 'homeOverallTrendChart' ? '#24354e' : '#667085', fontSize: 11, margin: 8 }
+                    axisLabel: { color: '#24354e', fontSize: 11, margin: 8 }
                 },
                 yAxis: {
                     type: 'value',
                     axisLine: { show: false },
                     splitLine: { lineStyle: { color: '#eef2f7' } },
-                    axisLabel: { color: hostId === 'homeOverallTrendChart' ? '#24354e' : '#667085', fontSize: 11, margin: 8 }
+                    axisLabel: { color: '#24354e', fontSize: 11, margin: 8 }
                 },
                 series: [
                     {
@@ -18158,7 +18155,7 @@ td:nth-child(odd), th:nth-child(odd) {
                         type: chartType,
                         stack: isStackedLine ? 'cmf-status' : undefined,
                         smooth: !isClusteredBar,
-                        barMaxWidth: selectedRangeWeeks === 6 ? 18 : (hostId === 'homeOverallTrendChart' && selectedRangeWeeks === 12 ? 8 : 6),
+                        barMaxWidth: selectedRangeWeeks === 6 ? 18 : (selectedRangeWeeks === 12 ? 8 : 6),
                         barGap: '20%',
                         itemStyle: isClusteredBar ? { color: '#f0f9ff', borderColor: '#0369a1', borderWidth: 1 } : (isStackedLine ? { color: '#800000' } : undefined),
                         data: toTrendSeriesData(trend, function (item) { return isStackedLine ? item.WeekEndOpenIssues : item.NewIssues; }),
@@ -18173,7 +18170,7 @@ td:nth-child(odd), th:nth-child(odd) {
                         type: chartType,
                         stack: isStackedLine ? 'cmf-status' : undefined,
                         smooth: !isClusteredBar,
-                        barMaxWidth: selectedRangeWeeks === 6 ? 18 : (hostId === 'homeOverallTrendChart' && selectedRangeWeeks === 12 ? 8 : 6),
+                        barMaxWidth: selectedRangeWeeks === 6 ? 18 : (selectedRangeWeeks === 12 ? 8 : 6),
                         itemStyle: isClusteredBar ? { color: '#dcfce7', borderColor: '#16a34a', borderWidth: 1 } : (isStackedLine ? { color: '#0369a1' } : undefined),
                         data: toTrendSeriesData(trend, function (item) { return isStackedLine ? item.WeekEndImplementedIssues : item.ResolvedIssues; }),
                         lineStyle: { width: 3, color: isStackedLine ? '#0369a1' : undefined },
@@ -18185,38 +18182,36 @@ td:nth-child(odd), th:nth-child(odd) {
                 ]
             };
             if (isStackedLine) {
-                if (hostId === 'homeOverallTrendChart') {
-                    var openSeries = trendOptions.series[0];
-                    var implementedSeries = trendOptions.series[1];
-                    ['itemStyle', 'areaStyle', 'lineStyle', 'emphasis', 'symbol', 'showAllSymbol'].forEach(function (property) {
-                        var openStyle = openSeries[property];
-                        openSeries[property] = implementedSeries[property];
-                        implementedSeries[property] = openStyle;
+                var openSeries = trendOptions.series[0];
+                var implementedSeries = trendOptions.series[1];
+                ['itemStyle', 'areaStyle', 'lineStyle', 'emphasis', 'symbol', 'showAllSymbol'].forEach(function (property) {
+                    var openStyle = openSeries[property];
+                    openSeries[property] = implementedSeries[property];
+                    implementedSeries[property] = openStyle;
+                });
+                trendOptions.series.reverse();
+                trendOptions.tooltip.formatter = function (params) {
+                    var points = params || [];
+                    if (!points.length) return '';
+                    var orderedPoints = [];
+                    ['Open', 'Implemented'].forEach(function (name) {
+                        points.forEach(function (point) {
+                            if (point.seriesName === name) orderedPoints.push(point);
+                        });
                     });
-                    trendOptions.series.reverse();
-                    trendOptions.tooltip.formatter = function (params) {
-                        var points = params || [];
-                        if (!points.length) return '';
-                        var orderedPoints = [];
-                        ['Open', 'Implemented'].forEach(function (name) {
-                            points.forEach(function (point) {
-                                if (point.seriesName === name) orderedPoints.push(point);
-                            });
-                        });
-                        var total = orderedPoints.reduce(function (sum, point) {
-                            return sum + Number(point.value || 0);
-                        }, 0);
-                        var weekLabel = points[0].axisValueLabel || points[0].axisValue || '';
-                        var html = '<div style="display:flex;justify-content:space-between;gap:20px;line-height:1"><span>' +
-                            escapeHtml(String(weekLabel)) + '</span><span style="font-weight:900">Total: ' + total + '</span></div>';
-                        orderedPoints.forEach(function (point) {
-                            html += '<div style="display:flex;justify-content:space-between;gap:20px;margin-top:10px;line-height:1"><span>' +
-                                (point.marker || '') + escapeHtml(point.seriesName) + '</span><span style="font-weight:900">' +
-                                Number(point.value || 0) + '</span></div>';
-                        });
-                        return html;
-                    };
-                }
+                    var total = orderedPoints.reduce(function (sum, point) {
+                        return sum + Number(point.value || 0);
+                    }, 0);
+                    var weekLabel = points[0].axisValueLabel || points[0].axisValue || '';
+                    var html = '<div style="display:flex;justify-content:space-between;gap:20px;line-height:1"><span>' +
+                        escapeHtml(String(weekLabel)) + '</span><span style="font-weight:900">Total: ' + total + '</span></div>';
+                    orderedPoints.forEach(function (point) {
+                        html += '<div style="display:flex;justify-content:space-between;gap:20px;margin-top:10px;line-height:1"><span>' +
+                            (point.marker || '') + escapeHtml(point.seriesName) + '</span><span style="font-weight:900">' +
+                            Number(point.value || 0) + '</span></div>';
+                    });
+                    return html;
+                };
                 trendOptions.legend.data = ['Open', 'Implemented'];
             }
             window.CMF_PORTAL[chartRefKey].setOption(trendOptions, true);
