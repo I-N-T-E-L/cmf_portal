@@ -25320,9 +25320,8 @@ Submit
                                         <p class="ccip-dash-sub">Here is what is happening with your critical issues today on <%: HomeDashboardPlatformLabel %>.</p>
                                         <asp:Label ID="lblWelcomeMode" runat="server" Visible="false" />
                                     </div>
-                                </div>
 
-                                <div class="dashboard-date-filter">
+                                    <div class="dashboard-date-filter">
                                     <asp:DropDownList ID="ddlDashboardDateMode" runat="server" AutoPostBack="true" OnSelectedIndexChanged="DashboardDateFilter_Changed" aria-label="Dashboard date range">
                                         <asp:ListItem Text="All dates" Value="all" />
                                         <asp:ListItem Text="Today" Value="today" />
@@ -25341,6 +25340,7 @@ Submit
                                     </asp:Panel>
                                     <asp:Button ID="btnApplyDashboardDates" runat="server" Text="Apply" OnClick="DashboardDateFilter_Changed" Visible="false" />
                                     <asp:Label ID="lblDashboardDateError" runat="server" />
+                                    </div>
                                 </div>
 
                                 <div class="dashboard-platform-toolbar">
