@@ -1032,6 +1032,18 @@ body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-i
     width: calc(14.285714% - 28.571428px) !important;
 }
 
+body #pendingTabShell #GridView_cmf_pending :is(.pending-field-title, .pending-field-impact) .pending-cell-text {
+    display: block !important;
+    -webkit-line-clamp: unset !important;
+    line-clamp: unset !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    cursor: default !important;
+}
+
 body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th:nth-child(n+11),
 body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td:nth-child(n+11) {
     width: calc(5.357143% + 13.285714px) !important;
@@ -1043,6 +1055,68 @@ body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-d
     padding-right: 2px !important;
     text-align: center !important;
 }
+
+body #pendingTabShell #GridView_cmf_pending .pending-column-hidden {
+    display: none !important;
+}
+
+body #pendingTabShell #pendingColumnPicker {
+    width: min(640px, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    margin: auto;
+    padding: 0;
+    border: 1px solid #d0d5df;
+    border-radius: 8px;
+    background: #fff;
+    color: #242733;
+    box-shadow: 0 12px 40px rgba(28, 44, 64, .24);
+    overflow: auto;
+}
+
+body #pendingTabShell #pendingColumnPicker::backdrop { background: rgba(0, 0, 0, .48); }
+body #pendingTabShell #pendingColumnPicker :is(.issue-column-dialog-header, .issue-column-dialog-footer) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+}
+body #pendingTabShell #pendingColumnPicker .issue-column-dialog-header { justify-content: space-between; border-bottom: 1px solid #d5d8e1; }
+body #pendingTabShell #pendingColumnTitle { margin: 0; font-size: 18px; font-weight: 400; }
+body #pendingTabShell #pendingColumnPicker button {
+    min-height: 32px;
+    padding: 5px 12px;
+    border: 1px solid #476384;
+    border-radius: 4px;
+    background: #fff;
+    color: #31445e;
+    cursor: pointer;
+}
+body #pendingTabShell #pendingColumnPicker button:hover:not(:disabled) { background: #edf5fd; }
+body #pendingTabShell #pendingColumnPicker :is(button, select):focus-visible { outline: 2px solid #0073ed; outline-offset: 2px; }
+body #pendingTabShell #pendingColumnPicker button:disabled { opacity: .4; cursor: default; }
+body #pendingTabShell #pendingColumnPicker .issue-column-close { padding: 0; border: 0; min-width: 28px; font-size: 22px; }
+body #pendingTabShell #pendingColumnPicker .issue-column-dialog-body { padding: 14px 16px 0; }
+body #pendingTabShell #pendingColumnPicker .issue-column-lists { display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr) 28px; gap: 8px; }
+body #pendingTabShell #pendingColumnPicker .issue-column-list { min-width: 0; }
+body #pendingTabShell #pendingColumnPicker label { display: block; margin-bottom: 4px; }
+body #pendingTabShell #pendingColumnPicker select {
+    display: block !important;
+    width: 100% !important;
+    height: clamp(160px, 40vh, 300px) !important;
+    padding: 4px !important;
+    border: 1px solid #9399ab !important;
+    border-radius: 3px !important;
+    background: #fff !important;
+    color: #242733 !important;
+    appearance: auto !important;
+    overflow: auto;
+}
+body #pendingTabShell #pendingColumnPicker .issue-column-controls { display: flex; flex-direction: column; justify-content: center; gap: 6px; padding-top: 24px; }
+body #pendingTabShell #pendingColumnPicker .issue-column-controls button { width: 28px; padding: 0; }
+body #pendingTabShell #pendingColumnPicker .issue-column-dialog-footer { justify-content: flex-end; flex-wrap: wrap; }
+body #pendingTabShell #pendingColumnPicker .issue-column-reset { margin-right: auto; }
+body #pendingTabShell #pendingColumnPicker .issue-column-apply { background: #31445e; color: #fff; }
+body #pendingTabShell :is(#pendingColumnMessage, #pendingColumnStatus) { color: #a12622; font-size: 12px; }
 
 body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-ai-recommendation .pending-ai-rec-cell {
     display: block !important;
