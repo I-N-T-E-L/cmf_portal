@@ -9,6 +9,43 @@ const page = fs.readFileSync(path.join(root, 'CMF_Web_portal.aspx'), 'utf8');
 const server = fs.readFileSync(path.join(root, 'CMF_Web_portal.aspx.cs'), 'utf8');
 const theme = fs.readFileSync(path.join(root, 'Content', 'cmf-portal-theme.css'), 'utf8');
 
+test('platform group headings omit the table suffix without changing group identifiers', () => {
+    const body = {};
+    const meta = {};
+    const context = vm.createContext({
+        document: { getElementById: id => id === 'summaryIssuesPopupBody' ? body : meta },
+        window: { CMF_PORTAL: { summaryIssuesPopupState: { groupBy: 'platform' } } },
+        syncSummaryIssuePopupControls: () => {},
+        syncSummaryIssueGroupByOptions: (options, selected) => selected,
+        syncSummaryIssueSortByOptions: selected => selected,
+        syncSummaryTrendIssueStatusControls: () => ({}),
+        normalizeSummaryIssueSortBy: selected => selected,
+        escapeHtml: value => String(value)
+    });
+    for (const name of ['encodeForInlineJsDecodeArg', 'formatSummaryIssueCountText', 'renderSummaryIssueLinks']) {
+        const definition = page.match(new RegExp('        function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n        \\}'));
+        assert.ok(definition);
+        vm.runInContext(definition[0], context);
+    }
+    const result = {
+        Success: true,
+        GroupBy: 'platform',
+        Groups: [
+            { GroupName: 'CMF_NVL_H_ALL_COMPONENTS_TABLE', HsdIds: ['123'] },
+            { GroupName: 'CMF_PTL_ALL_components_table', HsdIds: ['456'] },
+            { GroupName: 'WCL', HsdIds: [] }
+        ]
+    };
+    context.renderSummaryIssueLinks(result);
+    assert.match(body.innerHTML, /summary-issues-group-name">CMF_NVL_H_ALL<\/span>/);
+    assert.match(body.innerHTML, /summary-issues-group-name">CMF_PTL_ALL<\/span>/);
+    assert.match(body.innerHTML, /summary-issues-group-name">WCL<\/span>/);
+    assert.equal(result.Groups[0].GroupName, 'CMF_NVL_H_ALL_COMPONENTS_TABLE');
+    result.GroupBy = 'component';
+    context.renderSummaryIssueLinks(result);
+    assert.match(body.innerHTML, /summary-issues-group-name">CMF_NVL_H_ALL_COMPONENTS_TABLE<\/span>/);
+});
+
 test('Issue List omits confidence badges and their update path, but keeps drawer confidence', () => {
     assert.doesNotMatch(server, /status-confidence-pill|data-ai-confidence-issue/);
     assert.doesNotMatch(page, /updateIssueListConfidenceBadge|status-confidence-pill/);
