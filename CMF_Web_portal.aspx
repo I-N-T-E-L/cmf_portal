@@ -21158,7 +21158,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
             host.innerHTML =
                 '<div class="milestone-pie-layout">' +
-                    '<div class="milestone-stacked-total">Total CMFs: ' + escapeHtml(String(total)) + '</div>' +
+                    '<div class="milestone-stacked-total">Total CMFs: ' + buildMilestoneBreakCountLinkHtml('__all_milestones__', total) + '</div>' +
                     '<div class="milestone-pie-canvas"></div>' +
                     '<div class="milestone-pie-breakdown">' + breakdownHtml + '</div>' +
                 '</div>';

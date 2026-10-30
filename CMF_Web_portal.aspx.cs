@@ -14317,34 +14317,10 @@ ORDER BY A.cmf_request desc";
     }
     private void BindDriverIssues(string driver)
     {
-        lblDriverName.Text = Server.HtmlEncode(driver);
-
-        string connectionString = ConnectionString;
-        string issueSourceSql = BuildIssueDataSourceSql(selectedPlatform, "A");
-
-        string sql = @"
-SELECT cp_id, title, component
-    FROM " + issueSourceSql + @"
-WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
-  AND cmf_request IN ('cmf_ok')
-  AND sysdebug LIKE '%customer_must_fix%'
-  AND LTRIM(RTRIM(drivers)) = @Driver
-ORDER BY cp_id";
-
-        using (SqlConnection con = new SqlConnection(connectionString))
-        using (SqlCommand cmd = new SqlCommand(sql, con))
-        {
-            object driverParam = (driver != null) ? (object)driver.Trim() : (object)DBNull.Value;
-            cmd.Parameters.Add("@Driver", SqlDbType.NVarChar, 256).Value = driverParam;
-
-            using (SqlDataAdapter da = new SqlDataAdapter(cmd))
-            {
-                DataTable dt = new DataTable();
-                da.Fill(dt);
-                GridView_driver_issues.DataSource = dt;
-                GridView_driver_issues.DataBind();
-            }
-        }
+        bool allMilestones = string.Equals(driver, "__all_milestones__", StringComparison.Ordinal);
+        lblDriverName.Text = allMilestones ? "Total CMFs" : Server.HtmlEncode(driver);
+        GridView_driver_issues.DataSource = GetDriverIssuesData(driver);
+        GridView_driver_issues.DataBind();
 
         // Show modal
         ScriptManager.RegisterStartupScript(this, GetType(),
@@ -14363,7 +14339,8 @@ ORDER BY cp_id";
     private DataTable GetDriverIssuesData(string driver)
     {
         string connectionString = ConnectionString;
-        string issueSourceSql = BuildIssueDataSourceSql(selectedPlatform, "A");
+        bool allMilestones = string.Equals(driver, "__all_milestones__", StringComparison.Ordinal);
+        string issueSourceSql = BuildIssueDataSourceSql(allMilestones ? ResolveDashboardPlatformSelection() : selectedPlatform, "A");
 
         string sql = @"
 SELECT cp_id, title, component
@@ -14371,7 +14348,8 @@ SELECT cp_id, title, component
 WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
   AND cmf_request IN ('cmf_ok')
   AND sysdebug LIKE '%customer_must_fix%'
-  AND LTRIM(RTRIM(drivers)) = @Driver
+    AND (@AllMilestones = 1 OR LTRIM(RTRIM(drivers)) = @Driver)
+    AND " + (allMilestones ? GetDashboardDateFilter().BuildPredicate("A") : "1 = 1") + @"
 ORDER BY cp_id";
 
         using (SqlConnection con = new SqlConnection(connectionString))
@@ -14380,6 +14358,7 @@ ORDER BY cp_id";
         {
             object driverParam = (driver != null) ? (object)driver.Trim() : (object)DBNull.Value;
             cmd.Parameters.Add("@Driver", SqlDbType.NVarChar, 256).Value = driverParam;
+            cmd.Parameters.Add("@AllMilestones", SqlDbType.Bit).Value = allMilestones;
 
             DataTable dt = new DataTable();
             da.Fill(dt);
