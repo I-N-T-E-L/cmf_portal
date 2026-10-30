@@ -97,6 +97,11 @@ current point includes them when the summary card does.
 
 ### Issue-Count Popup Filters
 
+The Milestone CMF Summary's Total CMFs number opens the milestone issue table
+across all milestones, using the current dashboard platform and date filter.
+It excludes duplicate CMFs and records without a milestone, matching the total.
+The popup and its Excel export share the same query.
+
 Overall summary detail tables resolve ImageFreeze and duplicate ImageFreeze dates
 from each issue's source-platform design table and customer detail. Missing
 tables, unmatched designs, and empty dates retain the Unknown fallback. Grouped

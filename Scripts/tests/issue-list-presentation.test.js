@@ -58,6 +58,26 @@ test('dashboard date controls share the platform row and align to the visible AI
     assert.equal(style['--dashboard-toolbar-scale'], '1.00000');
 });
 
+test('milestone Total CMFs opens all milestones through the scoped detail and export query', () => {
+    const host = { classList: { add() {} }, innerHTML: '', querySelector: () => null };
+    const context = vm.createContext({
+        window: { CMF_PORTAL: {} },
+        escapeHtml: value => String(value)
+    });
+    const definition = page.match(/        function renderMilestoneSummaryPie\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    vm.runInContext(definition[0], context);
+    context.renderMilestoneSummaryPie(host, { Rows: [['QS', '47'], ['Beta', '12'], ['Total', '59']] });
+    assert.match(host.innerHTML, /milestone-stacked-total">Total CMFs: <a[^>]*showDriverIssues\(decodeURIComponent\('__all_milestones__'\)\);">59<\/a>/);
+    assert.match(host.innerHTML, /showDriverIssues\(decodeURIComponent\('QS'\)\)/);
+    const query = server.match(/    private DataTable GetDriverIssuesData\([^)]*\)[\s\S]*?\r?\n    \}/);
+    assert.ok(query);
+    assert.match(query[0], /allMilestones \? ResolveDashboardPlatformSelection\(\) : selectedPlatform/);
+    assert.match(query[0], /@AllMilestones = 1 OR LTRIM\(RTRIM\(drivers\)\) = @Driver/);
+    assert.match(query[0], /allMilestones \? GetDashboardDateFilter\(\)\.BuildPredicate\("A"\)/);
+    assert.match(server, /GridView_driver_issues\.DataSource = GetDriverIssuesData\(driver\)/);
+});
+
 test('platform group headings omit the table suffix without changing group identifiers', () => {
     const body = {};
     const meta = {};
