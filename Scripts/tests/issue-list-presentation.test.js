@@ -9,6 +9,55 @@ const page = fs.readFileSync(path.join(root, 'CMF_Web_portal.aspx'), 'utf8');
 const server = fs.readFileSync(path.join(root, 'CMF_Web_portal.aspx.cs'), 'utf8');
 const theme = fs.readFileSync(path.join(root, 'Content', 'cmf-portal-theme.css'), 'utf8');
 
+test('header stays outside native workspace horizontal scrolling without JavaScript correction', () => {
+    const mainScript = fs.readFileSync(path.join(root, 'Scripts', 'cmf-portal-main.js'), 'utf8');
+    assert.match(page, /<\/header>[\s\S]*?<div class="container-scroller">/);
+    assert.match(theme, /body \.container-scroller \{\s*overflow: visible !important;\s*\}/);
+    assert.match(theme, /body #portalLayoutShell > \.portal-main-workspace \{\s*overflow-x: auto !important;/);
+    assert.match(theme, /body \.portal-app-header \{\s*position: relative !important;\s*top: auto !important;/);
+    assert.doesNotMatch(mainScript, /syncHeaderHorizontalPosition|header\.style\.setProperty\('left'/);
+});
+
+test('left menu uses native sticky positioning without scroll-frame corrections', () => {
+    const mainScript = fs.readFileSync(path.join(root, 'Scripts', 'cmf-portal-main.js'), 'utf8');
+    assert.match(theme, /body #mainMenuSidebar \{\s*position: sticky !important;/);
+    assert.match(theme, /body:not\(\.modal-open\) \{\s*overflow: visible !important;/);
+    assert.doesNotMatch(mainScript, /function (?:sync|clear)SidebarViewportStickiness|sidebar\.style\.setProperty\('(?:top|position)'/);
+});
+
+test('dashboard date controls share the platform row and align to the visible AI card across scales', () => {
+    assert.match(page, /<div class="dashboard-platform-toolbar">\s*<div class="platform-chip-rail"[^>]*><\/div>\s*<div class="dashboard-date-filter">/);
+    const definition = page.match(/        function syncDashboardPlatformToolbarWidth\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    let overall = true;
+    let scale = 0.9;
+    let left = 20;
+    const style = { setProperty(name, value) { this[name] = value; } };
+    const toolbar = { offsetWidth: 1000, style, getBoundingClientRect: () => ({ left, width: 1000 * scale }) };
+    const overallAi = { offsetWidth: 700, getBoundingClientRect: () => ({ right: left + 1800 * scale }) };
+    const platformAi = { offsetWidth: 700, getBoundingClientRect: () => ({ right: left + 1700 * scale }) };
+    const context = vm.createContext({
+        document: {
+            querySelector: selector => selector.includes('dashboard-platform-toolbar') ? toolbar : overallAi,
+            getElementById: () => platformAi
+        },
+        getComputedStyle: () => ({ width: '1000px' }),
+        isOverallDashboardSelection: () => overall
+    });
+    vm.runInContext(definition[0], context);
+    context.syncDashboardPlatformToolbarWidth();
+    assert.equal(style.width, '1800.00px');
+    assert.equal(style['--dashboard-toolbar-scale'], '0.90000');
+    left = -200;
+    context.syncDashboardPlatformToolbarWidth();
+    assert.equal(style.width, '1800.00px');
+    overall = false;
+    scale = 1;
+    context.syncDashboardPlatformToolbarWidth();
+    assert.equal(style.width, '1700.00px');
+    assert.equal(style['--dashboard-toolbar-scale'], '1.00000');
+});
+
 test('platform group headings omit the table suffix without changing group identifiers', () => {
     const body = {};
     const meta = {};
@@ -71,6 +120,8 @@ test('record-type controls are hidden only for Pending summary-card popups', () 
 });
 
 test('issue-count popup requests share record-type filters and ignore stale responses', async () => {
+    assert.match(page, /includeDuplicates: sourceType !== 'trend-week'/);
+    assert.match(page, /checkbox\.checked = window\.CMF_PORTAL\.summaryIssuesPopupState\[toggle\.key\] !== false/);
     const requests = [];
     const rendered = [];
     const state = { metricKey: 'open', metricLabel: 'Open', groupBy: 'ingredient' };
