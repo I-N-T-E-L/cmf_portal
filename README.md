@@ -39,9 +39,11 @@ The runtime entry point is `CMF_Web_portal.aspx`.
 
 ### Dashboard Date Filter
 
-The controls beside the dashboard greeting filter Overall and platform dashboards,
+The controls at the right of the dashboard platform-selector row filter Overall and platform dashboards,
 including their charts, summaries, and dashboard drill-downs. Issue List, CMF
 Pending, and Reports & Analytics retain their independent scopes.
+The date controls align with the AI Insights card's right edge in both Overall
+and platform views, including menu expansion/collapse and horizontal scrolling.
 
 The defaults are **All Time** and **CMF Request Date** (`date_cmf_ask`).
 **Issue Submission Date** uses the database's `submitted_date` instead.
@@ -55,6 +57,13 @@ The selection persists in the session while switching dashboard platforms.
 The existing dashboard snapshot's **Updated** date and time appear immediately
 to the right of **Mode** in the shared navigation bar and remain visible on every
 portal tab.
+
+The header remains outside the workspace's native horizontal scroll container,
+so it stays horizontally aligned without JavaScript scroll corrections. It stays
+in normal vertical document flow and can scroll out of view.
+Only the content column scrolls horizontally; the left menu stays outside it.
+The menu uses native sticky positioning, following the header until it reaches
+the viewport top, without JavaScript scroll-frame positioning.
 
 ### Dashboard Line Trend: Week-End Balances
 
@@ -95,8 +104,9 @@ design metadata prevents additional issue rows from duplicate design matches.
 
 The shared issue-count popup for summary cards, heatmaps, and weekly charts
 includes independent **Unique** and **Duplicates** checkboxes, styled like the
-Open/Implemented status selectors. Both are
-selected whenever a popup opens. Unique selects `cmf_ok`; Duplicates selects
+Open/Implemented status selectors. Line/bar graph popups open with Unique checked
+and Duplicates unchecked, matching the graphs' nonduplicate counts. Other popups
+select both by default. Unique selects `cmf_ok`; Duplicates selects
 `cmf_duplicate`. Selecting neither returns no issues. The selections apply
 before grouping and update the total, group counts, and linked issue lists.
 They persist while changing grouping, sorting, or trend status filters.

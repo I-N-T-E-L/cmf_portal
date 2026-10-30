@@ -6350,7 +6350,7 @@ body .overall-quick-links .overall-quick-link-btn:active {
 }
 
 .overall-break-over-two-days-link .overall-break-over-two-days-count {
-    color: inherit;
+    color: #1e40af;
 }
 
 .overall-break-over-two-days-link:hover,
@@ -18295,6 +18295,23 @@ td:nth-child(odd), th:nth-child(odd) {
             window.CMF_PORTAL[chartRefKey].resize();
         }
 
+        function syncDashboardPlatformToolbarWidth() {
+            var toolbar = document.querySelector('#homeWelcomePanel .dashboard-platform-toolbar');
+            var aiCard = isOverallDashboardSelection()
+                ? document.querySelector('#homeOverallLayoutV2 .overall-ai-card')
+                : document.getElementById('homeLegacyAiHealthCard');
+            if (!toolbar || !aiCard || !toolbar.offsetWidth || !aiCard.offsetWidth) return;
+            var toolbarRect = toolbar.getBoundingClientRect();
+            var scale = toolbarRect.width / parseFloat(getComputedStyle(toolbar).width);
+            if (!scale || !isFinite(scale)) return;
+            var width = (aiCard.getBoundingClientRect().right - toolbarRect.left) / scale;
+            if (width > 0) {
+                toolbar.style.setProperty('--dashboard-toolbar-scale', scale.toFixed(5));
+                var cssWidth = width.toFixed(2) + 'px';
+                if (toolbar.style.width !== cssWidth) toolbar.style.width = cssWidth;
+            }
+        }
+
         function renderHomeDashboard() {
             var homePanel = document.getElementById(window.CMF_PORTAL.ids.homeWelcomePanel);
             var cmfPanel = document.getElementById(window.CMF_PORTAL.ids.homeCmfSummaryPanel);
@@ -18323,6 +18340,7 @@ td:nth-child(odd), th:nth-child(odd) {
             if (legacySummary) legacySummary.style.display = isOverall ? 'none' : '';
             if (legacyAiHealth) legacyAiHealth.style.display = isOverall ? 'none' : '';
             if (legacyTables) legacyTables.style.display = isOverall ? 'none' : '';
+            syncDashboardPlatformToolbarWidth();
 
             if (isOverall) {
                 renderOverallCombinedSummaryFacts(snapshot);
@@ -19168,7 +19186,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 showOpen: initialTrendStatus.showOpen,
                 showClosed: initialTrendStatus.showClosed,
                 includeUnique: true,
-                includeDuplicates: true,
+                includeDuplicates: sourceType !== 'trend-week',
                 sourceType: sourceType,
                 ingredient: popupOptions && popupOptions.ingredient ? String(popupOptions.ingredient || '').trim() : '',
                 platformLabel: popupOptions && popupOptions.platformLabel ? String(popupOptions.platformLabel || '').trim() : '',
@@ -19183,7 +19201,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 { id: 'summaryIssuesIncludeDuplicates', key: 'includeDuplicates' }
             ].forEach(function (toggle) {
                 var checkbox = document.getElementById(toggle.id);
-                checkbox.checked = true;
+                checkbox.checked = window.CMF_PORTAL.summaryIssuesPopupState[toggle.key] !== false;
                 checkbox.onchange = function () {
                     var state = window.CMF_PORTAL.summaryIssuesPopupState || {};
                     state[toggle.key] = checkbox.checked;
@@ -25456,9 +25474,9 @@ td:nth-child(odd), th:nth-child(odd) {
             filterCmfPendingRows();
         }
 </script>
-    <script src="Scripts/cmf-portal-main.js?v=20261028-organic-merge"></script>
+    <script src="Scripts/cmf-portal-main.js?v=20261030-native-sidebar-scroll"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261029-pending-full-text-columns-2" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261030-native-sidebar-scroll" />
 
 </head>
 
@@ -25617,7 +25635,11 @@ Submit
                                         <p class="ccip-dash-sub">Here is what is happening with your critical issues today on <%: HomeDashboardPlatformLabel %>.</p>
                                         <asp:Label ID="lblWelcomeMode" runat="server" Visible="false" />
                                     </div>
+                                </div>
 
+                            <div class="ccip-dashboard">
+                                <div class="dashboard-platform-toolbar">
+                                    <div class="platform-chip-rail" data-chip-source="server" role="tablist" aria-label="Dashboard platform switch"></div>
                                     <div class="dashboard-date-filter">
                                     <asp:DropDownList ID="ddlDashboardDateMode" runat="server" AutoPostBack="true" OnSelectedIndexChanged="DashboardDateFilter_Changed" aria-label="Dashboard date range">
                                         <asp:ListItem Text="All dates" Value="all" />
@@ -25638,11 +25660,6 @@ Submit
                                     <asp:Button ID="btnApplyDashboardDates" runat="server" Text="Apply" OnClick="DashboardDateFilter_Changed" Visible="false" />
                                     <asp:Label ID="lblDashboardDateError" runat="server" />
                                     </div>
-                                </div>
-
-                            <div class="ccip-dashboard">
-                                <div class="dashboard-platform-toolbar">
-                                    <div class="platform-chip-rail" data-chip-source="server" role="tablist" aria-label="Dashboard platform switch"></div>
                                 </div>
 
                                 <asp:Label ID="lblHomeAiNewTodayValue" runat="server" style="display:none;" />

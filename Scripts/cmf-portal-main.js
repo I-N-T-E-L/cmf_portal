@@ -1880,59 +1880,11 @@ function showTotalImplementedVerifiedModal(design) {
             }, 250);
         }
 
-        function clearSidebarViewportStickinessStyles(sidebar) {
-            if (!sidebar) {
-                return;
-            }
-
-            sidebar.style.removeProperty('position');
-            sidebar.style.removeProperty('top');
-            sidebar.style.removeProperty('left');
-            sidebar.style.removeProperty('height');
-            sidebar.style.removeProperty('max-height');
-            sidebar.style.removeProperty('min-height');
-            sidebar.style.removeProperty('z-index');
-        }
-
-        function syncSidebarViewportStickiness() {
-            var sidebar = document.getElementById('mainMenuSidebar');
-            if (!sidebar) {
-                return;
-            }
-
-            // Keep mobile/tablet behavior unchanged.
-            if (window.innerWidth <= 900) {
-                clearSidebarViewportStickinessStyles(sidebar);
-                return;
-            }
-
-            var shell = document.getElementById('portalLayoutShell');
-            var header = document.querySelector('header.portal-app-header');
-            var topOffset = 0;
-            var leftOffset = 0;
-
-            if (header) {
-                var headerRect = header.getBoundingClientRect();
-                topOffset = Math.max(0, Math.round(headerRect.bottom));
-            }
-
-            if (shell) {
-                var shellRect = shell.getBoundingClientRect();
-                leftOffset = Math.max(0, Math.round(shellRect.left));
-            }
-
-            sidebar.style.setProperty('position', 'fixed', 'important');
-            sidebar.style.setProperty('top', String(topOffset) + 'px', 'important');
-            sidebar.style.setProperty('left', String(leftOffset) + 'px', 'important');
-            sidebar.style.setProperty('height', 'calc(100vh - ' + String(topOffset) + 'px)', 'important');
-            sidebar.style.setProperty('max-height', 'calc(100vh - ' + String(topOffset) + 'px)', 'important');
-            sidebar.style.setProperty('min-height', '0px', 'important');
-            sidebar.style.setProperty('z-index', '90', 'important');
-        }
-
         function bindSidebarViewportStickiness() {
+            if (typeof window.syncDashboardPlatformToolbarWidth === 'function') {
+                window.syncDashboardPlatformToolbarWidth();
+            }
             if (window.__cmfSidebarViewportStickinessBound) {
-                syncSidebarViewportStickiness();
                 return;
             }
 
@@ -1947,7 +1899,9 @@ function showTotalImplementedVerifiedModal(design) {
                 scheduled = true;
                 window.requestAnimationFrame(function () {
                     scheduled = false;
-                    syncSidebarViewportStickiness();
+                    if (typeof window.syncDashboardPlatformToolbarWidth === 'function') {
+                        window.syncDashboardPlatformToolbarWidth();
+                    }
                 });
             };
 

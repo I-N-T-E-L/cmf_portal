@@ -408,6 +408,20 @@ body #homeWelcomePanel .dashboard-platform-toolbar {
     flex-wrap: wrap;
     gap: 12px;
     margin-bottom: 14px;
+    max-width: none !important;
+    box-sizing: border-box;
+}
+
+body #homeWelcomePanel .dashboard-platform-toolbar > .dashboard-date-filter {
+    flex: 0 0 auto;
+    margin-left: auto;
+    max-width: 100%;
+}
+
+body #homeWelcomePanel .dashboard-platform-toolbar .dashboard-date-filter select,
+body #homeWelcomePanel .dashboard-platform-toolbar .dashboard-date-filter input {
+    height: calc(28px / var(--dashboard-toolbar-scale, 1));
+    font-size: calc(12px / var(--dashboard-toolbar-scale, 1));
 }
 
 body #homeWelcomePanel .dashboard-platform-toolbar > .platform-chip-rail {
@@ -437,6 +451,14 @@ body .page-body-wrapper {
     padding: 0 !important;
 }
 
+body .container-scroller {
+    overflow: visible !important;
+}
+
+body:not(.modal-open) {
+    overflow: visible !important;
+}
+
 body #portalLayoutShell {
     display: grid !important;
     grid-template-columns: 168px minmax(0, 1fr) !important;
@@ -449,6 +471,7 @@ body #portalLayoutShell {
 }
 
 body #mainMenuSidebar {
+    position: sticky !important;
     grid-column: 1;
     grid-row: 1 / span 2;
     flex: 0 0 168px !important;
@@ -542,6 +565,7 @@ body #mainMenuSidebar .portal-collapse-btn {
 }
 
 body #portalLayoutShell > .portal-main-workspace {
+    overflow-x: auto !important;
     grid-column: 2;
     grid-row: 1;
     flex: 1 1 0 !important;
