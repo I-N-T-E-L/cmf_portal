@@ -9,6 +9,75 @@ const page = fs.readFileSync(path.join(root, 'CMF_Web_portal.aspx'), 'utf8');
 const server = fs.readFileSync(path.join(root, 'CMF_Web_portal.aspx.cs'), 'utf8');
 const theme = fs.readFileSync(path.join(root, 'Content', 'cmf-portal-theme.css'), 'utf8');
 
+test('header stays outside native workspace horizontal scrolling without JavaScript correction', () => {
+    const mainScript = fs.readFileSync(path.join(root, 'Scripts', 'cmf-portal-main.js'), 'utf8');
+    assert.match(page, /<\/header>[\s\S]*?<div class="container-scroller">/);
+    assert.match(theme, /body \.container-scroller \{\s*overflow: visible !important;\s*\}/);
+    assert.match(theme, /body #portalLayoutShell > \.portal-main-workspace \{\s*overflow-x: auto !important;/);
+    assert.match(theme, /body \.portal-app-header \{\s*position: relative !important;\s*top: auto !important;/);
+    assert.doesNotMatch(mainScript, /syncHeaderHorizontalPosition|header\.style\.setProperty\('left'/);
+});
+
+test('left menu uses native sticky positioning without scroll-frame corrections', () => {
+    const mainScript = fs.readFileSync(path.join(root, 'Scripts', 'cmf-portal-main.js'), 'utf8');
+    assert.match(theme, /body #mainMenuSidebar \{\s*position: sticky !important;/);
+    assert.match(theme, /body:not\(\.modal-open\) \{\s*overflow: visible !important;/);
+    assert.doesNotMatch(mainScript, /function (?:sync|clear)SidebarViewportStickiness|sidebar\.style\.setProperty\('(?:top|position)'/);
+});
+
+test('dashboard date controls share the platform row and align to the visible AI card across scales', () => {
+    assert.match(page, /<div class="dashboard-platform-toolbar">\s*<div class="platform-chip-rail"[^>]*><\/div>\s*<div class="dashboard-date-filter">/);
+    const definition = page.match(/        function syncDashboardPlatformToolbarWidth\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    let overall = true;
+    let scale = 0.9;
+    let left = 20;
+    const style = { setProperty(name, value) { this[name] = value; } };
+    const toolbar = { offsetWidth: 1000, style, getBoundingClientRect: () => ({ left, width: 1000 * scale }) };
+    const overallAi = { offsetWidth: 700, getBoundingClientRect: () => ({ right: left + 1800 * scale }) };
+    const platformAi = { offsetWidth: 700, getBoundingClientRect: () => ({ right: left + 1700 * scale }) };
+    const context = vm.createContext({
+        document: {
+            querySelector: selector => selector.includes('dashboard-platform-toolbar') ? toolbar : overallAi,
+            getElementById: () => platformAi
+        },
+        getComputedStyle: () => ({ width: '1000px' }),
+        isOverallDashboardSelection: () => overall
+    });
+    vm.runInContext(definition[0], context);
+    context.syncDashboardPlatformToolbarWidth();
+    assert.equal(style.width, '1800.00px');
+    assert.equal(style['--dashboard-toolbar-scale'], '0.90000');
+    left = -200;
+    context.syncDashboardPlatformToolbarWidth();
+    assert.equal(style.width, '1800.00px');
+    overall = false;
+    scale = 1;
+    context.syncDashboardPlatformToolbarWidth();
+    assert.equal(style.width, '1700.00px');
+    assert.equal(style['--dashboard-toolbar-scale'], '1.00000');
+});
+
+test('milestone Total CMFs opens all milestones through the scoped detail and export query', () => {
+    const host = { classList: { add() {} }, innerHTML: '', querySelector: () => null };
+    const context = vm.createContext({
+        window: { CMF_PORTAL: {} },
+        escapeHtml: value => String(value)
+    });
+    const definition = page.match(/        function renderMilestoneSummaryPie\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    vm.runInContext(definition[0], context);
+    context.renderMilestoneSummaryPie(host, { Rows: [['QS', '47'], ['Beta', '12'], ['Total', '59']] });
+    assert.match(host.innerHTML, /milestone-stacked-total">Total CMFs: <a[^>]*showDriverIssues\(decodeURIComponent\('__all_milestones__'\)\);">59<\/a>/);
+    assert.match(host.innerHTML, /showDriverIssues\(decodeURIComponent\('QS'\)\)/);
+    const query = server.match(/    private DataTable GetDriverIssuesData\([^)]*\)[\s\S]*?\r?\n    \}/);
+    assert.ok(query);
+    assert.match(query[0], /allMilestones \? ResolveDashboardPlatformSelection\(\) : selectedPlatform/);
+    assert.match(query[0], /@AllMilestones = 1 OR LTRIM\(RTRIM\(drivers\)\) = @Driver/);
+    assert.match(query[0], /allMilestones \? GetDashboardDateFilter\(\)\.BuildPredicate\("A"\)/);
+    assert.match(server, /GridView_driver_issues\.DataSource = GetDriverIssuesData\(driver\)/);
+});
+
 test('platform group headings omit the table suffix without changing group identifiers', () => {
     const body = {};
     const meta = {};
@@ -44,6 +113,228 @@ test('platform group headings omit the table suffix without changing group ident
     result.GroupBy = 'component';
     context.renderSummaryIssueLinks(result);
     assert.match(body.innerHTML, /summary-issues-group-name">CMF_NVL_H_ALL_COMPONENTS_TABLE<\/span>/);
+});
+
+test('record-type controls are hidden only for Pending summary-card popups', () => {
+    const nodes = new Map();
+    const getNode = key => {
+        if (!nodes.has(key)) nodes.set(key, { style: {} });
+        return nodes.get(key);
+    };
+    const context = vm.createContext({ document: { getElementById: getNode, querySelector: getNode } });
+    const definition = page.match(/        function syncSummaryIssuePopupControls\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    vm.runInContext(definition[0], context);
+    for (const [source, metric, hidden] of [
+        ['summary', 'pending', true], ['summary', 'open', false],
+        ['summary', ' Pending ', true], ['summary', 'implemented', false],
+        ['overall-heatmap', 'open', false], ['trend-week', 'open', false]
+    ]) {
+        context.syncSummaryIssuePopupControls(source, metric);
+        assert.equal(getNode('summaryIssuesRecordTypeLabel').style.display, hidden ? 'none' : '');
+        assert.equal(getNode('summaryIssuesRecordTypeChecks').style.display, hidden ? 'none' : 'flex');
+        assert.notEqual(getNode('summaryIssuesGroupBy').style.display, 'none');
+    }
+    assert.match(page, /syncSummaryIssuePopupControls\(sourceType, metricKey\)/);
+    assert.match(page, /syncSummaryIssuePopupControls\(popupState\.sourceType \|\| 'summary', popupState\.metricKey\)/);
+});
+
+test('issue-count popup requests share record-type filters and ignore stale responses', async () => {
+    assert.match(page, /includeDuplicates: sourceType !== 'trend-week'/);
+    assert.match(page, /checkbox\.checked = window\.CMF_PORTAL\.summaryIssuesPopupState\[toggle\.key\] !== false/);
+    const requests = [];
+    const rendered = [];
+    const state = { metricKey: 'open', metricLabel: 'Open', groupBy: 'ingredient' };
+    const context = vm.createContext({
+        document: { getElementById: () => ({}) },
+        window: { CMF_PORTAL: { summaryIssuesPopupState: state, currentDashboardPlatform: 'Overall' } },
+        fetch: (endpoint, options) => {
+            requests.push({ endpoint, payload: JSON.parse(options.body) });
+            return Promise.resolve({ json: () => Promise.resolve({ d: { Success: true } }) });
+        },
+        renderSummaryIssueLinks: result => rendered.push(result)
+    });
+    const definition = page.match(/        function loadSummaryIssueLinks\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    vm.runInContext(definition[0], context);
+    const flush = () => new Promise(resolve => setImmediate(resolve));
+    for (const sourceType of ['summary', 'overall-heatmap', 'trend-week']) {
+        state.sourceType = sourceType;
+        delete state.includeUnique;
+        delete state.includeDuplicates;
+        context.loadSummaryIssueLinks('open', 'Open', 'ingredient');
+        await flush();
+        assert.equal(requests[requests.length - 1].payload.includeUnique, true);
+        assert.equal(requests[requests.length - 1].payload.includeDuplicates, true);
+        state.includeUnique = false;
+        state.includeDuplicates = true;
+        context.loadSummaryIssueLinks('open', 'Open', 'ingredient');
+        await flush();
+        assert.equal(requests[requests.length - 1].payload.includeUnique, false);
+        assert.equal(requests[requests.length - 1].payload.includeDuplicates, true);
+    }
+    const pending = [];
+    context.fetch = () => new Promise(resolve => pending.push(resolve));
+    context.loadSummaryIssueLinks('open', 'Open', 'ingredient');
+    context.loadSummaryIssueLinks('open', 'Open', 'ingredient');
+    pending[1]({ json: () => Promise.resolve({ d: { TotalIssues: 6 } }) });
+    await flush();
+    pending[0]({ json: () => Promise.resolve({ d: { TotalIssues: 23 } }) });
+    await flush();
+    assert.equal(rendered[rendered.length - 1].TotalIssues, 6);
+    for (const id of ['summaryIssuesIncludeUnique', 'summaryIssuesIncludeDuplicates']) {
+        assert.match(page, new RegExp('type="checkbox" id="' + id + '" checked="checked"'));
+    }
+});
+
+test('Overall and platform trend titles select backlog or weekly flow without a separate view selector', () => {
+    for (const selectorId of ['homeOverallTrendView', 'homeSpecificTrendView']) {
+        assert.equal((page.match(new RegExp('id="' + selectorId + '"', 'g')) || []).length, 1);
+        assert.match(page, new RegExp('<h4 class="overall-card-title overall-trend-title">[\\s\\S]*?<select id="' + selectorId + '" class="overall-trend-title-select"[\\s\\S]*?<option value="line" selected="selected">OPEN BACKLOG TREND BY WORK WEEK</option>[\\s\\S]*?<option value="bar">WEEKLY ISSUE FLOW</option>[\\s\\S]*?</select>\\s*</h4>'));
+    }
+});
+
+test('Overall trend stacks week-end balances and retains weekly clustered bars and drilldowns', () => {
+    const options = [];
+    const popups = [];
+    const view = { value: 'line' };
+    const specificView = { value: 'line' };
+    const chart = {
+        setOption: option => options.push(option),
+        on() {}, off() {}, resize() {},
+        getZr: () => ({ on() {}, off() {} }),
+        containPixel: () => true,
+        convertFromPixel: () => 0
+    };
+    const context = vm.createContext({
+        document: { getElementById: id => id === 'homeOverallTrendView' ? view : (id === 'homeSpecificTrendView' ? specificView : {}), body: {} },
+        window: { CMF_PORTAL: { ids: {}, currentPlatform: 'Overall' } },
+        echarts: { init: () => chart },
+        getComputedStyle: () => ({ fontFamily: 'Cambria' }),
+        getTextById: () => '',
+        escapeHtml: value => String(value),
+        openTrendWeekIssueLinksPopup: (...args) => popups.push(args)
+    });
+    const definition = page.match(/        function renderHomeTrendChart\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    vm.runInContext(definition[0], context);
+    const snapshot = { Trend: Array.from({ length: 12 }, (_, index) => ({
+        WeekLabel: 'WW' + index, NewIssues: index + 1, ResolvedIssues: index, ImplementedIssues: index + 2,
+        WeekEndOpenIssues: index + 40, WeekEndImplementedIssues: index + 80
+    })) };
+    context.renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'overallChart', 6);
+    assert.equal(options[0].series[0].type, 'line');
+    assert.equal(options[0].series[0].name, 'Implemented');
+    assert.equal(options[0].series[0].itemStyle.color, '#800000');
+    assert.equal(options[0].series[0].data[0].value, 86);
+    assert.equal(options[0].series[1].name, 'Open');
+    assert.equal(options[0].series[1].itemStyle.color, '#0369a1');
+    assert.equal(options[0].series[1].data[0].value, 46);
+    assert.ok(options[0].series.every(series => series.stack === 'cmf-status'));
+    assert.equal(options[0].series[0].lineStyle.width, 0);
+    assert.equal(options[0].series[0].emphasis.lineStyle.width, 0);
+    assert.equal(options[0].series[1].lineStyle.color, '#0369a1');
+    assert.equal(options[0].series[1].lineStyle.width, 3);
+    assert.equal(options[0].series[0].symbol, 'none');
+    assert.equal(options[0].series[1].symbol, 'circle');
+    assert.equal(options[0].series[1].showAllSymbol, true);
+    assert.equal(options[0].series[0].areaStyle.color, 'rgba(128,0,0,0.12)');
+    assert.equal(options[0].series[1].areaStyle.color, 'rgba(3,105,161,0.12)');
+    const tooltip = options[0].tooltip.formatter([
+        { seriesName: 'Open', value: 46, axisValueLabel: 'WW6', marker: '[blue]' },
+        { seriesName: 'Implemented', value: 86, axisValueLabel: 'WW6', marker: '[maroon]' }
+    ]);
+    assert.match(tooltip, /WW6<\/span><span style="font-weight:900">Total: 132/);
+    assert.match(tooltip, /\[blue\]Open[\s\S]*46[\s\S]*\[maroon\]Implemented[\s\S]*86/);
+    assert.equal(options[0].tooltip.formatter([]), '');
+    chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
+    assert.deepEqual(popups[0], ['Open and Implemented', 'WW6', 5]);
+    view.value = 'bar';
+    context.renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'overallChart', 6);
+    const bars = options[1];
+    assert.equal(bars.series[0].type, 'bar');
+    assert.equal(bars.series[1].type, 'bar');
+    assert.equal(bars.tooltip.formatter, undefined);
+    assert.equal(bars.color[0], '#0369a1');
+    assert.equal(bars.color[1], '#16a34a');
+    assert.ok(bars.series.every(series => series.barMaxWidth === 18 && series.itemStyle.borderWidth === 1));
+    assert.equal(bars.series[0].itemStyle.color, '#f0f9ff');
+    assert.equal(bars.series[0].itemStyle.borderColor, '#0369a1');
+    assert.equal(bars.series[1].itemStyle.color, '#dcfce7');
+    assert.equal(bars.series[1].itemStyle.borderColor, '#16a34a');
+    assert.equal(bars.xAxis.boundaryGap, true);
+    assert.ok(bars.series.every(series => !series.stack));
+    assert.equal(bars.series[0].data[0].value, 7);
+    assert.equal(bars.series[1].name, 'Closed');
+    assert.equal(bars.series[1].data[0].value, 6);
+    chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
+    assert.deepEqual(popups[1], ['All', 'WW6', 5]);
+    context.renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'overallChart', 12);
+    assert.equal(options[2].series[0].data.length, 12);
+    assert.ok(options[2].series.every(series => series.barMaxWidth === 8));
+    view.value = 'line';
+    context.renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'overallChart', 12);
+    assert.equal(options[3].series[0].type, 'line');
+    assert.equal(options[3].series[0].data[0].value, 80);
+    assert.equal(options[3].series[1].data[0].value, 40);
+    view.value = 'bar';
+    context.renderHomeTrendChart(snapshot, 'homeTrendChart', 'specificChart', 6);
+    assert.equal(options[4].series[0].type, 'line');
+    assert.equal(options[4].series[0].name, 'Implemented');
+    assert.equal(options[4].series[1].name, 'Open');
+    assert.equal(options[4].series[0].data[0].value, 86);
+    assert.equal(options[4].series[1].data[0].value, 46);
+    assert.equal(options[4].tooltip.formatter([
+        { seriesName: 'Open', value: 46, axisValueLabel: 'WW6', marker: '[blue]' },
+        { seriesName: 'Implemented', value: 86, axisValueLabel: 'WW6', marker: '[maroon]' }
+    ]), tooltip);
+    assert.equal(JSON.stringify(options[4].series), JSON.stringify(options[0].series));
+    assert.equal(JSON.stringify(options[4].legend), JSON.stringify(options[0].legend));
+    assert.equal(JSON.stringify(options[4].xAxis), JSON.stringify(options[0].xAxis));
+    assert.equal(JSON.stringify(options[4].yAxis), JSON.stringify(options[0].yAxis));
+    assert.equal(options[4].series[1].lineStyle.color, '#0369a1');
+    assert.ok(options[4].series.every(series => series.stack === 'cmf-status'));
+    chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
+    assert.deepEqual(popups[2], ['Open and Implemented', 'WW6', 5]);
+    specificView.value = 'bar';
+    context.renderHomeTrendChart(snapshot, 'homeTrendChart', 'specificChart', 6);
+    assert.equal(options[5].series[0].type, 'bar');
+    assert.equal(options[5].series[1].name, 'Closed');
+    assert.equal(options[5].series[0].data[0].value, 7);
+    assert.equal(options[5].series[1].data[0].value, 6);
+    assert.ok(options[5].series.every(series => !series.stack && series.barMaxWidth === 18));
+    context.renderHomeTrendChart(snapshot, 'homeTrendChart', 'specificChart', 12);
+    assert.ok(options[6].series.every(series => series.data.length === 12 && series.barMaxWidth === 8));
+    assert.equal(JSON.stringify(options[6].series), JSON.stringify(options[2].series));
+});
+
+test('Overall week-end line uses summary-card scope and current status buckets without duplicates', () => {
+    assert.match(server, /string weekEndSourceSql = "\(SELECT \* FROM " \+ BuildDashboardComponentSourceSql\(dashboardPlatform, true\)/);
+    assert.match(server, /WHERE cmf_request = 'cmf_ok' AND sysdebug LIKE '%customer_must_fix%'/);
+    const predicate = server.match(/    private static string BuildTrendWeekEndStatusPredicate\([^)]*\)[\s\S]*?\r?\n    \}/);
+    assert.ok(predicate);
+    assert.match(predicate[0], /status NOT IN \('complete', 'rejected', 'implemented'\)/);
+    assert.match(predicate[0], /status = 'implemented'/);
+    assert.match(predicate[0], /weekOffsetSql \+ " = 0 AND " \+ currentStatusPredicate/);
+    assert.match(predicate[0], /weekOffsetSql \+ " > 0 AND " \+ historicalPredicate/);
+    const drilldown = server.match(/    public static SummaryIssueLinksResponse GetTrendWeekIssueLinks\([^)]*\)[\s\S]*?\r?\n    \}/);
+    assert.ok(drilldown);
+    assert.match(drilldown[0], /if \(!isWeekEndBalance\)\s*\{\s*AppendDashboardDriverFilter\(baseWhere, driverFilterValue\);\s*AppendDashboardColumnFilters\(baseWhere, columnFilters\);/);
+});
+
+test('Overall summary detail freeze dates use platform-aware metadata without multiplying design rows', () => {
+    const details = server.match(/    private DataTable GetSummaryMetricIssueDetailsData\([^)]*\)[\s\S]*?\r?\n    \}/);
+    const metadata = server.match(/    private static string BuildSummaryDesignMetadataSourceSql\([^)]*\)[\s\S]*?\r?\n    \}/);
+    assert.ok(details);
+    assert.ok(metadata);
+    assert.match(details[0], /BuildSummaryDesignMetadataSourceSql\(dashboardPlatform, con\)/);
+    assert.match(details[0], /design_src\.source_platform = issue_src\.source_platform/);
+    assert.match(details[0], /dup_design\.source_platform = dup_src\.source_platform/);
+    assert.match(details[0], /NULLIF\(sw_image_freeze, 'N\/A'\)/);
+    assert.match(details[0], /'Unknown'\) AS ImageFreeze/);
+    assert.match(metadata[0], /connection != null && !SqlTableExists\(connection, designTable\)/);
+    assert.match(metadata[0], /GROUP BY LTRIM\(RTRIM\(customer_detail\)\)/);
+    assert.match(metadata[0], /MAX\(NULLIF\(LTRIM\(RTRIM\(sw_image_freeze\)\), ''\)\)/);
 });
 
 test('Issue List omits confidence badges and their update path, but keeps drawer confidence', () => {

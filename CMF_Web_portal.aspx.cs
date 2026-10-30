@@ -109,6 +109,9 @@ public class HomeDashboardTrendPoint
     public DateTime WeekStart { get; set; }
     public int NewIssues { get; set; }
     public int ResolvedIssues { get; set; }
+    public int ImplementedIssues { get; set; }
+    public int WeekEndOpenIssues { get; set; }
+    public int WeekEndImplementedIssues { get; set; }
     public int NeedsAttention { get; set; }
 }
 
@@ -930,6 +933,7 @@ public partial class CMF_Web_portal : System.Web.UI.Page
     customer_impact,
     title,
     implemented_date,
+    closed_date,
     date_cmf_decided,
     date_cmf_ask,
     submitted_date,
@@ -1236,6 +1240,7 @@ FROM " + pendingTable);
     date_cmf_ask,
     submitted_date,
     implemented_date,
+    closed_date,
             must_fix_for,
     component_group,
     drivers,
@@ -1253,7 +1258,7 @@ FROM " + tableName + (applyDashboardDateFilter ? " WHERE " + GetDashboardDateFil
         return string.Join(" UNION ALL ", unionParts);
     }
 
-    private static string BuildSummaryDesignMetadataSourceSql(string dashboardPlatform)
+    private static string BuildSummaryDesignMetadataSourceSql(string dashboardPlatform, SqlConnection connection = null)
     {
         List<string> sourceTables = GetSummaryIssueSourceTablesForWeb(dashboardPlatform);
         List<string> unionParts = new List<string>();
@@ -1262,6 +1267,10 @@ FROM " + tableName + (applyDashboardDateFilter ? " WHERE " + GetDashboardDateFil
         {
             string tableName = sourceTables[index];
             string designTable = tableName.Replace("_ALL_COMPONENTS_TABLE", string.Empty) + "_DESIGN_TABLE";
+            if (connection != null && !SqlTableExists(connection, designTable))
+            {
+                continue;
+            }
 
                 unionParts.Add(@"SELECT
             LTRIM(RTRIM(customer_detail)) AS customer_detail,
@@ -1332,7 +1341,7 @@ FROM " + pendingTable + " WHERE " + GetDashboardDateFilter().BuildPredicate(null
     private static string NormalizeTrendSeriesMetricKey(string seriesName)
     {
         string normalized = (seriesName ?? string.Empty).Trim().ToLowerInvariant();
-        if (normalized == "all")
+        if (normalized == "all" || normalized == "open and implemented")
         {
             return "all";
         }
@@ -1550,8 +1559,17 @@ END";
         return string.Compare(left, right, StringComparison.OrdinalIgnoreCase);
     }
 
+    private static string BuildSummaryIssueRecordTypePredicate(string alias, bool includeUnique, bool includeDuplicates, bool pending = false)
+    {
+        if (!includeUnique && !includeDuplicates) return "1 = 0";
+        if (pending) return includeUnique ? "1 = 1" : "1 = 0";
+        string values = includeUnique && includeDuplicates ? "'cmf_ok', 'cmf_duplicate'"
+            : (includeUnique ? "'cmf_ok'" : "'cmf_duplicate'");
+        return "LOWER(LTRIM(RTRIM(ISNULL(" + alias + ".cmf_request, '')))) IN (" + values + ")";
+    }
+
     [WebMethod(EnableSession = true)]
-    public static SummaryIssueLinksResponse GetSummaryCardIssueLinks(string metricKey, string groupBy, string dashboardPlatform)
+    public static SummaryIssueLinksResponse GetSummaryCardIssueLinks(string metricKey, string groupBy, string dashboardPlatform, bool includeUnique = true, bool includeDuplicates = true)
     {
         SummaryIssueLinksResponse response = new SummaryIssueLinksResponse
         {
@@ -1653,6 +1671,8 @@ LEFT JOIN (" + componentSource + @") AS c
                     wherePredicate = whereBuilder.ToString();
                 }
 
+                wherePredicate += " AND " + BuildSummaryIssueRecordTypePredicate("src", includeUnique, includeDuplicates,
+                    string.Equals(response.MetricKey, "pending", StringComparison.OrdinalIgnoreCase));
                 string groupExpression = BuildSummaryGroupExpression(response.GroupBy);
                 string sql = @"
 SELECT DISTINCT
@@ -1732,7 +1752,7 @@ ORDER BY group_name, cp_id";
     }
 
     [WebMethod(EnableSession = true)]
-    public static SummaryIssueLinksResponse GetOverallHeatmapIssueLinks(string ingredient, string platformLabel, string groupBy)
+    public static SummaryIssueLinksResponse GetOverallHeatmapIssueLinks(string ingredient, string platformLabel, string groupBy, bool includeUnique = true, bool includeDuplicates = true)
     {
         SummaryIssueLinksResponse response = new SummaryIssueLinksResponse
         {
@@ -1776,7 +1796,7 @@ ORDER BY group_name, cp_id";
 
                 string sourceSql = "(" + BuildSummaryIssueComponentSourceSql(OverallDashboardPlatformTable) + ") AS src";
                 string wherePredicate = @"LOWER(LTRIM(RTRIM(ISNULL(src.sysdebug, '')))) LIKE '%customer_must_fix%'
-  AND LOWER(LTRIM(RTRIM(ISNULL(src.cmf_request, '')))) = 'cmf_ok'
+    AND " + BuildSummaryIssueRecordTypePredicate("src", includeUnique, includeDuplicates) + @"
   AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) = 'open'
   AND ISNULL(LTRIM(RTRIM(src.drivers)), '') <> ''
   AND " + BuildOverallHeatmapIngredientExpression() + @" = @ingredient
@@ -1881,7 +1901,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     }
 
     [WebMethod(EnableSession = true)]
-    public static SummaryIssueLinksResponse GetTrendWeekIssueLinks(string seriesName, string weekLabel, int weekOffset, string dashboardPlatform, string groupBy, bool includeOpen, bool includeClosed)
+    public static SummaryIssueLinksResponse GetTrendWeekIssueLinks(string seriesName, string weekLabel, int weekOffset, string dashboardPlatform, string groupBy, bool includeOpen, bool includeClosed, bool includeUnique = true, bool includeDuplicates = true)
     {
         string resolvedPlatform = ResolveDashboardPlatformSelectionForWeb(dashboardPlatform);
         bool isOverallScope = string.Equals(resolvedPlatform, OverallDashboardPlatformTable, StringComparison.OrdinalIgnoreCase);
@@ -1917,6 +1937,8 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         }
 
         string normalizedWeekLabel = string.IsNullOrWhiteSpace(weekLabel) ? "Selected Week" : weekLabel.Trim();
+        bool isWeekEndBalance = string.Equals(seriesName, "Open and Implemented", StringComparison.OrdinalIgnoreCase);
+        string completedStatusValues = "'complete', 'rejected'";
         bool metricAllowsOpen = string.Equals(response.MetricKey, "all", StringComparison.OrdinalIgnoreCase)
             || string.Equals(response.MetricKey, "open", StringComparison.OrdinalIgnoreCase);
         bool metricAllowsClosed = string.Equals(response.MetricKey, "all", StringComparison.OrdinalIgnoreCase)
@@ -1945,30 +1967,46 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
                 string groupExpression = BuildSummaryGroupExpression(response.GroupBy);
 
                 StringBuilder baseWhere = new StringBuilder();
-                baseWhere.Append("LOWER(LTRIM(RTRIM(ISNULL(src.cmf_request, '')))) = 'cmf_ok'");
+                baseWhere.Append(BuildSummaryIssueRecordTypePredicate("src", includeUnique, includeDuplicates));
                 baseWhere.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.sysdebug, '')))) LIKE '%customer_must_fix%'");
-                baseWhere.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) <> 'rejected'");
+                if (!isWeekEndBalance)
+                {
+                    baseWhere.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) <> 'rejected'");
+                }
 
                 string driverFilterValue = GetDashboardDriverFilterValueForWeb();
                 Dictionary<string, string> columnFilters = GetDashboardColumnFiltersForWeb();
-                AppendDashboardDriverFilter(baseWhere, driverFilterValue);
-                AppendDashboardColumnFilters(baseWhere, columnFilters);
+                if (!isWeekEndBalance)
+                {
+                    AppendDashboardDriverFilter(baseWhere, driverFilterValue);
+                    AppendDashboardColumnFilters(baseWhere, columnFilters);
+                }
 
-                if (allowOpen && !allowClosed)
+                if (isWeekEndBalance)
+                {
+                    string cutoffSql = BuildTrendWeekEndExclusiveSql("@week_offset");
+                    string openPredicate = BuildTrendWeekEndStatusPredicate("src", cutoffSql, false, "@week_offset");
+                    string implementedPredicate = BuildTrendWeekEndStatusPredicate("src", cutoffSql, true, "@week_offset");
+                    statusPredicate = "1 = 1";
+                    weekPredicate = allowOpen && allowClosed
+                        ? "((" + openPredicate + ") OR (" + implementedPredicate + "))"
+                        : (allowOpen ? openPredicate : implementedPredicate);
+                }
+                else if (allowOpen && !allowClosed)
                 {
                     statusPredicate = "LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) = 'open'";
                     weekPredicate = "TRY_CAST(src.date_cmf_ask AS DATE) IS NOT NULL AND DATEDIFF(WEEK, TRY_CAST(src.date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) = @week_offset";
                 }
                 else if (!allowOpen && allowClosed)
                 {
-                    statusPredicate = "LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN ('complete', 'rejected')";
+                    statusPredicate = "LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN (" + completedStatusValues + ")";
                     weekPredicate = "TRY_CAST(src.implemented_date AS DATE) IS NOT NULL AND DATEDIFF(WEEK, TRY_CAST(src.implemented_date AS DATE), CAST(GETDATE() AS DATE)) = @week_offset";
                 }
                 else
                 {
                     statusPredicate = @"(
         LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) = 'open'
-        OR LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN ('complete', 'rejected')
+                OR LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN (" + completedStatusValues + @")
     )";
 
                     weekPredicate = @"(
@@ -1979,7 +2017,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         )
         OR
         (
-            LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN ('complete', 'rejected')
+            LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN (" + completedStatusValues + @")
             AND TRY_CAST(src.implemented_date AS DATE) IS NOT NULL
             AND DATEDIFF(WEEK, TRY_CAST(src.implemented_date AS DATE), CAST(GETDATE() AS DATE)) = @week_offset
         )
@@ -3392,7 +3430,27 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         }
     }
 
-    private string BuildHomeDashboardSourceSql(string platformTable)
+    private static string BuildTrendWeekEndExclusiveSql(string weekOffsetSql)
+    {
+        return "CASE WHEN " + weekOffsetSql + " = 0 THEN DATEADD(DAY, 1, CAST(GETDATE() AS DATE)) ELSE "
+            + "DATEADD(DAY, 7 - DATEDIFF(DAY, CONVERT(date, '19000101', 112), CAST(GETDATE() AS DATE)) % 7 - 7 * "
+            + weekOffsetSql + ", CAST(GETDATE() AS DATE)) END";
+    }
+
+    private static string BuildTrendWeekEndStatusPredicate(string alias, string cutoffSql, bool implemented, string weekOffsetSql)
+    {
+        string prefix = alias + ".";
+        string openStatusPredicate = prefix + "status NOT IN ('complete', 'rejected', 'implemented')";
+        string currentStatusPredicate = implemented ? prefix + "status = 'implemented'" : openStatusPredicate;
+        string historicalPredicate = "TRY_CAST(" + prefix + "date_cmf_ask AS DATE) < (" + cutoffSql + ")"
+            + " AND (TRY_CAST(" + prefix + "closed_date AS DATE) IS NULL OR TRY_CAST(" + prefix + "closed_date AS DATE) >= (" + cutoffSql + "))"
+            + (implemented
+                ? " AND " + prefix + "status IN ('implemented', 'complete', 'rejected') AND TRY_CAST(" + prefix + "implemented_date AS DATE) < (" + cutoffSql + ")"
+                : " AND (" + openStatusPredicate + " OR (" + prefix + "status IN ('implemented', 'complete', 'rejected') AND (TRY_CAST(" + prefix + "implemented_date AS DATE) IS NULL OR TRY_CAST(" + prefix + "implemented_date AS DATE) >= (" + cutoffSql + "))))");
+        return "((" + weekOffsetSql + " = 0 AND " + currentStatusPredicate + ") OR (" + weekOffsetSql + " > 0 AND " + historicalPredicate + "))";
+    }
+
+    private string BuildHomeDashboardSourceSql(string platformTable, bool includeRejected = false)
     {
         platformTable = ResolveDashboardPlatformSelection(platformTable);
         string dashboardSourceSql = BuildDashboardComponentSourceSql(platformTable, true);
@@ -3405,7 +3463,8 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
 
         Dictionary<string, string> filters = GetAllFilterValues();
         StringBuilder whereClause = new StringBuilder();
-        whereClause.Append("WHERE status NOT IN ('rejected') AND sysdebug LIKE ('%customer_must_fix%') AND cmf_request IN ('cmf_ok') ");
+        whereClause.Append(includeRejected ? "WHERE " : "WHERE status NOT IN ('rejected') AND ");
+        whereClause.Append("sysdebug LIKE ('%customer_must_fix%') AND cmf_request IN ('cmf_ok') ");
         AppendDashboardDriverFilter(whereClause, filterValue);
         AppendDashboardColumnFilters(whereClause, filters);
 
@@ -3415,6 +3474,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     customer_impact,
     title,
     implemented_date,
+    closed_date,
     date_cmf_decided,
     date_cmf_ask,
     component_group,
@@ -3580,6 +3640,9 @@ FROM " + dashboardSourceSql, con))
                 }
             }
 
+            string weekEndSourceSql = "(SELECT * FROM " + BuildDashboardComponentSourceSql(dashboardPlatform, true)
+                + " WHERE cmf_request = 'cmf_ok' AND sysdebug LIKE '%customer_must_fix%') AS platform_cmf_issues";
+            string weekEndCutoffSql = BuildTrendWeekEndExclusiveSql("w.week_offset");
             using (SqlCommand trendCommand = new SqlCommand(@"
 WITH weeks AS (
     SELECT 0 AS week_offset
@@ -3603,15 +3666,32 @@ resolved_issues AS (
       AND DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE)) BETWEEN 0 AND 103
             AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('complete', 'rejected')
     GROUP BY DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE))
+),
+implemented_issues AS (
+        SELECT DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE)) AS week_offset, COUNT(*) AS count_value
+        FROM " + dashboardSourceSql + @"
+        WHERE TRY_CAST(implemented_date AS DATE) IS NOT NULL
+            AND DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE)) BETWEEN 0 AND 103
+            AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('implemented', 'verified')
+        GROUP BY DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE))
 )
 SELECT
     DATEADD(WEEK, -w.week_offset, CAST(GETDATE() AS DATE)) AS week_date,
     ISNULL(n.count_value, 0) AS new_issues,
         ISNULL(r.count_value, 0) AS resolved_issues,
-        0 AS needs_attention
+        0 AS needs_attention,
+        ISNULL(i.count_value, 0) AS implemented_issues,
+        ISNULL(e.open_count, 0) AS week_end_open,
+        ISNULL(e.implemented_count, 0) AS week_end_implemented
 FROM weeks w
 LEFT JOIN new_issues n ON n.week_offset = w.week_offset
 LEFT JOIN resolved_issues r ON r.week_offset = w.week_offset
+    LEFT JOIN implemented_issues i ON i.week_offset = w.week_offset
+OUTER APPLY (
+    SELECT
+        (SELECT COUNT(*) FROM " + weekEndSourceSql + @" WHERE " + BuildTrendWeekEndStatusPredicate("platform_cmf_issues", weekEndCutoffSql, false, "w.week_offset") + @") AS open_count,
+        (SELECT COUNT(*) FROM " + weekEndSourceSql + @" WHERE " + BuildTrendWeekEndStatusPredicate("platform_cmf_issues", weekEndCutoffSql, true, "w.week_offset") + @") AS implemented_count
+) e
 ORDER BY week_date
 OPTION (MAXRECURSION 0)", con))
             using (SqlDataReader reader = trendCommand.ExecuteReader())
@@ -3625,6 +3705,9 @@ OPTION (MAXRECURSION 0)", con))
                     point.NewIssues = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
                     point.ResolvedIssues = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
                     point.NeedsAttention = reader.IsDBNull(3) ? 0 : reader.GetInt32(3);
+                    point.ImplementedIssues = reader.IsDBNull(4) ? 0 : reader.GetInt32(4);
+                    point.WeekEndOpenIssues = reader.IsDBNull(5) ? 0 : reader.GetInt32(5);
+                    point.WeekEndImplementedIssues = reader.IsDBNull(6) ? 0 : reader.GetInt32(6);
                     snapshot.Trend.Add(point);
                 }
             }
@@ -13145,7 +13228,17 @@ ORDER BY Total_CMF_Approved DESC";
 
             string designTable = string.Empty;
             bool includeDesignTable = false;
-            if (!isOverallSelection)
+            if (isOverallSelection)
+            {
+                string metadataSql = BuildSummaryDesignMetadataSourceSql(dashboardPlatform, con);
+                if (!string.IsNullOrWhiteSpace(metadataSql))
+                {
+                    designTable = "(SELECT customer_detail, NULLIF(sw_image_freeze, 'N/A') AS sw_image_freeze, source_platform FROM ("
+                        + metadataSql + ") AS design_metadata)";
+                    includeDesignTable = true;
+                }
+            }
+            else
             {
                 string resolvedPlatform = ResolvePlatformTable(dashboardPlatform);
                 string basePlatform = resolvedPlatform.Replace("_ALL_COMPONENTS_TABLE", string.Empty);
@@ -13169,7 +13262,8 @@ ORDER BY Total_CMF_Approved DESC";
             duplicateDetailsBuilder.Append("    FROM " + issueSourceSql + " AS dup_src\n");
             if (includeDesignTable)
             {
-                duplicateDetailsBuilder.Append("    LEFT JOIN " + designTable + " AS dup_design ON dup_design.customer_detail = dup_src.customer_detail\n");
+                duplicateDetailsBuilder.Append("    LEFT JOIN " + designTable + " AS dup_design ON dup_design.customer_detail = dup_src.customer_detail"
+                    + (isOverallSelection ? " AND dup_design.source_platform = dup_src.source_platform" : string.Empty) + "\n");
             }
 
             duplicateDetailsBuilder.Append("    WHERE LOWER(LTRIM(RTRIM(ISNULL(dup_src.cmf_request, '')))) = 'cmf_duplicate'\n");
@@ -13218,7 +13312,8 @@ SELECT
             ELSE ISNULL(NULLIF(LTRIM(RTRIM(issue_src.fixed_in_version)), ''), 'N/A')
           END AS ClosedDetails
 FROM " + issueSourceSql + @" AS issue_src
-" + (includeDesignTable ? ("LEFT JOIN " + designTable + " AS design_src ON design_src.customer_detail = issue_src.customer_detail") : string.Empty) + @"
+" + (includeDesignTable ? ("LEFT JOIN " + designTable + " AS design_src ON design_src.customer_detail = issue_src.customer_detail"
+    + (isOverallSelection ? " AND design_src.source_platform = issue_src.source_platform" : string.Empty)) : string.Empty) + @"
 INNER JOIN (
     SELECT DISTINCT LTRIM(RTRIM(value)) AS cp_id
     FROM STRING_SPLIT(@cpIds, ',')
@@ -14222,34 +14317,10 @@ ORDER BY A.cmf_request desc";
     }
     private void BindDriverIssues(string driver)
     {
-        lblDriverName.Text = Server.HtmlEncode(driver);
-
-        string connectionString = ConnectionString;
-        string issueSourceSql = BuildIssueDataSourceSql(selectedPlatform, "A");
-
-        string sql = @"
-SELECT cp_id, title, component
-    FROM " + issueSourceSql + @"
-WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
-  AND cmf_request IN ('cmf_ok')
-  AND sysdebug LIKE '%customer_must_fix%'
-  AND LTRIM(RTRIM(drivers)) = @Driver
-ORDER BY cp_id";
-
-        using (SqlConnection con = new SqlConnection(connectionString))
-        using (SqlCommand cmd = new SqlCommand(sql, con))
-        {
-            object driverParam = (driver != null) ? (object)driver.Trim() : (object)DBNull.Value;
-            cmd.Parameters.Add("@Driver", SqlDbType.NVarChar, 256).Value = driverParam;
-
-            using (SqlDataAdapter da = new SqlDataAdapter(cmd))
-            {
-                DataTable dt = new DataTable();
-                da.Fill(dt);
-                GridView_driver_issues.DataSource = dt;
-                GridView_driver_issues.DataBind();
-            }
-        }
+        bool allMilestones = string.Equals(driver, "__all_milestones__", StringComparison.Ordinal);
+        lblDriverName.Text = allMilestones ? "Total CMFs" : Server.HtmlEncode(driver);
+        GridView_driver_issues.DataSource = GetDriverIssuesData(driver);
+        GridView_driver_issues.DataBind();
 
         // Show modal
         ScriptManager.RegisterStartupScript(this, GetType(),
@@ -14268,7 +14339,8 @@ ORDER BY cp_id";
     private DataTable GetDriverIssuesData(string driver)
     {
         string connectionString = ConnectionString;
-        string issueSourceSql = BuildIssueDataSourceSql(selectedPlatform, "A");
+        bool allMilestones = string.Equals(driver, "__all_milestones__", StringComparison.Ordinal);
+        string issueSourceSql = BuildIssueDataSourceSql(allMilestones ? ResolveDashboardPlatformSelection() : selectedPlatform, "A");
 
         string sql = @"
 SELECT cp_id, title, component
@@ -14276,7 +14348,8 @@ SELECT cp_id, title, component
 WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
   AND cmf_request IN ('cmf_ok')
   AND sysdebug LIKE '%customer_must_fix%'
-  AND LTRIM(RTRIM(drivers)) = @Driver
+    AND (@AllMilestones = 1 OR LTRIM(RTRIM(drivers)) = @Driver)
+    AND " + (allMilestones ? GetDashboardDateFilter().BuildPredicate("A") : "1 = 1") + @"
 ORDER BY cp_id";
 
         using (SqlConnection con = new SqlConnection(connectionString))
@@ -14285,6 +14358,7 @@ ORDER BY cp_id";
         {
             object driverParam = (driver != null) ? (object)driver.Trim() : (object)DBNull.Value;
             cmd.Parameters.Add("@Driver", SqlDbType.NVarChar, 256).Value = driverParam;
+            cmd.Parameters.Add("@AllMilestones", SqlDbType.Bit).Value = allMilestones;
 
             DataTable dt = new DataTable();
             da.Fill(dt);

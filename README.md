@@ -39,9 +39,11 @@ The runtime entry point is `CMF_Web_portal.aspx`.
 
 ### Dashboard Date Filter
 
-The controls beside the dashboard greeting filter Overall and platform dashboards,
+The controls at the right of the dashboard platform-selector row filter Overall and platform dashboards,
 including their charts, summaries, and dashboard drill-downs. Issue List, CMF
 Pending, and Reports & Analytics retain their independent scopes.
+The date controls align with the AI Insights card's right edge in both Overall
+and platform views, including menu expansion/collapse and horizontal scrolling.
 
 The defaults are **All Time** and **CMF Request Date** (`date_cmf_ask`).
 **Issue Submission Date** uses the database's `submitted_date` instead.
@@ -49,12 +51,74 @@ Today, Last 7 Days, and Last 30 Days include the current calendar day; Last 12
 Months starts on the same calendar date twelve months earlier. Custom Range
 includes both selected dates and is applied using the filter icon button.
 Calendar boundaries use the web server's local date, consistent with the existing
-portal. No historical-status reconstruction or timezone conversion is performed.
+portal. Date filtering itself does not reconstruct historical status or convert timezones.
 Null dates remain visible under All Time and are excluded by an active range.
 The selection persists in the session while switching dashboard platforms.
 The existing dashboard snapshot's **Updated** date and time appear immediately
 to the right of **Mode** in the shared navigation bar and remain visible on every
 portal tab.
+
+The header remains outside the workspace's native horizontal scroll container,
+so it stays horizontally aligned without JavaScript scroll corrections. It stays
+in normal vertical document flow and can scroll out of view.
+Only the content column scrolls horizontally; the left menu stays outside it.
+The menu uses native sticky positioning, following the header until it reaches
+the viewport top, without JavaScript scroll-frame positioning.
+
+### Dashboard Line Trend: Week-End Balances
+
+Overall and platform tabs share the same SVG-rendered line/bar chart, heading
+styling, dark labels, and controls, using each tab's own data. Line charts stack
+blue **Open** area above contrasting maroon **Implemented** area. A single blue
+upper boundary with a marker at each weekly data point shows
+their combined total; there is no separate line between the two areas.
+The line tooltip lists Open above Implemented and shows their combined
+total to the right of the work-week heading.
+Each historical point is a balance at the end of a Monday-Sunday work week, not
+the number of changes during that week. The current point uses the summary
+cards' current-status counts minus their duplicate counts. Open follows the
+card's broad definition: statuses other than complete, rejected, or implemented;
+Implemented uses status implemented only. The line uses the same platform/date
+scope as the cards, without the activity chart's additional driver/column filters.
+Historical Open includes earlier requests not yet implemented or closed at the
+cutoff, with other active statuses retained in the Open bucket. Historical
+Implemented includes implementations before the cutoff that were not yet closed.
+Weekly drilldowns use the same cutoff and lifecycle predicates as the line chart.
+Each dashboard's title dropdown selects **OPEN BACKLOG TREND BY WORK WEEK**
+(line) or **WEEKLY ISSUE FLOW** (clustered bars). Both support 6- and 12-week
+ranges. Clustered bars retain their weekly activity counts.
+
+Balances are reconstructed from `date_cmf_ask`, `implemented_date`, and
+`closed_date`, assuming a single request-to-implementation-to-closure lifecycle.
+They are not historical snapshots: reopened records, previous CMF eligibility,
+and missing or incorrect transition dates cannot be reconstructed exactly.
+Records without a request date are excluded from historical balances, but the
+current point includes them when the summary card does.
+
+### Issue-Count Popup Filters
+
+The Milestone CMF Summary's Total CMFs number opens the milestone issue table
+across all milestones, using the current dashboard platform and date filter.
+It excludes duplicate CMFs and records without a milestone, matching the total.
+The popup and its Excel export share the same query.
+
+Overall summary detail tables resolve ImageFreeze and duplicate ImageFreeze dates
+from each issue's source-platform design table and customer detail. Missing
+tables, unmatched designs, and empty dates retain the Unknown fallback. Grouped
+design metadata prevents additional issue rows from duplicate design matches.
+
+The shared issue-count popup for summary cards, heatmaps, and weekly charts
+includes independent **Unique** and **Duplicates** checkboxes, styled like the
+Open/Implemented status selectors. Line/bar graph popups open with Unique checked
+and Duplicates unchecked, matching the graphs' nonduplicate counts. Other popups
+select both by default. Unique selects `cmf_ok`; Duplicates selects
+`cmf_duplicate`. Selecting neither returns no issues. The selections apply
+before grouping and update the total, group counts, and linked issue lists.
+They persist while changing grouping, sorting, or trend status filters.
+Pending-card popups omit these controls: active pending requests use pending
+request states such as `cmf_ask` and `cmf_incomplete`, rather than the approved
+Unique/Duplicates classification. Their counts remain unfiltered by record type.
+These popup filters do not change dashboard cards or chart counts.
 
 ### Issue List: AI Debug Summary
 
