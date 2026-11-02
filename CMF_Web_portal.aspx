@@ -16873,6 +16873,10 @@ td:nth-child(odd), th:nth-child(odd) {
 
             if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentSkeleton();
 
+            // Sequential context-rich pipeline:
+            // 1. Get Problem Description
+            // 2. Pass Description to GetSightingImpactSummary
+            // 3. Pass Description and ImpactSummary to GetSightingQualityAssessment & GetCmfPendingRecommendation
             fetch('CMF_Web_portal.aspx/GetSightingDescription', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json; charset=utf-8' },
@@ -16880,83 +16884,107 @@ td:nth-child(odd), th:nth-child(odd) {
             })
             .then(function (response) { return response.json(); })
             .then(function (data) {
-                var result = data && data.d ? data.d : data;
-                if (!sightingDescriptionNode) return;
-                if (!result || result.Success !== true) {
-                    sightingDescriptionNode.innerHTML = '<span class="sighting-description-error">Description unavailable.</span>';
-                    return;
-                }
-                sightingDescriptionNode.innerHTML = renderIssueDescriptionText(result.Summary || 'No description available.');
-            })
-            .catch(function () {
-                if (sightingDescriptionNode) sightingDescriptionNode.innerHTML = '<span class="sighting-description-error">Description unavailable.</span>';
-            });
-
-            fetch('CMF_Web_portal.aspx/GetSightingImpactSummary', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                body: JSON.stringify({ cpId: payload.cpId, title: payload.title, impact: payload.impact, platform: payload.platform })
-            })
-            .then(function (response) { return response.json(); })
-            .then(function (data) {
-                var result = data && data.d ? data.d : data;
-                if (!impactSummaryNode) return;
-                if (!result || result.Success !== true) {
-                    impactSummaryNode.innerHTML = '<span class="sighting-description-error">Impact summary unavailable.</span>';
-                    return;
-                }
-                impactSummaryNode.innerHTML = renderImpactSummaryText(result.Summary || 'No impact summary available.');
-            })
-            .catch(function () {
-                if (impactSummaryNode) impactSummaryNode.innerHTML = '<span class="sighting-description-error">Impact summary unavailable.</span>';
-            });
-
-            fetch('CMF_Web_portal.aspx/GetSightingQualityAssessment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                body: JSON.stringify(payload)
-            })
-            .then(function (response) { return response.json(); })
-            .then(function (data) {
-                var result = data && data.d ? data.d : data;
-                if (!result || result.Success !== true) {
-                    if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentUnavailable();
-                    return;
-                }
-                if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessment(result, payload);
-            })
-            .catch(function () {
-                if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentUnavailable();
-            });
-
-            if (evidenceNode) {
-                evidenceNode.innerHTML = '<div class="ai-skeleton-loader"><div style="font-size:13px;font-weight:600;color:#5c7087;">&#10024; Assessing sighting quality and CMF readiness...</div><div class="ai-skeleton-line ai-skeleton-title" style="width:55%;"></div><div class="ai-skeleton-line" style="width:95%;"></div><div class="ai-skeleton-line" style="width:88%;"></div></div>';
-            }
-
-            fetch('CMF_Web_portal.aspx/GetCmfPendingRecommendation', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                body: JSON.stringify(payload)
-            })
-            .then(function (response) { return response.json(); })
-            .then(function (data) {
                 if (window._cmfSightingChatPayload !== sightingSession) return;
                 var result = data && data.d ? data.d : data;
-                if (!result || result.Success !== true) {
-                    if (evidenceNode) evidenceNode.textContent = (result && result.Message) ? result.Message : 'Unable to generate CMF recommendation.';
-                    if (recommendationNode) recommendationNode.innerHTML = '<span class="sighting-description-error">CMF recommendation unavailable.</span>';
-                    updateCmfAssistantTag('Unavailable');
-                    return;
+                var descriptionText = (result && result.Success && result.Summary) ? result.Summary : '';
+                if (sightingDescriptionNode) {
+                    if (descriptionText) {
+                        sightingDescriptionNode.innerHTML = renderIssueDescriptionText(descriptionText);
+                    } else {
+                        sightingDescriptionNode.innerHTML = '<span class="sighting-description-error">Description unavailable.</span>';
+                    }
                 }
-                if (qualityNode) qualityNode.textContent = 'Sighting quality and CMF readiness';
-                updatePendingRecommendationBadge(payload.cpId, result.Recommendation, result.OverallQualityScore);
-                updateCmfAssistantTag(result.Recommendation);
-                if (recommendationNode) recommendationNode.innerHTML = renderCmfAssistantRecommendation(result, payload);
-                if (evidenceNode) evidenceNode.innerHTML = renderMergedCmfRecommendation(result, payload);
+
+                // 2. Fetch Impact Summary enriched with Problem Description
+                return fetch('CMF_Web_portal.aspx/GetSightingImpactSummary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                    body: JSON.stringify({
+                        cpId: payload.cpId,
+                        title: payload.title,
+                        impact: payload.impact,
+                        platform: payload.platform,
+                        description: descriptionText
+                    })
+                })
+                .then(function (impactResponse) { return impactResponse.json(); })
+                .then(function (impactData) {
+                    if (window._cmfSightingChatPayload !== sightingSession) return;
+                    var impactResult = impactData && impactData.d ? impactData.d : impactData;
+                    var impactText = (impactResult && impactResult.Success && impactResult.Summary) ? impactResult.Summary : '';
+                    if (impactSummaryNode) {
+                        if (impactText) {
+                            impactSummaryNode.innerHTML = renderImpactSummaryText(impactText);
+                        } else {
+                            impactSummaryNode.innerHTML = '<span class="sighting-description-error">Impact summary unavailable.</span>';
+                        }
+                    }
+
+                    // 3. Fetch Quality Assessment
+                    fetch('CMF_Web_portal.aspx/GetSightingQualityAssessment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(function (qaResp) { return qaResp.json(); })
+                    .then(function (qaData) {
+                        if (window._cmfSightingChatPayload !== sightingSession) return;
+                        var qaResult = qaData && qaData.d ? qaData.d : qaData;
+                        if (!qaResult || qaResult.Success !== true) {
+                            if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentUnavailable();
+                            return;
+                        }
+                        if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessment(qaResult, payload);
+                    })
+                    .catch(function () {
+                        if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentUnavailable();
+                    });
+
+                    // 4. Fetch CMF Recommendation enriched with both Problem Description & Impact Summary
+                    var recPayload = {
+                        cpId: payload.cpId,
+                        title: payload.title,
+                        component: payload.component,
+                        cmfRequest: payload.cmfRequest,
+                        impact: payload.impact,
+                        idst: payload.idst,
+                        reproOnRvp: payload.reproOnRvp,
+                        reproducibility: payload.reproducibility,
+                        customerDetail: payload.customerDetail,
+                        customerOwner: payload.customerOwner,
+                        platform: payload.platform,
+                        description: descriptionText,
+                        impactSummary: impactText
+                    };
+
+                    return fetch('CMF_Web_portal.aspx/GetCmfPendingRecommendation', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                        body: JSON.stringify(recPayload)
+                    })
+                    .then(function (recResp) { return recResp.json(); })
+                    .then(function (recData) {
+                        if (window._cmfSightingChatPayload !== sightingSession) return;
+                        var recResult = recData && recData.d ? recData.d : recData;
+                        if (!recResult || recResult.Success !== true) {
+                            if (evidenceNode) evidenceNode.textContent = (recResult && recResult.Message) ? recResult.Message : 'Unable to generate CMF recommendation.';
+                            if (recommendationNode) recommendationNode.innerHTML = '<span class="sighting-description-error">CMF recommendation unavailable.</span>';
+                            updateCmfAssistantTag('Unavailable');
+                            return;
+                        }
+                        if (qualityNode) qualityNode.textContent = 'Sighting quality and CMF readiness';
+                        updatePendingRecommendationBadge(payload.cpId, recResult.Recommendation, recResult.OverallQualityScore);
+                        updateCmfAssistantTag(recResult.Recommendation);
+                        if (recommendationNode) recommendationNode.innerHTML = renderCmfAssistantRecommendation(recResult, payload);
+                        if (evidenceNode) evidenceNode.innerHTML = renderMergedCmfRecommendation(recResult, payload);
+                    });
+                });
             })
             .catch(function () {
                 if (window._cmfSightingChatPayload !== sightingSession) return;
-                if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = '<span class="sighting-description-error">Sighting quality assessment unavailable.</span>';
+                if (sightingDescriptionNode && !sightingDescriptionNode.innerHTML) sightingDescriptionNode.innerHTML = '<span class="sighting-description-error">Description unavailable.</span>';
+                if (impactSummaryNode && !impactSummaryNode.innerHTML) impactSummaryNode.innerHTML = '<span class="sighting-description-error">Impact summary unavailable.</span>';
+                if (qualityAssessmentNode && !qualityAssessmentNode.innerHTML) qualityAssessmentNode.innerHTML = '<span class="sighting-description-error">Sighting quality assessment unavailable.</span>';
                 if (recommendationNode) recommendationNode.innerHTML = '<span class="sighting-description-error">CMF recommendation unavailable.</span>';
                 if (evidenceNode) evidenceNode.textContent = 'Error while calling CMF recommendation service.';
                 updateCmfAssistantTag('Unavailable');
@@ -23065,7 +23093,7 @@ td:nth-child(odd), th:nth-child(odd) {
             if (!bullets.length) return html;
             html += '<ul>';
             for (var j = 0; j < bullets.length && j < 6; j++) {
-                html += '<li>' + escapeHtml(bullets[j]) + '</li>';
+                html += '<li>' + renderAssistantRichText(bullets[j]) + '</li>';
             }
             return html + '</ul>';
         }
@@ -23080,8 +23108,9 @@ td:nth-child(odd), th:nth-child(odd) {
             var html = escapeHtml(text || '');
             html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
             html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            html = html.replace(/_(.+?)_/g, '<em>$1</em>');
-            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            html = html.replace(/^((?:&amp;|[A-Za-z0-9\s/()._\-])+?:\s+)/, '<strong>$1</strong>');
+            html = html.replace(/(^|[^\w])_([^_]+)_(?=[^\w]|$)/g, '$1<em>$2</em>');
+            html = html.replace(/(^|[^\w])\*([^*]+)\*(?=[^\w]|$)/g, '$1<em>$2</em>');
             html = html.replace(/~~(.+?)~~/g, '<u>$1</u>');
             return html;
         }
@@ -24195,16 +24224,9 @@ td:nth-child(odd), th:nth-child(odd) {
             var html = '<div class="cmf-assistant-reasoning-copy"><ul>';
             var list = (items || []).filter(function (item) { return item && String(item).trim().length; });
             if (!list.length) list = ['No reasoning returned; review the score details and issue evidence.'];
-            var segmenter = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('en', { granularity: 'sentence' }) : null;
-            var points = [];
-            for (var i = 0; i < list.length; i++) {
-                var sentences = segmenter ? Array.from(segmenter.segment(String(list[i])), function (part) { return part.segment.trim(); }) : [String(list[i]).trim()];
-                for (var sentenceIndex = 0; sentenceIndex < sentences.length; sentenceIndex++) {
-                    if (sentences[sentenceIndex]) points.push(sentences[sentenceIndex]);
-                }
+            for (var pointIndex = 0; pointIndex < list.length && pointIndex < 6; pointIndex++) {
+                html += '<li>' + renderAssistantRichText(list[pointIndex]) + '</li>';
             }
-            if (points.length > 6) points = points.slice(0, 5).concat(points.slice(5).join(' '));
-            for (var pointIndex = 0; pointIndex < points.length; pointIndex++) html += '<li>' + renderAssistantRichText(points[pointIndex]) + '</li>';
             return html + '</ul></div>';
         }
 
@@ -24479,8 +24501,13 @@ td:nth-child(odd), th:nth-child(odd) {
             var id = String((rule || {}).RuleId || '').toUpperCase();
             var evaluation = String((rule || {}).Evaluation || '').replace(/\s+/g, ' ').trim();
             if (id === 'O') {
+                if (/very_sporadic_<\s*10%/i.test(evaluation)) return 'Very rare (<10% of attempts)';
+                if (/sporadic_10%\s*-\s*40%/i.test(evaluation)) return 'Sporadic (10%-40% of attempts)';
+                if (/frequently_50%\s*-\s*90%/i.test(evaluation)) return 'Frequent (50%-90% of attempts)';
+                if (/always_100%/i.test(evaluation)) return 'Consistent (100% of attempts)';
+                if (/\bonce\b/i.test(evaluation)) return 'Single occurrence';
                 var category = evaluation.match(/very_sporadic_<\s*10%|sporadic_10%\s*-\s*40%|frequently_50%\s*-\s*90%|always_100%|\bonce\b/i);
-                if (category) return category[0].replace(/\s+/g, '');
+                if (category) return category[0].replace(/_/g, ' ');
             }
             var evidence = evaluation.match(/\bEvidence\s*:\s*([\s\S]*)$/i);
             if (!evaluation || (evidence && /^missing evidence[.!]?$/i.test(evidence[1].trim()))) {
@@ -24489,10 +24516,26 @@ td:nth-child(odd), th:nth-child(odd) {
             }
             var match = evaluation.match(/^Contributing factor\s*:\s*([\s\S]*?)(?:\.\s*Evidence\s*:|$)/i);
             var factor = (match ? match[1] : (evidence ? '' : evaluation)).replace(/[.!]+$/g, '').trim();
-            if (!factor || factor.length > 84 || factor.split(/\s+/).length > 10 || /^(?:workaround clarity|functional impact evidence|business exposure|customer visibility|repro frequency|detection evidence)$/i.test(factor)) {
+            factor = factor.replace(/\s*\(estimate\)\s*/i, '').trim();
+            if (/context-based/i.test(factor)) factor = 'Assessed from context';
+            if (!factor || /^(?:workaround clarity|functional impact evidence|business exposure|customer visibility|repro frequency|detection evidence)$/i.test(factor)) {
                 return 'Specific factor unavailable';
             }
-            return factor;
+            factor = factor.replace(/_/g, ' ');
+
+            // If factor is a full sentence, distill into crisp phrase
+            var clauseMatch = factor.match(/^([^,;—–]+)/);
+            if (clauseMatch) factor = clauseMatch[1].trim();
+
+            var words = factor.split(/\s+/);
+            if (words.length > 5) {
+                var trimmed = words.slice(0, 5);
+                while (trimmed.length > 2 && /^(?:are|is|was|were|the|a|an|and|or|in|at|to|for|of|with|by|from|below|under|causes?|terminates?)$/i.test(trimmed[trimmed.length - 1])) {
+                    trimmed.pop();
+                }
+                factor = trimmed.join(' ');
+            }
+            return factor.replace(/[.,;:]+$/, '');
         }
 
         function getCmfMissingEvidenceFactorLabel(id) {
@@ -26102,13 +26145,6 @@ Submit
                             <div id="cmfAssistantSightingDescription" class="cmf-assistant-description">-</div>
                         </div>
                     </section>
-                    <section id="cmfAssistantRecommendationSection" class="cmf-assistant-sighting-card" aria-label="CMF recommendation">
-                        <div class="cmf-assistant-text-section cmf-assistant-recommendation-section">
-                            <h3>CMF Recommendation</h3>
-                            <div id="cmfAssistantRecommendationBody">-</div>
-                        </div>
-                    </section>
-                    <div id="cmfAssistantQualityAssessment" class="cmf-assistant-quality-slot" aria-label="Sighting quality assessment"></div>
                     <section id="cmfAssistantImpactSection" class="cmf-assistant-sighting-card" aria-label="Impact summary">
                         <div class="cmf-assistant-text-section cmf-assistant-impact-section">
                             <h3>Impact Summary</h3>
@@ -26117,6 +26153,13 @@ Submit
                             </div>
                         </div>
                     </section>
+                    <section id="cmfAssistantRecommendationSection" class="cmf-assistant-sighting-card" aria-label="CMF recommendation">
+                        <div class="cmf-assistant-text-section cmf-assistant-recommendation-section">
+                            <h3>CMF Recommendation</h3>
+                            <div id="cmfAssistantRecommendationBody">-</div>
+                        </div>
+                    </section>
+                    <div id="cmfAssistantQualityAssessment" class="cmf-assistant-quality-slot" aria-label="Sighting quality assessment"></div>
                     <div id="cmfRecTitleRow" class="ai-summary-meta-row cmf-rec-title-row" style="display:none"><strong>Issue Title:</strong> <span class="cmf-rec-title-text">-</span><span id="cmfRecRecommendation" class="cmf-rec-decision-badge">Generating...</span></div>
                     <div id="cmfRecSightingRow" class="ai-summary-meta-row" style="display:none"><strong>Sighting ID:</strong> <span id="cmfRecCpId">-</span></div>
                     <span id="cmfRecComponent" style="display:none">-</span>

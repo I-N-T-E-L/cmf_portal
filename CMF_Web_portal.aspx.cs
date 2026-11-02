@@ -9529,7 +9529,9 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         string reproducibility,
         string customerDetail,
         string customerOwner,
-        string platform)
+        string platform,
+        string description = null,
+        string impactSummary = null)
     {
         try
         {
@@ -9548,6 +9550,25 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 };
             }
 
+            string hsdContext = BuildPendingRecommendationContext(NormalizePlatformForLookup(resolvedPlatform), cpId, true);
+            if (!string.IsNullOrWhiteSpace(description) || !string.IsNullOrWhiteSpace(impactSummary))
+            {
+                StringBuilder contextEnrichment = new StringBuilder();
+                if (!string.IsNullOrWhiteSpace(description))
+                {
+                    contextEnrichment.AppendLine("PROVEN PROBLEM DESCRIPTION:");
+                    contextEnrichment.AppendLine(description.Trim());
+                    contextEnrichment.AppendLine();
+                }
+                if (!string.IsNullOrWhiteSpace(impactSummary))
+                {
+                    contextEnrichment.AppendLine("PROVEN IMPACT SUMMARY:");
+                    contextEnrichment.AppendLine(impactSummary.Trim());
+                    contextEnrichment.AppendLine();
+                }
+                hsdContext = contextEnrichment.ToString() + hsdContext;
+            }
+
             CmfRecommendationRequest request = new CmfRecommendationRequest
             {
                 CpId = cpId,
@@ -9561,7 +9582,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 CustomerDetail = customerDetail,
                 CustomerOwner = customerOwner,
                 Rules = CmfRecommendationService.GetActiveRulesText(),
-                HsdContext = BuildPendingRecommendationContext(NormalizePlatformForLookup(resolvedPlatform), cpId, true)
+                HsdContext = hsdContext
             };
 
             return CmfRecommendationService.GenerateCmfPendingRecommendation(request);
@@ -9850,7 +9871,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
     }
 
     [WebMethod]
-    public static AiSummaryResponse GetSightingImpactSummary(string cpId, string title, string impact, string platform)
+    public static AiSummaryResponse GetSightingImpactSummary(string cpId, string title, string impact, string platform, string description = null)
     {
         try
         {
@@ -9867,6 +9888,12 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
             string dbContext = BuildIssueSummaryContext(platform, cpId);
 
             StringBuilder contextBuilder = new StringBuilder();
+            if (!string.IsNullOrWhiteSpace(description))
+            {
+                contextBuilder.AppendLine("Problem Description:");
+                contextBuilder.AppendLine(description.Trim());
+                contextBuilder.AppendLine();
+            }
             if (!string.IsNullOrWhiteSpace(dbContext))
             {
                 contextBuilder.AppendLine(dbContext);
