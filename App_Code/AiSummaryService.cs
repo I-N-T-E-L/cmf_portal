@@ -2251,7 +2251,7 @@ public static class AiSummaryService
         impact = SafeText(impact);
         contextDetails = SafeText(contextDetails);
 
-        string hash = ComputeHash("sighting-impact-v17-expanded-purpose|" + GetAiProviderCacheSignature() + "|" + sightingId + "|" + title + "|" + impact + "|" + contextDetails);
+        string hash = ComputeHash("sighting-impact-v19-grounded-consequences|" + GetAiProviderCacheSignature() + "|" + sightingId + "|" + title + "|" + impact + "|" + contextDetails);
         string cacheKey = "sighting-impact:" + hash;
 
         using (CmfAssistantResponseCache.Enter(cacheKey))
@@ -2281,6 +2281,11 @@ public static class AiSummaryService
         string summary = hasModelSummary
             ? CleanupSightingImpactSummary(modelSummary)
             : BuildDeterministicImpactSummary(title, impact, contextDetails);
+        if (!IsUsefulSightingImpactSummary(summary))
+        {
+            hasModelSummary = false;
+            summary = BuildDeterministicImpactSummary(title, impact, contextDetails);
+        }
 
         AiSummaryResponse result = new AiSummaryResponse
         {
@@ -2407,7 +2412,7 @@ public static class AiSummaryService
     private static string BuildSightingImpactPrompt(string sightingId, string title, string impact, string contextDetails)
     {
         StringBuilder builder = new StringBuilder();
-        builder.AppendLine("Explain WHO is affected and WHAT practical work or outcome is disrupted, using one or two descriptive bullets starting with '- ', with one or two complete sentences per bullet and approximately 70-95 words total when supported. Prioritize documented customer, user, validation or milestone consequences from Customer Summary, Customer Impact, CMF Impact and comments. Explain the immediate disruption and its documented downstream effect or scope so managers can understand why it matters. Give each bullet a different consequence; do not repeat the same blockage in different words or add filler to reach the word budget. Use only supported business/program effects and distinguish possible effects with 'could'. Do not expose database identifiers, raw field names or internal configuration dumps. Do not invent schedule, revenue or deployment consequences.");
+        builder.AppendLine("Write one or two concise '- ' bullets stating the affected customer/team/user and the specific work or outcome disrupted. Aim for 25-60 words TOTAL, and use one short bullet when the evidence supports only one consequence. Prioritize the written Impact, Customer Summary, Customer Impact and technical comments. Name the affected activity, such as Type-C validation or daily testing, when needed to make the consequence concrete. Do not pad the answer with generic readiness, business exposure or end-user disruption claims. Add a second bullet only for a distinct source-supported consequence. Distinguish an explicitly documented block from a possible consequence using 'could'. Do not invent data loss, recovery actions, production stops, schedule delays, financial effects or wider customer exposure. Priority labels alone do not prove these consequences.");
         builder.AppendLine("Problem Description owns the symptom and trigger; Reasoning owns the tradeoff of frequency, severity, recovery and CX behind the tag. Do not retell the failure or trigger, list affected devices/configurations, state failure rates, explain recovery mechanisms or their absence, quote metric scores, discuss diagnostic findings, recommend a tag or add a generic review reminder. A recovery burden may be mentioned only when the source explicitly documents a distinct operational consequence such as service intervention; never add a mandatory recovery bullet.");
         builder.AppendLine("Do not include requested fix timing inside the bullets. After the bullets, add a separate final line exactly in this format when a requested timing exists in Must Fix For, Drivers, Impact, or related context: Fix By: <timing>. If no requested timing is present, omit this line.");
         builder.AppendLine();
@@ -2422,7 +2427,7 @@ public static class AiSummaryService
         }
         builder.AppendLine();
         builder.AppendLine("Return only the impact summary bullet points and optional Fix By line. Do not include headings, markdown emphasis, or field-name dumps.");
-        builder.AppendLine("Final check: each bullet should contain only the affected stakeholder and the practical consequence. Do not add a 'because' or 'due to' clause retelling the technical fault. Do not name ports, protocols, peripherals, test triggers, reset actions or diagnostic details. For example, a documented validation block can be stated as the customer validation team being unable to complete its planned exit; do not copy that example unless supported by this source. Preserve any material limits or uncertainty on the consequence.");
+        builder.AppendLine("Final check: each bullet must identify an affected stakeholder and a concrete supported consequence, without retelling the failure or listing hardware, debug details or generic review tasks. Keep the name of the affected validation/work activity when useful. Preserve uncertainty and do not claim a milestone exit is blocked unless the source actually says so. If no practical consequence is documented, state that once rather than inventing one.");
         return builder.ToString();
     }
 
@@ -2602,6 +2607,13 @@ public static class AiSummaryService
         return value == '.' || value == '!' || value == '?' || value == ';' || value == ':' || value == ',';
     }
 
+    private static bool IsUsefulSightingImpactSummary(string text)
+    {
+        return !string.IsNullOrWhiteSpace(text)
+            && text.Split((char[])null, StringSplitOptions.RemoveEmptyEntries).Length <= 70
+            && !System.Text.RegularExpressions.Regex.IsMatch(text, @"\b(?:PLAT\d+|platform\.[a-z0-9_.]+|[a-z0-9_-]+\.sys|[A-Z]{2,}_[A-Z_]+|stack frames?)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    }
+
     private static string CleanupSightingImpactSummary(string text)
     {
         if (string.IsNullOrWhiteSpace(text)) return string.Empty;
@@ -2709,9 +2721,9 @@ public static class AiSummaryService
     {
         if (IsReviewerReadySentence(text)) return true;
         string line = SafeText(text).Trim();
-        return line.Length >= 35
+        return line.Length >= 15
             && System.Text.RegularExpressions.Regex.IsMatch(line, @"[.!?]$")
-            && System.Text.RegularExpressions.Regex.IsMatch(line, @"\b(cannot|can't|can|could|may|must|will|would|need|needs|lose|loses|lost|delay|delays|interrupt|interrupts)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            && System.Text.RegularExpressions.Regex.IsMatch(line, @"\b(is|are|has|have|blocks?|blocked|cannot|can't|can|could|may|must|will|would|need|needs|lose|loses|lost|delay|delays|interrupt|interrupts)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
     }
 
     private static List<string> SplitSentences(string text)
@@ -2814,9 +2826,7 @@ public static class AiSummaryService
     {
         Dictionary<string, string> contextMap = ParseContextDetails(contextDetails);
         string customerImpact = FirstContextValue(contextMap, "Customer Impact", "Promoted Issue Customer Impact");
-        string component = FirstContextValue(contextMap, "Component");
-        string reproducibility = FirstContextValue(contextMap, "Reproducibility");
-        string platform = FirstContextValue(contextMap, "Context Platform Table", "Operating System", "Processor");
+        string customerSummary = FirstContextValue(contextMap, "Customer Summary");
         string fixRequestedBy = FirstContextValue(contextMap, "Must Fix For", "Drivers");
         if (string.IsNullOrWhiteSpace(fixRequestedBy)) fixRequestedBy = ExtractImpactFixTiming(impact + "\n" + contextDetails);
 
@@ -2825,22 +2835,18 @@ public static class AiSummaryService
         {
             bullets.Add(BuildImpactConsequenceSentence(RemoveFixTimingFromImpactText(impact.Trim()), customerImpact));
         }
-        else if (!string.IsNullOrWhiteSpace(customerImpact))
+        else if (!string.IsNullOrWhiteSpace(customerSummary))
         {
-            bullets.Add("This issue affects the customer and end-user experience by creating a " + customerImpact.Trim() + " disruption in the reported usage scenario.");
+            bullets.Add(BuildImpactConsequenceSentence(RemoveFixTimingFromImpactText(customerSummary), string.Empty));
+        }
+        else if (!string.IsNullOrWhiteSpace(customerImpact) && !System.Text.RegularExpressions.Regex.IsMatch(customerImpact, @"^\s*\d*\s*[-:]?\s*(?:high|critical|medium|low|none)\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+        {
+            bullets.Add(BuildImpactConsequenceSentence(RemoveFixTimingFromImpactText(customerImpact), string.Empty));
         }
         else
         {
-            bullets.Add("This issue creates customer-facing disruption in the reported usage scenario, but the written impact details are limited.");
+            bullets.Add("Specific customer or business consequences are not documented in the supplied records.");
         }
-        if (!string.IsNullOrWhiteSpace(component)) bullets.Add("It places extra attention on the " + component.Trim() + " area for customer readiness.");
-        if (!string.IsNullOrWhiteSpace(platform)) bullets.Add("The platform context is " + platform.Trim() + ".");
-        if (!string.IsNullOrWhiteSpace(reproducibility))
-        {
-            bullets.Add("Its reported " + reproducibility.Trim() + " occurrence increases validation and business attention.");
-        }
-
-        bullets.Add(BuildRecoveryMechanismBullet(impact + " " + contextDetails));
 
         StringBuilder summary = new StringBuilder();
         for (int i = 0; i < bullets.Count && i < 4; i++)
@@ -2872,7 +2878,9 @@ public static class AiSummaryService
         }
 
         string cleanedImpact = impact.Trim().TrimEnd('.', ';', ':');
-        return "This issue disrupts the customer or end-user workflow by turning the reported behavior into a usability, validation, or readiness concern: " + cleanedImpact + ".";
+        if (string.IsNullOrWhiteSpace(cleanedImpact)) return "Specific customer or business consequences are not documented in the supplied records.";
+        cleanedImpact = System.Text.RegularExpressions.Regex.Replace(cleanedImpact, @"^(?:block|blocks|blocking|blocked)\s+(?:the\s+)?customer\s+(?:(?:from|doing|to|do)\s+)?", "The customer is blocked from completing ", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return char.ToUpperInvariant(cleanedImpact[0]) + cleanedImpact.Substring(1) + ".";
     }
 }
 

@@ -89,9 +89,9 @@ function toggleSidebar() {
         control.trigger.setAttribute('aria-label', control.label + ': ' + control.text.textContent);
     }
 
-    function choose(control, index) {
+    function choose(control, index, toggleSelection) {
         if (!control.select.options[index] || control.select.options[index].disabled) return;
-        if (control.select.multiple) {
+        if (control.select.multiple && toggleSelection) {
             var option = control.select.options[index];
             option.selected = !option.selected;
             if (!option.value) {
@@ -180,7 +180,7 @@ function toggleSidebar() {
                 button.addEventListener('click', function (event) {
                     event.preventDefault();
                     if (control.select.multiple) event.stopPropagation();
-                    choose(control, index);
+                    choose(control, index, check.contains(event.target));
                 });
                 list.appendChild(button);
                 if (String(index) === focusedIndex) button.focus();

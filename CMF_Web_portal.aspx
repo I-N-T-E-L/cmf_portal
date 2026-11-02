@@ -24177,8 +24177,6 @@ td:nth-child(odd), th:nth-child(odd) {
             html += renderCmfMetricChips(rules);
             html += '</div>';
             html += '<div class="cmf-assistant-reasoning-box"><h4>Reasoning</h4>' + renderCmfReasoningBullets(reasons) + '</div>';
-            html += renderCmfDecisionSources(result);
-            if (result.EvidenceReviewStatus === 'NeedsReview') html += '<div class="ai-summary-meta-row">' + escapeHtml(result.Message || 'Manual evidence review required.') + '</div>';
             html += '</div>';
             return html;
         }
@@ -25436,13 +25434,9 @@ td:nth-child(odd), th:nth-child(odd) {
             filterCmfPendingRows();
         }
 </script>
-    <script src="Scripts/cmf-portal-main.js?v=20261030-native-sidebar-scroll"></script>
+    <script src="Scripts/cmf-portal-main.js?v=20261102-filter-label-selection"></script>
 
-<<<<<<< HEAD
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261029-pending-compact-columns-5" />
-=======
     <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261030-native-sidebar-scroll" />
->>>>>>> 951bc3201eb3b01033df6c9d5630c98c06fcbcfb
 
 </head>
 
