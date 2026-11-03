@@ -227,7 +227,11 @@ test('record-type controls are hidden only for Pending summary-card popups', () 
 });
 
 test('issue-count popup requests share record-type filters and ignore stale responses', async () => {
-    assert.match(page, /includeDuplicates: sourceType !== 'trend-week'/);
+    const duplicateDefault = page.match(/includeDuplicates:\s*(sourceType[^\r\n,]+)/);
+    assert.ok(duplicateDefault);
+    for (const [sourceType, expected] of [['summary', true], ['overall-heatmap', false], ['trend-week', false]]) {
+        assert.equal(vm.runInNewContext(duplicateDefault[1], { sourceType }), expected);
+    }
     assert.match(page, /checkbox\.checked = window\.CMF_PORTAL\.summaryIssuesPopupState\[toggle\.key\] !== false/);
     const requests = [];
     const rendered = [];

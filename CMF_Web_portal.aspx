@@ -19282,7 +19282,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 showOpen: initialTrendStatus.showOpen,
                 showClosed: initialTrendStatus.showClosed,
                 includeUnique: true,
-                includeDuplicates: sourceType !== 'trend-week',
+                includeDuplicates: sourceType !== 'trend-week' && sourceType !== 'overall-heatmap',
                 sourceType: sourceType,
                 ingredient: popupOptions && popupOptions.ingredient ? String(popupOptions.ingredient || '').trim() : '',
                 platformLabel: popupOptions && popupOptions.platformLabel ? String(popupOptions.platformLabel || '').trim() : '',
