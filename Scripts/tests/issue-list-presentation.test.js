@@ -9,6 +9,93 @@ const page = fs.readFileSync(path.join(root, 'CMF_Web_portal.aspx'), 'utf8');
 const server = fs.readFileSync(path.join(root, 'CMF_Web_portal.aspx.cs'), 'utf8');
 const theme = fs.readFileSync(path.join(root, 'Content', 'cmf-portal-theme.css'), 'utf8');
 
+test('ingredient risk heatmap orders platforms by descending total without misaligning cells', () => {
+    const host = { innerHTML: '', querySelectorAll: () => [], querySelector: () => null };
+    const portal = { overallRiskSubtractLos: false };
+    const context = vm.createContext({
+        document: { getElementById: () => host },
+        window: { CMF_PORTAL: portal },
+        normalizeComponentRiskThresholds: () => ({ low: 0, med: 3, high: 6 }),
+        getOverallHeatClassFromOpenUniqueByThreshold: value => 'risk-' + value,
+        escapeHtml: value => String(value)
+    });
+    const definition = page.match(/        function renderOverallHeatmap\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    vm.runInContext(definition[0], context);
+    const snapshot = {
+        HeatmapPlatforms: ['Zero', 'Beta', 'Alpha', 'Top', 'Blank'],
+        ComponentRiskHeatmap: [
+            { Ingredient: 'Driver', Values: [0, 3, 2, 6], StatusBreakdowns: ['', 'Beta Driver LOS: 2', 'Alpha Driver LOS: 1', 'Top Driver LOS: 6'] },
+            { Ingredient: 'Firmware', Values: [0, 1, 2, 1], StatusBreakdowns: ['', 'Beta Firmware', 'Alpha Firmware', 'Top Firmware'] }
+        ]
+    };
+    const original = JSON.stringify(snapshot);
+    for (const subtractLos of [false, true]) {
+        portal.overallRiskSubtractLos = subtractLos;
+        context.renderOverallHeatmap(snapshot);
+        const headers = Array.from(host.innerHTML.matchAll(/class="overall-heatmap-platform">([^<]*)/g), match => match[1]);
+        assert.deepEqual(headers, ['Top', 'Alpha', 'Beta', 'Blank', 'Zero']);
+        const tiles = Array.from(host.innerHTML.matchAll(/<div class="overall-heatmap-tile ([^"]*)"([^>]*)>([^<]*)<\/div>/g));
+        assert.deepEqual(tiles.map(tile => tile[3]), subtractLos
+            ? ['6 (6)', '2 (1)', '3 (2)', '0', '0', '1', '2', '1', '0', '0']
+            : ['6', '2', '3', '0', '0', '1', '2', '1', '0', '0']);
+        assert.ok(tiles[0][1].includes(subtractLos ? 'risk-0' : 'risk-6'));
+        for (const [tileIndex, platform, ingredient] of [[0, 'Top', 'Driver'], [1, 'Alpha', 'Driver'], [2, 'Beta', 'Driver'], [5, 'Top', 'Firmware'], [6, 'Alpha', 'Firmware'], [7, 'Beta', 'Firmware']]) {
+            assert.ok(tiles[tileIndex][2].includes('data-platform-label="' + platform + '"'));
+            assert.ok(tiles[tileIndex][2].includes('data-ingredient="' + ingredient + '"'));
+            assert.ok(tiles[tileIndex][2].includes('title="' + platform + ' ' + ingredient));
+        }
+        assert.equal(JSON.stringify(snapshot), original);
+    }
+    context.renderOverallHeatmap({ HeatmapPlatforms: [], ComponentRiskHeatmap: [] });
+    assert.ok(host.innerHTML.includes('No heatmap data available.'));
+});
+
+test('OEM rolling-week trends display signed request counts and red increases instead of percentages', () => {
+    const host = { innerHTML: '' };
+    const context = vm.createContext({
+        document: { getElementById: () => host },
+        escapeHtml: value => String(value),
+        renderOverallOemNameCell: value => String(value)
+    });
+    const definition = page.match(/        function renderOverallOemTable\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    vm.runInContext(definition[0], context);
+    context.renderOverallOemTable([
+        { OemName: 'Increase', OpenIssues: 3, TrendCount: 5, RecentRequestCount: 15, PreviousRequestCount: 10 },
+        { OemName: 'Decrease', OpenIssues: 2, TrendCount: -3, RecentRequestCount: 7, PreviousRequestCount: 10 },
+        { OemName: 'Flat', OpenIssues: 1, TrendCount: 0, RecentRequestCount: 2, PreviousRequestCount: 2 },
+        { OemName: 'New', OpenIssues: 0, TrendCount: 2, RecentRequestCount: 2, PreviousRequestCount: 0 }
+    ]);
+    const trends = Array.from(host.innerHTML.matchAll(/<span class="overall-oem-trend ([^"]*)" title="([^"]*)">[\s\S]*?<span class="overall-oem-trend-value">([^<]*)<\/span>/g));
+    assert.deepEqual(trends.map(trend => trend[3]), ['+5', '-3', '0', '+2']);
+    assert.deepEqual(trends.map(trend => trend[1]), ['overall-trend-up', 'overall-trend-down', 'overall-trend-flat', 'overall-trend-up']);
+    assert.ok(trends[0][2].includes('last 7 days (including today): 15; previous 7 days: 10; change: +5'));
+    assert.ok(trends[3][2].includes('previous 7 days: 0; change: +2'));
+    assert.ok(trends.every(trend => !trend[3].includes('%')));
+    assert.ok(host.innerHTML.includes('(7d vs Previous 7d)'));
+    assert.match(page, /\.overall-oem-trend\s*\{[^}]*display:\s*inline-flex;[^}]*column-gap:\s*0\.5em;[^}]*justify-content:\s*center;/);
+    assert.match(page, /\.overall-oem-trend-arrow:empty\s*\{\s*display:\s*none;/);
+    const trendValueStyle = page.match(/\.overall-oem-trend-value\s*\{([^}]*)\}/);
+    assert.ok(trendValueStyle && !/min-width/.test(trendValueStyle[1]));
+    assert.match(page, /\.overall-trend-up\s*\{\s*color:\s*#b42318;/);
+    assert.match(page, /\.overall-trend-down\s*\{\s*color:\s*#067647;/);
+    context.renderOverallOemTable([]);
+    assert.ok(host.innerHTML.includes('No OEM/customer summary data available.'));
+});
+
+test('OEM request trends use fixed rolling windows separately from dashboard-filtered totals', () => {
+    const definition = server.match(/    private void PopulateOverallOemSummary\([^)]*\)[\s\S]*?\r?\n    \}/);
+    assert.ok(definition);
+    assert.match(definition[0], /overallComponentSourceSql = BuildDashboardComponentSourceSql\(OverallDashboardPlatformTable, true\)/);
+    assert.match(definition[0], /overallTrendSourceSql = BuildDashboardComponentSourceSql\(OverallDashboardPlatformTable\)/);
+    assert.match(definition[0], /ask_date >= DATEADD\(DAY, -6, @today\)\s+AND ask_date < DATEADD\(DAY, 1, @today\)/);
+    assert.match(definition[0], /ask_date >= DATEADD\(DAY, -13, @today\)\s+AND ask_date < DATEADD\(DAY, -6, @today\)/);
+    assert.match(definition[0], /ISNULL\(t\.recent_requests, 0\) - ISNULL\(t\.previous_requests, 0\) AS trend_count/);
+    assert.match(definition[0], /command\.Parameters\.Add\("@today", SqlDbType\.Date\)\.Value = DateTime\.Today/);
+    assert.doesNotMatch(definition[0], /DATEPART\(WEEKDAY|trend_percent/);
+});
+
 test('header stays outside native workspace horizontal scrolling without JavaScript correction', () => {
     const mainScript = fs.readFileSync(path.join(root, 'Scripts', 'cmf-portal-main.js'), 'utf8');
     assert.match(page, /<\/header>[\s\S]*?<div class="container-scroller">/);
@@ -308,6 +395,114 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.equal(JSON.stringify(options[6].series), JSON.stringify(options[2].series));
 });
 
+['homeOverallTrendChart', 'homeTrendChart'].forEach(hostId => test('filtered ' + hostId + ' trends disable the week selector and preserve the full filtered timeline and week offsets', () => {
+    let option;
+    const popups = [];
+    const view = { value: 'line' };
+    const dateMode = { value: '7days' };
+    const rangeSelector = { value: '6', disabled: false, parentElement: { style: { display: '' } } };
+    const otherRangeSelector = { value: '6', disabled: false, parentElement: { style: { display: '' } } };
+    const rangeSelectorId = hostId === 'homeOverallTrendChart' ? 'homeOverallTrendRange' : 'homeSpecificTrendRange';
+    const chart = {
+        setOption: value => { option = value; },
+        on() {}, off() {}, resize() {},
+        getZr: () => ({ on() {}, off() {} }),
+        containPixel: () => true,
+        convertFromPixel: () => 0
+    };
+    const context = vm.createContext({
+        document: {
+            getElementById: id => id.indexOf('ddlDashboardDateMode') >= 0 ? dateMode
+                : (id === rangeSelectorId ? rangeSelector : (/TrendRange$/.test(id) ? otherRangeSelector : (/TrendView$/.test(id) ? view : {}))),
+            body: {}
+        },
+        window: { CMF_PORTAL: { ids: {}, currentPlatform: 'Overall' } },
+        echarts: { init: () => chart },
+        getComputedStyle: () => ({ fontFamily: 'Cambria' }),
+        getTextById: () => '',
+        escapeHtml: value => String(value),
+        openTrendWeekIssueLinksPopup: (...args) => popups.push(args)
+    });
+    const definition = page.match(/        function renderHomeTrendChart\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    vm.runInContext(definition[0], context);
+    const snapshot = { Trend: Array.from({ length: 12 }, (_, index) => ({
+        WeekLabel: 'WW' + index,
+        WeekEndOpenIssues: index === 10 ? 2 : 0,
+        WeekEndImplementedIssues: index === 2 ? 4 : 0,
+        NewIssues: 0,
+        ResolvedIssues: index === 3 ? 3 : 0
+    })) };
+    const original = JSON.stringify(snapshot);
+    for (const chartType of ['line', 'bar']) {
+        view.value = chartType;
+        const start = chartType === 'line' ? 1 : 3;
+        const expected = snapshot.Trend.slice(start).map(item => item.WeekLabel);
+        for (const mode of ['today', '7days', '30days', '12months', 'custom']) {
+            dateMode.value = mode;
+            context.renderHomeTrendChart(snapshot, hostId, 'trendChart', 6);
+            assert.equal(rangeSelector.disabled, true);
+            assert.equal(rangeSelector.parentElement.style.display, 'none');
+            assert.deepEqual(Array.from(option.xAxis.data), expected);
+            context.renderHomeTrendChart(snapshot, hostId, 'trendChart', 12);
+            assert.deepEqual(Array.from(option.xAxis.data), expected);
+            for (const series of option.series) {
+                assert.equal(series.data[0].weekOffset, 11 - start);
+                assert.equal(series.data.at(-1).weekOffset, 0);
+                assert.equal(series.data.at(-1).value, 0);
+            }
+            chart.__cmfTrendLastAxisIndex = 0;
+            if (chartType === 'line') {
+                assert.ok(option.series.every(series => series.data[0].value === 0));
+                const popupCount = popups.length;
+                chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
+                assert.equal(popups.length, popupCount);
+                chart.__cmfTrendLastAxisIndex = 1;
+            }
+            chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
+            const populatedIndex = chartType === 'line' ? start + 1 : start;
+            assert.deepEqual(popups.at(-1), [chartType === 'line' ? 'Open and Implemented' : 'All', 'WW' + populatedIndex, 11 - populatedIndex]);
+        }
+        dateMode.value = 'all';
+        for (const weeks of [6, 12]) {
+            rangeSelector.value = String(weeks);
+            context.renderHomeTrendChart(snapshot, hostId, 'trendChart', weeks);
+            assert.equal(rangeSelector.disabled, false);
+            assert.equal(rangeSelector.parentElement.style.display, '');
+            assert.deepEqual(Array.from(option.xAxis.data), snapshot.Trend.slice(-weeks).map(item => item.WeekLabel));
+        }
+        dateMode.value = '7days';
+        context.renderHomeTrendChart(snapshot, hostId, 'trendChart', 6);
+        assert.equal(rangeSelector.value, '12');
+        assert.equal(rangeSelector.disabled, true);
+        assert.equal(rangeSelector.parentElement.style.display, 'none');
+        assert.deepEqual(Array.from(option.xAxis.data), expected);
+        assert.equal(otherRangeSelector.disabled, false);
+        assert.equal(otherRangeSelector.parentElement.style.display, '');
+    }
+    assert.equal(JSON.stringify(snapshot), original);
+    const emptySnapshot = { Trend: snapshot.Trend.map(item => ({ WeekLabel: item.WeekLabel })) };
+    context.renderHomeTrendChart(emptySnapshot, hostId, 'trendChart', 6);
+    assert.deepEqual(Array.from(option.xAxis.data), ['WW11']);
+    assert.ok(option.series.every(series => series.data[0].value === 0 && series.data[0].weekOffset === 0));
+    context.renderHomeTrendChart({ Trend: [] }, hostId, 'trendChart', 6);
+    assert.equal(option.xAxis.data.length, 0);
+    context.renderHomeTrendChart({ Trend: [{ WeekLabel: 'Only', ResolvedIssues: 2 }] }, hostId, 'trendChart', 6);
+    assert.deepEqual(Array.from(option.xAxis.data), ['Only']);
+    assert.equal(option.series[1].data[0].weekOffset, 0);
+    view.value = 'line';
+    for (const trend of [
+        emptySnapshot.Trend,
+        [],
+        [{ WeekLabel: 'Only', WeekEndOpenIssues: 2 }],
+        [{ WeekLabel: 'Zero' }, { WeekLabel: 'Rise', WeekEndOpenIssues: 2 }]
+    ]) {
+        context.renderHomeTrendChart({ Trend: trend }, hostId, 'trendChart', 6);
+        const expected = trend.length === 12 ? ['WW11'] : trend.map(item => item.WeekLabel);
+        assert.deepEqual(Array.from(option.xAxis.data), expected);
+    }
+}));
+
 test('Overall week-end line uses summary-card scope and current status buckets without duplicates', () => {
     assert.match(server, /string weekEndSourceSql = "\(SELECT \* FROM " \+ BuildDashboardComponentSourceSql\(dashboardPlatform, true\)/);
     assert.match(server, /WHERE cmf_request = 'cmf_ok' AND sysdebug LIKE '%customer_must_fix%'/);
@@ -320,6 +515,17 @@ test('Overall week-end line uses summary-card scope and current status buckets w
     const drilldown = server.match(/    public static SummaryIssueLinksResponse GetTrendWeekIssueLinks\([^)]*\)[\s\S]*?\r?\n    \}/);
     assert.ok(drilldown);
     assert.match(drilldown[0], /if \(!isWeekEndBalance\)\s*\{\s*AppendDashboardDriverFilter\(baseWhere, driverFilterValue\);\s*AppendDashboardColumnFilters\(baseWhere, columnFilters\);/);
+});
+
+test('all record-type drilldowns show the CMF request field separately from issue status', () => {
+    const details = server.match(/    private DataTable GetSummaryMetricIssueDetailsData\([^)]*\)[\s\S]*?\r?\n    \}/);
+    const grid = page.match(/<asp:GridView ID="GridView_summaryMetricIssues"[\s\S]*?<\/asp:GridView>/);
+    assert.ok(details);
+    assert.ok(grid);
+    assert.match(details[0], /ISNULL\(NULLIF\(LTRIM\(RTRIM\(issue_src\.cmf_request\)\), ''\), 'N\/A'\) AS CmfRequest/);
+    assert.match(grid[0], /DataField="Status" HeaderText="Status"\s*\/>\s*<asp:BoundField DataField="CmfRequest" HeaderText="CMF Request"/);
+    assert.match(page, /GridView_summaryMetricIssues td:nth-child\(21\)/);
+    assert.match(page, /var canOpenSummaryMetricDetails = !isPendingSummaryMetric/);
 });
 
 test('Overall summary detail freeze dates use platform-aware metadata without multiplying design rows', () => {
