@@ -11,7 +11,7 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" />
-    <link rel="stylesheet" href="Content/cmf-portal.css">
+    <link rel="stylesheet" href="Content/cmf-portal.css?v=20261103-sticky-headers">
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
@@ -199,6 +199,13 @@
         }
         .issue-details-grid-full {
             grid-column: 1 / -1;
+        }
+        .ai-sk-block {
+            background: #f8fbfe;
+            border: 1px solid #e2edf8;
+            border-radius: 8px;
+            padding: 8px 12px;
+            box-shadow: 0 1px 3px rgba(15, 94, 168, 0.04);
         }
         .idg-label {
             font-size: 11px;
@@ -1666,7 +1673,8 @@
     display: table-cell !important;
     visibility: visible !important;
     opacity: 1 !important;
-    position: relative !important;
+    position: sticky !important;
+    top: 0 !important;
     z-index: 102 !important;
     text-align: left !important;
     font-weight: 800 !important;
@@ -1720,7 +1728,9 @@
 }
 
 #overall_request_details th .filter-container {
-    display: none !important;
+    display: block !important;
+    width: 100% !important;
+    margin-top: 3px !important;
 }
 
 .empty-data-container .filter-container {
@@ -2791,19 +2801,20 @@
     position: fixed;
     top: 0;
     right: 0;
-    width: 560px;
+    width: min(980px, 50vw);
     max-width: 94vw;
     height: 100%;
     background:
-        radial-gradient(circle at top right, rgba(124, 58, 237, 0.12), transparent 34%),
-        linear-gradient(180deg, #ffffff 0%, #f6f9fd 100%);
+        radial-gradient(circle at 12% 0%, rgba(40, 118, 240, 0.14), transparent 28%),
+        linear-gradient(180deg, #ffffff 0%, #f4f9ff 100%);
+    background-color: #f7fbff;
     box-shadow: -18px 0 42px rgba(8, 25, 49, 0.24);
     transform: translateX(100%);
     transition: transform 0.28s ease;
     z-index: 1061;
-    overflow: hidden;
-    padding: 24px;
-    border-left: 1px solid rgba(205, 217, 229, 0.9);
+    overflow-y: auto;
+    padding: 18px 20px 20px;
+    border-left: 1px solid rgba(172, 199, 231, 0.92);
     display: flex;
     flex-direction: column;
 }
@@ -2813,35 +2824,34 @@
 }
 
 .ai-summary-chat {
-    border-top: 1px solid rgba(205,217,229,0.8);
-    background: #fff;
-    padding: 12px 24px;
-    margin: 0 -24px -24px -24px;
+    border-top: 1px solid #d8e7f5;
+    background: transparent;
+    padding: 10px 0 0 0;
+    margin: 8px 0 0 0;
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
 }
 .ai-chat-messages {
-    /* make the chat area take most of the drawer height to feel like a chatbot */
     flex: 1 1 auto;
-    min-height: calc(100vh - 330px);
+    min-height: calc(100vh - 310px);
     max-height: none;
     overflow-y: auto;
-    padding: 8px;
+    padding: 4px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-bottom: 24px;
+    margin-bottom: 12px;
 }
-.ai-chat-message { display:flex; flex-direction:column; margin-bottom:12px; font-size:14px; line-height:1.5; }
-.ai-chat-message.ai-chat-assistant .ai-chat-message-body { background:#f1f5f9; color:#1a202c; padding:14px 16px; border-radius:12px; max-width:96%; border-left: 4px solid #005A9E; box-shadow: 0 4px 6px rgba(0,0,0,0.05); align-self: flex-start; }
+.ai-chat-message { display:flex; flex-direction:column; margin-bottom:10px; font-size:13px; line-height:1.5; }
+.ai-chat-message.ai-chat-assistant .ai-chat-message-body { background:#ffffff; color:#1a202c; padding:14px 16px; border-radius:12px; max-width:98%; border: 1px solid #d8e7f5; border-left: 4px solid #0f5ea8; box-shadow: 0 4px 12px rgba(15, 94, 168, 0.06); align-self: flex-start; }
 .ai-chat-message.ai-chat-user { align-self:flex-end; max-width: 90%; }
-.ai-chat-message.ai-chat-user .ai-chat-message-body { background:#005A9E; color:#fff; padding:12px 14px; border-radius:12px; max-width:100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-.ai-chat-input { display:flex; gap:10px; align-items:flex-end; margin-top:10px; }
-.ai-chat-input-box { flex:1; min-height:45px; max-height:140px; padding:10px 14px; border-radius:12px; border:1px solid #cbd5e0; resize:vertical; font-size: 14px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); transition: border-color 0.2s; }
-.ai-chat-input-box:focus { border-color: #005A9E; outline: none; }
-.ai-chat-send { background:transparent; border:none; padding:10px 10px; border-radius:50%; cursor:pointer; min-height: 45px; transition: transform 0.1s ease, color 0.2s; color: #0071c5; display: flex; align-items: center; justify-content: center; }
+.ai-chat-message.ai-chat-user .ai-chat-message-body { background:#0f5ea8; color:#fff; padding:10px 14px; border-radius:12px; max-width:100%; box-shadow: 0 4px 10px rgba(15, 94, 168, 0.18); }
+.ai-chat-input { display:flex; gap:8px; align-items:flex-end; margin-top:8px; padding: 8px 10px; border: 1px solid #d7e7fb; border-radius: 8px; background: #ffffff; box-shadow: 0 2px 6px rgba(15, 94, 168, 0.04); }
+.ai-chat-input-box { flex:1; min-height:40px; max-height:120px; padding:8px 12px; border-radius:6px; border:1px solid #cbd5e0; resize:vertical; font-size: 13px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); transition: border-color 0.2s; }
+.ai-chat-input-box:focus { border-color: #0f5ea8; outline: none; }
+.ai-chat-send { background:transparent; border:none; padding:8px; border-radius:50%; cursor:pointer; min-height: 40px; transition: transform 0.1s ease, color 0.2s; color: #0071c5; display: flex; align-items: center; justify-content: center; }
 .ai-chat-send:active { transform: scale(0.95); }
 .ai-chat-send:hover { color: #005A9E; background: rgba(0, 113, 197, 0.1); }
 .ai-chat-send:disabled { color: #a0aec0; cursor: not-allowed; background: transparent; box-shadow: none; }
@@ -2859,13 +2869,23 @@
 }
 
 .ai-summary-drawer-title {
-    margin: 0 0 12px 0;
-    padding-right: 28px;
-    font-size: 22px;
-    color: #1b2a3a;
+    margin: 0 0 10px 0;
+    padding-right: 36px;
+    font-size: 16px;
+    color: #09204a;
+    font-weight: 700;
+    line-height: 1.3;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 10px;
+    flex-wrap: wrap;
+}
+
+.ai-summary-title-badges {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     flex-wrap: wrap;
 }
 
@@ -2873,23 +2893,42 @@
     display: inline-flex;
     align-items: center;
     min-height: 24px;
-    padding: 3px 9px;
+    padding: 4px 10px;
     border-radius: 999px;
-    background: #eef6ff;
-    border: 1px solid #c8def6;
-    color: #0f5ea8;
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 850;
+    border: 1px solid #c8def6;
+    background: #eef6ff;
+    color: #0f5ea8;
+}
+
+.ai-summary-confidence-inline.confidence-high {
+    background: #ecfdf3;
+    border-color: #bbf7d0;
+    color: #15803d;
+}
+
+.ai-summary-confidence-inline.confidence-medium {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #b45309;
+}
+
+.ai-summary-confidence-inline.confidence-low {
+    background: #fff1f2;
+    border-color: #fecdd3;
+    color: #be123c;
 }
 
 .ai-summary-meta-row {
     margin-bottom: 10px;
     color: #23364b;
-    font-size: 13px;
-    padding: 9px 11px;
-    border: 1px solid #e2ebf4;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.72);
+    font-size: 12px;
+    padding: 8px 12px;
+    border: 1px solid #d8e7f5;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 6px 16px rgba(30, 84, 144, 0.05);
 }
 
 .ai-summary-meta-combined {
@@ -7222,16 +7261,19 @@ form,
     max-width: none !important;
 }
 
-.issue-grid-inner #overall_request_details {
+.issue-grid-inner #overall_request_details,
+.cmf-pending-grid-wrap #GridView_cmf_pending {
     border-radius: 12px !important;
-    overflow: hidden !important;
+    overflow: visible !important;
 }
 
 .issue-grid-inner #overall_request_details th,
 .cmf-pending-grid-wrap #GridView_cmf_pending th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20 !important;
+    background: #edf1f7 !important;
+    box-shadow: inset 0 -1px 0 #d0d7de !important;
 }
 
 .issue-grid-inner #overall_request_details td,
@@ -9359,7 +9401,7 @@ td:nth-child(odd), th:nth-child(odd) {
         border-spacing: 0 !important;
         border: 1px solid #e8edf5 !important;
         border-radius: 10px !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         background: #ffffff !important;
         box-shadow: 0 10px 24px rgba(28, 48, 78, 0.05) !important;
     }
@@ -10543,7 +10585,7 @@ td:nth-child(odd), th:nth-child(odd) {
         border-spacing: 0 !important;
         border: 1px solid #e8edf5 !important;
         border-radius: 10px !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         background: #ffffff !important;
         box-shadow: 0 10px 24px rgba(28, 48, 78, 0.05) !important;
     }
@@ -16236,13 +16278,13 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             if (headingNode) {
+                var hsdLinkHtml = (issueId && issueId !== '-') ? '<a class="cmf-assistant-hsd-link" href="https://hsdes.intel.com/appstore/article/#/' + encodeURIComponent(issueId) + '" target="_blank" rel="noopener noreferrer" title="Open sighting ' + escapeHtml(issueId) + ' in HSD" aria-label="Open sighting in HSD"><i class="fas fa-external-link-alt" aria-hidden="true"></i></a>' : '';
                 if (isDetails) {
-                    // Inject sighting ID directly into the heading as requested, and reset original issueId node to not replicate it
-                    headingNode.innerHTML = 'Issue Details <span style="font-size: 14px; font-weight: 500; color: #5c7087; margin-left: 20px;">Sighting ID: ' + (issueId || 'N/A') + '</span>';
+                    headingNode.innerHTML = '<span class="cmf-assistant-title-icon" aria-hidden="true">✨</span>Issue Details <span style="font-size: 13px; font-weight: 600; color: #16385f; margin-left: 14px; display: inline-flex; align-items: center; gap: 6px;">Sighting ID: <strong style="color: #0f5ea8;">' + escapeHtml(issueId || 'N/A') + '</strong>' + hsdLinkHtml + '</span>';
                 } else if (currentMode === 'AI Debug Summary') {
-                    headingNode.textContent = 'AI Debug Summary';
+                    headingNode.innerHTML = '<span class="cmf-assistant-title-icon" aria-hidden="true">✨</span>AI Debug Summary';
                 } else {
-                    headingNode.textContent = currentMode;
+                    headingNode.innerHTML = '<span class="cmf-assistant-title-icon" aria-hidden="true">✨</span>' + escapeHtml(currentMode);
                 }
             }
             if (badgesNode) badgesNode.style.display = isDetails ? 'none' : '';
@@ -16250,13 +16292,27 @@ td:nth-child(odd), th:nth-child(odd) {
             if (factsNode) factsNode.style.display = 'none';
             // Clear or format the meta string depending on mode
             issueIdNode.textContent = isDetails ? '' : (issueId || 'N/A');
+            var hsdLinkNode = document.getElementById('aiSummaryHsdLink');
+            if (hsdLinkNode) {
+                if (!isDetails && issueId && issueId !== '-') {
+                    hsdLinkNode.href = 'https://hsdes.intel.com/appstore/article/#/' + encodeURIComponent(issueId);
+                    hsdLinkNode.style.display = 'inline-flex';
+                    hsdLinkNode.setAttribute('aria-label', 'Open sighting ' + issueId + ' in HSD');
+                    hsdLinkNode.setAttribute('title', 'Open sighting ' + issueId + ' in HSD');
+                } else {
+                    hsdLinkNode.style.display = 'none';
+                }
+            }
 
             // Revert stylize override since it's now in the header itself
             issueIdNode.style.cssText = '';
             if (titleNode) titleNode.textContent = '';
             if (titleRow) titleRow.style.display = 'none';
             dateNode.textContent = submittedDate || 'N/A';
-            if (confidenceNode) confidenceNode.textContent = 'Confidence: --';
+            if (confidenceNode) {
+                confidenceNode.textContent = 'Confidence: --';
+                confidenceNode.className = 'ai-summary-confidence-inline';
+            }
             if (statusBadgeNode) {
                 statusBadgeNode.textContent = 'Status: --';
                 statusBadgeNode.className = 'ai-summary-status-value';
@@ -16296,7 +16352,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 title: title || '',
                 submittedDate: submittedDate || '',
                 status: status || '',
-                sysdebug: sysdebug || '',
+                sysdebug: isDetails ? (sysdebug || '') : '',
                 platform: getIssuePendingPlatformValue(),
                 mode: currentMode
             };
@@ -16376,6 +16432,14 @@ td:nth-child(odd), th:nth-child(odd) {
                 var confidenceNode = document.getElementById('aiSummaryConfidence');
                 if (confidenceNode && preparedSummary.confidence) {
                     confidenceNode.textContent = 'Confidence: ' + preparedSummary.confidence;
+                    var num = parseInt(preparedSummary.confidence, 10);
+                    var confClass = 'ai-summary-confidence-inline';
+                    if (!isNaN(num)) {
+                        if (num >= 80) confClass += ' confidence-high';
+                        else if (num >= 50) confClass += ' confidence-medium';
+                        else confClass += ' confidence-low';
+                    }
+                    confidenceNode.className = confClass;
                 }
                 var statusBadgeNode = document.getElementById('aiSummaryStatusBadge');
                 if (statusBadgeNode) {
@@ -16398,7 +16462,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 // Chat-first UI: hide the standalone body and render the summary as the first assistant message
                 if (!window._aiChatStore) window._aiChatStore = {}; // issueId => [{role,text}, ...]
                 window._aiCurrentIssueId = (payload.issueId || '') + '_' + (payload.mode || 'AI Summary')
-                    + (isDebugSummary ? '_debug-bullets-v8' : '');
+                    + (isDebugSummary ? '_debug-recent-v11' : '');
 
                 var chat = document.getElementById('aiSummaryChat');
                 var messages = document.getElementById('aiSummaryChatMessages');
@@ -16443,9 +16507,22 @@ td:nth-child(odd), th:nth-child(odd) {
 
         function prepareIssueDetailsForDrawer(summary) {
             var text = String(summary || '').replace(/\r/g, '\n').replace(/\*\*/g, '');
-            var getField = function(label) {
+            var getField = function(label, fallbackRegex) {
                 var m = text.match(new RegExp('^(?:-\\s*)?' + label + '\\s*[:\\-]\\s*(.*)$', 'im'));
-                return m ? escapeHtml(m[1].trim()) : 'N/A';
+                if (m && m[1].trim() && m[1].trim() !== '-') {
+                    var val = m[1].trim();
+                    val = val.replace(/^(?:what is happening|problem(?:\s*\/\s*issue)?|current state|scenario(?:\s*\/\s*trigger)?|reproduction|affected platform(?:\s*\/\s*system)?|environment|current investigation|suspected root cause|workaround|evidence(?:\s*\/\s*logs)?)\s*[:\-]\s*/i, '');
+                    return escapeHtml(val.trim());
+                }
+                if (fallbackRegex) {
+                    var m2 = text.match(new RegExp('^(?:-\\s*)?' + fallbackRegex + '\\s*[:\\-]\\s*(.*)$', 'im'));
+                    if (m2 && m2[1].trim() && m2[1].trim() !== '-') {
+                        var val2 = m2[1].trim();
+                        val2 = val2.replace(/^(?:what is happening|where it shows up|who is affected|debug signal)\s*[:\-]\s*/i, '');
+                        return escapeHtml(val2.trim());
+                    }
+                }
+                return 'N/A';
             };
 
             var html = '<div class="issue-details-grid">';
@@ -16453,7 +16530,7 @@ td:nth-child(odd), th:nth-child(odd) {
             // Build badges based on values to colorize them semantically
             var colorBadge = function(val, type) {
                 var v = String(val).toLowerCase();
-                if (v === 'n/a' || v === 'none' || v === 'no' || v === 'unknown' || v === '' || v === 'tbd') return `<span class="ai-semantic-badge badge-neutral">${val}</span>`;
+                if (v === 'n/a' || v === 'none' || v === 'no' || v === 'unknown' || v === '' || v === 'tbd' || v === 'not documented') return `<span class="ai-semantic-badge badge-neutral">${val}</span>`;
                 if (v.includes('not actioned') || v.includes('no promoted ticket yet')) return `<span class="ai-semantic-badge badge-neutral">${val}</span>`;
                 if (v.includes('must fix') || v.includes('must_fix') || v.includes('blocker') || v.includes('critical')) return `<span class="ai-semantic-badge badge-red">${val}</span>`;
 
@@ -16469,18 +16546,18 @@ td:nth-child(odd), th:nth-child(odd) {
                 return val;
             };
 
-            html += `<div class="ai-sk-block"><div class="idg-label">Problem / Issue</div><div class="idg-val">${colorBadge(getField('(?:Problem|Issue).*?'), 'problem')}</div></div>`;
-            html += `<div class="ai-sk-block"><div class="idg-label">Current State</div><div class="idg-val">${colorBadge(getField('Current State'), 'state')}</div></div>`;
-            html += `<div class="ai-sk-block"><div class="idg-label">Scenario / Trigger</div><div class="idg-val">${getField('Scenario.*?')}</div></div>`;
-            html += `<div class="ai-sk-block"><div class="idg-label">Reproduction</div><div class="idg-val">${colorBadge(getField('Reproduction'), 'repro')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Problem / Issue</div><div class="idg-val">${colorBadge(getField('(?:Problem\\s*/\\s*Issue|Problem|Issue).*?', 'What is happening'), 'problem')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Current State</div><div class="idg-val">${colorBadge(getField('Current State', 'Status'), 'state')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Scenario / Trigger</div><div class="idg-val">${getField('(?:Scenario\\s*/\\s*Trigger|Scenario|Trigger).*?', 'Workload|Condition')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Reproduction</div><div class="idg-val">${colorBadge(getField('Reproduction', 'Repro.*'), 'repro')}</div></div>`;
 
-            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Affected Platform / System</div><div class="idg-val">${getField('Affected Platform.*?')}</div></div>`;
-            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Environment</div><div class="idg-val">${getField('Environment.*?')}</div></div>`;
-            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Current Investigation</div><div class="idg-val">${getField('Current Investigation')}</div></div>`;
+            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Affected Platform / System</div><div class="idg-val">${getField('(?:Affected Platform\\s*/\\s*System|Affected Platform|Platform).*?', 'Where it shows up|System')}</div></div>`;
+            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Environment</div><div class="idg-val">${getField('Environment.*?', 'OS|Build|BIOS|Driver')}</div></div>`;
+            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Current Investigation</div><div class="idg-val">${getField('Current Investigation', 'Who is affected|Investigation|Impact')}</div></div>`;
 
-            html += `<div class="ai-sk-block"><div class="idg-label">Suspected Root Cause</div><div class="idg-val">${getField('Suspected Root Cause')}</div></div>`;
-            html += `<div class="ai-sk-block"><div class="idg-label">Workaround</div><div class="idg-val">${colorBadge(getField('Workaround'), 'workaround')}</div></div>`;
-            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Evidence / Logs</div><div class="idg-val">${getField('Evidence.*?')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Suspected Root Cause</div><div class="idg-val">${getField('Suspected Root Cause', 'Root Cause')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Workaround</div><div class="idg-val">${colorBadge(getField('Workaround', 'Mitigation'), 'workaround')}</div></div>`;
+            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Evidence / Logs</div><div class="idg-val">${getField('(?:Evidence\\s*/\\s*Logs|Evidence|Logs).*?', 'Debug signal')}</div></div>`;
 
             html +=`</div>`; // end grid
 
@@ -16489,7 +16566,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var isPromoted = promotedId !== 'N/A' && promotedId.toLowerCase() !== 'missing' && promotedId.toLowerCase() !== 'none' && promotedId !== '';
 
             var owner = isPromoted ? getField('Owner') : 'No promoted ticket yet';
-            var fixedVer = isPromoted ? getField('(?:Fixed Version|Closure).*?') : 'No promoted ticket yet';
+            var fixedVer = isPromoted ? getField('(?:Fixed Version\\s*/\\s*Closure|Fixed Version|Closure).*?') : 'No promoted ticket yet';
             var lastAct = isPromoted ? getField('Latest Activity') : 'No promoted ticket yet';
             if (!isPromoted) promotedId = 'No promoted ticket yet';
 
@@ -16599,9 +16676,10 @@ td:nth-child(odd), th:nth-child(odd) {
                              regenerateAiSummary();
                          }
                     };
-                    retryLink.textContent = '↻ Regenerate';
-                    retryLink.style.cssText = 'color: #0071c5; text-decoration: none; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.1s;';
+                    retryLink.textContent = '↻';
+                    retryLink.style.cssText = 'color: #0071c5; text-decoration: none; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; transition: color 0.1s;';
                     retryLink.title = 'Regenerate this response';
+                    retryLink.setAttribute('aria-label', 'Regenerate this response');
                     retryLink.onmouseover = function() { this.style.color = '#005A9E'; };
                     retryLink.onmouseout = function() { this.style.color = '#0071c5'; };
 
@@ -25477,9 +25555,9 @@ td:nth-child(odd), th:nth-child(odd) {
             filterCmfPendingRows();
         }
 </script>
-    <script src="Scripts/cmf-portal-main.js?v=20261102-filter-label-selection"></script>
+    <script src="Scripts/cmf-portal-main.js?v=20261103-title-actions"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261030-native-sidebar-scroll" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261103-title-unhindered" />
 
 </head>
 
@@ -25528,7 +25606,7 @@ td:nth-child(odd), th:nth-child(odd) {
     <header class="portal-app-header">
         <!-- Convert to ASP.NET DropDownList -->
 
-        <a class="portal-brand" href="CMF_Web_portal.aspx" aria-label="CMF Portal home"><span class="portal-brand-mark">intel</span><span>CMF Portal</span></a>
+        <a class="portal-brand" href="CMF_Web_portal.aspx" aria-label="CMF Portal home"><span class="portal-brand-mark"><img src="others/images/design-diagrams/intel%20logo.png" alt="Intel" class="portal-brand-logo" /></span><span>CMF Portal</span></a>
         <span class="portal-work-week" title="Current work week">WW'<%= System.Globalization.CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(DateTime.Now, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday).ToString("00") %></span>
         <div class="header-title" runat="server" id="headerTitle">CMF Live Dashboard</div>
         <div class="global-search-shell" role="search" style="display:none;">
@@ -26104,7 +26182,11 @@ Submit
                 <aside id="aiSummaryDrawer" class="ai-summary-drawer" aria-hidden="true" role="dialog" aria-label="AI Issue Summary">
                     <button type="button" class="ai-summary-drawer-close" onclick="closeAiSummaryDrawer()" aria-label="Close">&times;</button>
                     <h2 class="ai-summary-drawer-title"><span id="aiSummaryHeadingText">AI Summary</span><span id="aiSummaryTitleBadges" class="ai-summary-title-badges"><span id="aiSummaryConfidence" class="ai-summary-confidence-inline">Confidence: --</span><span id="aiSummaryStatusBadge" class="ai-summary-status-value">Status: --</span></span></h2>
-                    <div id="aiSummaryMeta" class="ai-summary-meta-row ai-summary-meta-combined"><strong>Sighting ID:</strong> <span id="aiSummaryIssueId">-</span><strong>CMF Ask Date:</strong> <span id="aiSummarySubmittedDate">-</span></div>
+                    <div id="aiSummaryMeta" class="ai-summary-meta-row ai-summary-meta-combined">
+                        <strong>Sighting ID:</strong> <span id="aiSummaryIssueId">-</span>
+                        <a id="aiSummaryHsdLink" class="cmf-assistant-hsd-link" href="#" target="_blank" rel="noopener noreferrer" title="Open sighting in HSD" aria-label="Open sighting in HSD" style="display:none;"><i class="fas fa-external-link-alt" aria-hidden="true"></i></a>
+                        <strong style="margin-left: 8px;">CMF Ask Date:</strong> <span id="aiSummarySubmittedDate">-</span>
+                    </div>
                     <div class="ai-summary-meta-row" id="aiSummaryTitleRow" style="display:none"><strong>Title:</strong> <span id="aiSummaryTitle">-</span></div>
                     <div id="aiSummaryFacts" class="ai-summary-facts"></div>
                     <div class="ai-summary-body" id="aiSummaryBody">Generating AI summary...</div>
@@ -26112,8 +26194,8 @@ Submit
                         <button type="button" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc; background-color: #f7f7f7; font-weight: bold; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e2e2e2'" onmouseout="this.style.backgroundColor='#f7f7f7'" onclick="copyAiSummaryForReport()" title="Copy summary as plain text for pasting into reports">
                             &#x2398; Copy for Report
                         </button>
-                        <button type="button" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc; background-color: #f7f7f7; font-weight: bold; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e2e2e2'" onmouseout="this.style.backgroundColor='#f7f7f7'" onclick="regenerateAiSummary()" title="Regenerate summary from AI">
-                            &#x21BA; Regenerate
+                        <button type="button" style="padding: 8px 16px; border-radius: 6px; border: 1px solid #ccc; background-color: #f7f7f7; font-weight: bold; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e2e2e2'" onmouseout="this.style.backgroundColor='#f7f7f7'" onclick="regenerateAiSummary()" title="Regenerate summary from AI" aria-label="Regenerate summary from AI">
+                            &#x21BA;
                         </button>
                     </div>
                     <div id="aiSummaryChat" class="ai-summary-chat" style="display:none">
@@ -26337,9 +26419,50 @@ Submit
                                     <h1 class="issue-page-title">Issue List</h1>
                                     <p class="issue-page-desc">Review active issues, understand their current status, and identify what needs attention next.</p>
                                 </div>
-                                <div id="issueExternalLinks"></div>
+                                <div class="cmf-pending-actions">
+                                    <div id="issueExternalLinks"></div>
+                                    <button id="issueColumnPickerButton" type="button" class="cmf-pending-action-btn" aria-haspopup="dialog" aria-controls="issueColumnPicker" onclick="openIssueColumnPicker()"><i class="fas fa-table-columns" aria-hidden="true"></i><span>Columns</span></button>
+                                    <span id="issueColumnStatus" role="status" aria-live="polite"></span>
+                                    <asp:HiddenField ID="hfIssueExportColumns" runat="server" />
+                                    <asp:LinkButton ID="btnIssueViewExport" runat="server" CssClass="cmf-pending-action-btn primary" CausesValidation="false" OnClientClick="if (!prepareIssueViewExport()) return false;" OnClick="btnIssueViewExport_Click" ToolTip="Export all filtered issues and selected columns to Excel"><i class="fas fa-download" aria-hidden="true"></i><span>Export</span></asp:LinkButton>
+                                    <span id="issueExportMessage" runat="server" role="status" aria-live="polite"></span>
+                                </div>
                             </div>
                         </div>
+
+                        <dialog id="issueColumnPicker" class="issue-column-dialog" aria-labelledby="issueColumnTitle" aria-describedby="issueColumnHelp" onclose="CMF_ISSUE_COLUMN_DRAFT = null" onkeydown="handleIssueColumnDialogKeydown(event)">
+                            <div class="issue-column-dialog-header">
+                                <h2 id="issueColumnTitle">Personalize List Columns</h2>
+                                <button type="button" class="issue-column-close" aria-label="Close column personalization" onclick="document.getElementById('issueColumnPicker').close()">&times;</button>
+                            </div>
+                            <div class="issue-column-dialog-body">
+                                <div class="issue-column-lists">
+                                    <div class="issue-column-list">
+                                        <label for="issueColumnsAvailable">Available</label>
+                                        <select id="issueColumnsAvailable" multiple size="14" onchange="updateIssueColumnButtons()" ondblclick="moveIssueColumns(true)"></select>
+                                    </div>
+                                    <div class="issue-column-controls">
+                                        <button id="issueColumnAdd" type="button" aria-label="Add selected columns" title="Add selected columns" onclick="moveIssueColumns(true)"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                                        <button id="issueColumnRemove" type="button" aria-label="Remove selected columns" title="Remove selected columns" onclick="moveIssueColumns(false)"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                                    </div>
+                                    <div class="issue-column-list">
+                                        <label for="issueColumnsSelected">Selected</label>
+                                        <select id="issueColumnsSelected" multiple size="14" onchange="updateIssueColumnButtons()" ondblclick="moveIssueColumns(false)"></select>
+                                    </div>
+                                    <div class="issue-column-controls">
+                                        <button id="issueColumnUp" type="button" aria-label="Move selected columns up" title="Move selected columns up" onclick="reorderIssueColumns(-1)"><i class="fas fa-chevron-up" aria-hidden="true"></i></button>
+                                        <button id="issueColumnDown" type="button" aria-label="Move selected columns down" title="Move selected columns down" onclick="reorderIssueColumns(1)"><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+                                    </div>
+                                </div>
+                                <p id="issueColumnHelp">Use the arrows to choose and order columns. Hold Ctrl (Command on Mac) to select multiple columns.</p>
+                                <div id="issueColumnMessage" role="status" aria-live="polite"></div>
+                            </div>
+                            <div class="issue-column-dialog-footer">
+                                <button type="button" class="issue-column-reset" onclick="resetIssueColumnChoices()">Reset to column defaults</button>
+                                <button type="button" onclick="document.getElementById('issueColumnPicker').close()">Cancel</button>
+                                <button type="button" class="issue-column-apply" onclick="applyIssueColumnChoices()">OK</button>
+                            </div>
+                        </dialog>
                         <div class="issue-kpi-row">
                             <div class="issue-kpi">
                                 <i class="fas fa-file-alt issue-kpi-icon" aria-hidden="true"></i>
@@ -26364,12 +26487,11 @@ Submit
                         </div>
                     </asp:Panel>
 
-                    <!-- TOP FILTER PANEL - FOR ISSUE LIST -->
-                    <asp:Panel ID="fieldSelectorPanel" runat="server" Visible="true">
+                    <!-- TOP FILTER PANEL - FOR ISSUE LIST (Hidden to save a line; filters moved to column headers) -->
+                    <asp:Panel ID="fieldSelectorPanel" runat="server" Visible="true" style="display:none;">
                         <div class="field-selector-panel issue-top-filter-panel">
                             <div id="issueTopFilterBody" class="collapsible-body">
                                 <div class="issue-top-filter-grid">
-                                    <div id="issuePlatformSlot" class="issue-top-filter-item"></div>
                                     <div class="issue-top-filter-item"><span>Milestone</span><asp:DropDownList ID="ddlMilestoneTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlMilestoneHeader_SelectedIndexChanged" CssClass="header-dropdown" /></div>
                                     <div class="issue-top-filter-item"><span>Owner</span><asp:DropDownList ID="ddlOwnerTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlOwnerHeader_SelectedIndexChanged" CssClass="header-dropdown" /></div>
                                     <div class="issue-top-filter-item"><span>RVP Repro</span><asp:DropDownList ID="ddlRvpReproTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlRvpReproHeader_SelectedIndexChanged" CssClass="header-dropdown" /></div>
@@ -26380,66 +26502,17 @@ Submit
                                     <div class="issue-top-filter-item"><span>Component Group</span><asp:DropDownList ID="ddlComponentTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlComponentHeader_SelectedIndexChanged" CssClass="header-dropdown" /></div>
                                     <div class="issue-top-filter-item"><span>Status</span><asp:DropDownList ID="ddlStatusTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlStatusTop_SelectedIndexChanged" CssClass="header-dropdown" /></div>
                                 </div>
-                                <div class="issue-top-filter-buttons">
-                                    <asp:Button ID="btnClearFilters" runat="server" CssClass="filter-btn filter-btn-secondary" Text="Clear" OnClick="btnClearFilters_Click" />
-                                </div>
                             </div>
                         </div>
                     </asp:Panel>
                     <!-- END TOP FILTER PANEL -->
 
-                    <div id="searchfilters" class="header-overlay" runat="server" visible="false">
-                        <!-- Your existing search filters -->
-                        <input type="text" id="searchColumn0" placeholder="Search Progress" oninput="filterGrid()" />
-                        <input type="text" id="searchColumn5" placeholder="Search Owner" oninput="filterGrid()" />
-                        <input type="text" id="searchColumn10" placeholder="Search Component" oninput="filterGrid()" />
-                        <input type="text" id="searchColumn4" placeholder="Search Component" oninput="filterGrid()" />
-                        <input type="text" id="searchColumn6" placeholder="Search RVP Repro" oninput="filterGrid()" />
-                    </div>
+                    <div id="searchfilters" class="header-overlay" runat="server" visible="false" style="display:none;"></div>
 
-                    <div class="issue-user-toolbar">
-                        <div class="issue-user-actions">
-                            <button id="issueColumnPickerButton" type="button" class="issue-toolbar-btn secondary" aria-haspopup="dialog" aria-controls="issueColumnPicker" onclick="openIssueColumnPicker()"><i class="fas fa-table-columns" aria-hidden="true"></i> Columns</button>
-                            <dialog id="issueColumnPicker" class="issue-column-dialog" aria-labelledby="issueColumnTitle" aria-describedby="issueColumnHelp" onclose="CMF_ISSUE_COLUMN_DRAFT = null" onkeydown="handleIssueColumnDialogKeydown(event)">
-                                <div class="issue-column-dialog-header">
-                                    <h2 id="issueColumnTitle">Personalize List Columns</h2>
-                                    <button type="button" class="issue-column-close" aria-label="Close column personalization" onclick="document.getElementById('issueColumnPicker').close()">&times;</button>
-                                </div>
-                                <div class="issue-column-dialog-body">
-                                    <div class="issue-column-lists">
-                                        <div class="issue-column-list">
-                                            <label for="issueColumnsAvailable">Available</label>
-                                            <select id="issueColumnsAvailable" multiple size="14" onchange="updateIssueColumnButtons()" ondblclick="moveIssueColumns(true)"></select>
-                                        </div>
-                                        <div class="issue-column-controls">
-                                            <button id="issueColumnAdd" type="button" aria-label="Add selected columns" title="Add selected columns" onclick="moveIssueColumns(true)"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
-                                            <button id="issueColumnRemove" type="button" aria-label="Remove selected columns" title="Remove selected columns" onclick="moveIssueColumns(false)"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
-                                        </div>
-                                        <div class="issue-column-list">
-                                            <label for="issueColumnsSelected">Selected</label>
-                                            <select id="issueColumnsSelected" multiple size="14" onchange="updateIssueColumnButtons()" ondblclick="moveIssueColumns(false)"></select>
-                                        </div>
-                                        <div class="issue-column-controls">
-                                            <button id="issueColumnUp" type="button" aria-label="Move selected columns up" title="Move selected columns up" onclick="reorderIssueColumns(-1)"><i class="fas fa-chevron-up" aria-hidden="true"></i></button>
-                                            <button id="issueColumnDown" type="button" aria-label="Move selected columns down" title="Move selected columns down" onclick="reorderIssueColumns(1)"><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
-                                        </div>
-                                    </div>
-                                    <p id="issueColumnHelp">Use the arrows to choose and order columns. Hold Ctrl (Command on Mac) to select multiple columns.</p>
-                                    <div id="issueColumnMessage" role="status" aria-live="polite"></div>
-                                </div>
-                                <div class="issue-column-dialog-footer">
-                                    <button type="button" class="issue-column-reset" onclick="resetIssueColumnChoices()">Reset to column defaults</button>
-                                    <button type="button" onclick="document.getElementById('issueColumnPicker').close()">Cancel</button>
-                                    <button type="button" class="issue-column-apply" onclick="applyIssueColumnChoices()">OK</button>
-                                </div>
-                            </dialog>
-                            <span id="issueColumnStatus" role="status" aria-live="polite"></span>
-                            <asp:HiddenField ID="hfIssueExportColumns" runat="server" />
-                            <asp:LinkButton ID="btnIssueViewExport" runat="server" CssClass="cmf-pending-action-btn primary" CausesValidation="false" OnClientClick="if (!prepareIssueViewExport()) return false;" OnClick="btnIssueViewExport_Click" ToolTip="Export all filtered issues and selected columns to Excel"><i class="fas fa-download" aria-hidden="true"></i><span>Export</span></asp:LinkButton>
-                            <span id="issueExportMessage" runat="server" role="status" aria-live="polite"></span>
-                        </div>
+                    <div class="issue-platform-bar" style="display: flex; align-items: center; justify-content: space-between; margin: 10px 0 8px 0;">
+                        <div id="issuePlatformSlot"></div>
+                        <asp:Button ID="btnClearFilters" runat="server" CssClass="filter-btn filter-btn-secondary" Text="Clear Filters" OnClick="btnClearFilters_Click" />
                     </div>
-
 
                     <div class="gridview-container issue-grid-scroll">
                         <!-- MODIFY YOUR GRIDVIEW TO ADD DATA-FIELD ATTRIBUTES -->
@@ -26474,8 +26547,18 @@ Submit
             </ItemTemplate>
         </asp:TemplateField>
 
-        <asp:BoundField DataField="IssueStatus" HeaderText="Progress" ReadOnly="True"
-            ItemStyle-CssClass="field-progress" HeaderStyle-CssClass="field-progress" />
+        <asp:TemplateField HeaderText="Progress" ItemStyle-CssClass="field-progress" HeaderStyle-CssClass="field-progress">
+            <HeaderTemplate>
+                <div class="filter-header-container">
+                    <div class="filter-header-text">Progress</div>
+                    <div class="filter-container">
+                        <asp:DropDownList ID="ddlStatusHeader" runat="server" AutoPostBack="true"
+                            OnSelectedIndexChanged="ddlStatusHeader_SelectedIndexChanged" CssClass="header-dropdown" />
+                    </div>
+                </div>
+            </HeaderTemplate>
+            <ItemTemplate><%# Eval("IssueStatus") %></ItemTemplate>
+        </asp:TemplateField>
 
         <asp:TemplateField HeaderText="Sighting ID" ItemStyle-CssClass="field-sightingid" HeaderStyle-CssClass="field-sightingid">
             <ItemTemplate>
@@ -26488,6 +26571,15 @@ Submit
             ItemStyle-CssClass="field-promotedid" HeaderStyle-CssClass="field-promotedid" />
 
         <asp:TemplateField HeaderText="Customer Detail" ItemStyle-CssClass="field-customer_detail" HeaderStyle-CssClass="field-customer_detail">
+            <HeaderTemplate>
+                <div class="filter-header-container">
+                    <div class="filter-header-text">Customer Detail</div>
+                    <div class="filter-container">
+                        <asp:DropDownList ID="ddlDetailHeader" runat="server" AutoPostBack="true"
+                            OnSelectedIndexChanged="ddlDetailHeader_SelectedIndexChanged" CssClass="header-dropdown" />
+                    </div>
+                </div>
+            </HeaderTemplate>
             <ItemTemplate>
                 <%#: Eval("customer_detail") %>
             </ItemTemplate>
@@ -26502,11 +26594,35 @@ Submit
         </asp:TemplateField>
 
         <asp:TemplateField HeaderText="Customer Company" ItemStyle-CssClass="field-customer_company" HeaderStyle-CssClass="field-customer_company">
+            <HeaderTemplate>
+                <div class="filter-header-container">
+                    <div class="filter-header-text">Customer Company</div>
+                    <div class="filter-container">
+                        <asp:DropDownList ID="ddlCompanyHeader" runat="server" AutoPostBack="true"
+                            OnSelectedIndexChanged="ddlCompanyHeader_SelectedIndexChanged" CssClass="header-dropdown" />
+                    </div>
+                </div>
+            </HeaderTemplate>
             <ItemTemplate><span class="issue-company-name"><%#: Eval("customer_company") %></span></ItemTemplate>
         </asp:TemplateField>
 
-        <asp:BoundField DataField="title" HeaderText="Title" ReadOnly="True"
-            ItemStyle-CssClass="field-title" HeaderStyle-CssClass="field-title" />
+        <asp:TemplateField HeaderText="Title" ItemStyle-CssClass="field-title" HeaderStyle-CssClass="field-title">
+            <ItemTemplate>
+                <asp:Label ID="lblIssueTitle" runat="server" CssClass="issue-title-text" Text='<%# HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(Convert.ToString(Eval("title"))) ? "unknown" : Convert.ToString(Eval("title"))) %>' />
+                <div class="issue-title-actions" role="group" aria-label="Issue actions">
+                    <button type="button" class="issue-title-action" onclick="runIssueRowAiAction(this, 'debug')" aria-label="AI Debug Summary"><span aria-hidden="true">&#10024;</span><span class="issue-action-label">AI Debug Summary</span></button>
+                    <button type="button" class="issue-title-action" onclick="runIssueRowAiAction(this, 'details')" aria-label="AI Issue Details"><i class="fas fa-file-alt" aria-hidden="true"></i><span class="issue-action-label">AI Issue Details</span></button>
+                    <asp:LinkButton ID="btnRowEdit" runat="server" CommandName="Edit" CausesValidation="false" CssClass="issue-title-action" aria-label="Edit"><i class="fas fa-pencil-alt" aria-hidden="true"></i><span class="issue-action-label">Edit</span></asp:LinkButton>
+                </div>
+            </ItemTemplate>
+            <EditItemTemplate>
+                <asp:Label ID="lblIssueTitle" runat="server" CssClass="issue-title-text" Text='<%# HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(Convert.ToString(Eval("title"))) ? "unknown" : Convert.ToString(Eval("title"))) %>' />
+                <div class="issue-title-actions" role="group" aria-label="Edit actions">
+                    <asp:LinkButton ID="btnRowUpdate" runat="server" CommandName="Update" CssClass="issue-title-action" aria-label="Save changes"><i class="fas fa-check" aria-hidden="true"></i><span class="issue-action-label">Save changes</span></asp:LinkButton>
+                    <asp:LinkButton ID="btnRowCancel" runat="server" CommandName="Cancel" CausesValidation="false" CssClass="issue-title-action" aria-label="Cancel edit"><i class="fas fa-times" aria-hidden="true"></i><span class="issue-action-label">Cancel edit</span></asp:LinkButton>
+                </div>
+            </EditItemTemplate>
+        </asp:TemplateField>
 
         <asp:TemplateField HeaderText="Component" ItemStyle-CssClass="field-component" HeaderStyle-CssClass="field-component">
             <HeaderTemplate>
@@ -26523,10 +26639,29 @@ Submit
             </ItemTemplate>
         </asp:TemplateField>
 
-        <asp:BoundField DataField="component_group" HeaderText="Component Group" ReadOnly="True"
-            ItemStyle-CssClass="field-component_group" HeaderStyle-CssClass="field-component_group" />
+        <asp:TemplateField HeaderText="Component Group" ItemStyle-CssClass="field-component_group" HeaderStyle-CssClass="field-component_group">
+            <HeaderTemplate>
+                <div class="filter-header-container">
+                    <div class="filter-header-text">Component Group</div>
+                    <div class="filter-container">
+                        <asp:DropDownList ID="ddlComponentGroupHeader" runat="server" AutoPostBack="true"
+                            OnSelectedIndexChanged="ddlComponentGroupHeader_SelectedIndexChanged" CssClass="header-dropdown" />
+                    </div>
+                </div>
+            </HeaderTemplate>
+            <ItemTemplate><%#: Eval("component_group") %></ItemTemplate>
+        </asp:TemplateField>
 
         <asp:TemplateField HeaderText="Owner" ItemStyle-CssClass="field-owner" HeaderStyle-CssClass="field-owner">
+            <HeaderTemplate>
+                <div class="filter-header-container">
+                    <div class="filter-header-text">Owner</div>
+                    <div class="filter-container">
+                        <asp:DropDownList ID="ddlOwnerHeader" runat="server" AutoPostBack="true"
+                            OnSelectedIndexChanged="ddlOwnerHeader_SelectedIndexChanged" CssClass="header-dropdown" />
+                    </div>
+                </div>
+            </HeaderTemplate>
             <ItemTemplate><%#: Eval("Owner") %></ItemTemplate>
             <EditItemTemplate>
                 <asp:TextBox ID="txtOwner" runat="server" TextMode="MultiLine" Text='<%# Bind("Owner") %>'
@@ -26612,27 +26747,6 @@ Submit
 
         <asp:BoundField DataField="ClosedDetails" HeaderText="Closed Reason / Fixed Version" ReadOnly="True"
             ItemStyle-CssClass="cmfrequest-column field-closed_reason" HeaderStyle-CssClass="field-closed_reason" />
-
-        <asp:TemplateField HeaderText="Actions" ItemStyle-CssClass="field-actions" HeaderStyle-CssClass="field-actions">
-            <ItemTemplate>
-                <div class="issue-row-actions">
-                    <button type="button" class="issue-row-actions-trigger" onclick="toggleIssueRowActions(this)" aria-haspopup="menu" aria-expanded="false" title="Actions" aria-label="Actions">
-                        <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
-                    </button>
-                    <div class="issue-row-actions-menu" role="menu" hidden>
-                        <button type="button" role="menuitem" onclick="runIssueRowAiAction('details')"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>AI Issue Details</button>
-                        <button type="button" role="menuitem" onclick="runIssueRowAiAction('debug')"><i class="fas fa-file-alt" aria-hidden="true"></i>AI Debug Summary</button>
-                        <asp:LinkButton ID="btnRowEdit" runat="server" CommandName="Edit" CausesValidation="false" role="menuitem"><i class="fas fa-pencil-alt" aria-hidden="true"></i>Edit</asp:LinkButton>
-                    </div>
-                </div>
-            </ItemTemplate>
-            <EditItemTemplate>
-                <span class="issue-inline-edit-actions">
-                    <asp:LinkButton ID="btnRowUpdate" runat="server" CommandName="Update" CssClass="issue-inline-edit-action" ToolTip="Save changes" aria-label="Save changes"><i class="fas fa-check" aria-hidden="true"></i></asp:LinkButton>
-                    <asp:LinkButton ID="btnRowCancel" runat="server" CommandName="Cancel" CausesValidation="false" CssClass="issue-inline-edit-action" ToolTip="Cancel edit" aria-label="Cancel edit"><i class="fas fa-times" aria-hidden="true"></i></asp:LinkButton>
-                </span>
-            </EditItemTemplate>
-        </asp:TemplateField>
 
     </Columns>
 

@@ -17,11 +17,37 @@ test('Issue List preserves the reference column order with separate promoted fie
         return Array.from(grid.matchAll(/HeaderStyle-CssClass="(field-[^"]+)"/g), match => match[1]);
     }
     const old = fs.readFileSync(path.join(root, 'others', 'test_scripts', 'CMF_Web_portal_old.aspx'), 'utf8');
-    const expected = fields(old).map(name => name === 'field-edit_column' ? 'field-actions' : name);
+    const expected = fields(old).filter(name => name !== 'field-edit_column');
     const actual = fields(page).map(name => name === 'field-impact_processor' ? 'field-impact' : name);
     assert.deepEqual(actual, expected);
     assert.doesNotMatch(page, /HeaderText="Promoted ID \/ Owner"/);
     assert.equal((page.match(/id="issueColumnPicker"/g) || []).length, 1);
+});
+
+test('Issue List actions live beneath Title with hover/focus labels and existing edit commands', () => {
+    const grid = page.match(/<asp:GridView ID="overall_request_details"[\s\S]*?<\/asp:GridView>/)[0];
+    const title = grid.match(/<asp:TemplateField HeaderText="Title"[\s\S]*?<\/asp:TemplateField>/)[0];
+    assert.doesNotMatch(grid, /HeaderText="Actions"|issue-row-actions-menu/);
+    assert.match(title, /runIssueRowAiAction\(this, 'debug'\)/);
+    assert.match(title, /runIssueRowAiAction\(this, 'details'\)/);
+    for (const command of ['Edit', 'Update', 'Cancel']) assert.ok(title.includes('CommandName="' + command + '"'));
+    assert.match(title, /CssClass="issue-title-text"/);
+    assert.match(theme, /td\.field-title\s*\{[\s\S]*?display:\s*flex/);
+    assert.match(theme, /\.issue-title-text\s*\{[\s\S]*?margin:\s*auto 0/);
+    assert.doesNotMatch(theme, /\.issue-title-actions\s*\{[\s\S]*?border-top:\s*1px solid/);
+    assert.match(theme, /\.issue-title-action:is\(:hover, :focus\) \.issue-action-label/);
+    const main = fs.readFileSync(path.join(root, 'Scripts', 'cmf-portal-main.js'), 'utf8');
+    const action = main.match(/function runIssueRowAiAction\([^)]*\) \{[\s\S]*?\r?\n\}/)[0];
+    const clicks = [];
+    const notices = [];
+    const context = vm.createContext({ console: { error() {} }, showPortalToast: text => notices.push(text) });
+    vm.runInContext(action, context);
+    const trigger = { closest: () => ({ querySelector: selector => ({ click: () => clicks.push(selector) }) }) };
+    context.runIssueRowAiAction(trigger, 'debug');
+    context.runIssueRowAiAction(trigger, 'details');
+    assert.deepEqual(clicks, ['.field-status .issue-details-ai-btn', '.field-sightingid .issue-details-ai-btn']);
+    context.runIssueRowAiAction({ closest: () => ({ querySelector: () => null }) }, 'debug');
+    assert.equal(notices.length, 1);
 });
 
 test('lifecycle status filtering is wired through selection, SQL, parameters, cache, and clear', () => {
@@ -363,6 +389,7 @@ test('compiled server helpers preserve export order and values and choose WCAG-r
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
@@ -386,6 +413,11 @@ public static void Main() {
     if(text!="First & second\\nUnconfirmed finding.") throw new Exception("Export text changed: "+text);
     if(GetIssueExportCellText(new TableCell{Text="&nbsp;"})!="unknown") throw new Exception("Blank export value.");
     if(GetIssueExportCellText(new TableCell{Text="=literal"})!="=literal") throw new Exception("Literal value changed.");
+    var titleCell=new TableCell();
+    titleCell.Controls.Add(new Label{ID="lblIssueTitle",Text="Hang &amp; recovery"});
+    titleCell.Controls.Add(new HyperLink{Text="Edit"});
+    titleCell.Controls.Add(new LiteralControl("<button>AI Debug Summary</button>"));
+    if(GetIssueExportCellText(titleCell)!="Hang & recovery") throw new Exception("Title export contains action labels.");
     var grid=new GridView();
     foreach(string field in new[]{"field-sno","field-title","field-status","field-actions","field-unavailable"}) {
         var column=new BoundField();
@@ -413,4 +445,11 @@ public static void Main() {
         fs.rmSync(output, { force: true });
         fs.rmdirSync(directory);
     }
+});
+
+test('Issue List and CMF Pending List tables have sticky column headers when scrolling', () => {
+    assert.match(theme, /body #issueTabShell #overall_request_details th\s*\{[\s\S]*?position:\s*sticky/);
+    assert.match(theme, /body #pendingTabShell #GridView_cmf_pending\.cmf-pending-columns th\s*\{[\s\S]*?position:\s*sticky/);
+    assert.match(theme, /body #issueTabShell #overall_request_details th\s*\{[\s\S]*?top:\s*0/);
+    assert.match(theme, /body #pendingTabShell #GridView_cmf_pending\.cmf-pending-columns th\s*\{[\s\S]*?top:\s*0/);
 });

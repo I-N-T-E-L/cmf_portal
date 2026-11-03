@@ -2,7 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Security.Principal;
@@ -52,6 +54,7 @@ public class HsdArticleData
     public string InvestigationHistory { get; set; }
     public string FetchSource { get; set; }
     public string UpdatedDate { get; set; }
+    public string DebugEvidenceLimitation { get; set; }
 }
 
 public static class HsdPortalService
@@ -62,7 +65,7 @@ public static class HsdPortalService
     private const int MaxComments = 5;
 
     // Fetches article fields + recent comments using configured providers.
-    public static HsdArticleData FetchArticle(string articleId)
+    public static HsdArticleData FetchArticle(string articleId, bool forDebugSummary = false)
     {
         var result = CreateEmptyArticleData(articleId);
 
@@ -100,15 +103,15 @@ public static class HsdPortalService
 
                 if (normalizedProvider == "gnai" || normalizedProvider == "gnai-plugin" || normalizedProvider == "gnaiplugin")
                 {
-                    fetched = TryFetchWithGnaiPlugin(normalizedArticleId, candidate);
+                    fetched = TryFetchWithGnaiPlugin(normalizedArticleId, candidate, forDebugSummary);
                 }
                 else if (normalizedProvider == "mcp")
                 {
-                    fetched = TryFetchWithMcp(normalizedArticleId, candidate);
+                    fetched = TryFetchWithMcp(normalizedArticleId, candidate, forDebugSummary);
                 }
                 else if (normalizedProvider == "rest" || normalizedProvider == "hsd" || normalizedProvider == "sspi")
                 {
-                    fetched = TryFetchWithRest(normalizedArticleId, candidate);
+                    fetched = TryFetchWithRest(normalizedArticleId, candidate, forDebugSummary);
                 }
                 else
                 {
@@ -119,6 +122,11 @@ public static class HsdPortalService
                 {
                     candidate.FetchSuccess = true;
                     candidate.FetchSource = provider.Trim();
+                    if (forDebugSummary)
+                    {
+                        candidate.SysdebugForum = null;
+                        candidate.Sysdebug = null;
+                    }
                     return candidate;
                 }
 
@@ -231,8 +239,12 @@ public static class HsdPortalService
         AppendIfSet(builder, "Actual Behavior", data.ActualBehavior);
         AppendIfSet(builder, "Expected Behavior", data.ExpectedBehavior);
         AppendIfSet(builder, "What Happened", data.WhatHappened);
-        AppendIfSet(builder, "Sysdebug Forum", data.SysdebugForum);
-        AppendIfSet(builder, "Investigation History", data.InvestigationHistory);
+        if (data.Comments != null)
+        {
+            foreach (string comment in data.Comments)
+                AppendIfSet(builder, "Recent Discussion Comment", comment);
+        }
+        AppendIfSet(builder, "Engineering / Investigation History", data.InvestigationHistory);
         AppendIfSet(builder, "Fix Description", data.FixDescription);
         AppendIfSet(builder, "Fixed Version", data.FixedVersion);
         AppendIfSet(builder, "Status", data.Status);
@@ -240,12 +252,9 @@ public static class HsdPortalService
         AppendIfSet(builder, "Implemented Date", data.ImplementedDate);
         AppendIfSet(builder, "Verified Date", data.VerifiedDate);
         AppendIfSet(builder, "Closed Date", data.ClosedDate);
-        if (data.Comments != null)
-        {
-            foreach (string comment in data.Comments)
-                AppendIfSet(builder, "Discussion Comment", comment);
-        }
+        AppendIfSet(builder, "HSD retrieval limitation", data.DebugEvidenceLimitation);
         builder.AppendLine("Evidence scope: Only retrieved text is supplied; discussion history may be partial and attachment contents are not included.");
+        builder.AppendLine("Recency scope: Use entry timestamps, not the article modification date, to identify recent activity. Undated or unreturned history cannot establish the latest overall activity.");
         return builder.ToString().Trim();
     }
 
@@ -286,7 +295,7 @@ public static class HsdPortalService
             || !string.IsNullOrWhiteSpace(data.FixedVersion);
     }
 
-    private static bool TryFetchWithRest(string articleId, HsdArticleData result)
+    private static bool TryFetchWithRest(string articleId, HsdArticleData result, bool forDebugSummary = false)
     {
         string baseUrl = FirstNonEmpty(
             ConfigurationManager.AppSettings["HSD:ArticleApiBaseUrl"],
@@ -304,10 +313,10 @@ public static class HsdPortalService
                 return false;
             }
 
-            MergeArticleJsonIntoResult(json, result);
+            MergeArticleJsonIntoResult(json, result, forDebugSummary);
 
             // Try to fetch discussion comments; ignore errors since comments are optional.
-            TryFetchComments(articleUrl, result);
+            TryFetchComments(articleUrl, result, forDebugSummary);
             return HasRecognizableArticleFields(result);
         }
         catch (WebException webEx)
@@ -320,7 +329,7 @@ public static class HsdPortalService
         }
     }
 
-    private static bool TryFetchWithGnaiPlugin(string articleId, HsdArticleData result)
+    private static bool TryFetchWithGnaiPlugin(string articleId, HsdArticleData result, bool forDebugSummary = false)
     {
         string enabled = ConfigurationManager.AppSettings["HSD:GnaiEnabled"];
         if (string.Equals(enabled, "false", StringComparison.OrdinalIgnoreCase))
@@ -359,7 +368,7 @@ public static class HsdPortalService
 
         Hashtable userMessage = new Hashtable();
         userMessage["role"] = "user";
-        userMessage["content"] = BuildGnaiHsdPrompt(articleId);
+        userMessage["content"] = forDebugSummary ? BuildDebugHsdPrompt(articleId) : BuildGnaiHsdPrompt(articleId);
         messages.Add(userMessage);
         payload["messages"] = messages;
 
@@ -375,7 +384,7 @@ public static class HsdPortalService
                 return false;
             }
 
-            MergeArticleJsonIntoResult(articleJson, result);
+            MergeArticleJsonIntoResult(articleJson, result, forDebugSummary);
             return HasRecognizableArticleFields(result);
         }
         catch (WebException webEx)
@@ -385,7 +394,7 @@ public static class HsdPortalService
         }
     }
 
-    private static bool TryFetchWithMcp(string articleId, HsdArticleData result)
+    private static bool TryFetchWithMcp(string articleId, HsdArticleData result, bool forDebugSummary = false)
     {
         string endpoint = ConfigurationManager.AppSettings["HSD:McpEndpoint"];
         if (string.IsNullOrWhiteSpace(endpoint))
@@ -430,7 +439,7 @@ public static class HsdPortalService
                 return false;
             }
 
-            MergeArticleJsonIntoResult(articleJson, result);
+            MergeArticleJsonIntoResult(articleJson, result, forDebugSummary);
             return HasRecognizableArticleFields(result);
         }
         catch (WebException webEx)
@@ -451,7 +460,20 @@ public static class HsdPortalService
         return builder.ToString();
     }
 
-    private static void MergeArticleJsonIntoResult(string json, HsdArticleData result)
+    private static string BuildDebugHsdPrompt(string articleId)
+    {
+        return "Retrieve HSDES bug/article " + articleId + " using the available HSDES plugin/tool. Return only JSON with these fields when available: "
+            + "fetch_success, fetch_error, article_id, updated_date, title, description, steps_to_reproduce, actual_behavior, expected_behavior, "
+            + "investigation_history, fix_description, fixed_version, status, closed_reason, implemented_date, verified_date, closed_date, comments. "
+            + "Do not retrieve, copy, paraphrase, or incorporate the existing sysdebug_forum field, including into investigation_history or comments. "
+            + "Retrieve the most recent engineering discussions and debug/test updates, not just the original description. "
+            + "comments must contain the newest five relevant entries in newest-first order, as objects with text and updated_date (use the comment's own date, not the article date). "
+            + "Copy complete comment text and dates verbatim; do not truncate or summarize. Preserve dates on investigation_history entries. "
+            + "Use null for an unavailable date; never invent dates or testing. Exclude field-change records for sysdebug_forum. "
+            + "If retrieval fails, return fetch_success=false and fetch_error. Do not guess.";
+    }
+
+    private static void MergeArticleJsonIntoResult(string json, HsdArticleData result, bool forDebugSummary = false)
     {
         if (string.IsNullOrWhiteSpace(json) || result == null) return;
 
@@ -468,7 +490,7 @@ public static class HsdPortalService
 
         ApplyCanonicalFields(fields, result);
         result.UpdatedDate = Pick(fields, "updated_date", "last_updated", "last_modified", "modified_date", "date_updated", "updated_at", "revision", "version");
-        ParseInlineComments(fields, result);
+        ParseInlineComments(fields, result, forDebugSummary);
 
         object fetchSuccess = fields["fetch_success"];
         if (fetchSuccess != null && string.Equals(fetchSuccess.ToString(), "false", StringComparison.OrdinalIgnoreCase))
@@ -528,12 +550,18 @@ public static class HsdPortalService
         result.FetchError = FirstNonEmpty(Pick(fields, "fetch_error", "fetchError"), result.FetchError);
     }
 
-    private static void ParseInlineComments(IDictionary fields, HsdArticleData result)
+    private static void ParseInlineComments(IDictionary fields, HsdArticleData result, bool forDebugSummary = false)
     {
         if (fields == null || result == null) return;
         IList comments = fields["comments"] as IList;
         if (comments == null) comments = fields["discussion_comments"] as IList;
         if (comments == null) return;
+
+        if (forDebugSummary)
+        {
+            MergeDebugComments(comments, result);
+            return;
+        }
 
         for (int index = 0; index < comments.Count && result.Comments.Count < MaxComments; index++)
         {
@@ -550,6 +578,32 @@ public static class HsdPortalService
                 result.Comments.Add(Truncate(text.Trim(), CommentMaxChars));
             }
         }
+    }
+
+    private static void MergeDebugComments(IList comments, HsdArticleData result)
+    {
+        var entries = new List<KeyValuePair<DateTimeOffset?, string>>();
+        foreach (object item in comments.Cast<object>().Concat((result.Comments ?? new List<string>()).Cast<object>()))
+        {
+            IDictionary comment = item as IDictionary;
+            string text = comment == null ? Convert.ToString(item) : Pick(comment, "text", "body", "description", "content", "comment");
+            if (string.IsNullOrWhiteSpace(text)) continue;
+            string fieldName = comment == null ? null : Pick(comment, "field", "field_name");
+            if (!string.IsNullOrEmpty(fieldName) && fieldName.EndsWith("sysdebug_forum", StringComparison.OrdinalIgnoreCase)) continue;
+            string date = comment == null ? null : Pick(comment, "updated_date", "updated_at", "last_modified", "created_date", "created_at", "submitted_date", "date");
+            if (string.IsNullOrWhiteSpace(date))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(text, @"^\s*\[?(\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?)?)");
+                if (match.Success) date = match.Groups[1].Value;
+            }
+            DateTimeOffset timestamp;
+            bool dated = DateTimeOffset.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out timestamp);
+            string entry = comment != null && dated ? "[" + date + "] " + text.Trim() : text.Trim();
+            entries.Add(new KeyValuePair<DateTimeOffset?, string>(dated ? (DateTimeOffset?)timestamp : null, entry));
+        }
+        result.Comments = entries.OrderByDescending(entry => entry.Key).Select(entry => entry.Value).Distinct().Take(MaxComments).ToList();
+        if (entries.Any(entry => !entry.Key.HasValue))
+            result.DebugEvidenceLimitation = "Some returned comments are undated; the latest overall debug activity cannot be established from their order alone.";
     }
 
     private static string PostJson(string endpoint, string payloadJson, string authorization, IWebProxy proxy, string userAgent)
@@ -761,8 +815,37 @@ public static class HsdPortalService
         return message;
     }
 
-    private static void TryFetchComments(string articleUrl, HsdArticleData result)
+    private static void TryFetchComments(string articleUrl, HsdArticleData result, bool forDebugSummary = false)
     {
+        if (forDebugSummary)
+        {
+            foreach (string path in new[] { "/children?type=discussion&count=100", "/comments?count=100" })
+            {
+                try
+                {
+                    var discussion = CreateEmptyArticleData(result.ArticleId);
+                    ParseCommentsJson(HttpGetSspi(articleUrl + path), discussion, true);
+                    if (discussion.Comments.Count == 0) continue;
+                    MergeDebugComments(discussion.Comments, result);
+                    return;
+                }
+                catch (WebException ex)
+                {
+                    System.Diagnostics.Trace.TraceWarning("Recent HSD discussion retrieval failed: {0}", ex.Message);
+                }
+                catch (ArgumentException ex)
+                {
+                    System.Diagnostics.Trace.TraceWarning("Recent HSD discussion response was invalid: {0}", ex.Message);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    System.Diagnostics.Trace.TraceWarning("Recent HSD discussion response was invalid: {0}", ex.Message);
+                }
+            }
+            result.DebugEvidenceLimitation = "Recent discussion comments could not be retrieved; only the returned article history is available.";
+            return;
+        }
+
         string[] commentEndpoints = new[]
         {
             articleUrl + "/children?type=discussion&count=" + MaxComments,
@@ -1047,7 +1130,7 @@ public static class HsdPortalService
         }
     }
 
-    private static void ParseCommentsJson(string json, HsdArticleData result)
+    private static void ParseCommentsJson(string json, HsdArticleData result, bool forDebugSummary = false)
     {
         JavaScriptSerializer ser = new JavaScriptSerializer();
         ser.MaxJsonLength = int.MaxValue;
@@ -1058,6 +1141,12 @@ public static class HsdPortalService
 
         IList items = root["data"] as IList ?? root["comments"] as IList ?? root["children"] as IList;
         if (items == null) return;
+
+        if (forDebugSummary)
+        {
+            MergeDebugComments(items, result);
+            return;
+        }
 
         foreach (object item in items)
         {

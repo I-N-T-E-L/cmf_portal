@@ -2,6 +2,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const os = require('node:os');
+const { spawnSync } = require('node:child_process');
 const { test } = require('node:test');
 
 const source = fs.readFileSync(path.join(__dirname, '..', '..', 'CMF_Web_portal.aspx'), 'utf8');
@@ -13,7 +15,7 @@ function createSummaryDrawer(response, mode = 'AI Debug Summary', history) {
         innerHTML: '', textContent: '', className: '', style: { display: 'none' }
     }]));
     const messages = [];
-    const key = '123_' + mode + '_debug-bullets-v8';
+    const key = '123_' + mode + '_debug-recent-v11';
     const context = vm.createContext({
         document: { getElementById: id => elements.get(id) },
         window: { _aiChatStore: history ? { [key]: history } : {} },
@@ -74,4 +76,88 @@ test('issue details keeps its existing renderer and conversation key', async () 
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(messages[0].text, 'details:Title: Test');
     assert.equal(context.window._aiCurrentIssueId, '123_AI issue details');
+});
+
+test('prepareIssueDetailsForDrawer populates structured grid fields without N/A when values are present', () => {
+    const context = vm.createContext({
+        escapeHtml: text => text
+    });
+    const definition = source.match(/        function prepareIssueDetailsForDrawer\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    vm.runInContext(definition[0], context);
+
+    const summary = '**Issue Details**\n'
+        + '- Problem / Issue: System hard hangs under heavy camera and graphics workload.\n'
+        + '- Current State: Open with ongoing debug.\n'
+        + '- Scenario / Trigger: Plug and unplug USB device while running camera recording.\n'
+        + '- Reproduction: 100% on sample units.\n'
+        + '- Affected Platform / System: Nova Lake H with Samsung LPDDR5x.\n'
+        + '- Environment: Windows 11 24H2 with MRC 160.3.\n'
+        + '- Current Investigation: Memory timings and firmware testing in progress.\n'
+        + '- Suspected Root Cause: Memory turnaround timing margins.\n'
+        + '- Workaround: Lower memory speed to 6400 MT/s.\n'
+        + '- Evidence / Logs: Machine check errors observed in uncore PCU.\n\n'
+        + '**Linked HSD / CMF Data**\n'
+        + '- Promoted ID: 15019951876\n'
+        + '- Owner: hsuck\n'
+        + '- Fixed Version / Closure: Target MRC 162\n'
+        + '- Latest Activity: TAT+5 passed overnight test.';
+
+    const html = context.prepareIssueDetailsForDrawer(summary);
+    assert.ok(html.includes('System hard hangs under heavy camera and graphics workload.'));
+    assert.ok(html.includes('Open with ongoing debug.'));
+    assert.ok(html.includes('Plug and unplug USB device'));
+    assert.ok(html.includes('100% on sample units.'));
+    assert.ok(html.includes('Nova Lake H with Samsung LPDDR5x.'));
+    assert.ok(html.includes('Windows 11 24H2 with MRC 160.3.'));
+    assert.ok(html.includes('Memory timings and firmware testing in progress.'));
+    assert.ok(html.includes('Memory turnaround timing margins.'));
+    assert.ok(html.includes('Lower memory speed to 6400 MT/s.'));
+    assert.ok(html.includes('Machine check errors observed in uncore PCU.'));
+    assert.ok(html.includes('15019951876'));
+    assert.ok(html.includes('hsuck'));
+    assert.ok(html.includes('Target MRC 162'));
+    assert.ok(html.includes('TAT+5 passed overnight test.'));
+    assert.ok(!html.includes('>N/A<'));
+});
+
+test('debug generation and follow-ups bypass shared forum context without changing other consumers', () => {
+    const server = fs.readFileSync(path.join(__dirname, '..', '..', 'CMF_Web_portal.aspx.cs'), 'utf8');
+    assert.match(server, /BuildIssueSummaryContext\(NormalizePlatformForLookup\(resolvedPlatform\), issueId, !isDetails\)/);
+    assert.match(server, /BuildIssueSummaryContext\(NormalizePlatformForLookup\(resolvedPlatform\), issueId, forDebugSummary\)/);
+    assert.match(server, /Sysdebug = isDetails \? sysdebug : string.Empty/);
+    const context = server.match(/    private static string BuildIssueSummaryContext\([^)]*\)[\s\S]*?\r?\n    \}/)[0];
+    assert.ok(context.indexOf('if (forDebugSummary) return') < context.indexOf('HsdPortalService.FormatForAiContext'));
+    assert.match(context, /if \(!forDebugSummary\) AppendSummaryContextLine\(builder, "Sysdebug"/);
+    assert.match(server, /GenerateFollowUpResponse\(request, question \?\? string.Empty, forDebugSummary\)/);
+    const service = fs.readFileSync(path.join(__dirname, '..', '..', 'App_Code', 'AiSummaryService.cs'), 'utf8');
+    assert.match(service, /ConversationStore\["debug-recent-v11:" \+ issueId\]/);
+    assert.match(service, /HsdPortalService.FetchArticle\(issueId, forDebugSummary\)/);
+    assert.match(service, /HsdPortalService.FetchArticle\(pid, forDebugSummary\)/);
+});
+
+const compiler = path.join(process.env.WINDIR || 'C:\\Windows', 'Microsoft.NET', 'Framework64', 'v4.0.30319', 'csc.exe');
+test('compiled debug assistant isolates forum data, orders recent evidence, and enforces brief output', {
+    skip: !fs.existsSync(compiler)
+}, () => {
+    const root = path.join(__dirname, '..', '..');
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cmf-debug-summary-'));
+    const output = path.join(directory, 'Tests.exe');
+    try {
+        const build = spawnSync(compiler, [
+            '/nologo', '/target:exe', '/out:' + output, '/r:System.Web.dll',
+            '/r:System.Web.Extensions.dll', '/r:System.Configuration.dll',
+            path.join(root, 'App_Code', 'AiSummaryService.cs'),
+            path.join(root, 'App_Code', 'HsdPortalService.cs'),
+            path.join(root, 'App_Code', 'CmfAssistantResponseCache.cs'),
+            path.join(__dirname, 'DebugSummaryServiceTests.cs')
+        ], { encoding: 'utf8', timeout: 120000 });
+        assert.equal(build.status, 0, build.stdout + build.stderr);
+        const run = spawnSync(output, [], { encoding: 'utf8', timeout: 30000,
+            env: { ...process.env, GNAI_ENDPOINT: 'REPLACE_TEST_ENDPOINT', GNAI_TOKEN: '' } });
+        assert.equal(run.status, 0, run.stdout + run.stderr);
+    } finally {
+        for (const file of [output, output + '.config']) fs.rmSync(file, { force: true });
+        fs.rmdirSync(directory);
+    }
 });

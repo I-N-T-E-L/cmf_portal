@@ -6134,14 +6134,13 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         }
     }
 
-    // Remove ddlProgressHeader_SelectedIndexChanged and ddlComponentHeader_SelectedIndexChanged
-
     protected void ddlOwnerHeader_SelectedIndexChanged(object sender, EventArgs e)
     {
         DropDownList ddl = sender as DropDownList;
         if (ddl != null)
         {
             Session["ownerFilter"] = ddl.SelectedValue;
+            if (ddlOwnerTop != null) ddlOwnerTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -6152,6 +6151,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         if (ddl != null)
         {
             Session["rvpReproFilter"] = ddl.SelectedValue;
+            if (ddlRvpReproTop != null) ddlRvpReproTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -6162,6 +6162,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         if (ddl != null)
         {
             Session["idstFilter"] = ddl.SelectedValue;
+            if (ddlIdstTop != null) ddlIdstTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -6172,6 +6173,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         if (ddl != null)
         {
             Session["companyFilter"] = ddl.SelectedValue;
+            if (ddlCompanyTop != null) ddlCompanyTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -6182,6 +6184,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         if (ddl != null)
         {
             Session["detailFilter"] = ddl.SelectedValue;
+            if (ddlDetailTop != null) ddlDetailTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -6192,6 +6195,18 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         if (ddl != null)
         {
             Session["componentFilter"] = ddl.SelectedValue;
+            if (ddlComponentTop != null) ddlComponentTop.SelectedValue = ddl.SelectedValue;
+            ApplyAllFilters();
+        }
+    }
+
+    protected void ddlComponentGroupHeader_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        DropDownList ddl = sender as DropDownList;
+        if (ddl != null)
+        {
+            Session["componentFilter"] = ddl.SelectedValue;
+            if (ddlComponentTop != null) ddlComponentTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -6202,6 +6217,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         if (ddl != null)
         {
             Session["losFilter"] = ddl.SelectedValue;
+            if (ddlLosTop != null) ddlLosTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -6212,6 +6228,18 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         if (ddl != null)
         {
             Session["milestoneFilter"] = ddl.SelectedValue;
+            if (ddlMilestoneTop != null) ddlMilestoneTop.SelectedValue = ddl.SelectedValue;
+            ApplyAllFilters();
+        }
+    }
+
+    protected void ddlStatusHeader_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        DropDownList ddl = sender as DropDownList;
+        if (ddl != null)
+        {
+            Session["issueStatusFilter"] = ddl.SelectedValue;
+            if (ddlStatusTop != null) ddlStatusTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -6230,15 +6258,15 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         Session["issueStatusFilter"] = null;
 
         // Reset dropdown selections to "All"
-        ddlOwnerTop.SelectedValue = "All";
-        ddlRvpReproTop.SelectedValue = "All";
-        ddlIdstTop.SelectedValue = "All";
-        ddlLosTop.SelectedValue = "All";
-        ddlMilestoneTop.SelectedValue = "All";
-        ddlCompanyTop.SelectedValue = "All";
-        ddlDetailTop.SelectedValue = "All";
-        ddlComponentTop.SelectedValue = "All";
-        ddlStatusTop.SelectedValue = "All";
+        if (ddlOwnerTop != null) ddlOwnerTop.SelectedValue = "All";
+        if (ddlRvpReproTop != null) ddlRvpReproTop.SelectedValue = "All";
+        if (ddlIdstTop != null) ddlIdstTop.SelectedValue = "All";
+        if (ddlLosTop != null) ddlLosTop.SelectedValue = "All";
+        if (ddlMilestoneTop != null) ddlMilestoneTop.SelectedValue = "All";
+        if (ddlCompanyTop != null) ddlCompanyTop.SelectedValue = "All";
+        if (ddlDetailTop != null) ddlDetailTop.SelectedValue = "All";
+        if (ddlComponentTop != null) ddlComponentTop.SelectedValue = "All";
+        if (ddlStatusTop != null) ddlStatusTop.SelectedValue = "All";
 
         // Apply the cleared filters
         ApplyAllFilters();
@@ -6776,9 +6804,20 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         return processed;
     }
 
-    // Populate issue filter controls above the table.
+    // Populate issue filter controls in table headers and top panel
     protected void overall_request_details_DataBound(object sender, EventArgs e)
     {
+        PopulateHeaderDropdown("ddlOwnerHeader", "OwnerItems", "ownerFilter");
+        PopulateHeaderDropdown("ddlRvpReproHeader", "RvpReproItems", "rvpReproFilter");
+        PopulateHeaderDropdown("ddlIdstHeader", "IdstItems", "idstFilter");
+        PopulateHeaderDropdown("ddlLosHeader", "LosItems", "losFilter");
+        PopulateHeaderDropdown("ddlCompanyHeader", "CompanyItems", "companyFilter");
+        PopulateHeaderDropdown("ddlDetailHeader", "DetailItems", "detailFilter");
+        PopulateHeaderDropdown("ddlComponentHeader", "ComponentItems", "componentFilter");
+        PopulateHeaderDropdown("ddlComponentGroupHeader", "ComponentItems", "componentFilter");
+        PopulateHeaderDropdown("ddlMilestoneHeader", "MilestoneItems", "milestoneFilter");
+        PopulateHeaderDropdown("ddlStatusHeader", "IssueStatusItems", "issueStatusFilter");
+
         PopulateTopFilterDropdown("ddlOwnerTop", "OwnerItems", "ownerFilter");
         PopulateTopFilterDropdown("ddlRvpReproTop", "RvpReproItems", "rvpReproFilter");
         PopulateTopFilterDropdown("ddlIdstTop", "IdstItems", "idstFilter");
@@ -6787,6 +6826,34 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         PopulateTopFilterDropdown("ddlDetailTop", "DetailItems", "detailFilter");
         PopulateTopFilterDropdown("ddlComponentTop", "ComponentItems", "componentFilter");
         PopulateTopFilterDropdown("ddlMilestoneTop", "MilestoneItems", "milestoneFilter");
+        PopulateTopFilterDropdown("ddlStatusTop", "IssueStatusItems", "issueStatusFilter");
+    }
+
+    private void PopulateHeaderDropdown(string dropdownId, string viewStateKey, string sessionKey)
+    {
+        if (overall_request_details.HeaderRow == null) return;
+        DropDownList ddl = overall_request_details.HeaderRow.FindControl(dropdownId) as DropDownList;
+        if (ddl != null && ViewState[viewStateKey] != null)
+        {
+            List<FilterItem> items = ViewState[viewStateKey] as List<FilterItem>;
+            if (items != null)
+            {
+                ddl.Items.Clear();
+
+                foreach (FilterItem item in items)
+                {
+                    ddl.Items.Add(new ListItem(item.Text, item.Value));
+                }
+
+                if (Session[sessionKey] != null)
+                {
+                    string value = Session[sessionKey].ToString();
+                    var item = ddl.Items.FindByValue(value);
+                    if (item != null)
+                        ddl.SelectedValue = value;
+                }
+            }
+        }
     }
 
     private void PopulateTopFilterDropdown(string dropdownId, string viewStateKey, string sessionKey)
@@ -7993,7 +8060,26 @@ LEFT JOIN " + designTable + @" AS d
 
             // Build dynamic master_query
             string master_query = base_master_query;
-            string order_clause = "ORDER BY \r\n    CASE WHEN LTRIM(RTRIM(ISNULL(main.drivers, ''))) = '' THEN 1 ELSE 0 END,\r\n    CASE \r\n        WHEN progress = 'Green' THEN 1  -- Give 'green' a lower priority, so it appears later\r\n        ELSE 0  -- Non-green rows get a higher priority (appear first)\r\n    END,\r\n    Driver, \r\n    CASE \r\n        WHEN progress = 'Red' THEN 1\r\n        WHEN progress = 'Orange' THEN 2\r\n        WHEN progress = 'Yellow' THEN 3\r\n        WHEN progress = 'Green' THEN 4  -- Green comes last, after all other colors\r\n    END,\r\n    component;\r\n ";
+            string order_clause = @"ORDER BY
+    CASE
+        WHEN LOWER(LTRIM(RTRIM(main.status))) = 'open' THEN 1
+        WHEN LOWER(LTRIM(RTRIM(main.status))) = 'complete' THEN 2
+        WHEN LOWER(LTRIM(RTRIM(main.status))) = 'future' THEN 3
+        WHEN LOWER(LTRIM(RTRIM(main.status))) = 'verified' THEN 4
+        WHEN LOWER(LTRIM(RTRIM(main.status))) = 'implemented' THEN 5
+        ELSE 6
+    END,
+    CASE WHEN LTRIM(RTRIM(ISNULL(main.drivers, ''))) = '' THEN 1 ELSE 0 END,
+    main.drivers,
+    CASE
+        WHEN main.progress = 'Red' THEN 1
+        WHEN main.progress = 'Orange' THEN 2
+        WHEN main.progress = 'Yellow' THEN 3
+        WHEN main.progress = 'Green' THEN 4
+    END,
+    main.component,
+    main.cp_id ASC;
+";
 
             ApplyIssuePageSizeFromSession();
 
@@ -9058,7 +9144,9 @@ LEFT JOIN " + designTable + @" AS d
                 };
             }
 
-            string issueContext = BuildIssueSummaryContext(NormalizePlatformForLookup(resolvedPlatform), issueId);
+            bool isDetails = string.Equals(mode, "details", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(mode, "AI issue details", StringComparison.OrdinalIgnoreCase);
+            string issueContext = BuildIssueSummaryContext(NormalizePlatformForLookup(resolvedPlatform), issueId, !isDetails);
 
             AiSummaryRequest request = new AiSummaryRequest
             {
@@ -9066,12 +9154,11 @@ LEFT JOIN " + designTable + @" AS d
                 Title = title,
                 SubmittedDate = submittedDate,
                 Status = status,
-                Sysdebug = sysdebug,
+                Sysdebug = isDetails ? sysdebug : string.Empty,
                 ContextDetails = issueContext
             };
 
-            if (string.Equals(mode, "details", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(mode, "AI issue details", StringComparison.OrdinalIgnoreCase))
+            if (isDetails)
             {
                 return AiSummaryService.GenerateIssueDetails(request);
             }
@@ -9096,7 +9183,8 @@ LEFT JOIN " + designTable + @" AS d
         string status,
         string sysdebug,
         string platform,
-        string question)
+        string question,
+        string mode)
     {
         try
         {
@@ -9119,7 +9207,9 @@ LEFT JOIN " + designTable + @" AS d
                 };
             }
 
-            string issueContext = BuildIssueSummaryContext(NormalizePlatformForLookup(resolvedPlatform), issueId);
+            bool forDebugSummary = !string.Equals(mode, "AI issue details", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(mode, "details", StringComparison.OrdinalIgnoreCase);
+            string issueContext = BuildIssueSummaryContext(NormalizePlatformForLookup(resolvedPlatform), issueId, forDebugSummary);
 
             AiSummaryRequest request = new AiSummaryRequest
             {
@@ -9127,11 +9217,11 @@ LEFT JOIN " + designTable + @" AS d
                 Title = title,
                 SubmittedDate = submittedDate,
                 Status = status,
-                Sysdebug = sysdebug,
+                Sysdebug = forDebugSummary ? string.Empty : sysdebug,
                 ContextDetails = issueContext
             };
 
-            return AiSummaryService.GenerateFollowUpResponse(request, question ?? string.Empty);
+            return AiSummaryService.GenerateFollowUpResponse(request, question ?? string.Empty, forDebugSummary);
         }
         catch (Exception ex)
         {
@@ -9143,7 +9233,7 @@ LEFT JOIN " + designTable + @" AS d
         }
     }
 
-    private static string BuildIssueSummaryContext(string platformTable, string issueId)
+    private static string BuildIssueSummaryContext(string platformTable, string issueId, bool forDebugSummary = false)
     {
         if (string.IsNullOrWhiteSpace(issueId))
         {
@@ -9224,7 +9314,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
                     AppendSummaryContextLine(builder, "CMF Status", row, "cmf_status");
                     AppendSummaryContextLine(builder, "Promoted Status", row, "promoted_status", "cmf_status", "status");
                     AppendSummaryContextLine(builder, "Drivers", row, "drivers");
-                    AppendSummaryContextLine(builder, "Sysdebug", row, "sysdebug");
+                    if (!forDebugSummary) AppendSummaryContextLine(builder, "Sysdebug", row, "sysdebug");
                     AppendSummaryContextLine(builder, "Impact", row, "impact");
                     AppendSummaryContextLine(builder, "Processor", row, "processor");
                     AppendSummaryContextLine(builder, "Reproducibility", row, "reproducibility", "repro_on_rvp");
@@ -9261,6 +9351,8 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
                         }
                     }
 
+                    if (forDebugSummary) return builder.ToString().Trim();
+
                     // ── Section 2: HSD portal – sighting article ───────────────
                     HsdArticleData hsdSighting =
                         HsdPortalService.FetchArticle(issueId.Trim());
@@ -9288,8 +9380,13 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
             }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            if (forDebugSummary)
+            {
+                System.Diagnostics.Trace.TraceError("Debug summary context lookup failed: {0}", ex);
+                throw;
+            }
             return string.Empty;
         }
     }
@@ -10677,6 +10774,12 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
 
     private static string GetIssueExportCellText(TableCell cell)
     {
+        Label title = cell.Controls.OfType<Label>().FirstOrDefault(label => label.ID == "lblIssueTitle");
+        if (title != null)
+        {
+            string text = HttpUtility.HtmlDecode(title.Text).Trim();
+            return string.IsNullOrWhiteSpace(text) ? "unknown" : text;
+        }
         using (var buffer = new StringWriter())
         using (var writer = new HtmlTextWriter(buffer))
         {

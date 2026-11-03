@@ -122,15 +122,29 @@ These popup filters do not change dashboard cards or chart counts.
 
 ### Issue List: AI Debug Summary
 
-AI Debug Summary produces a single list of plain-English bullets describing the
-debugging documented for the sighting and its linked promoted HSD articles:
-tests performed, findings, and recorded fix or validation outcomes. Suspected
-causes and planned work must remain distinct from confirmed results. It does not
-generate risk, escalation, decision, or next-action subsections.
+AI Debug Summary drafts a brief update that a reviewer, owner, or iDST can review
+and copy into the sighting's HSD `sysdebug_forum` field. It does not write to HSD.
+The existing `sysdebug_forum` value is excluded from summary evidence and debug
+follow-up chat; Issue Details and other features retain their existing sources.
+The draft uses the most recent retrieved discussion/engineering activity,
+test results, and fix/validation notes, including clearly attributed linked
+promoted articles. It returns 1-4 simple bullets, at most 100 words, rather than a
+full investigation history. Planned tests and suspected causes stay distinct
+from completed tests and confirmed results. The draft is written in simple,
+grammatically sound English understandable to a layman or general reviewer,
+explaining technical parameters and firmware settings in plain words while
+remaining technically accurate. It contains only debugging activity, results,
+and supported technical uncertainty; it does not append source-coverage
+disclaimers or commentary about retrieval or the feature.
 
 The summary uses retrieved HSD text, not attachment contents, and discussion
-history may be partial. Missing debugging evidence or article retrieval failures
-must be acknowledged rather than filled with assumptions. If the AI provider
+history may be partial. Debug retrieval keeps the newest five dated comments
+among the returned entries without the shared 600-character comment truncation.
+REST discussion retrieval examines up to 100 returned entries; plugin retrieval
+requests the newest five entries and their own timestamps. Article modification
+dates do not establish when tests occurred, and undated/omitted history cannot
+guarantee the latest overall activity. These limits constrain factual claims
+internally and must not be filled with assumptions. If the AI provider
 fails or returns an invalid output format, the feature shows a retryable error
 instead of a heuristic summary. The existing summary window is unchanged.
 
@@ -139,7 +153,11 @@ instead of a heuristic summary. The existing summary window is unchanged.
 The Issue List follows the reference portal's column order. Progress displays the
 issue status against the database progress color, with black or white text chosen
 for contrast. Title and Status show their full wrapped text in a horizontally
-scrollable table. Short-value columns use compact widths; the filter row wraps
+scrollable table. Debug Summary, Issue Details, and Edit appear as icons beneath
+each title, with clickable labels on hover or keyboard focus (always labelled on
+touch devices). Save/Cancel appear there while editing. There is no separate
+Actions column; exports contain title text only, not action labels.
+Short-value columns use compact widths; the filter row wraps
 on smaller screens, keeping the Platform selector accessible.
 
 Use **Columns** to open **Personalize List Columns**. Move columns between
@@ -156,7 +174,7 @@ updates in the Status column.
 
 **Export** downloads an `.xlsx` workbook containing all rows matching the current
 platform, filters, and search, across every page. Only selected data columns are
-exported, in table order; the Actions column and UI controls are excluded.
+exported, in table order; UI controls are excluded.
 
 ## First-Time Setup
 
