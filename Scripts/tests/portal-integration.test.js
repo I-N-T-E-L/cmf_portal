@@ -75,6 +75,16 @@ test('one shared Updated timestamp follows Mode outside tab-specific panels', ()
     assert.match(theme, /body \.portal-app-header \.portal-header-updated \{[^}]*white-space: nowrap;/);
 });
 
+test('accepted date filtering is wired to the dropdown and pending-only predicates', () => {
+    assert.match(source, /<asp:ListItem Text="CMFs Accepted in" Value="cmf-accepted"\s*\/>/);
+    const server = fs.readFileSync(path.join(__dirname, '..', '..', 'CMF_Web_portal.aspx.cs'), 'utf8');
+    assert.match(server, /FindByValue\("cmf-accepted"\)\.Text = isTodayRange \? "CMFs Accepted" : "CMFs Accepted in";/);
+    assert.match(server, /BuildPendingPredicate\("pending_dates"\)/);
+    assert.match(server, /BuildPendingPredicate\("pending_bucket_src"\)/);
+    assert.doesNotMatch(server, /BuildPredicate\("pending_/);
+    assert.doesNotMatch(server, /FROM " \+ pendingTable \+ " WHERE " \+ GetDashboardDateFilter\(\)\.BuildPredicate/);
+});
+
 test('detail and insights modes expose the content area and hide recommendation sections', () => {
     const { context, elements } = createDrawer();
     for (const mode of ['details', 'insights']) {

@@ -433,6 +433,10 @@ body #homeWelcomePanel .dashboard-platform-toolbar > .platform-chip-rail {
     margin-bottom: 0 !important;
 }
 
+body #homeWelcomePanel .dashboard-platform-toolbar > .platform-chip-rail > .platform-chip[data-platform="CMF_OVERALL_ALL_COMPONENTS_TABLE"] {
+    margin-left: auto;
+}
+
 body .portal-app-header .header-mode-dropdown {
     height: 34px !important;
     min-width: 145px !important;

@@ -13,7 +13,7 @@ public sealed class CmfDashboardDateFilter
     {
         filter = null;
         error = string.Empty;
-        if (basis != "cmf-request" && basis != "submitted")
+        if (basis != "cmf-request" && basis != "submitted" && basis != "cmf-accepted")
         {
             error = "Select a valid date basis.";
             return false;
@@ -54,12 +54,20 @@ public sealed class CmfDashboardDateFilter
         return true;
     }
 
+    public string BuildPendingPredicate(string alias)
+    {
+        return Start.HasValue && Basis == "cmf-accepted" ? "1 = 0" : BuildPredicate(alias);
+    }
+
     public string BuildPredicate(string alias)
     {
         if (!Start.HasValue) return "1 = 1";
-        string column = (string.IsNullOrEmpty(alias) ? string.Empty : alias + ".")
-            + (Basis == "submitted" ? "submitted_date" : "date_cmf_ask");
-        return column + " >= CONVERT(datetime, '" + Start.Value.ToString("yyyyMMdd", CultureInfo.InvariantCulture)
+        string prefix = string.IsNullOrEmpty(alias) ? string.Empty : alias + ".";
+        string column = prefix + (Basis == "submitted" ? "submitted_date"
+            : Basis == "cmf-accepted" ? "date_cmf_decided" : "date_cmf_ask");
+        string acceptedPredicate = Basis == "cmf-accepted"
+            ? prefix + "cmf_request IN ('cmf_ok', 'cmf_duplicate') AND " : string.Empty;
+        return acceptedPredicate + column + " >= CONVERT(datetime, '" + Start.Value.ToString("yyyyMMdd", CultureInfo.InvariantCulture)
             + "', 112) AND " + column + " < CONVERT(datetime, '"
             + EndExclusive.Value.ToString("yyyyMMdd", CultureInfo.InvariantCulture) + "', 112)";
     }

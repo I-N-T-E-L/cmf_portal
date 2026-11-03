@@ -5091,6 +5091,42 @@ body {
     align-self: end;
 }
 
+.cmf-summary-value-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.cmf-weekly-trend {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 14px;
+    max-width: 100%;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0;
+    white-space: nowrap;
+}
+
+.cmf-weekly-trend.trend-good { color: #067647; }
+.cmf-weekly-trend.trend-bad { color: #b42318; }
+.cmf-weekly-trend.trend-neutral { color: #2563eb; }
+.cmf-weekly-trend.trend-unavailable { color: #667085; }
+
+.cmf-weekly-trend-bar {
+    display: inline-block;
+    width: 12px;
+    height: 3px;
+    background: currentColor;
+}
+
 .overall-summary-side-facts {
     display: flex;
     flex-wrap: nowrap;
@@ -5485,24 +5521,25 @@ body .overall-quick-links .overall-quick-link-btn:active {
 }
 
 .overall-oem-trend {
-    display: inline-grid;
-    grid-template-columns: 12px auto;
+    display: inline-flex;
     align-items: center;
-    column-gap: 6px;
+    column-gap: 0.5em;
     justify-content: center;
-    min-width: 64px;
+    white-space: nowrap;
 }
 
 .overall-oem-trend-arrow {
-    width: 14px;
     text-align: center;
     line-height: 1;
     font-size: 16px;
     font-weight: 900;
 }
 
+.overall-oem-trend-arrow:empty {
+    display: none;
+}
+
 .overall-oem-trend-value {
-    min-width: 44px;
     text-align: center;
     font-variant-numeric: tabular-nums;
 }
@@ -5522,8 +5559,8 @@ body .overall-quick-links .overall-quick-link-btn:active {
 .overall-risk-pill.medium { background: #fef3c7; color: #b54708; }
 .overall-risk-pill.low { background: #dcfce7; color: #067647; }
 
-.overall-trend-up { color: #067647; font-weight: 800; }
-.overall-trend-down { color: #b42318; font-weight: 800; }
+.overall-trend-up { color: #b42318; font-weight: 800; }
+.overall-trend-down { color: #067647; font-weight: 800; }
 .overall-trend-flat { color: #475467; font-weight: 800; }
 
 .overall-trend-chart {
@@ -8302,8 +8339,8 @@ td:nth-child(odd), th:nth-child(odd) {
 #detailsModalSummaryMetrics #GridView_summaryMetricIssues td:nth-child(3),
 #detailsModalSummaryMetrics #GridView_summaryMetricIssues th:nth-child(4),
 #detailsModalSummaryMetrics #GridView_summaryMetricIssues td:nth-child(4),
-#detailsModalSummaryMetrics #GridView_summaryMetricIssues th:nth-child(20),
-#detailsModalSummaryMetrics #GridView_summaryMetricIssues td:nth-child(20) {
+#detailsModalSummaryMetrics #GridView_summaryMetricIssues th:nth-child(21),
+#detailsModalSummaryMetrics #GridView_summaryMetricIssues td:nth-child(21) {
     text-align: center;
 }
 
@@ -18096,7 +18133,17 @@ td:nth-child(odd), th:nth-child(odd) {
             var isClusteredBar = chartType === 'bar';
             var isStackedLine = !isClusteredBar;
             var fullTrend = snapshot.Trend || [];
-            var selectedRangeWeeks = parseInt(rangeWeeks || 0, 10);
+            var dateModeSelector = document.getElementById('<%= ddlDashboardDateMode.ClientID %>');
+            var dashboardDateMode = dateModeSelector ? (dateModeSelector.value || 'all') : 'all';
+            var isDateFiltered = dashboardDateMode !== 'all';
+            var rangeSelector = document.getElementById(hostId === 'homeOverallTrendChart' ? 'homeOverallTrendRange' : 'homeSpecificTrendRange');
+            if (rangeSelector) {
+                rangeSelector.disabled = isDateFiltered;
+                if (rangeSelector.parentElement) {
+                    rangeSelector.parentElement.style.display = isDateFiltered ? 'none' : '';
+                }
+            }
+            var selectedRangeWeeks = isDateFiltered ? fullTrend.length : parseInt(rangeWeeks || 0, 10);
             if (isNaN(selectedRangeWeeks) || selectedRangeWeeks <= 0) {
                 selectedRangeWeeks = fullTrend.length;
             }
@@ -18105,6 +18152,26 @@ td:nth-child(odd), th:nth-child(odd) {
             if (fullTrend.length > selectedRangeWeeks) {
                 trend = fullTrend.slice(fullTrend.length - selectedRangeWeeks);
             }
+            if (isDateFiltered) {
+                var firstPopulatedWeek = 0;
+                while (firstPopulatedWeek < trend.length - 1) {
+                    var candidateWeek = trend[firstPopulatedWeek] || {};
+                    var firstValue = Number((isStackedLine ? candidateWeek.WeekEndOpenIssues : candidateWeek.NewIssues) || 0);
+                    var secondValue = Number((isStackedLine ? candidateWeek.WeekEndImplementedIssues : candidateWeek.ResolvedIssues) || 0);
+                    if (firstValue > 0 || secondValue > 0) {
+                        break;
+                    }
+                    firstPopulatedWeek++;
+                }
+                var firstPopulatedItem = trend[firstPopulatedWeek] || {};
+                if (isStackedLine && firstPopulatedWeek > 0
+                    && (Number(firstPopulatedItem.WeekEndOpenIssues || 0) > 0
+                        || Number(firstPopulatedItem.WeekEndImplementedIssues || 0) > 0)) {
+                    firstPopulatedWeek--;
+                }
+                trend = trend.slice(firstPopulatedWeek);
+            }
+            var barRangeWeeks = isDateFiltered ? trend.length : selectedRangeWeeks;
             var trendStartIndex = Math.max(0, fullTrend.length - trend.length);
             var visibleTrendPoints = [];
             for (var visibleIndex = 0; visibleIndex < trend.length; visibleIndex++) {
@@ -18136,6 +18203,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 window.CMF_PORTAL.currentPlatform || '',
                 hostId,
                 chartType,
+                dashboardDateMode,
                 selectedRangeWeeks,
                 fullTrend.length,
                 trend.length,
@@ -18183,7 +18251,7 @@ td:nth-child(odd), th:nth-child(odd) {
                         type: chartType,
                         stack: isStackedLine ? 'cmf-status' : undefined,
                         smooth: !isClusteredBar,
-                        barMaxWidth: selectedRangeWeeks === 6 ? 18 : (selectedRangeWeeks === 12 ? 8 : 6),
+                        barMaxWidth: barRangeWeeks <= 6 ? 18 : (barRangeWeeks <= 12 ? 8 : 6),
                         barGap: '20%',
                         itemStyle: isClusteredBar ? { color: '#f0f9ff', borderColor: '#0369a1', borderWidth: 1 } : (isStackedLine ? { color: '#800000' } : undefined),
                         data: toTrendSeriesData(trend, function (item) { return isStackedLine ? item.WeekEndOpenIssues : item.NewIssues; }),
@@ -18198,7 +18266,7 @@ td:nth-child(odd), th:nth-child(odd) {
                         type: chartType,
                         stack: isStackedLine ? 'cmf-status' : undefined,
                         smooth: !isClusteredBar,
-                        barMaxWidth: selectedRangeWeeks === 6 ? 18 : (selectedRangeWeeks === 12 ? 8 : 6),
+                        barMaxWidth: barRangeWeeks <= 6 ? 18 : (barRangeWeeks <= 12 ? 8 : 6),
                         itemStyle: isClusteredBar ? { color: '#dcfce7', borderColor: '#16a34a', borderWidth: 1 } : (isStackedLine ? { color: '#0369a1' } : undefined),
                         data: toTrendSeriesData(trend, function (item) { return isStackedLine ? item.WeekEndImplementedIssues : item.ResolvedIssues; }),
                         lineStyle: { width: 3, color: isStackedLine ? '#0369a1' : undefined },
@@ -19214,7 +19282,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 showOpen: initialTrendStatus.showOpen,
                 showClosed: initialTrendStatus.showClosed,
                 includeUnique: true,
-                includeDuplicates: sourceType !== 'trend-week',
+                includeDuplicates: sourceType !== 'trend-week' && sourceType !== 'overall-heatmap',
                 sourceType: sourceType,
                 ingredient: popupOptions && popupOptions.ingredient ? String(popupOptions.ingredient || '').trim() : '',
                 platformLabel: popupOptions && popupOptions.platformLabel ? String(popupOptions.platformLabel || '').trim() : '',
@@ -19322,6 +19390,20 @@ td:nth-child(odd), th:nth-child(odd) {
             });
         }
 
+        function renderSummaryWeeklyTrend(trend) {
+            if (!trend) return '';
+            var tone = /^(good|bad|neutral)$/.test(trend.Tone) ? trend.Tone : 'unavailable';
+            var direction = /^(up|down|flat)$/.test(trend.Direction) ? trend.Direction : 'unavailable';
+            var icon = direction === 'flat'
+                ? '<span class="cmf-weekly-trend-bar" aria-hidden="true"></span>'
+                : direction === 'up' || direction === 'down'
+                    ? '<i class="fa-solid fa-arrow-' + direction + '" aria-hidden="true"></i>' : '';
+            return '<span class="cmf-weekly-trend trend-' + tone + '" data-direction="' + direction +
+                '" role="img" title="' + escapeHtml(trend.Tooltip || '') + '" aria-label="' +
+                escapeHtml(trend.Tooltip || '') + '">' + icon + '<span>' +
+                escapeHtml(trend.Display || 'N/A') + '</span></span>';
+        }
+
         function renderOverallSummaryFacts(snapshot, hostId) {
             var host = document.getElementById(hostId || 'homeOverallSummaryFacts');
             if (!host) {
@@ -19361,9 +19443,12 @@ td:nth-child(odd), th:nth-child(odd) {
                     card.setAttribute('aria-label', (fact.Label || 'Summary metric') + '. ' + tooltip + '. Click to view issue counts grouped by selection.');
                 }
 
+                var valueHtml = '<div class="ccip-summary-fact-value">' + renderValueWithDaysSuffix(formattedFact.valueText, 'ccip-days-suffix') + '</div>';
+                if (fact.WeeklyTrend) {
+                    valueHtml = '<div class="cmf-summary-value-stack">' + valueHtml + renderSummaryWeeklyTrend(fact.WeeklyTrend) + '</div>';
+                }
                 card.innerHTML = '<div class="ccip-summary-fact-label">' + escapeHtml(fact.Label || '-') + '</div>' +
-                    '<div class="ccip-summary-fact-value">' + renderValueWithDaysSuffix(formattedFact.valueText, 'ccip-days-suffix') + '</div>' +
-                    '<div class="ccip-summary-fact-note">' + escapeHtml(formattedFact.noteText) + '</div>';
+                    valueHtml + '<div class="ccip-summary-fact-note">' + escapeHtml(formattedFact.noteText) + '</div>';
 
                 if (metricKey) {
                     (function (boundMetricKey, boundLabel, boundCard) {
@@ -19640,7 +19725,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 '<th>Open Issues</th>' +
                 '<th>CMF Pending</th>' +
                 '<th>Average Resolution Time (Days)</th>' +
-                '<th>Trend<br><span style="display:block;font-size:9px;font-weight:700;letter-spacing:0.01em;opacity:0.95;">(vs Last Week)</span></th>' +
+                '<th>Trend<br><span style="display:block;font-size:9px;font-weight:700;letter-spacing:0.01em;opacity:0.95;">(7d vs Previous 7d)</span></th>' +
                 '</tr></thead><tbody>';
 
             function buildOverallOemMetricLinkHtml(oemName, metricKey, metricClass, value) {
@@ -19675,14 +19760,18 @@ td:nth-child(odd), th:nth-child(odd) {
                 var implemented = parseInt(row.Implemented || 0, 10);
                 var closed = parseInt(row.Closed || 0, 10);
                 var avgResolution = parseFloat(row.AvgResolutionDays || 0);
-                var trendPercent = parseInt(row.TrendPercent || 0, 10);
-                var trendSafe = isNaN(trendPercent) ? 0 : trendPercent;
+                var trendCount = parseInt(row.TrendCount || 0, 10);
+                var trendSafe = isNaN(trendCount) ? 0 : trendCount;
                 var trendClass = trendSafe > 0 ? 'overall-trend-up' : (trendSafe < 0 ? 'overall-trend-down' : 'overall-trend-flat');
                 var trendAbs = Math.abs(trendSafe);
                 var trendArrow = trendSafe > 0 ? '↑' : (trendSafe < 0 ? '↓' : '');
                 var trendValue = trendSafe > 0
-                    ? ('+' + trendAbs + '%')
-                    : (trendSafe < 0 ? ('-' + trendAbs + '%') : '0%');
+                    ? ('+' + trendAbs)
+                    : (trendSafe < 0 ? ('-' + trendAbs) : '0');
+                var recentRequests = parseInt(row.RecentRequestCount || 0, 10) || 0;
+                var previousRequests = parseInt(row.PreviousRequestCount || 0, 10) || 0;
+                var trendTooltip = 'CMF requests in last 7 days (including today): ' + recentRequests
+                    + '; previous 7 days: ' + previousRequests + '; change: ' + trendValue + '.';
 
                 var safeTotalIssues = isNaN(totalIssues) ? 0 : totalIssues;
                 var safeOpenIssues = isNaN(openIssues) ? 0 : openIssues;
@@ -19706,7 +19795,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     '<td>' + buildOverallOemMetricLinkHtml(oemName, 'open', 'overall-oem-metric-open', safeOpenIssues) + '</td>' +
                     '<td>' + buildOverallOemMetricLinkHtml(oemName, 'pending', 'overall-oem-metric-pending', safeCmfPending) + '</td>' +
                     '<td>' + escapeHtml(safeAvgResolution.toFixed(1)) + '</td>' +
-                        '<td><span class="overall-oem-trend ' + trendClass + '"><span class="overall-oem-trend-arrow">' + escapeHtml(trendArrow) + '</span><span class="overall-oem-trend-value">' + escapeHtml(trendValue) + '</span></span></td>' +
+                        '<td><span class="overall-oem-trend ' + trendClass + '" title="' + escapeHtml(trendTooltip) + '"><span class="overall-oem-trend-arrow">' + escapeHtml(trendArrow) + '</span><span class="overall-oem-trend-value">' + escapeHtml(trendValue) + '</span></span></td>' +
                     '</tr>';
             }
 
@@ -19884,13 +19973,17 @@ td:nth-child(odd), th:nth-child(odd) {
             var html = '';
             html += '<div class="overall-tpt-box" data-tpt-kind="disposition">' +
                 '<div class="overall-tpt-label">DISPOSITION TPT</div>' +
+                (dispositionFact && dispositionFact.WeeklyTrend ? '<div class="cmf-summary-value-stack">' : '') +
                 '<div class="overall-tpt-value ' + getLegacyTptValueToneClass('disposition', dispositionDays) + '">' + escapeHtml(String(dispositionDays)) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
+                (dispositionFact && dispositionFact.WeeklyTrend ? renderSummaryWeeklyTrend(dispositionFact.WeeklyTrend) + '</div>' : '') +
                 buildTptColorLegend('disposition') +
                 '</div>';
 
             html += '<div class="overall-tpt-box" data-tpt-kind="resolution">' +
                 '<div class="overall-tpt-label">RESOLUTION TPT</div>' +
+                (resolutionFact && resolutionFact.WeeklyTrend ? '<div class="cmf-summary-value-stack">' : '') +
                 '<div class="overall-tpt-value ' + getLegacyTptValueToneClass('resolution', resolutionDays) + '">' + escapeHtml(String(resolutionDays)) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
+                (resolutionFact && resolutionFact.WeeklyTrend ? renderSummaryWeeklyTrend(resolutionFact.WeeklyTrend) + '</div>' : '') +
                 buildTptColorLegend('resolution') +
                 '</div>';
 
@@ -19937,6 +20030,17 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
+            var platformColumns = platforms.map(function (platformLabel, platformIndex) {
+                var total = rows.reduce(function (sum, row) {
+                    var values = row && row.Values ? row.Values : [];
+                    var value = parseInt(values[platformIndex] || 0, 10);
+                    return sum + (isNaN(value) ? 0 : value);
+                }, 0);
+                return { index: platformIndex, label: String(platformLabel || ''), total: total };
+            }).sort(function (first, second) {
+                return second.total - first.total || first.label.localeCompare(second.label);
+            });
+
             var overallRiskThresholds = normalizeComponentRiskThresholds(
                 window.CMF_PORTAL && window.CMF_PORTAL.overallRiskThresholds
                     ? window.CMF_PORTAL.overallRiskThresholds
@@ -19951,7 +20055,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var html = '<div class="component-summary-heatmap-layout"><div class="component-summary-heatmap-scroll"><div class="overall-heatmap-board" style="grid-template-columns: 112px repeat(' + platforms.length + ', 46px);">';
             html += '<div class="overall-heatmap-corner">INGREDIENT</div>';
             for (var c = 0; c < platforms.length; c++) {
-                html += '<div class="overall-heatmap-platform">' + escapeHtml(platforms[c]) + '</div>';
+                html += '<div class="overall-heatmap-platform">' + escapeHtml(platforms[platformColumns[c].index]) + '</div>';
             }
 
             for (var r = 0; r < rows.length; r++) {
@@ -19962,10 +20066,11 @@ td:nth-child(odd), th:nth-child(odd) {
                 html += '<div class="overall-heatmap-ingredient">' + escapeHtml(ingredientLabel) + '</div>';
 
                 for (var col = 0; col < platforms.length; col++) {
-                    var platformLabel = String(platforms[col] || '');
-                    var value = parseInt(values[col] || 0, 10);
+                    var sourceIndex = platformColumns[col].index;
+                    var platformLabel = String(platforms[sourceIndex] || '');
+                    var value = parseInt(values[sourceIndex] || 0, 10);
                     var normalizedValue = isNaN(value) ? 0 : value;
-                    var statusTooltip = statusBreakdowns.length > col ? String(statusBreakdowns[col] || '') : '';
+                    var statusTooltip = statusBreakdowns.length > sourceIndex ? String(statusBreakdowns[sourceIndex] || '') : '';
                     var losCount = parseOverallHeatmapLosCount(statusTooltip);
                     var colorBasisValue = applyLosSubtraction ? (normalizedValue - losCount) : normalizedValue;
                     if (isNaN(colorBasisValue) || colorBasisValue < 0) {
@@ -25654,6 +25759,7 @@ Submit
                                     </asp:DropDownList>
                                     <asp:DropDownList ID="ddlDashboardDateBasis" runat="server" AutoPostBack="true" OnSelectedIndexChanged="DashboardDateFilter_Changed" aria-label="Dashboard date basis">
                                         <asp:ListItem Text="CMFs Requested in" Value="cmf-request" />
+                                        <asp:ListItem Text="CMFs Accepted in" Value="cmf-accepted" />
                                         <asp:ListItem Text="Issues Submitted in" Value="submitted" />
                                     </asp:DropDownList>
                                     <asp:Panel ID="dashboardCustomDates" runat="server" Visible="false">
@@ -25718,8 +25824,8 @@ Submit
                                                         <option value="bar">WEEKLY ISSUE FLOW</option>
                                                     </select>
                                                 </h4>
-                                                <div class="overall-trend-range">
-                                                    <select id="homeOverallTrendRange" class="overall-trend-range-select" aria-label="Issue trend time range">
+                                                <div class="overall-trend-range" style="<%= ddlDashboardDateMode.SelectedValue == "all" ? string.Empty : "display:none;" %>">
+                                                    <select id="homeOverallTrendRange" class="overall-trend-range-select" aria-label="Issue trend time range" <%= ddlDashboardDateMode.SelectedValue == "all" ? string.Empty : "disabled=\"disabled\"" %>>
                                                         <option value="6" selected="selected">Last 6 Weeks</option>
                                                         <option value="12">Last 12 Weeks</option>
                                                     </select>
@@ -25813,8 +25919,8 @@ Submit
                                                             <option value="bar">WEEKLY ISSUE FLOW</option>
                                                         </select>
                                                     </h4>
-                                                    <div class="overall-trend-range">
-                                                        <select id="homeSpecificTrendRange" class="overall-trend-range-select" aria-label="Issue trend time range">
+                                                    <div class="overall-trend-range" style="<%= ddlDashboardDateMode.SelectedValue == "all" ? string.Empty : "display:none;" %>">
+                                                        <select id="homeSpecificTrendRange" class="overall-trend-range-select" aria-label="Issue trend time range" <%= ddlDashboardDateMode.SelectedValue == "all" ? string.Empty : "disabled=\"disabled\"" %>>
                                                             <option value="6" selected="selected">Last 6 Weeks</option>
                                                             <option value="12">Last 12 Weeks</option>
                                                         </select>
@@ -27334,6 +27440,7 @@ Target="_blank" />
                             <asp:BoundField DataField="PromotedOwner" HeaderText="Promoted_Owner" />
                             <asp:BoundField DataField="RvpRepro" HeaderText="RVP Repro" />
                             <asp:BoundField DataField="Status" HeaderText="Status" />
+                            <asp:BoundField DataField="CmfRequest" HeaderText="CMF Request" />
                             <asp:BoundField DataField="Idst" HeaderText="iDST" />
                             <asp:BoundField DataField="Los" HeaderText="LOS" />
                             <asp:BoundField DataField="Processor" HeaderText="Processor" />
