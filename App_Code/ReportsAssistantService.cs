@@ -28,9 +28,9 @@ public static class ReportsAssistantService
     private const string ReportsContextSessionKey = "ReportsAssistantContextByPlatform";
     private const string AllCmfDataContextKey = "ALL_CMF_DATA";
     private const int MaxHsdRowsForReports = 40;
-    private static readonly Dictionary<string, string> PlatformPromptMap = CmfPlatformCatalog.GetPromptAliasToTableMap();
-    private static readonly Dictionary<string, string[]> PlatformGroupAliasMap = CmfPlatformCatalog.GetGroupAliasToTablesMap();
-    private static readonly HashSet<string> AllowedPlatformTables = CmfPlatformCatalog.GetAllowedPlatformTables();
+    private static Dictionary<string, string> PlatformPromptMap { get { return CmfPlatformCatalog.GetPromptAliasToTableMap(); } }
+    private static Dictionary<string, string[]> PlatformGroupAliasMap { get { return CmfPlatformCatalog.GetGroupAliasToTablesMap(); } }
+    private static HashSet<string> AllowedPlatformTables { get { return CmfPlatformCatalog.GetAllowedPlatformTables(); } }
 
     public static ReportsAssistantResponse ProcessPrompt(string prompt, string platform)
     {
