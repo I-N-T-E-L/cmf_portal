@@ -127,6 +127,7 @@ public class HomeDashboardFact
     public string Value { get; set; }
     public string Note { get; set; }
     public string TrendNote { get; set; }
+    public CmfSummaryTrend WeeklyTrend { get; set; }
     public string ConstituentTooltip { get; set; }
 }
 
@@ -147,7 +148,9 @@ public class HomeDashboardOemRow
     public int Closed { get; set; }
     public decimal AvgResolutionDays { get; set; }
     public string RiskLevel { get; set; }
-    public int TrendPercent { get; set; }
+    public int TrendCount { get; set; }
+    public int RecentRequestCount { get; set; }
+    public int PreviousRequestCount { get; set; }
 }
 
 public class HomeDashboardHeatmapRow
@@ -224,20 +227,20 @@ public partial class CMF_Web_portal : System.Web.UI.Page
     private const string DashboardPlatformSessionKey = "dashboardSelectedPlatform";
     private const string IssuePendingPlatformSessionKey = "issuePendingSelectedPlatform";
     private const string PendingPlatformsSessionKey = "cmfPendingSelectedPlatforms";
-    private const string DefaultIssuePendingPlatformTable = "CMF_NVL_H_ALL_COMPONENTS_TABLE";
+    private static string DefaultIssuePendingPlatformTable { get { return DefaultPlatformTable; } }
     private const string OverallExcludedPlatformsSessionKey = "overallExcludedPlatforms";
     private const string AllMilestonesDriverToken = "__ALL_MILESTONES__";
     private const string IssueGridCacheKeySessionKey = "issueGridCacheKey";
     private const string IssueGridCacheDataSessionKey = "issueGridCacheData";
     private const string IssueGlobalSearchSessionKey = "issueGlobalSearch";
-    private static readonly string DefaultPlatformTable = CmfPlatformCatalog.GetDefaultPlatformTableName();
+    private static string DefaultPlatformTable { get { return CmfPlatformCatalog.GetDefaultPlatformTableName(); } }
     private const string OverallDashboardPlatformTable = CmfPlatformCatalog.OverallPlatformTableName;
 
-    private static readonly string[] DashboardAggregatePlatformTables = CmfPlatformCatalog.GetAllPlatformTables();
+    private static string[] DashboardAggregatePlatformTables { get { return CmfPlatformCatalog.GetAllPlatformTables(); } }
 
     private static readonly object AssistantContextCacheSync = new object();
-    private static readonly HashSet<string> AllowedPlatformTables = CmfPlatformCatalog.GetAllowedPlatformTables();
-    private static readonly CmfPlatformDefinition[] OrderedPlatformOptions = CmfPlatformCatalog.GetOrderedPlatforms();
+    private static HashSet<string> AllowedPlatformTables { get { return CmfPlatformCatalog.GetAllowedPlatformTables(); } }
+    private static CmfPlatformDefinition[] OrderedPlatformOptions { get { return CmfPlatformCatalog.GetOrderedPlatforms(); } }
 
     private List<string> drivers = new List<string>();
 
@@ -416,52 +419,71 @@ public partial class CMF_Web_portal : System.Web.UI.Page
 
     private List<CmfPlatformDefinition> GetAvailableIndividualPlatforms()
     {
-        const string cacheKey = "CMF_AvailableIndividualPlatforms";
-        if (HttpContext.Current != null)
-        {
-            List<CmfPlatformDefinition> cached = HttpContext.Current.Items[cacheKey] as List<CmfPlatformDefinition>;
-            if (cached != null)
-            {
-                return cached;
-            }
-        }
+        return new List<CmfPlatformDefinition>(CmfPlatformCatalog.GetOrderedPlatforms());
+    }
 
-        List<CmfPlatformDefinition> available = new List<CmfPlatformDefinition>();
+    private List<CmfPlatformDefinition> UpdatePlatformChipOrder()
+    {
+        List<CmfPlatformDefinition> platforms = GetAvailableIndividualPlatforms();
+        Dictionary<string, CmfPlatformSummaryCounts> counts = new Dictionary<string, CmfPlatformSummaryCounts>(StringComparer.OrdinalIgnoreCase);
+        CmfDashboardDateFilter dateFilter = GetDashboardDateFilter();
         using (SqlConnection connection = new SqlConnection(ConnectionString))
+        using (SqlCommand command = connection.CreateCommand())
         {
             connection.Open();
-            foreach (CmfPlatformDefinition option in OrderedPlatformOptions)
+            List<string> queries = new List<string>();
+            for (int index = 0; index < platforms.Count; index++)
             {
-                if (!SqlTableExists(connection, option.TableName))
+                string tableName = platforms[index].TableName;
+                string pendingTable = tableName.Replace("_ALL_COMPONENTS_TABLE", string.Empty) + "_CMF_ASK";
+                string pendingCount = "CAST(0 AS bigint)";
+                if (SqlTableExists(connection, pendingTable))
                 {
-                    continue;
+                    pendingCount = @"(SELECT COUNT_BIG(pending.cp_id)
+FROM [dbo].[" + pendingTable + @"] AS pending
+LEFT JOIN [dbo].[" + tableName + @"] AS src_comp
+  ON CAST(pending.cp_id AS VARCHAR(64)) = CAST(src_comp.cp_id AS VARCHAR(64))
+WHERE pending.status NOT IN ('complete', 'rejected') AND " + dateFilter.BuildPendingPredicate("pending") + ")";
                 }
 
-                if (SqlTableHasRows(connection, option.TableName))
+                string parameter = "@platform" + index.ToString(CultureInfo.InvariantCulture);
+                command.Parameters.Add(parameter, SqlDbType.NVarChar, 128).Value = tableName;
+                queries.Add(@"SELECT " + parameter + @" AS PlatformTable,
+COUNT_BIG(CASE WHEN src.cmf_request IN ('cmf_ok','cmf_duplicate')
+    AND src.status NOT IN ('complete','rejected','implemented') THEN 1 END) AS OpenCount,
+COUNT_BIG(CASE WHEN src.cmf_request IN ('cmf_ok','cmf_duplicate')
+    AND src.status = 'implemented' THEN 1 END) AS ImplementedCount,
+" + pendingCount + @" AS PendingCount,
+COUNT_BIG(CASE WHEN src.cmf_request IN ('cmf_ok','cmf_duplicate') THEN 1 END) AS TotalCount
+FROM [dbo].[" + tableName + @"] AS src
+WHERE src.sysdebug LIKE '%customer_must_fix%' AND " + dateFilter.BuildPredicate("src"));
+            }
+
+            if (queries.Count > 0)
+            {
+                command.CommandText = string.Join(" UNION ALL ", queries);
+                using (SqlDataReader reader = command.ExecuteReader())
                 {
-                    available.Add(option);
+                    while (reader.Read())
+                    {
+                        counts[reader.GetString(0)] = new CmfPlatformSummaryCounts(reader.GetInt64(1), reader.GetInt64(2), reader.GetInt64(3), reader.GetInt64(4));
+                    }
                 }
             }
         }
 
-        if (available.Count == 0)
+        List<CmfPlatformDefinition> orderedPlatforms = CmfPlatformCatalog.OrderBySummaryCounts(platforms, counts);
+        List<Dictionary<string, string>> options = new List<Dictionary<string, string>>();
+        foreach (CmfPlatformDefinition platform in orderedPlatforms)
         {
-            CmfPlatformDefinition fallback = OrderedPlatformOptions.FirstOrDefault(p =>
-                string.Equals(p.TableName, DefaultPlatformTable, StringComparison.OrdinalIgnoreCase))
-                ?? OrderedPlatformOptions.FirstOrDefault();
-
-            if (fallback != null)
-            {
-                available.Add(fallback);
-            }
+            options.Add(new Dictionary<string, string> { { "label", platform.Label }, { "value", platform.TableName } });
         }
-
-        if (HttpContext.Current != null)
+        if (platforms.Count > 0)
         {
-            HttpContext.Current.Items[cacheKey] = available;
+            options.Add(new Dictionary<string, string> { { "label", "Overall" }, { "value", OverallDashboardPlatformTable } });
         }
-
-        return available;
+        AvailablePlatformChipOptionsJson = new JavaScriptSerializer().Serialize(options);
+        return orderedPlatforms;
     }
 
     private string ResolveFirstAvailablePlatform(IEnumerable<string> candidates, HashSet<string> availableSet, List<CmfPlatformDefinition> availablePlatforms)
@@ -838,7 +860,7 @@ public partial class CMF_Web_portal : System.Web.UI.Page
 
         if (!hasOverallInAvailable)
         {
-            availableForClient.Insert(0, OverallDashboardPlatformTable);
+            availableForClient.Add(OverallDashboardPlatformTable);
             System.Diagnostics.Trace.TraceWarning("CMF portal guard: injected missing Overall entry into available platform list.");
         }
 
@@ -864,7 +886,7 @@ public partial class CMF_Web_portal : System.Web.UI.Page
 
         if (!hasOverallChip)
         {
-            chipOptionsForClient.Insert(0, new Dictionary<string, string>
+            chipOptionsForClient.Add(new Dictionary<string, string>
             {
                 { "label", "Overall" },
                 { "value", OverallDashboardPlatformTable }
@@ -1310,7 +1332,7 @@ FROM " + tableName + (applyDashboardDateFilter ? " WHERE " + GetDashboardDateFil
     component,
     customer_owner,
     '" + tableName + @"' AS source_platform
-FROM " + pendingTable + " WHERE " + GetDashboardDateFilter().BuildPredicate(null));
+FROM " + pendingTable + " WHERE " + GetDashboardDateFilter().BuildPendingPredicate(null));
         }
 
         return unionParts.Count == 0 ? null : string.Join(" UNION ALL ", unionParts);
@@ -2120,7 +2142,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
             string pendingTable = basePlatform + "_CMF_ASK";
             if (SqlTableExists(connection, pendingTable))
             {
-                unionParts.Add("SELECT cp_id, status, component_group, date_cmf_ask, '" + tableName + "' AS source_platform FROM " + pendingTable + " WHERE " + GetDashboardDateFilter().BuildPredicate(null));
+                unionParts.Add("SELECT cp_id, status, component_group, date_cmf_ask, '" + tableName + "' AS source_platform FROM " + pendingTable + " WHERE " + GetDashboardDateFilter().BuildPendingPredicate(null));
             }
         }
 
@@ -2642,6 +2664,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         ddlDashboardDateBasis.Visible = ddlDashboardDateMode.SelectedValue != "all";
         bool isTodayRange = ddlDashboardDateMode.SelectedValue == "today";
         ddlDashboardDateBasis.Items.FindByValue("cmf-request").Text = isTodayRange ? "CMFs Requested" : "CMFs Requested in";
+        ddlDashboardDateBasis.Items.FindByValue("cmf-accepted").Text = isTodayRange ? "CMFs Accepted" : "CMFs Accepted in";
         ddlDashboardDateBasis.Items.FindByValue("submitted").Text = isTodayRange ? "Issues submitted" : "Issues Submitted in";
         string target = Request["__EVENTTARGET"] ?? string.Empty;
         if (IsPostBack && string.IsNullOrWhiteSpace(HomeDashboardSnapshotJson)
@@ -2662,6 +2685,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         {
             ScriptManager1.RegisterPostBackControl(btnIssueViewExport);
         }
+        if (IsPostBack) UpdatePlatformChipOrder();
         RegisterActiveTabClientState();
         base.OnPreRender(e);
     }
@@ -3910,6 +3934,7 @@ FROM " + dashboardSourceSql, con))
             return;
         }
 
+        string overallTrendSourceSql = BuildDashboardComponentSourceSql(OverallDashboardPlatformTable);
         string sql = @"
 WITH issue_base AS (
     SELECT
@@ -3935,11 +3960,28 @@ issue_agg AS (
             WHEN decided_date IS NOT NULL AND implemented_date IS NOT NULL AND implemented_date >= decided_date
             THEN DATEDIFF(DAY, decided_date, implemented_date)
             ELSE NULL END AS DECIMAL(10, 2))), 0) AS avg_resolution_days,
-        SUM(CASE WHEN priority_norm IN ('p0-blocker', 'p1-showstopper') OR impact_norm IN ('1-critical', '2-high') THEN 1 ELSE 0 END) AS high_risk_signals,
-        SUM(CASE WHEN ask_date >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE)) THEN 1 ELSE 0 END) AS this_week,
-        SUM(CASE WHEN ask_date >= DATEADD(DAY, -6 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE))
-                  AND ask_date < DATEADD(DAY, 1 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE)) THEN 1 ELSE 0 END) AS last_week
+        SUM(CASE WHEN priority_norm IN ('p0-blocker', 'p1-showstopper') OR impact_norm IN ('1-critical', '2-high') THEN 1 ELSE 0 END) AS high_risk_signals
     FROM issue_base
+    GROUP BY oem
+),
+trend_base AS (
+    SELECT
+        CASE WHEN ISNULL(LTRIM(RTRIM(customer_company)), '') = '' THEN 'Unassigned' ELSE LTRIM(RTRIM(customer_company)) END AS oem,
+        TRY_CAST(date_cmf_ask AS DATE) AS ask_date
+    FROM " + overallTrendSourceSql + @"
+    WHERE LOWER(LTRIM(RTRIM(ISNULL(sysdebug, '')))) LIKE '%customer_must_fix%'
+      AND LOWER(LTRIM(RTRIM(ISNULL(cmf_request, '')))) = 'cmf_ok'
+),
+trend_agg AS (
+    SELECT
+        oem,
+        SUM(CASE WHEN ask_date >= DATEADD(DAY, -6, @today)
+                  AND ask_date < DATEADD(DAY, 1, @today) THEN 1 ELSE 0 END) AS recent_requests,
+        SUM(CASE WHEN ask_date >= DATEADD(DAY, -13, @today)
+                  AND ask_date < DATEADD(DAY, -6, @today) THEN 1 ELSE 0 END) AS previous_requests
+    FROM trend_base
+    WHERE ask_date >= DATEADD(DAY, -13, @today)
+      AND ask_date < DATEADD(DAY, 1, @today)
     GROUP BY oem
 ),
 pending_base AS (
@@ -3965,15 +4007,13 @@ combined AS (
         ISNULL(i.implemented_issues, 0) AS implemented_issues,
         ISNULL(i.closed_issues, 0) AS closed_issues,
         ISNULL(i.avg_resolution_days, 0) AS avg_resolution_days,
-        ISNULL(i.high_risk_signals, 0) AS high_risk_signals,
-        ISNULL(i.this_week, 0) AS this_week,
-        ISNULL(i.last_week, 0) AS last_week
+        ISNULL(i.high_risk_signals, 0) AS high_risk_signals
     FROM issue_agg i
     FULL OUTER JOIN pending_agg p
       ON p.oem = i.oem
 )
 SELECT
-    oem,
+    c.oem,
     total_issues,
     open_issues,
     high_risk_signals,
@@ -3986,30 +4026,35 @@ SELECT
         WHEN total_issues > 0 AND (open_issues * 1.0 / NULLIF(total_issues, 0)) >= 0.35 THEN 'Medium'
         ELSE 'Low'
     END AS risk_level,
-    CASE
-        WHEN last_week = 0 THEN CASE WHEN this_week = 0 THEN 0 ELSE 100 END
-        ELSE CAST(ROUND(((this_week - last_week) * 100.0) / NULLIF(last_week, 0), 0) AS INT)
-    END AS trend_percent
-FROM combined
-ORDER BY total_issues DESC, oem";
+    ISNULL(t.recent_requests, 0) - ISNULL(t.previous_requests, 0) AS trend_count,
+    ISNULL(t.recent_requests, 0) AS recent_requests,
+    ISNULL(t.previous_requests, 0) AS previous_requests
+FROM combined c
+LEFT JOIN trend_agg t ON t.oem = c.oem
+ORDER BY total_issues DESC, c.oem";
 
         using (SqlCommand command = new SqlCommand(sql, connection))
-        using (SqlDataReader reader = command.ExecuteReader())
         {
-            while (reader.Read())
+            command.Parameters.Add("@today", SqlDbType.Date).Value = DateTime.Today;
+            using (SqlDataReader reader = command.ExecuteReader())
             {
-                HomeDashboardOemRow row = new HomeDashboardOemRow();
-                row.OemName = ReadString(reader, 0);
-                row.TotalIssues = ReadInt(reader, 1);
-                row.OpenIssues = ReadInt(reader, 2);
-                row.HighRiskCmfs = ReadInt(reader, 3);
-                row.CmfPending = ReadInt(reader, 4);
-                row.Implemented = ReadInt(reader, 5);
-                row.Closed = ReadInt(reader, 6);
-                row.AvgResolutionDays = reader.IsDBNull(7) ? 0 : Convert.ToDecimal(reader.GetValue(7), CultureInfo.InvariantCulture);
-                row.RiskLevel = ReadString(reader, 8);
-                row.TrendPercent = ReadInt(reader, 9);
-                snapshot.OemSummary.Add(row);
+                while (reader.Read())
+                {
+                    HomeDashboardOemRow row = new HomeDashboardOemRow();
+                    row.OemName = ReadString(reader, 0);
+                    row.TotalIssues = ReadInt(reader, 1);
+                    row.OpenIssues = ReadInt(reader, 2);
+                    row.HighRiskCmfs = ReadInt(reader, 3);
+                    row.CmfPending = ReadInt(reader, 4);
+                    row.Implemented = ReadInt(reader, 5);
+                    row.Closed = ReadInt(reader, 6);
+                    row.AvgResolutionDays = reader.IsDBNull(7) ? 0 : Convert.ToDecimal(reader.GetValue(7), CultureInfo.InvariantCulture);
+                    row.RiskLevel = ReadString(reader, 8);
+                    row.TrendCount = ReadInt(reader, 9);
+                    row.RecentRequestCount = ReadInt(reader, 10);
+                    row.PreviousRequestCount = ReadInt(reader, 11);
+                    snapshot.OemSummary.Add(row);
+                }
             }
         }
     }
@@ -4215,7 +4260,7 @@ GROUP BY
         string pendingAgeCte = BuildPendingAskCteSql(connection, dashboardPlatform);
         string pendingSourceSql = string.IsNullOrWhiteSpace(pendingAgeCte) ? null
             : "(SELECT * FROM (" + pendingAgeCte + ") AS pending_dates WHERE "
-                + GetDashboardDateFilter().BuildPredicate("pending_dates") + ") AS pending_age_src";
+                + GetDashboardDateFilter().BuildPendingPredicate("pending_dates") + ") AS pending_age_src";
         if (string.IsNullOrWhiteSpace(pendingSourceSql))
         {
             string componentSourceSql = BuildDashboardComponentSourceSql(dashboardPlatform, true);
@@ -4364,6 +4409,9 @@ GROUP BY
         {
             con.Open();
 
+            Dictionary<string, CmfSummaryTrend> weeklyTrends = CmfSummaryTrendService.Load(
+                con, BuildDashboardComponentSourceSql(platformTable), DateTime.Today);
+
             Dictionary<string, int> implementedConstituents = GetConstituentCountsByIngredient(
                 con,
                 componentSourceSql,
@@ -4477,13 +4525,26 @@ CROSS JOIN wk", con))
                     int resolutionTrendDays = resolutionThisWeek - resolutionLastWeek;
                     int overallTrendDays = overallThisWeek - overallLastWeek;
 
-                    snapshot.SummaryFacts.Add(new HomeDashboardFact { Label = "Total CMFs", Value = total.ToString(CultureInfo.InvariantCulture), Note = duplicates + " duplicates" });
-                    snapshot.SummaryFacts.Add(new HomeDashboardFact { Label = "Closed", Value = closed.ToString(CultureInfo.InvariantCulture), Note = closedDup + " duplicates" });
+                    snapshot.SummaryFacts.Add(new HomeDashboardFact
+                    {
+                        Label = "Total CMFs",
+                        Value = total.ToString(CultureInfo.InvariantCulture),
+                        Note = duplicates + " duplicates",
+                        WeeklyTrend = weeklyTrends["Total CMFs"]
+                    });
+                    snapshot.SummaryFacts.Add(new HomeDashboardFact
+                    {
+                        Label = "Closed",
+                        Value = closed.ToString(CultureInfo.InvariantCulture),
+                        Note = closedDup + " duplicates",
+                        WeeklyTrend = weeklyTrends["Closed"]
+                    });
                     snapshot.SummaryFacts.Add(new HomeDashboardFact
                     {
                         Label = "Implemented",
                         Value = implemented.ToString(CultureInfo.InvariantCulture),
                         Note = implementedDup + " duplicates",
+                        WeeklyTrend = weeklyTrends["Implemented"],
                         ConstituentTooltip = BuildConstituentTooltipFromCounts(
                             implementedConstituents,
                             "No implemented constituent counts in this scope.")
@@ -4502,14 +4563,16 @@ CROSS JOIN wk", con))
                         Label = "CMF Disposition TPT",
                         Value = dispositionTpt.ToString(CultureInfo.InvariantCulture),
                         Note = "days",
-                        TrendNote = FormatTptTrendNote(dispositionTrendDays)
+                        TrendNote = FormatTptTrendNote(dispositionTrendDays),
+                        WeeklyTrend = weeklyTrends["CMF Disposition TPT"]
                     });
                     snapshot.TptFacts.Add(new HomeDashboardFact
                     {
                         Label = "CMF Resolution TPT",
                         Value = resolutionTpt.ToString(CultureInfo.InvariantCulture),
                         Note = "days",
-                        TrendNote = FormatTptTrendNote(resolutionTrendDays)
+                        TrendNote = FormatTptTrendNote(resolutionTrendDays),
+                        WeeklyTrend = weeklyTrends["CMF Resolution TPT"]
                     });
                     snapshot.TptFacts.Add(new HomeDashboardFact
                     {
@@ -4702,7 +4765,7 @@ ORDER BY Component, Driver", con))
             }
             else if (SqlTableExists(con, pendingTable))
             {
-                pendingSourceSql = "SELECT cp_id, status, component_group, date_cmf_ask, '" + platformTable + "' AS source_platform FROM " + pendingTable + " WHERE " + GetDashboardDateFilter().BuildPredicate(null);
+                pendingSourceSql = "SELECT cp_id, status, component_group, date_cmf_ask, '" + platformTable + "' AS source_platform FROM " + pendingTable + " WHERE " + GetDashboardDateFilter().BuildPendingPredicate(null);
             }
             else
             {
@@ -7136,8 +7199,9 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             int workWeekNumber = cultureInfo.Calendar.GetWeekOfYear(currentDate, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
             WorkWeek = string.Format("WW'{0:D2}", workWeekNumber);
 
-            // Set initial platform correctly
-            ListItem defaultPlatformItem = ddlTables.Items.FindByValue(DefaultPlatformTable);
+            List<CmfPlatformDefinition> initialPlatforms = UpdatePlatformChipOrder();
+            string initialPlatform = initialPlatforms.Count > 0 ? initialPlatforms[0].TableName : DefaultPlatformTable;
+            ListItem defaultPlatformItem = ddlTables.Items.FindByValue(initialPlatform);
             if (defaultPlatformItem != null)
             {
                 ddlTables.ClearSelection();
@@ -7146,8 +7210,8 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
 
             selectedPlatform = ResolvePlatformTable(ddlTables.SelectedValue);
             Session["selectedPlatform"] = selectedPlatform;
-            Session[IssuePendingPlatformSessionKey] = DefaultIssuePendingPlatformTable;
-            SetDashboardPlatformSelection(OverallDashboardPlatformTable);
+            Session[IssuePendingPlatformSessionKey] = selectedPlatform;
+            SetDashboardPlatformSelection(selectedPlatform);
             Session["isFirstLoad"] = null;
 
             btnExportToExcel.Visible = false;
@@ -13456,6 +13520,7 @@ SELECT
     ISNULL(NULLIF(LTRIM(RTRIM(issue_src.owners_name)), ''), 'N/A') AS PromotedOwner,
     ISNULL(NULLIF(LTRIM(RTRIM(issue_src.repro_on_rvp)), ''), 'N/A') AS RvpRepro,
     ISNULL(NULLIF(LTRIM(RTRIM(issue_src.status)), ''), ISNULL(NULLIF(LTRIM(RTRIM(issue_src.cmf_status)), ''), 'N/A')) AS Status,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.cmf_request)), ''), 'N/A') AS CmfRequest,
     ISNULL(NULLIF(LTRIM(RTRIM(issue_src.idst)), ''), 'N/A') AS Idst,
     ISNULL(NULLIF(LTRIM(RTRIM(issue_src.los)), ''), 'N/A') AS Los,
     ISNULL(NULLIF(LTRIM(RTRIM(issue_src.processor)), ''), 'N/A') AS Processor,
@@ -13590,7 +13655,7 @@ SELECT DISTINCT CAST(pending_bucket_src.cp_id AS VARCHAR(64)) AS cp_id
 FROM " + pendingSourceSql + @"
 WHERE LOWER(LTRIM(RTRIM(ISNULL(pending_bucket_src.status, '')))) NOT IN ('complete', 'rejected')
   AND TRY_CAST(pending_bucket_src.date_cmf_ask AS DATE) IS NOT NULL
-    AND " + GetDashboardDateFilter().BuildPredicate("pending_bucket_src") + @"
+        AND " + GetDashboardDateFilter().BuildPendingPredicate("pending_bucket_src") + @"
     AND " + agePredicate + @"
 ORDER BY cp_id";
 

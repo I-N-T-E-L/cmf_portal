@@ -37,6 +37,31 @@ bin/                       Runtime assemblies required by the Web Forms app
 
 The runtime entry point is `CMF_Web_portal.aspx`.
 
+### Platform Discovery
+
+Platform buttons and Overall aggregation discover populated HSD source tables on
+each request, rather than enumerating a fixed platform catalog. Sources must be
+`dbo.CMF_<platform>_ALL_COMPONENTS_TABLE` tables with at least one positive numeric
+`cp_id`. Empty tables, the synthetic Overall name, and names containing dummy,
+backup, archive, temporary, or test tokens are excluded. Table identifiers are
+validated before being used in SQL.
+
+New imported platforms become selectable automatically, without code changes or
+an application restart. Labels are derived from source names; known metadata only
+provides optional display labels, links, and report prompt aliases. Selection
+validation, Overall sources, and report platform resolution share the discovered
+list. Discovery is cached only within the current request, not across requests.
+It is independent of dashboard date filters.
+
+Platform buttons are ordered by descending CMF Summary Open count, then descending
+Implemented count, then descending Pending count, then descending Total CMFs count.
+Complete ties are alphabetical.
+The ranking follows the active dashboard date filter and the Summary's count
+definitions, including duplicates. Overall is always last and aligned to the
+right edge of the dashboard platform rail when there is available space.
+Each fresh page load, including a reload, selects and displays the leftmost
+ranked individual platform. Explicit platform selections persist during postbacks.
+
 ### Dashboard Date Filter
 
 The controls at the right of the dashboard platform-selector row filter Overall and platform dashboards,
@@ -47,6 +72,11 @@ and platform views, including menu expansion/collapse and horizontal scrolling.
 
 The defaults are **All Time** and **CMF Request Date** (`date_cmf_ask`).
 **Issue Submission Date** uses the database's `submitted_date` instead.
+**CMFs Accepted in** uses `date_cmf_decided` and includes accepted unique and
+duplicate CMFs (`cmf_ok`, `cmf_duplicate`), excluding other decision states.
+An active range excludes records without a decision date; All Time remains unfiltered.
+Dashboard pending-request summaries show no matches for an acceptance-date range,
+because pending requests have not been accepted. The CMF Pending tab is unchanged.
 Today, Last 7 Days, and Last 30 Days include the current calendar day; Last 12
 Months starts on the same calendar date twelve months earlier. Custom Range
 includes both selected dates and is applied using the filter icon button.
@@ -64,6 +94,29 @@ in normal vertical document flow and can scroll out of view.
 Only the content column scrolls horizontally; the left menu stays outside it.
 The menu uses native sticky positioning, following the header until it reaches
 the viewport top, without JavaScript scroll-frame positioning.
+
+### CMF Summary: Rolling Weekly Indicators
+
+Overall and platform-specific Summaries compare the seven calendar days ending today with the preceding
+seven days, using the server's local date. Today is partial. These indicators keep
+their fixed rolling windows independently of the dashboard date filter, but respect
+the platforms included in Overall. Platform-specific indicators use only that platform's records,
+with the same calculations, arrow colors, no-change bars, and N/A handling as Overall.
+
+Total CMFs compares acceptance counts by `date_cmf_decided`; Closed compares recorded
+closures by `closed_date`; Implemented compares implementation events by `implemented_date`,
+including CMFs now closed. These are weekly activity differences, not historical
+changes in the current-state headline balances. Existing duplicate counting is retained.
+Total decreases are green and increases red; Closed and Implemented use the reverse.
+
+Disposition TPT compares average request-to-decision days for decisions in each window.
+Resolution TPT compares average decision-to-implementation days for implementations in
+each window. Missing or reversed date pairs are excluded from these averages.
+TPT indicators show percentage change against the previous average: decreases green,
+increases red. All equal comparisons use a flat blue bar. Missing TPT cohorts and
+undefined percentages against a zero baseline show N/A, not a fabricated percentage.
+Hovering an indicator shows both date windows and their counts or average days.
+Open, Pending, and Overall TPT have no weekly indicator.
 
 ### Dashboard Line Trend: Week-End Balances
 

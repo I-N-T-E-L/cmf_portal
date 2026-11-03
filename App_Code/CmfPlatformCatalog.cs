@@ -1,5 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Text.RegularExpressions;
+using System.Web;
 
 public sealed class CmfPlatformDefinition
 {
@@ -24,11 +28,107 @@ public sealed class CmfPlatformDefinition
     public string[] PromptAliases { get; private set; }
 }
 
+public sealed class CmfPlatformSummaryCounts
+{
+    public CmfPlatformSummaryCounts(long open, long implemented, long pending, long total = 0)
+    {
+        Open = open;
+        Implemented = implemented;
+        Pending = pending;
+        Total = total;
+    }
+
+    public long Open { get; private set; }
+    public long Implemented { get; private set; }
+    public long Pending { get; private set; }
+    public long Total { get; private set; }
+}
+
 public static class CmfPlatformCatalog
 {
     public const string OverallPlatformTableName = "CMF_OVERALL_ALL_COMPONENTS_TABLE";
 
-    private static readonly CmfPlatformDefinition[] OrderedPlatforms =
+    public static List<CmfPlatformDefinition> OrderBySummaryCounts(
+        IEnumerable<CmfPlatformDefinition> platforms,
+        IDictionary<string, CmfPlatformSummaryCounts> counts)
+    {
+        List<CmfPlatformDefinition> ordered = new List<CmfPlatformDefinition>(platforms);
+        CmfPlatformSummaryCounts empty = new CmfPlatformSummaryCounts(0, 0, 0);
+        ordered.Sort(delegate(CmfPlatformDefinition left, CmfPlatformDefinition right)
+        {
+            CmfPlatformSummaryCounts leftCounts;
+            CmfPlatformSummaryCounts rightCounts;
+            if (!counts.TryGetValue(left.TableName, out leftCounts)) leftCounts = empty;
+            if (!counts.TryGetValue(right.TableName, out rightCounts)) rightCounts = empty;
+            int comparison = rightCounts.Open.CompareTo(leftCounts.Open);
+            if (comparison == 0) comparison = rightCounts.Implemented.CompareTo(leftCounts.Implemented);
+            if (comparison == 0) comparison = rightCounts.Pending.CompareTo(leftCounts.Pending);
+            if (comparison == 0) comparison = rightCounts.Total.CompareTo(leftCounts.Total);
+            if (comparison == 0) comparison = StringComparer.OrdinalIgnoreCase.Compare(left.Label, right.Label);
+            return comparison;
+        });
+        return ordered;
+    }
+
+    public static bool IsDiscoverablePlatformTable(string tableName)
+    {
+        return !string.IsNullOrWhiteSpace(tableName)
+            && Regex.IsMatch(tableName, @"\ACMF_[A-Z0-9]+(?:_[A-Z0-9]+)*_ALL_COMPONENTS_TABLE\z", RegexOptions.IgnoreCase)
+            && !string.Equals(tableName, OverallPlatformTableName, StringComparison.OrdinalIgnoreCase)
+            && !Regex.IsMatch(tableName, @"_(?:DUMMY|BACKUP|BAK|ARCHIVE|TEMP|TEST)(?:_|$)", RegexOptions.IgnoreCase);
+    }
+
+    public static CmfPlatformDefinition[] DiscoverPlatforms(SqlConnection connection)
+    {
+        if (connection == null) throw new ArgumentNullException("connection");
+        List<string> candidates = new List<string>();
+        using (SqlCommand command = new SqlCommand(@"
+SELECT t.name
+FROM sys.tables AS t
+INNER JOIN sys.schemas AS s ON s.schema_id = t.schema_id
+WHERE s.name = 'dbo'
+  AND t.name LIKE 'CMF[_]%[_]ALL[_]COMPONENTS[_]TABLE'
+  AND EXISTS (SELECT 1 FROM sys.columns AS c WHERE c.object_id = t.object_id AND c.name = 'cp_id')
+ORDER BY t.name", connection))
+        using (SqlDataReader reader = command.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                string tableName = reader.GetString(0);
+                if (IsDiscoverablePlatformTable(tableName)) candidates.Add(tableName);
+            }
+        }
+
+        List<CmfPlatformDefinition> platforms = new List<CmfPlatformDefinition>();
+        foreach (string tableName in candidates)
+        {
+            using (SqlCommand command = new SqlCommand("SELECT TOP 1 1 FROM [dbo].[" + tableName
+                + "] WHERE TRY_CONVERT(bigint, cp_id) > 0", connection))
+            {
+                if (command.ExecuteScalar() == null) continue;
+            }
+
+            CmfPlatformDefinition metadata;
+            if (PlatformByTable.TryGetValue(tableName, out metadata))
+            {
+                platforms.Add(metadata);
+                continue;
+            }
+
+            string label = ResolvePlatformCode(tableName).Replace("_", "-");
+            platforms.Add(new CmfPlatformDefinition(label, tableName,
+                "https://dashboards.intel.com/projects/" + label.ToLowerInvariant(), string.Empty,
+                new[] { NormalizeAlias(label), NormalizeAlias(label.Replace("-", " ")), NormalizeAlias(label.Replace("-", "_")) }));
+        }
+
+        platforms.Sort(delegate(CmfPlatformDefinition left, CmfPlatformDefinition right)
+        {
+            return StringComparer.OrdinalIgnoreCase.Compare(left.Label, right.Label);
+        });
+        return platforms.ToArray();
+    }
+
+    private static readonly CmfPlatformDefinition[] KnownPlatformMetadata =
     {
         new CmfPlatformDefinition(
             "NVL-H",
@@ -115,92 +215,61 @@ public static class CmfPlatformCatalog
             new[] { "wcl", "wildcat lake", "wildcatlake" })
     };
 
-    private static readonly Dictionary<string, string[]> GroupAliasToTables =
+    private static readonly Dictionary<string, string[]> FamilyPromptAliases =
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
-            {
-                "nvl",
-                new[]
-                {
-                    "CMF_NVL_S_ALL_COMPONENTS_TABLE",
-                    "CMF_NVL_H_ALL_COMPONENTS_TABLE",
-                    "CMF_NVL_U_ALL_COMPONENTS_TABLE"
-                }
-            },
-            {
-                "nova lake",
-                new[]
-                {
-                    "CMF_NVL_S_ALL_COMPONENTS_TABLE",
-                    "CMF_NVL_H_ALL_COMPONENTS_TABLE",
-                    "CMF_NVL_U_ALL_COMPONENTS_TABLE"
-                }
-            },
-            {
-                "novalake",
-                new[]
-                {
-                    "CMF_NVL_S_ALL_COMPONENTS_TABLE",
-                    "CMF_NVL_H_ALL_COMPONENTS_TABLE",
-                    "CMF_NVL_U_ALL_COMPONENTS_TABLE"
-                }
-            }
+            { "nvl", new[] { "nova lake", "novalake" } }
         };
 
     private static readonly Dictionary<string, CmfPlatformDefinition> PlatformByTable =
         new Dictionary<string, CmfPlatformDefinition>(StringComparer.OrdinalIgnoreCase);
 
-    private static readonly Dictionary<string, string> PromptAliasToTable =
-        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-    private static readonly HashSet<string> AllowedPlatformTables =
-        new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
     static CmfPlatformCatalog()
     {
-        for (int i = 0; i < OrderedPlatforms.Length; i++)
+        for (int i = 0; i < KnownPlatformMetadata.Length; i++)
         {
-            CmfPlatformDefinition platform = OrderedPlatforms[i];
+            CmfPlatformDefinition platform = KnownPlatformMetadata[i];
             if (platform == null || string.IsNullOrWhiteSpace(platform.TableName))
             {
                 continue;
             }
 
-            AllowedPlatformTables.Add(platform.TableName);
             PlatformByTable[platform.TableName] = platform;
-
-            if (platform.PromptAliases == null)
-            {
-                continue;
-            }
-
-            for (int aliasIndex = 0; aliasIndex < platform.PromptAliases.Length; aliasIndex++)
-            {
-                string alias = NormalizeAlias(platform.PromptAliases[aliasIndex]);
-                if (!string.IsNullOrWhiteSpace(alias))
-                {
-                    PromptAliasToTable[alias] = platform.TableName;
-                }
-            }
         }
     }
 
     public static string GetDefaultPlatformTableName()
     {
-        return OrderedPlatforms.Length == 0 ? string.Empty : OrderedPlatforms[0].TableName;
+        CmfPlatformDefinition[] platforms = GetOrderedPlatforms();
+        return platforms.Length == 0 ? string.Empty : platforms[0].TableName;
     }
 
     public static CmfPlatformDefinition[] GetOrderedPlatforms()
     {
-        return (CmfPlatformDefinition[])OrderedPlatforms.Clone();
+        const string cacheKey = "CMF_DiscoveredHsdPlatforms";
+        HttpContext context = HttpContext.Current;
+        CmfPlatformDefinition[] platforms = context == null ? null : context.Items[cacheKey] as CmfPlatformDefinition[];
+        if (platforms == null)
+        {
+            ConnectionStringSettings settings = ConfigurationManager.ConnectionStrings["gfxitt"];
+            if (settings == null) throw new InvalidOperationException("The CMF database connection is not configured.");
+            using (SqlConnection connection = new SqlConnection(settings.ConnectionString))
+            {
+                connection.Open();
+                platforms = DiscoverPlatforms(connection);
+            }
+            if (context != null) context.Items[cacheKey] = platforms;
+        }
+        return (CmfPlatformDefinition[])platforms.Clone();
     }
 
     public static string[] GetAllPlatformTables()
     {
-        string[] values = new string[OrderedPlatforms.Length];
-        for (int i = 0; i < OrderedPlatforms.Length; i++)
+        CmfPlatformDefinition[] platforms = GetOrderedPlatforms();
+        string[] values = new string[platforms.Length];
+        for (int i = 0; i < platforms.Length; i++)
         {
-            values[i] = OrderedPlatforms[i].TableName;
+            values[i] = platforms[i].TableName;
         }
 
         return values;
@@ -208,17 +277,17 @@ public static class CmfPlatformCatalog
 
     public static int GetPlatformCount()
     {
-        return OrderedPlatforms.Length;
+        return GetOrderedPlatforms().Length;
     }
 
     public static HashSet<string> GetAllowedPlatformTables()
     {
-        return new HashSet<string>(AllowedPlatformTables, StringComparer.OrdinalIgnoreCase);
+        return new HashSet<string>(GetAllPlatformTables(), StringComparer.OrdinalIgnoreCase);
     }
 
     public static bool IsAllowedPlatformTable(string tableName)
     {
-        return !string.IsNullOrWhiteSpace(tableName) && AllowedPlatformTables.Contains(tableName);
+        return !string.IsNullOrWhiteSpace(tableName) && GetAllowedPlatformTables().Contains(tableName);
     }
 
     public static bool TryGetPlatformByTable(string tableName, out CmfPlatformDefinition platform)
@@ -229,30 +298,56 @@ public static class CmfPlatformCatalog
             return false;
         }
 
-        return PlatformByTable.TryGetValue(tableName.Trim(), out platform);
+        foreach (CmfPlatformDefinition candidate in GetOrderedPlatforms())
+        {
+            if (string.Equals(candidate.TableName, tableName.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                platform = candidate;
+                return true;
+            }
+        }
+        return false;
     }
 
     public static Dictionary<string, string> GetPromptAliasToTableMap()
     {
-        return new Dictionary<string, string>(PromptAliasToTable, StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string> aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (CmfPlatformDefinition platform in GetOrderedPlatforms())
+        {
+            foreach (string alias in platform.PromptAliases)
+            {
+                aliases[NormalizeAlias(alias)] = platform.TableName;
+            }
+        }
+        return aliases;
     }
 
     public static Dictionary<string, string[]> GetGroupAliasToTablesMap()
     {
-        Dictionary<string, string[]> clone = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
-        foreach (KeyValuePair<string, string[]> entry in GroupAliasToTables)
+        Dictionary<string, List<string>> groups = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (CmfPlatformDefinition platform in GetOrderedPlatforms())
         {
-            string[] values = entry.Value ?? new string[0];
-            string[] copied = new string[values.Length];
-            for (int i = 0; i < values.Length; i++)
+            string family = NormalizeAlias(ResolvePlatformCode(platform.TableName).Split('_')[0]);
+            List<string> tables;
+            if (!groups.TryGetValue(family, out tables))
             {
-                copied[i] = values[i];
+                tables = new List<string>();
+                groups[family] = tables;
             }
-
-            clone[entry.Key] = copied;
+            tables.Add(platform.TableName);
         }
 
-        return clone;
+        Dictionary<string, string[]> aliases = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<string, List<string>> group in groups)
+        {
+            aliases[group.Key] = group.Value.ToArray();
+            string[] familyAliases;
+            if (FamilyPromptAliases.TryGetValue(group.Key, out familyAliases))
+            {
+                foreach (string alias in familyAliases) aliases[alias] = group.Value.ToArray();
+            }
+        }
+        return aliases;
     }
 
     public static string NormalizeAlias(string alias)
