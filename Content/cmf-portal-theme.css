@@ -945,8 +945,22 @@ body #pendingTabShell .cmf-pending-grid-wrap {
 }
 
 body #pendingTabShell #GridView_cmf_pending .pending-customer-label,
-body #pendingTabShell #GridView_cmf_pending .pending-stale-badge,
 body #issueTabShell #overall_request_details .pending-customer-label {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0 auto 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #e5e7eb;
+    color: #000;
+    font-weight: 400;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-stale-badge {
     display: block;
     width: fit-content;
     max-width: 100%;
