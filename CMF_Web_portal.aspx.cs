@@ -3070,7 +3070,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     private string GetIssuePendingPlatform()
     {
         string value = Session[IssuePendingPlatformSessionKey] as string;
-        if (string.IsNullOrWhiteSpace(value) || IsOverallDashboardPlatform(value))
+        if (string.IsNullOrWhiteSpace(value))
         {
             value = DefaultIssuePendingPlatformTable;
         }
@@ -3207,7 +3207,6 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         analyticsPanel.Visible = false;
         SetMainDataWrapperVisible(false);
         issueListHeaderPanel.Visible = false;
-        sharedFilterPanel.Visible = false;
         fieldSelectorPanel.Visible = false;
         SetIssuePagerVisible(false);
         configRulesPanel.Visible = false;
@@ -3254,7 +3253,6 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         analyticsPanel.Visible = false;
         SetMainDataWrapperVisible(false);
         issueListHeaderPanel.Visible = false;
-        sharedFilterPanel.Visible = false;
         fieldSelectorPanel.Visible = false;
         cmf_pending_header_panel.Visible = false;
         SetIssuePagerVisible(false);
@@ -6164,11 +6162,16 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         string currentPlatform = GetIssuePendingPlatform();
         CmfPlatformDefinition platform;
 
-        if (CmfPlatformCatalog.TryGetPlatformByTable(currentPlatform, out platform) &&
-            !string.IsNullOrWhiteSpace(platform.CdrDocumentUrl))
+        string dashboardUrl = null;
+        if (CmfPlatformCatalog.TryGetPlatformByTable(currentPlatform, out platform))
         {
-            lnkPlatformDashboard.NavigateUrl = platform.CdrDocumentUrl;
-            lnkPlatformDashboard.Text = platform.Label + " Dashboard";
+            dashboardUrl = !string.IsNullOrWhiteSpace(platform.DashboardProjectUrl) ? platform.DashboardProjectUrl : platform.CdrDocumentUrl;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dashboardUrl))
+        {
+            lnkPlatformDashboard.NavigateUrl = dashboardUrl;
+            lnkPlatformDashboard.Text = (platform != null ? platform.Label : "Platform") + " Dashboard";
             lnkPlatformDashboard.Visible = true;
             if (lnkPlatformDashboardPending != null)
             {
@@ -6709,7 +6712,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             using (var rdr = cmd.ExecuteReader())
             {
                 List<FilterItem> items = new List<FilterItem>();
-                items.Add(new FilterItem("All", "All"));
+                items.Add(new FilterItem("Select All", "All"));
 
                 while (rdr.Read())
                 {
@@ -6784,7 +6787,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                 }
 
                 List<FilterItem> items = new List<FilterItem>();
-                items.Add(new FilterItem("All", "All"));
+                items.Add(new FilterItem("Select All", "All"));
 
                 var ownerCache = Session["OwnerDisplayCache"] as Dictionary<string, string>
                                  ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -8977,7 +8980,7 @@ LEFT JOIN " + designTable + @" AS d
         }
 
         string sysdebug = sysdebugValue == null || sysdebugValue == DBNull.Value ? string.Empty : sysdebugValue.ToString().Replace("\r", " ").Replace("\n", " ").Trim();
-        string onclick = "openAiSummaryModal(\"" + JsEncode(sightingIdValue) + "\", \"" + JsEncode(titleValue) + "\", \"" + JsEncode(FormatDateOnly(submittedDateValue)) + "\", \"" + JsEncode(statusValue) + "\", \"" + JsEncode(sysdebugValue) + "\", \"AI Summary\")";
+        string onclick = "openAiSummaryModal(\"" + JsEncode(sightingIdValue) + "\", \"" + JsEncode(titleValue) + "\", \"" + JsEncode(FormatDateOnly(submittedDateValue)) + "\", \"" + JsEncode(statusValue) + "\", \"" + JsEncode(sysdebugValue) + "\", \"AI Debug Summary\")";
 
         return "<div class=\"status-cell-wrap status-cell-wrap-compact\">" +
             "<div class=\"status-row status-row-primary\">" +
@@ -9328,6 +9331,8 @@ LEFT JOIN " + designTable + @" AS d
 SELECT TOP 1
     main.cp_id,
     main.title,
+    main.customer_owner,
+    main.owners_name,
     main.operating_system,
     main.component,
     main.cmf_request,
@@ -9368,6 +9373,8 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
                     builder.AppendLine("Context Platform Table: " + effectivePlatformTable);
                     AppendSummaryContextLine(builder, "Sighting ID", row, "cp_id");
                     AppendSummaryContextLine(builder, "Title", row, "title");
+                    AppendSummaryContextLine(builder, "Customer Owner", row, "customer_owner");
+                    AppendSummaryContextLine(builder, "Promoted Owner", row, "owners_name");
                     AppendSummaryContextLine(builder, "Operating System", row, "operating_system", "os");
                     AppendSummaryContextLine(builder, "Component", row, "component");
                     AppendSummaryContextLine(builder, "CMF Request", row, "cmf_request");
@@ -9400,6 +9407,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
                             {
                                 AppendSummaryContextLine(builder, "Promoted Issue ID", promotedRow, "cp_id");
                                 AppendSummaryContextLine(builder, "Promoted Issue Title", promotedRow, "title");
+                                AppendSummaryContextLine(builder, "Promoted Issue Owner", promotedRow, "customer_owner", "owners_name");
                                 AppendSummaryContextLine(builder, "Promoted Issue Status", promotedRow, "status", "cmf_status");
                                 AppendSummaryContextLine(builder, "Promoted Issue CMF Request", promotedRow, "cmf_request");
                                 AppendSummaryContextLine(builder, "Promoted Issue Priority", promotedRow, "priority");
@@ -18658,21 +18666,9 @@ ORDER BY Total_CMF_Approved DESC";
             return;
         }
 
-        // Don't show shared filter panel if welcome page is visible
-        if (homeWelcomePanel != null && homeWelcomePanel.Visible)
-        {
-            sharedFilterPanel.Visible = false;
-            return;
-        }
-
-        // Show shared filter panel only when Issue List or CMF Pending List is active
-        string activeTab = GetActiveFocusedTab();
-        sharedFilterPanel.Visible = (activeTab == "issue" || activeTab == "pending");
-        
-        if (sharedFilterPanel.Visible)
-        {
-            PopulateSharedFilterDropdowns();
-        }
+        // Always keep sharedFilterPanel rendered so client-side docking can place controls in Issue List and CMF Pending List
+        sharedFilterPanel.Visible = true;
+        PopulateSharedFilterDropdowns();
     }
 
     /// <summary>
@@ -18690,6 +18686,7 @@ ORDER BY Total_CMF_Approved DESC";
             bool pendingActive = string.Equals(GetActiveFocusedTab(), "pending", StringComparison.OrdinalIgnoreCase);
             ddlSharedPlatform.SelectionMode = pendingActive ? ListSelectionMode.Multiple : ListSelectionMode.Single;
             ddlSharedPlatform.Items.Clear();
+            ddlSharedPlatform.Items.Add(new ListItem("Select All", OverallDashboardPlatformTable));
             if (availablePlatforms.Count > 0)
             {
                 foreach (CmfPlatformDefinition option in availablePlatforms)
@@ -18702,9 +18699,17 @@ ORDER BY Total_CMF_Approved DESC";
             {
                 HashSet<string> pendingSelections = new HashSet<string>(GetPendingPlatformSelections(), StringComparer.OrdinalIgnoreCase);
                 ddlSharedPlatform.ClearSelection();
+                bool allSelected = availablePlatforms.All(p => pendingSelections.Contains(p.TableName));
                 foreach (ListItem option in ddlSharedPlatform.Items)
                 {
-                    option.Selected = pendingSelections.Contains(option.Value);
+                    if (string.Equals(option.Value, OverallDashboardPlatformTable, StringComparison.OrdinalIgnoreCase))
+                    {
+                        option.Selected = allSelected;
+                    }
+                    else
+                    {
+                        option.Selected = pendingSelections.Contains(option.Value);
+                    }
                 }
                 if (ddlSharedPlatform.SelectedIndex < 0 && ddlSharedPlatform.Items.Count > 0)
                 {
@@ -18713,18 +18718,27 @@ ORDER BY Total_CMF_Approved DESC";
                 return;
             }
 
-            string selectedValue = ResolveFirstAvailablePlatform(
-                new[] { GetIssuePendingPlatform(), DefaultIssuePendingPlatformTable },
-                availableSet,
-                availablePlatforms);
-
-            if (!string.IsNullOrWhiteSpace(selectedValue))
+            string currentSelection = GetIssuePendingPlatform();
+            ddlSharedPlatform.ClearSelection();
+            if (IsOverallDashboardPlatform(currentSelection))
             {
-                ddlSharedPlatform.ClearSelection();
-                ListItem item = ddlSharedPlatform.Items.FindByValue(selectedValue);
-                if (item != null)
+                ListItem allItem = ddlSharedPlatform.Items.FindByValue(OverallDashboardPlatformTable);
+                if (allItem != null) allItem.Selected = true;
+            }
+            else
+            {
+                string selectedValue = ResolveFirstAvailablePlatform(
+                    new[] { currentSelection, DefaultIssuePendingPlatformTable },
+                    availableSet,
+                    availablePlatforms);
+
+                if (!string.IsNullOrWhiteSpace(selectedValue))
                 {
-                    item.Selected = true;
+                    ListItem item = ddlSharedPlatform.Items.FindByValue(selectedValue);
+                    if (item != null)
+                    {
+                        item.Selected = true;
+                    }
                 }
             }
         }
@@ -18745,10 +18759,19 @@ ORDER BY Total_CMF_Approved DESC";
             {
                 HashSet<string> available = new HashSet<string>(
                     GetAvailableIndividualPlatforms().Select(option => option.TableName), StringComparer.OrdinalIgnoreCase);
-                string[] selections = (Request.Form.GetValues(ddlSharedPlatform.UniqueID) ?? new string[0])
-                    .Where(available.Contains)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
+                string[] rawSelections = Request.Form.GetValues(ddlSharedPlatform.UniqueID) ?? new string[0];
+                string[] selections;
+                if (rawSelections.Any(s => string.Equals(s, OverallDashboardPlatformTable, StringComparison.OrdinalIgnoreCase)))
+                {
+                    selections = available.ToArray();
+                }
+                else
+                {
+                    selections = rawSelections
+                        .Where(available.Contains)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToArray();
+                }
                 Session[PendingPlatformsSessionKey] = selections.Length > 0
                     ? selections : new[] { DefaultIssuePendingPlatformTable };
                 EnsurePendingTabVisibleForPostback();

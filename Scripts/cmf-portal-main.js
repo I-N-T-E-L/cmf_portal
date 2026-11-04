@@ -40,7 +40,7 @@ function toggleSidebar() {
     function sync(control) {
         var option = control.select.options[control.select.selectedIndex];
         var selected = Array.from(control.select.selectedOptions).filter(function (item) { return item.value; });
-        control.text.textContent = control.select.multiple && selected.length ? (selected.length === 1 ? selected[0].textContent : selected.length + ' selected') : option ? option.textContent : 'All';
+        control.text.textContent = control.select.multiple && selected.length ? (selected.length === 1 ? selected[0].textContent : selected.length + ' selected') : option ? option.textContent : 'Select All';
         control.trigger.title = control.select.multiple && selected.length ? selected.map(function (item) { return item.title || item.textContent; }).join(', ') : option ? option.title || option.textContent : control.label;
         control.trigger.disabled = control.select.disabled;
         control.trigger.setAttribute('aria-label', control.label + ': ' + control.text.textContent);
@@ -85,7 +85,7 @@ function toggleSidebar() {
         summary.className = 'portal-filter-menu-summary';
         var selected = document.createElement('span');
         var option = control.select.options[control.select.selectedIndex];
-        selected.textContent = option && option.value && !/^all\b/i.test(option.textContent) ? '1 selected' : 'All';
+        selected.textContent = option && option.value && !/^(all|select all)\b/i.test(option.textContent) ? '1 selected' : 'Select All';
         summary.appendChild(selected);
         var reset = document.createElement('button');
         reset.type = 'button';
@@ -112,8 +112,8 @@ function toggleSidebar() {
 
         function renderOptions() {
             var focusedIndex = document.activeElement.dataset.optionIndex;
-            var selectedCount = Array.from(control.select.selectedOptions).filter(function (item) { return item.value; }).length;
-            selected.textContent = selectedCount ? selectedCount + ' selected' : 'All';
+            var selectedCount = Array.from(control.select.selectedOptions).filter(function (item) { return item.value && !/^(all|select all)\b/i.test(item.textContent); }).length;
+            selected.textContent = selectedCount ? selectedCount + ' selected' : 'Select All';
             list.replaceChildren();
             var query = search.value.toLowerCase().trim();
             Array.from(control.select.options).forEach(function (item, index) {

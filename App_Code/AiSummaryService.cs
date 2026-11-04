@@ -172,7 +172,7 @@ public static class AiSummaryService
         contextDetails = EnrichContextWithHsdArticles(issueId, contextDetails, true);
 
         int confidence = CalculateSummaryConfidence(status, sysdebug, contextDetails);
-        string hash = ComputeHash("summary-debug-recent-v11|" + GetAiProviderCacheSignature() + "|" + issueId + "|" + title + "|" + submittedDate + "|" + status + "|" + contextDetails);
+        string hash = ComputeHash("summary-debug-recent-v12|" + GetAiProviderCacheSignature() + "|" + issueId + "|" + title + "|" + submittedDate + "|" + status + "|" + contextDetails);
         string cacheKey = "ai-summary:" + hash;
 
         AiSummaryResponse cached = TryGetCached(cacheKey);
@@ -218,7 +218,7 @@ public static class AiSummaryService
             {
                 lock (CacheSync)
                 {
-                    ConversationStore["debug-recent-v11:" + issueId] = concise;
+                    ConversationStore["debug-recent-v12:" + issueId] = concise;
                 }
             }
         }
@@ -258,7 +258,7 @@ public static class AiSummaryService
         string status = SafeText(request.Status);
         string sysdebug = forDebugSummary ? string.Empty : SafeText(request.Sysdebug);
         string contextDetails = SafeText(request.ContextDetails);
-        string conversationKey = forDebugSummary ? "debug-recent-v11:" + issueId : issueId;
+        string conversationKey = forDebugSummary ? "debug-recent-v12:" + issueId : issueId;
 
         if (forDebugSummary)
         {
@@ -330,7 +330,9 @@ public static class AiSummaryService
         b.AppendLine("Do not invent facts or assume information not present in the data. If the answer is not determinable, say 'Insufficient information to answer'.");
         if (forDebugSummary)
         {
-            b.AppendLine("Help draft a brief sysdebug_forum update using only recent documented engineering activity. Never use the existing sysdebug_forum field or its previous summaries as evidence. Current source evidence takes precedence over the previous assistant response. Distinguish planned tests from completed tests and suspected causes from confirmed causes. Write in simple, natural English that a layman can easily understand, explaining technical terms or parameters in plain words. Keep the response concise, at most 100 words, technically accurate, and grammatically correct. Do not add unsolicited source-coverage disclaimers or commentary about retrieval, missing history, or the feature itself. Answer direct questions about available evidence honestly. Omit author names, raw history-entry identifiers, and unnecessary metadata.");
+            b.AppendLine("You are an assistant strictly for this specific sighting only (Sighting ID: " + issueId + "). You must strictly answer questions only related to this particular selected sighting. If the user asks questions unrelated to this sighting or asks about other sightings, politely decline and state that you can only answer questions related to sighting " + issueId + ".");
+            b.AppendLine("All fetched information must be reported accurately without any manipulation, fabrication, or guessing. Never combine, merge, or modify first and last names, and never combine an alias with another person's name. When asked about the owner, author, or engineer of recent debug activity, identify the exact name, username, or alias as documented in the source evidence (such as the update author, mentioned engineer, or ticket owner) and state their documented role accurately.");
+            b.AppendLine("Help draft or answer questions about recent documented engineering activity. Never use the existing sysdebug_forum field or its previous summaries as evidence. Current source evidence takes precedence over the previous assistant response. Distinguish planned tests from completed tests and suspected causes from confirmed causes. Write in simple, natural English that a layman can easily understand, explaining technical terms or parameters in plain words. Keep the response concise, at most 100 words, technically accurate, and grammatically correct. Do not add unsolicited source-coverage disclaimers or commentary about retrieval, missing history, or the feature itself. Answer direct questions about available evidence honestly.");
         }
         b.AppendLine();
         b.AppendLine("Ticket metadata:");

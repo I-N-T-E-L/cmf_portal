@@ -234,6 +234,8 @@ public static class HsdPortalService
         AppendIfSet(builder, "Article ID", data.ArticleId);
         AppendIfSet(builder, "Last Updated", data.UpdatedDate);
         AppendIfSet(builder, "Title", data.Title);
+        AppendIfSet(builder, "Owner", data.Owner);
+        AppendIfSet(builder, "Submitter", data.Submitter);
         AppendIfSet(builder, "Problem Description", data.Description);
         AppendIfSet(builder, "Repro Steps", data.StepsToReproduce);
         AppendIfSet(builder, "Actual Behavior", data.ActualBehavior);
@@ -668,10 +670,15 @@ public static class HsdPortalService
 
     private static string ResolveGnaiToken()
     {
+        string token = ConfigurationManager.AppSettings["GNAI:ApiKey"];
+        if (!string.IsNullOrWhiteSpace(token))
+        {
+            return token;
+        }
+
         return FirstNonEmpty(
             Environment.GetEnvironmentVariable("GNAI_TOKEN"),
-            Environment.GetEnvironmentVariable("GNAI_API_KEY"),
-            ConfigurationManager.AppSettings["GNAI:ApiKey"]);
+            Environment.GetEnvironmentVariable("GNAI_API_KEY"));
     }
 
     private static string ExtractModelContent(string responseBody)

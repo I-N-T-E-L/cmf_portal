@@ -124,6 +124,10 @@ public static class DebugSummaryServiceTests
         Check(followUpPrompt.Contains("Do not add unsolicited source-coverage disclaimers")
             && !followUpPrompt.Contains("acknowledge retrieval limitations"),
             "Debug follow-ups still append source-coverage commentary.");
+        Check(followUpPrompt.Contains("strictly answer questions only related to this particular selected sighting"),
+            "Sighting scope restriction missing from follow-up prompt.");
+        Check(followUpPrompt.Contains("Never combine, merge, or modify first and last names"),
+            "Name accuracy instruction missing from follow-up prompt.");
 
         Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
         config.AppSettings.Settings.Add("HSD:Enabled", "false");

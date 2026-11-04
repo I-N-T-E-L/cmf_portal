@@ -16318,10 +16318,8 @@ td:nth-child(odd), th:nth-child(odd) {
                 var hsdLinkHtml = (issueId && issueId !== '-') ? '<a class="cmf-assistant-hsd-link" href="https://hsdes.intel.com/appstore/article/#/' + encodeURIComponent(issueId) + '" target="_blank" rel="noopener noreferrer" title="Open sighting ' + escapeHtml(issueId) + ' in HSD" aria-label="Open sighting in HSD"><i class="fas fa-external-link-alt" aria-hidden="true"></i></a>' : '';
                 if (isDetails) {
                     headingNode.innerHTML = '<span class="cmf-assistant-title-icon" aria-hidden="true">✨</span>Issue Details <span style="font-size: 13px; font-weight: 600; color: #16385f; margin-left: 14px; display: inline-flex; align-items: center; gap: 6px;">Sighting ID: <strong style="color: #0f5ea8;">' + escapeHtml(issueId || 'N/A') + '</strong>' + hsdLinkHtml + '</span>';
-                } else if (currentMode === 'AI Debug Summary') {
-                    headingNode.innerHTML = '<span class="cmf-assistant-title-icon" aria-hidden="true">✨</span>AI Debug Summary';
                 } else {
-                    headingNode.innerHTML = '<span class="cmf-assistant-title-icon" aria-hidden="true">✨</span>' + escapeHtml(currentMode);
+                    headingNode.innerHTML = '<span class="cmf-assistant-title-icon" aria-hidden="true">✨</span>AI Debug Summary';
                 }
             }
             if (badgesNode) badgesNode.style.display = isDetails ? 'none' : '';
@@ -16356,11 +16354,11 @@ td:nth-child(odd), th:nth-child(odd) {
             }
             bodyNode.className = isDetails ? 'ai-summary-body issue-details-brief' : 'ai-summary-body markdown-content';
 
-            if (isDetails || currentMode === 'AI Summary') {
+            if (isDetails || currentMode === 'AI Summary' || currentMode === 'AI Debug Summary') {
                 bodyNode.innerHTML = `
                     <div class="ai-skeleton-loader">
                         <div style="font-size: 13px; font-weight: 600; color: #5c7087; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
-                            &#10024; Generating ` + (isDetails ? 'AI issue details' : 'Debug Summary') + `...
+                            &#10024; Generating ` + (isDetails ? 'AI issue details' : 'AI Debug Summary') + `...
                         </div>
                         <div class="ai-skeleton-line ai-skeleton-title" style="width: 50%;"></div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
@@ -16419,11 +16417,11 @@ td:nth-child(odd), th:nth-child(odd) {
 
             // Only inject the banner if it's the chat/summary mode; details mode already injected a shimmer.
             if (payload.mode !== 'AI issue details' || bodyNode.innerHTML.indexOf('ai-skeleton-loader') === -1) {
-                if (payload.mode === 'AI issue details' || payload.mode === 'AI Summary') {
+                if (payload.mode === 'AI issue details' || payload.mode === 'AI Summary' || payload.mode === 'AI Debug Summary') {
                     bodyNode.innerHTML = `
                         <div class="ai-skeleton-loader">
                             <div style="font-size: 13px; font-weight: 600; color: #5c7087; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
-                                &#10024; Generating ` + (payload.mode === 'AI issue details' ? 'AI issue details' : 'Debug Summary') + `...
+                                &#10024; Generating ` + (payload.mode === 'AI issue details' ? 'AI issue details' : 'AI Debug Summary') + `...
                             </div>
                             <div class="ai-skeleton-line ai-skeleton-title" style="width: 50%;"></div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
@@ -16498,8 +16496,8 @@ td:nth-child(odd), th:nth-child(odd) {
 
                 // Chat-first UI: hide the standalone body and render the summary as the first assistant message
                 if (!window._aiChatStore) window._aiChatStore = {}; // issueId => [{role,text}, ...]
-                window._aiCurrentIssueId = (payload.issueId || '') + '_' + (payload.mode || 'AI Summary')
-                    + (isDebugSummary ? '_debug-recent-v11' : '');
+                window._aiCurrentIssueId = (payload.issueId || '') + '_' + (payload.mode || 'AI Debug Summary')
+                    + (isDebugSummary ? '_debug-recent-v12' : '');
 
                 var chat = document.getElementById('aiSummaryChat');
                 var messages = document.getElementById('aiSummaryChatMessages');
@@ -23179,6 +23177,12 @@ td:nth-child(odd), th:nth-child(odd) {
         function bootstrapPortalLoadHooks() {
             if (window.CMF_PORTAL.activeFocusedTab === 'issue') {
                 syncPendingPlatformControls(false, true);
+            } else if (window.CMF_PORTAL.activeFocusedTab === 'pending') {
+                syncPendingPlatformControls(true, false);
+            } else {
+                var pendingShell = document.getElementById('pendingTabShell');
+                var isPending = pendingShell && pendingShell.style.display === 'grid';
+                syncPendingPlatformControls(isPending, !isPending);
             }
             applyTableOnlyScroll();
             syncGlobalSearchVisibility();
@@ -25607,7 +25611,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 }
 
                 values.sort(function (left, right) { return left.localeCompare(right); });
-                select.innerHTML = '<option value="">All ' + filter.label + '</option>';
+                select.innerHTML = '<option value="">Select All</option>';
                 for (var valueIndex = 0; valueIndex < values.length; valueIndex++) {
                     var option = document.createElement('option');
                     option.value = values[valueIndex];
@@ -25802,7 +25806,7 @@ Submit
                         <div id="mainMenuSectionBody" class="collapsible-body">
                             <asp:LinkButton ID="lnkNavHome" runat="server" CssClass="portal-nav-link" OnClick="btnShowHomeDashboard_Click" aria-label="Dashboard" ToolTip="Dashboard"><i class="fas fa-chart-pie" aria-hidden="true"></i><span>Dashboard</span></asp:LinkButton>
                             <asp:LinkButton ID="lnkNavCmfSummary" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView3_Click" Visible="false"><i class="fas fa-table-list" aria-hidden="true"></i><span>CMF Summary</span></asp:LinkButton>
-                            <asp:LinkButton ID="lnkNavIssueList" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView1_Click" aria-label="Issue List" ToolTip="Issue List"><i class="fas fa-fire" aria-hidden="true"></i><span>Issue List</span></asp:LinkButton>
+                            <asp:LinkButton ID="lnkNavIssueList" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView1_Click" aria-label="Issue List" ToolTip="Issue List"><i class="fas fa-bug" aria-hidden="true"></i><span>Issue List</span></asp:LinkButton>
                             <asp:LinkButton ID="lnkNavPendingList" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView4_Click" aria-label="CMF Pending List" ToolTip="CMF Pending List"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>CMF Pending</span></asp:LinkButton>
                             <asp:LinkButton ID="lnkNavReports" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView8_Click" aria-label="Reports and Analytics" ToolTip="Reports and Analytics"><i class="fas fa-chart-line" aria-hidden="true"></i><span>Reports &amp; Analytics</span></asp:LinkButton>
                             <asp:LinkButton ID="lnkNavConfigRules" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView9_Click" Visible="false"><i class="fas fa-sliders-h" aria-hidden="true"></i><span>Rules</span></asp:LinkButton>
@@ -26285,9 +26289,9 @@ Submit
                 <div class="pane-heading" runat="server" id="pane9" visible="false">Config/CMF Rules</div>
 
                 <div id="aiSummaryDrawerBg" class="ai-summary-drawer-bg" onclick="closeAiSummaryDrawer()"></div>
-                <aside id="aiSummaryDrawer" class="ai-summary-drawer" aria-hidden="true" role="dialog" aria-label="AI Issue Summary">
+                <aside id="aiSummaryDrawer" class="ai-summary-drawer" aria-hidden="true" role="dialog" aria-label="AI Debug Summary">
                     <button type="button" class="ai-summary-drawer-close" onclick="closeAiSummaryDrawer()" aria-label="Close">&times;</button>
-                    <h2 class="ai-summary-drawer-title"><span id="aiSummaryHeadingText">AI Summary</span><span id="aiSummaryTitleBadges" class="ai-summary-title-badges"><span id="aiSummaryConfidence" class="ai-summary-confidence-inline">Confidence: --</span><span id="aiSummaryStatusBadge" class="ai-summary-status-value">Status: --</span></span></h2>
+                    <h2 class="ai-summary-drawer-title"><span id="aiSummaryHeadingText"><span class="cmf-assistant-title-icon" aria-hidden="true">✨</span>AI Debug Summary</span><span id="aiSummaryTitleBadges" class="ai-summary-title-badges"><span id="aiSummaryConfidence" class="ai-summary-confidence-inline">Confidence: --</span><span id="aiSummaryStatusBadge" class="ai-summary-status-value">Status: --</span></span></h2>
                     <div id="aiSummaryMeta" class="ai-summary-meta-row ai-summary-meta-combined">
                         <strong>Sighting ID:</strong> <span id="aiSummaryIssueId">-</span>
                         <a id="aiSummaryHsdLink" class="cmf-assistant-hsd-link" href="#" target="_blank" rel="noopener noreferrer" title="Open sighting in HSD" aria-label="Open sighting in HSD" style="display:none;"><i class="fas fa-external-link-alt" aria-hidden="true"></i></a>
@@ -26498,7 +26502,7 @@ Submit
                 <div class="table-container">
 
                     <!-- SHARED FILTER PANEL FOR ISSUE LIST & CMF PENDING LIST -->
-                    <div id="sharedFilterPanel" runat="server" visible="false" class="overview-platform-actions">
+                    <div id="sharedFilterPanel" runat="server" class="overview-platform-actions">
                         <div class="overview-platform-filter">
                             <label>Platform:</label>
                             <asp:ListBox ID="ddlSharedPlatform" runat="server" AutoPostBack="true" Rows="1" SelectionMode="Single"
@@ -26974,12 +26978,12 @@ Submit
                             <div class="cmf-pending-filter-card" aria-label="CMF pending list filters">
                                 <div id="cmfPendingPlatformSlot"></div>
                                 <div class="cmf-pending-searchbox"><i class="fas fa-search" aria-hidden="true"></i><input type="text" id="cmfPendingClientSearch" placeholder="Search by ID, title, customer, component..." oninput="filterCmfPendingRows()" /></div>
-                                <label class="portal-filter-field" for="cmfPendingCustomerFilter">Customer<select id="cmfPendingCustomerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All Customers</option></select></label>
-                                <label class="portal-filter-field" for="cmfPendingRvpFilter">RVP Repro<select id="cmfPendingRvpFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All</option><option value="yes">Yes</option><option value="no">No</option><option value="unknown">Unknown</option></select></label>
-                                <label class="portal-filter-field" for="cmfPendingIdstFilter">iDST<select id="cmfPendingIdstFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All iDST</option></select></label>
+                                <label class="portal-filter-field" for="cmfPendingCustomerFilter">Customer<select id="cmfPendingCustomerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select></label>
+                                <label class="portal-filter-field" for="cmfPendingRvpFilter">RVP Repro<select id="cmfPendingRvpFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option><option value="yes">Yes</option><option value="no">No</option><option value="unknown">Unknown</option></select></label>
+                                <label class="portal-filter-field" for="cmfPendingIdstFilter">iDST<select id="cmfPendingIdstFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select></label>
                                 <fieldset class="portal-filter-field portal-date-filter"><legend>CMF Ask Date</legend><div><input type="date" id="cmfPendingDateFrom" aria-label="CMF Ask Date from" onchange="filterCmfPendingRows()" /><span aria-hidden="true">to</span><input type="date" id="cmfPendingDateTo" aria-label="CMF Ask Date to" onchange="filterCmfPendingRows()" /></div></fieldset>
-                                <label class="portal-filter-field" for="cmfPendingComponentFilter">Component<select id="cmfPendingComponentFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All Components</option></select></label>
-                                <label class="portal-filter-field" for="cmfPendingOwnerFilter">Owner<select id="cmfPendingOwnerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">All Owners</option></select></label>
+                                <label class="portal-filter-field" for="cmfPendingComponentFilter">Component<select id="cmfPendingComponentFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select></label>
+                                <label class="portal-filter-field" for="cmfPendingOwnerFilter">Owner<select id="cmfPendingOwnerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select></label>
                                 <button type="button" class="cmf-pending-filter-btn" onclick="resetCmfPendingClientFilters()">Clear</button>
                             </div>
 

@@ -48,6 +48,17 @@ public static class CmfPlatformCatalog
 {
     public const string OverallPlatformTableName = "CMF_OVERALL_ALL_COMPONENTS_TABLE";
 
+    public static int GetPlatformDisplayPriority(string label)
+    {
+        if (string.IsNullOrWhiteSpace(label)) return 999;
+        string clean = label.Trim().ToUpperInvariant();
+        if (clean == "NVL-H") return 1;
+        if (clean == "NVL-S") return 2;
+        if (clean == "NVL-HX" || clean == "NVL_HX") return 3;
+        if (clean.StartsWith("NVL")) return 4;
+        return 10;
+    }
+
     public static List<CmfPlatformDefinition> OrderBySummaryCounts(
         IEnumerable<CmfPlatformDefinition> platforms,
         IDictionary<string, CmfPlatformSummaryCounts> counts)
@@ -56,6 +67,13 @@ public static class CmfPlatformCatalog
         CmfPlatformSummaryCounts empty = new CmfPlatformSummaryCounts(0, 0, 0);
         ordered.Sort(delegate(CmfPlatformDefinition left, CmfPlatformDefinition right)
         {
+            int p1 = GetPlatformDisplayPriority(left.Label);
+            int p2 = GetPlatformDisplayPriority(right.Label);
+            if (p1 <= 3 || p2 <= 3)
+            {
+                if (p1 != p2) return p1.CompareTo(p2);
+            }
+
             CmfPlatformSummaryCounts leftCounts;
             CmfPlatformSummaryCounts rightCounts;
             if (!counts.TryGetValue(left.TableName, out leftCounts)) leftCounts = empty;
@@ -123,6 +141,9 @@ ORDER BY t.name", connection))
 
         platforms.Sort(delegate(CmfPlatformDefinition left, CmfPlatformDefinition right)
         {
+            int p1 = GetPlatformDisplayPriority(left.Label);
+            int p2 = GetPlatformDisplayPriority(right.Label);
+            if (p1 != p2) return p1.CompareTo(p2);
             return StringComparer.OrdinalIgnoreCase.Compare(left.Label, right.Label);
         });
         return platforms.ToArray();
