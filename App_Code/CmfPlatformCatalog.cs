@@ -48,6 +48,112 @@ public static class CmfPlatformCatalog
 {
     public const string OverallPlatformTableName = "CMF_OVERALL_ALL_COMPONENTS_TABLE";
 
+    public static string[] GetProcessorTokens(string platformTable)
+    {
+        string code = ResolvePlatformCode(platformTable).ToLowerInvariant();
+        switch (code)
+        {
+            case "nvl_h": return new[] { "novalake_h" };
+            case "nvl_hx": return new[] { "novalake_hx" };
+            case "nvl_s": return new[] { "novalake_s" };
+            case "nvl_u": return new[] { "novalake_u" };
+            case "arl_h": return new[] { "arrowlake_h", "arrowlake_h20-65", "arrowlake_h35-65" };
+            case "arl_hx": return new[] { "arrowlake_hx" };
+            case "arl_refresh": return new[] { "arrowlake_hx_816_refresh" };
+            case "arl_s": return new[] { "arrowlake_s" };
+            case "arl_u": return new[] { "arrowlake_u" };
+            case "ptl": return new[] { "pantherlake_h12xe", "pantherlake_h484", "pantherlake_h404" };
+            case "lnl": return new[] { "lunarlake_m", "lunarlake_p" };
+            case "gnr": return new[] { "graniterapids_xcc", "graniterapids_hcc", "graniterapids_lcc" };
+            case "wcl": return new[] { "wildcatlake", "wildcatlak" };
+            default: return new[] { code };
+        }
+    }
+
+    public static string BuildProcessorMembershipPredicate(string platformTable, string alias = null)
+    {
+        if (!IsDiscoverablePlatformTable(platformTable))
+            throw new ArgumentException("A physical platform issue table is required.", "platformTable");
+        if (!string.IsNullOrEmpty(alias) && !Regex.IsMatch(alias, @"\A[A-Za-z_][A-Za-z0-9_]*\z"))
+            throw new ArgumentException("Invalid source alias.", "alias");
+        string column = string.IsNullOrEmpty(alias) ? "[processor]" : alias + ".[processor]";
+        string normalized = "LOWER(REPLACE(REPLACE(REPLACE(REPLACE(ISNULL(" + column
+            + ", ''), ' ', ''), CHAR(9), ''), CHAR(13), ''), CHAR(10), ''))";
+        List<string> predicates = new List<string>();
+        foreach (string token in GetProcessorTokens(platformTable))
+            predicates.Add("CHARINDEX('," + token + ",', ',' + " + normalized + " + ',') > 0");
+        predicates.Add("REPLACE(REPLACE(" + normalized + ", 'unassigned', ''), ',', '') = ''");
+        return "(" + string.Join(" OR ", predicates) + ")";
+    }
+
+    public static string ScopeIssueSql(string sql)
+    {
+        const string marker = "/*cmf-platform-membership-v1*/";
+        if (string.IsNullOrWhiteSpace(sql) || sql.StartsWith(marker, StringComparison.Ordinal)) return sql;
+        MatchCollection tokens = Regex.Matches(sql,
+            @"N?'(?:''|[^'])*'|--[^\r\n]*|/\*[\s\S]*?\*/|\[(?:\]\]|[^\]])*\]|[A-Za-z_][A-Za-z0-9_]*|[^\s]",
+            RegexOptions.IgnoreCase);
+        List<Match> syntax = new List<Match>();
+        foreach (Match token in tokens)
+        {
+            if (!token.Value.StartsWith("--", StringComparison.Ordinal)
+                && !token.Value.StartsWith("/*", StringComparison.Ordinal)) syntax.Add(token);
+        }
+        int first = 0;
+        while (first < syntax.Count && syntax[first].Value == ";") first++;
+        if (first == syntax.Count || (!string.Equals(syntax[first].Value, "SELECT", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(syntax[first].Value, "WITH", StringComparison.OrdinalIgnoreCase))) return sql;
+        foreach (Match token in syntax)
+            if (Regex.IsMatch(token.Value, @"\A(?:INSERT|UPDATE|DELETE|MERGE|TRUNCATE|ALTER|DROP|CREATE|EXEC|EXECUTE)\z", RegexOptions.IgnoreCase)) return sql;
+        Dictionary<string, string> sources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        List<string> definitions = new List<string>();
+        List<Tuple<int, int, string>> replacements = new List<Tuple<int, int, string>>();
+        for (int index = first; index < syntax.Count; index++)
+        {
+            Match token = syntax[index];
+            string tableName = token.Value.Trim('[', ']');
+            bool isPending = Regex.IsMatch(tableName, @"\ACMF_[A-Z0-9]+(?:_[A-Z0-9]+)*_CMF_ASK\z", RegexOptions.IgnoreCase);
+            string platformTable = isPending ? tableName.Substring(0, tableName.Length - "_CMF_ASK".Length) + "_ALL_COMPONENTS_TABLE" : tableName;
+            if (!IsDiscoverablePlatformTable(platformTable)) continue;
+            string scopedName;
+            if (!sources.TryGetValue(tableName, out scopedName))
+            {
+                scopedName = "[cmf_membership_" + sources.Count + "]";
+                sources.Add(tableName, scopedName);
+                if (isPending)
+                    definitions.Add(scopedName + " AS (SELECT pending.* FROM [dbo].[" + tableName
+                        + "] AS pending WHERE NOT EXISTS (SELECT 1 FROM [dbo].[" + platformTable
+                        + "] AS assigned WHERE assigned.cp_id = pending.cp_id) OR EXISTS (SELECT 1 FROM [dbo].["
+                        + platformTable + "] AS assigned WHERE assigned.cp_id = pending.cp_id AND "
+                        + BuildProcessorMembershipPredicate(platformTable, "assigned") + "))");
+                else
+                    definitions.Add(scopedName + " AS (SELECT * FROM [dbo].[" + tableName + "] WHERE "
+                        + BuildProcessorMembershipPredicate(platformTable) + ")");
+            }
+            int start = token.Index;
+            if (index >= 2 && syntax[index - 1].Value == "."
+                && string.Equals(syntax[index - 2].Value.Trim('[', ']'), "dbo", StringComparison.OrdinalIgnoreCase))
+                start = syntax[index - 2].Index;
+            replacements.Add(Tuple.Create(start, token.Index + token.Length - start, scopedName));
+        }
+        if (definitions.Count == 0) return sql;
+        for (int index = replacements.Count - 1; index >= 0; index--)
+        {
+            Tuple<int, int, string> replacement = replacements[index];
+            sql = sql.Remove(replacement.Item1, replacement.Item2).Insert(replacement.Item1, replacement.Item3);
+        }
+        if (string.Equals(syntax[first].Value, "WITH", StringComparison.OrdinalIgnoreCase))
+            sql = sql.Remove(syntax[first].Index, syntax[first].Length).Insert(syntax[first].Index,
+                "WITH " + string.Join(", ", definitions) + ",");
+        else sql = "WITH " + string.Join(", ", definitions) + " " + sql.Substring(syntax[first].Index);
+        return marker + sql;
+    }
+
+    public static SqlCommand CreateReadCommand(string sql, SqlConnection connection)
+    {
+        return new SqlCommand(ScopeIssueSql(sql), connection);
+    }
+
     public static List<CmfPlatformDefinition> OrderBySummaryCounts(
         IEnumerable<CmfPlatformDefinition> platforms,
         IDictionary<string, CmfPlatformSummaryCounts> counts)

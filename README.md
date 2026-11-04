@@ -62,6 +62,71 @@ right edge of the dashboard platform rail when there is available space.
 Each fresh page load, including a reload, selects and displays the leftmost
 ranked individual platform. Explicit platform selections persist during postbacks.
 
+### Platform Membership
+
+Platform reads use exact comma-separated `processor` tokens, not substring matches.
+For example, `novalake_hx` belongs to NVL-Hx and does not match NVL-H;
+`arrowlake_hx_816_refresh` belongs to ARL-Refresh rather than ARL-H or ARL-Hx.
+`CmfPlatformCatalog.GetProcessorTokens` maps the current platform aliases and
+processor variants. New platform codes default to their lower-case table code;
+add aliases there when the HSD processor vocabulary differs from that code.
+
+The shared read boundary applies this rule to platform rankings, dashboards,
+Overall sources, issue lists and details, Pending, exports, Reports Assistant,
+Insights and trends. Existing date, status and `cmf_duplicate` definitions are
+unchanged. An issue explicitly tagged with multiple supported processors remains
+in each corresponding platform. Blank, null and unassigned-only processor values
+are retained because they do not establish a different platform membership.
+
+Pending tables have no processor column, so their reads check matching issue IDs
+in the corresponding platform issue table. Known mismatches are excluded;
+pending-only records without processor evidence are retained. The filtering is
+read-time only: it does not delete database rows, alter imports, or update HSD.
+
+### Dashboard AI Insights
+
+Overall and individual platform dashboards share an Insights panel with Highlights,
+Trends, and Similar Issues views. Evidence comes from the canonical Summary source
+across all acceptance dates, independent of the dashboard date filter. Platform
+selection and Overall platform exclusions still apply.
+Only accepted CMFs are included; pending requests retain their separate summaries.
+
+Component (`component_group`), ingredient (`component`), and platform views compare
+reconstructed open balances with the same weekday seven days earlier. They reuse
+Summary eligibility rules and retain duplicate rows. Weekly comparisons always use
+the all-date Insights scope, including when the dashboard displays a short date
+range. Aging is measured from acceptance. Counts of
+excluded records are shown; historical reopenings cannot be recovered.
+
+Similar Issues groups records sharing explicit promoted or merge HSD IDs. Distinct
+HSD counts, platform counts, record occurrences, and current comparable-open counts
+are separate. Each group explains the explicit relationship, shared component or
+ingredient classifications, and any exact meaningful title phrases repeated across
+distinct HSDs, with supporting record links and title excerpts. Missing title
+overlap is stated explicitly. These links and overlaps do not establish identical
+symptoms or a common cause. Embedding-based or text-only grouping is not implemented.
+
+Calculated evidence appears first. The existing GNAI/GitHub transport then ranks
+server-supplied findings and selects bounded suggested-review actions. Up to three
+candidate HSDs are enriched with bounded source fields; a second call to the same
+model reviews the ranking. Code rejects unknown or duplicate finding IDs, unknown
+actions, extra factual fields, and malformed output. Models cannot change counts,
+write HSD records, or publish unsupported free-text claims through this contract.
+The second pass is not independent verification. If AI fails, calculated evidence
+and HSD links remain visible.
+
+Ranking runs without a session lock, using an expiring opaque evidence token bound
+to the current authenticated identity. Caches include prompt version, provider,
+source fingerprint, date scope, and included platforms. Successful rankings expire
+after five minutes; fallback results expire after one minute. Refresh rebuilds
+evidence and bypasses ranking cache. All qualifying highlights and relationship
+groups remain available through pages of eight, with no fixed total-results cap.
+Highlights require a changed open balance, at least two comparable open records,
+an open record aged at least 14 days, or an explicit link shared by multiple HSDs.
+AI can prioritize any number of supported findings; findings it does not rank remain
+available as calculated evidence. Per-finding markers distinguish AI-prioritized
+items. Trends show up to 15 groups per dimension; HSD excerpts remain bounded.
+
 ### Dashboard Date Filter
 
 The controls at the right of the dashboard platform-selector row filter Overall and platform dashboards,
@@ -70,9 +135,10 @@ Pending, and Reports & Analytics retain their independent scopes.
 The date controls align with the AI Insights card's right edge in both Overall
 and platform views, including menu expansion/collapse and horizontal scrolling.
 
-The defaults are **All Time** and **CMF Request Date** (`date_cmf_ask`).
-**Issue Submission Date** uses the database's `submitted_date` instead.
-**CMFs Accepted in** uses `date_cmf_decided` and includes accepted unique and
+The default range is **All dates**. **CMFs Accepted** is the fixed date basis;
+there is no date-basis dropdown. Saved sessions also use this basis, regardless
+of any previously selected request or submission basis.
+It uses `date_cmf_decided` and includes accepted unique and
 duplicate CMFs (`cmf_ok`, `cmf_duplicate`), excluding other decision states.
 An active range excludes records without a decision date; All Time remains unfiltered.
 Dashboard pending-request summaries show no matches for an acceptance-date range,
@@ -95,28 +161,93 @@ Only the content column scrolls horizontally; the left menu stays outside it.
 The menu uses native sticky positioning, following the header until it reaches
 the viewport top, without JavaScript scroll-frame positioning.
 
-### CMF Summary: Rolling Weekly Indicators
+### CMF Summary: Weekly Comparisons
 
-Overall and platform-specific Summaries compare the seven calendar days ending today with the preceding
-seven days, using the server's local date. Today is partial. These indicators keep
-their fixed rolling windows independently of the dashboard date filter, but respect
-the platforms included in Overall. Platform-specific indicators use only that platform's records,
-with the same calculations, arrow colors, no-change bars, and N/A handling as Overall.
+Summary Implemented includes `status` values `implemented` and `future`; Open excludes
+`complete`, `rejected`, `implemented`, and `future`. This split applies to Overall and
+platform counts, duplicate notes, breakdowns, drilldowns, and summary-aligned balance
+trends. Total, Closed, and TPT definitions are unchanged. Historical placement of
+`future` records uses their retained implementation dates, with the same missing-date
+exclusions as `implemented` records.
 
-Total CMFs compares acceptance counts by `date_cmf_decided`; Closed compares recorded
-closures by `closed_date`; Implemented compares implementation events by `implemented_date`,
-including CMFs now closed. These are weekly activity differences, not historical
-changes in the current-state headline balances. Existing duplicate counting is retained.
-Total decreases are green and increases red; Closed and Implemented use the reverse.
+The same `future` grouping applies to OEM/customer summaries, ingredient/component
+and design tables, Issue List counters and visibility, AI Insights Open balances,
+analytics chatbot summaries/count answers, and matching drilldowns/exports. Existing
+Impl/Verified tables retain `verified` and add `future`. Dated implementation activity
+includes `future` only when its retained implementation date meets the existing window.
+Stored status values, duplicate eligibility, Pending-request counts, Total, Closed,
+and TPT calculations are not rewritten by this grouping policy.
 
-Disposition TPT compares average request-to-decision days for decisions in each window.
+Overall and platform-specific Summaries use the server's local date; today is partial.
+Count cards compare today's reconstruction-eligible balance with an estimated balance
+at the end of the same weekday seven days earlier. Records excluded from historical
+reconstruction are also excluded from today's trend count. Headline card counts and
+detail tables remain unchanged, so a trend's current count can be lower than its headline;
+the tooltip explains the matching exclusions. TPT cards retain their rolling-week average comparisons.
+Platform-specific indicators use only that platform's records, while Overall respects
+the platforms included in its scope.
+
+All CMF Summary trend indicators, including Pending and TPT, are hidden when the
+applied dashboard date range is shorter than 30 days: Today, Last 7 days, or a
+custom range of fewer than 30 inclusive calendar days. All dates, Last 30 days,
+Last 12 months, and custom ranges of at least 30 days retain the indicators.
+Headline metrics and dashboard charts are unchanged by this visibility rule.
+
+Total CMFs, Closed, Implemented and Open compare current-state counts with reconstructed
+historical balances, not weekly activity totals. Both sides use the selected acceptance-date
+cohort and retain existing duplicate-row counting. Previous Total uses acceptances by
+`date_cmf_decided`; implementation and closure dates place those accepted rows in their
+estimated earlier states. A now-closed CMF can therefore count as Implemented or Open in
+the earlier balance. Missing or inconsistent dates/status exclude a record from both
+trend counts for that metric and are reported in the tooltip. Rows accepted after the
+historical cutoff remain eligible when their acceptance date establishes a zero earlier
+balance, even if later lifecycle dates are incomplete. If all history is unusable, the indicator is blank. Empty cohorts retain
+a valid zero change. Removed records, historical eligibility changes, and reopened or
+repeated lifecycles cannot be recovered, so these are estimates, not saved snapshots.
+Total and Open decreases are green and increases red; Closed and Implemented use the reverse.
+
+TPT compares the seven calendar days ending today with the preceding seven days,
+independently of the dashboard date filter. Disposition TPT compares average
+request-to-decision days for decisions in each window.
 Resolution TPT compares average decision-to-implementation days for implementations in
 each window. Missing or reversed date pairs are excluded from these averages.
-TPT indicators show percentage change against the previous average: decreases green,
-increases red. All equal comparisons use a flat blue bar. Missing TPT cohorts and
-undefined percentages against a zero baseline show N/A, not a fabricated percentage.
-Hovering an indicator shows both date windows and their counts or average days.
-Open, Pending, and Overall TPT have no weekly indicator.
+Overall TPT compares average current recorded `days_active` for accepted unique and
+duplicate CMFs in each window, grouped by `date_cmf_decided`. Missing, nonnumeric or
+negative durations are excluded. This compares two acceptance cohorts using today's
+recorded durations; it does not reconstruct last week's headline or infer historical
+`days_active`, reopenings, or paused time. Its headline remains the existing scoped
+average, independent of the trend's cohorts.
+TPT indicators show percentage change against the previous average, with the decimal
+part truncated for display. Underlying averages and tooltip precision are unchanged.
+Changes below 1% display as 0% but retain their actual direction and color: decreases
+green, increases red. All equal comparisons use a flat blue bar. Missing TPT cohorts and
+undefined percentages against a zero baseline leave the trend indicator blank.
+Valid zero-percent changes remain visible, and the headline TPT day values are unchanged.
+Hovering an indicator shows the compared dates and their counts or average days.
+Avg Resolution has no trend indicator.
+
+The Overall and platform-specific Pending cards also show a count change
+between today's eligible pending count (partial day) and the reconstructed pending count
+at the end of the same weekday seven days earlier. Both use the selected dashboard
+date scope and the same reconstruction-eligible requests. The previous estimate includes still-pending requests made by that date
+and retained accepted, duplicate, or rejected requests decided after that date.
+Requests are deduplicated by platform and HSD ID on both sides; current pending records take
+precedence over their component-table copies. Missing or reversed dates exclude the request
+from both trend counts and are reported in the tooltip. The headline Pending count retains
+its existing row counting, and the tooltip shows that unchanged headline separately.
+Removed records, closures without decision dates, and
+reopened/repeated pending periods cannot be reconstructed, so this is not an exact
+historical balance. No snapshots or recording tables are created. Increases are red,
+decreases green, and equal counts blue. The display has no `Est.` prefix; the
+tooltip identifies the historical count as an estimate. Each platform uses its
+own pending and decision records. Wholly unusable history and active
+acceptance-date filters leave the trend blank. Valid zero changes remain visible.
+
+The Pending card's secondary line shows `Oldest: N days`, calculated in calendar
+days from the oldest valid request date among the current scoped pending requests,
+not from the last reopening. Missing, invalid and future request dates are excluded.
+It shows `Oldest: N/A` when pending requests exist but none have usable dates;
+the line is blank when there are no pending requests. The headline and trend are unchanged.
 
 ### Dashboard Line Trend: Week-End Balances
 
@@ -131,8 +262,11 @@ Each historical point is a balance at the end of a Monday-Sunday work week, not
 the number of changes during that week. The current point uses the summary
 cards' current-status counts minus their duplicate counts. Open follows the
 card's broad definition: statuses other than complete, rejected, or implemented;
-Implemented uses status implemented only. The line uses the same platform/date
-scope as the cards, without the activity chart's additional driver/column filters.
+Implemented uses status implemented only. Dashboard charts and their weekly
+drilldowns use the selected dashboard platform/date scope, never Issue List
+milestone or column-filter sessions. Switching platforms or returning from Issue
+List cannot carry a hidden filter into dashboard activity counts, and dashboard
+rendering does not change Issue List filter selections.
 Historical Open includes earlier requests not yet implemented or closed at the
 cutoff, with other active statuses retained in the Open bucket. Historical
 Implemented includes implementations before the cutoff that were not yet closed.

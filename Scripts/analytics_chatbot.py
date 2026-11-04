@@ -202,6 +202,7 @@ def _extract_status_tokens(text):
     aliases = {
         "open": ["open", "opened"],
         "implemented": ["implemented", "implementation"],
+        "future": ["future"],
         "verified": ["verified", "verification"],
         "complete": ["complete", "completed", "closed", "resolved"],
         "rejected": ["rejected", "reject"],
@@ -1294,8 +1295,10 @@ def _deterministic_rag_answer(df, prompt, retrieved_df, pd, go, output_dir, fall
             for token in status_tokens:
                 if token == "complete":
                     count = int(status_series.isin(["complete", "closed", "resolved"]).sum())
+                elif token == "implemented":
+                    count = int(status_series.isin(["implemented", "future"]).sum())
                 elif token == "pending":
-                    count = int((~status_series.isin(["complete", "closed", "resolved", "rejected", "implemented", "verified"])).sum())
+                    count = int((~status_series.isin(["complete", "closed", "resolved", "rejected", "implemented", "verified", "future"])).sum())
                 else:
                     count = int((status_series == token).sum())
                 lines.append(f"- {token}: {count} records")
@@ -1723,9 +1726,9 @@ def _call_github_model(prompt, context_block):
 def _summary_message(df):
     if HAS_PANDAS:
         total = len(df)
-        status_counts = df["status"].fillna("unknown").astype(str).str.lower().value_counts() if "status" in df.columns else {}
+        status_counts = df["status"].fillna("unknown").astype(str).str.strip().str.lower().value_counts() if "status" in df.columns else {}
         open_count = int(status_counts.get("open", 0)) if hasattr(status_counts, "get") else 0
-        implemented_count = int(status_counts.get("implemented", 0)) if hasattr(status_counts, "get") else 0
+        implemented_count = int(status_counts.get("implemented", 0) + status_counts.get("future", 0)) if hasattr(status_counts, "get") else 0
         closed_count = int(status_counts.get("complete", 0) + status_counts.get("rejected", 0)) if hasattr(status_counts, "get") else 0
 
         stale_count = 0
@@ -1757,7 +1760,7 @@ def _summary_message(df):
             component_counts[comp] = component_counts.get(comp, 0) + 1
 
         open_count = int(status_counts.get("open", 0))
-        implemented_count = int(status_counts.get("implemented", 0))
+        implemented_count = int(status_counts.get("implemented", 0) + status_counts.get("future", 0))
         closed_count = int(status_counts.get("complete", 0) + status_counts.get("rejected", 0))
         top_component = "N/A"
         if component_counts:
