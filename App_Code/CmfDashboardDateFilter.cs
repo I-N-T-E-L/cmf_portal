@@ -8,6 +8,11 @@ public sealed class CmfDashboardDateFilter
     public DateTime? Start { get; private set; }
     public DateTime? EndExclusive { get; private set; }
 
+    public bool ShowSummaryTrends
+    {
+        get { return !Start.HasValue || !EndExclusive.HasValue || (EndExclusive.Value - Start.Value).TotalDays >= 30; }
+    }
+
     public static bool TryCreate(string mode, string basis, string startText, string endText,
         DateTime today, out CmfDashboardDateFilter filter, out string error)
     {
