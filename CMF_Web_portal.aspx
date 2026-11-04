@@ -5140,6 +5140,10 @@ body {
     min-width: 0;
 }
 
+.cmf-summary-value-stack > .ccip-summary-fact-note {
+    align-self: center;
+}
+
 .cmf-weekly-trend {
     display: inline-flex;
     align-items: center;
@@ -5147,7 +5151,7 @@ body {
     gap: 4px;
     min-height: 14px;
     max-width: 100%;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 800;
     line-height: 1;
     letter-spacing: 0;
@@ -18245,7 +18249,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 if (isStackedLine && firstPopulatedWeek > 0
                     && (Number(firstPopulatedItem.WeekEndOpenIssues || 0) > 0
                         || Number(firstPopulatedItem.WeekEndImplementedIssues || 0) > 0)) {
-                    firstPopulatedWeek--;
+                    firstPopulatedWeek = Math.max(0, firstPopulatedWeek - 2);
                 }
                 trend = trend.slice(firstPopulatedWeek);
             }
@@ -18309,7 +18313,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     itemHeight: 8,
                     textStyle: { color: '#24354e', fontSize: 11 }
                 },
-                grid: { left: 10, right: 24, top: 30, bottom: 10, containLabel: true },
+                grid: { left: 10, right: 24, top: isClusteredBar ? 40 : 30, bottom: 10, containLabel: true },
                 xAxis: {
                     type: 'category',
                     data: trend.map(function (item) { return item.WeekLabel; }),
@@ -18355,6 +18359,18 @@ td:nth-child(odd), th:nth-child(odd) {
                     }
                 ]
             };
+            if (isClusteredBar) {
+                trendOptions.series.forEach(function (series) {
+                    series.label = {
+                        show: true,
+                        position: 'top',
+                        distance: 3,
+                        color: '#24354e',
+                        fontSize: 11,
+                        formatter: function (point) { return point.value > 0 ? String(point.value) : ''; }
+                    };
+                });
+            }
             if (isStackedLine) {
                 var openSeries = trendOptions.series[0];
                 var implementedSeries = trendOptions.series[1];
@@ -18515,6 +18531,7 @@ td:nth-child(odd), th:nth-child(odd) {
             if (legacyAiHealth) legacyAiHealth.style.display = isOverall ? 'none' : '';
             if (legacyTables) legacyTables.style.display = isOverall ? 'none' : '';
             syncDashboardPlatformToolbarWidth();
+            if (window.CmfDashboardInsights) window.CmfDashboardInsights.render(snapshot);
 
             if (isOverall) {
                 renderOverallCombinedSummaryFacts(snapshot);
@@ -18826,9 +18843,9 @@ td:nth-child(odd), th:nth-child(odd) {
                 lines.push('Calculated as count where status is complete or rejected.');
             } else if (label === 'implemented') {
                 lines.push('CMFs that are implemented in the current summary scope.');
-                lines.push('Calculated as count where status is implemented.');
+                lines.push('Calculated as count where status is implemented or future.');
             } else if (label === 'open') {
-                lines.push('CMFs that are not complete, rejected, or implemented.');
+                lines.push('CMFs that are not complete, rejected, implemented, or future.');
                 lines.push('Calculated directly from cmf_ok + cmf_duplicate rows in the summary scope.');
             } else if (label === 'pending') {
                 lines.push('CMFs still unresolved in the pending pipeline.');
@@ -19469,7 +19486,8 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function renderSummaryWeeklyTrend(trend) {
-            if (!trend) return '';
+            var showTrends = <%= ShowSummaryTrends ? "true" : "false" %>;
+            if (!showTrends || !trend || trend.Display === '') return '';
             var tone = /^(good|bad|neutral)$/.test(trend.Tone) ? trend.Tone : 'unavailable';
             var direction = /^(up|down|flat)$/.test(trend.Direction) ? trend.Direction : 'unavailable';
             var icon = direction === 'flat'
@@ -19522,11 +19540,12 @@ td:nth-child(odd), th:nth-child(odd) {
                 }
 
                 var valueHtml = '<div class="ccip-summary-fact-value">' + renderValueWithDaysSuffix(formattedFact.valueText, 'ccip-days-suffix') + '</div>';
-                if (fact.WeeklyTrend) {
-                    valueHtml = '<div class="cmf-summary-value-stack">' + valueHtml + renderSummaryWeeklyTrend(fact.WeeklyTrend) + '</div>';
+                if (formattedFact.noteText) {
+                    valueHtml = '<div class="cmf-summary-value-stack">' + valueHtml +
+                        '<div class="ccip-summary-fact-note">' + escapeHtml(formattedFact.noteText) + '</div></div>';
                 }
                 card.innerHTML = '<div class="ccip-summary-fact-label">' + escapeHtml(fact.Label || '-') + '</div>' +
-                    valueHtml + '<div class="ccip-summary-fact-note">' + escapeHtml(formattedFact.noteText) + '</div>';
+                    valueHtml + '<div class="ccip-summary-fact-note">' + renderSummaryWeeklyTrend(fact.WeeklyTrend) + '</div>';
 
                 if (metricKey) {
                     (function (boundMetricKey, boundLabel, boundCard) {
@@ -20067,7 +20086,9 @@ td:nth-child(odd), th:nth-child(odd) {
 
             html += '<div class="overall-tpt-box" data-tpt-kind="overall">' +
                 '<div class="overall-tpt-label">OVERALL TPT</div>' +
+                (overallFact && overallFact.WeeklyTrend ? '<div class="cmf-summary-value-stack">' : '') +
                 '<div class="overall-tpt-value ' + getLegacyTptValueToneClass('overall', overallDays) + '">' + escapeHtml(String(overallDays)) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
+                (overallFact && overallFact.WeeklyTrend ? renderSummaryWeeklyTrend(overallFact.WeeklyTrend) + '</div>' : '') +
                 buildTptColorLegend('overall') +
                 '</div>';
 
@@ -25661,8 +25682,10 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 </script>
     <script src="Scripts/cmf-portal-main.js?v=20261103-title-actions"></script>
+    <script src="Scripts/cmf-dashboard-insights.js?v=5"></script>
 
     <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261103-title-unhindered" />
+    <link rel="stylesheet" href="Content/cmf-dashboard-insights.css?v=5" />
 
 </head>
 
@@ -25827,6 +25850,9 @@ Submit
                                 <div class="dashboard-platform-toolbar">
                                     <div class="platform-chip-rail" data-chip-source="server" role="tablist" aria-label="Dashboard platform switch"></div>
                                     <div class="dashboard-date-filter">
+                                    <% if (ddlDashboardDateMode.SelectedValue != "all") { %>
+                                    <span class="dashboard-date-basis-label">CMFs Accepted<%= ddlDashboardDateMode.SelectedValue == "today" ? string.Empty : " in" %></span>
+                                    <% } %>
                                     <asp:DropDownList ID="ddlDashboardDateMode" runat="server" AutoPostBack="true" OnSelectedIndexChanged="DashboardDateFilter_Changed" aria-label="Dashboard date range">
                                         <asp:ListItem Text="All dates" Value="all" />
                                         <asp:ListItem Text="Today" Value="today" />
@@ -25834,11 +25860,6 @@ Submit
                                         <asp:ListItem Text="Last 30 days" Value="30days" />
                                         <asp:ListItem Text="Last 12 months" Value="12months" />
                                         <asp:ListItem Text="Custom range" Value="custom" />
-                                    </asp:DropDownList>
-                                    <asp:DropDownList ID="ddlDashboardDateBasis" runat="server" AutoPostBack="true" OnSelectedIndexChanged="DashboardDateFilter_Changed" aria-label="Dashboard date basis">
-                                        <asp:ListItem Text="CMFs Requested in" Value="cmf-request" />
-                                        <asp:ListItem Text="CMFs Accepted in" Value="cmf-accepted" />
-                                        <asp:ListItem Text="Issues Submitted in" Value="submitted" />
                                     </asp:DropDownList>
                                     <asp:Panel ID="dashboardCustomDates" runat="server" Visible="false">
                                         <asp:TextBox ID="txtDashboardDateStart" runat="server" TextMode="Date" AutoPostBack="true" OnTextChanged="DashboardDateFilter_Changed" aria-label="Start date" />
@@ -25931,10 +25952,10 @@ Submit
 
                                     <article class="overall-card overall-ai-card overall-ai-span-card">
                                         <div class="overall-card-head">
-                                            <h4 class="overall-card-title"><i class="fas fa-wand-magic-sparkles" aria-hidden="true" style="margin-right:6px;"></i>AI INSIGHTS</h4>
+                                            <h4 class="overall-card-title ci-heading"><span><i class="fas fa-wand-magic-sparkles" aria-hidden="true" style="margin-right:6px;"></i>AI INSIGHTS</span><span id="homeOverallInsightsScope" class="ci-scope"></span></h4>
                                             <span class="ccip-ai-beta">Beta</span>
                                         </div>
-                                        <div class="overall-ai-blank"></div>
+                                        <div id="homeOverallInsights" class="cmf-insights"></div>
                                     </article>
 
                                     <section class="overall-row overall-row-third">
@@ -26019,10 +26040,10 @@ Submit
 
                                     <aside id="homeLegacyAiHealthCard" class="overall-card overall-ai-card overall-ai-span-card">
                                         <div class="overall-card-head ccip-ai-health-head">
-                                            <span><i class="fas fa-wand-magic-sparkles" aria-hidden="true" style="margin-right:6px;"></i>AI INSIGHTS</span>
+                                            <span class="ci-heading"><span><i class="fas fa-wand-magic-sparkles" aria-hidden="true" style="margin-right:6px;"></i>AI INSIGHTS</span><span id="homePlatformInsightsScope" class="ci-scope"></span></span>
                                             <span class="ccip-ai-beta">Beta</span>
                                         </div>
-                                        <div class="overall-ai-blank"></div>
+                                        <div id="homePlatformInsights" class="cmf-insights"></div>
                                     </aside>
                                 </div>
 

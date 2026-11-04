@@ -112,6 +112,97 @@ test('left menu uses native sticky positioning without scroll-frame corrections'
     assert.doesNotMatch(mainScript, /function (?:sync|clear)SidebarViewportStickiness|sidebar\.style\.setProperty\('(?:top|position)'/);
 });
 
+test('AI Insights keeps content-independent card dimensions and internal scrolling', () => {
+    const styles = fs.readFileSync(path.join(root, 'Content', 'cmf-dashboard-insights.css'), 'utf8');
+    assert.match(styles, /#homeOverallLayoutV2 > \.overall-ai-span-card,\s*#homeLegacyAiHealthCard\s*\{\s*contain: size;\s*overflow: hidden;/);
+    assert.match(styles, /#homeLegacyAiHealthCard\s*\{\s*min-height: var\(--ccip-ai-fixed-height\) !important;\s*max-height: var\(--ccip-ai-fixed-height\) !important;/);
+    assert.match(styles, /\.cmf-insights\s*\{[^}]*min-width: 0;[^}]*min-height: 0;[^}]*overflow: auto;/);
+    assert.match(styles, /\.ci-toolbar\s*\{[^}]*flex: 0 0 auto;/);
+    assert.match(styles, /\.ci-content\s*\{\s*flex: 1 1 0;\s*min-width: 0;\s*min-height: 0;\s*max-height: none;\s*overflow: auto;/);
+    assert.doesNotMatch(styles, /\.ci-content\s*\{[^}]*max-height:\s*\d/);
+    assert.match(styles, /@media \(max-width: 900px\)\s*\{\s*#homeOverallLayoutV2 > \.overall-ai-span-card\s*\{\s*height: 503\.85px;/);
+});
+
+test('AI Insights scope sits beside each heading at 13px without the acceptance-date label', () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const styles = fs.readFileSync(path.join(root, 'Content', 'cmf-dashboard-insights.css'), 'utf8');
+    new vm.Script(script);
+    for (const hostId of ['homeOverallInsights', 'homePlatformInsights']) {
+        assert.match(page, new RegExp('AI INSIGHTS</span><span id="' + hostId + 'Scope" class="ci-scope"></span>'));
+    }
+    assert.match(styles, /\.ci-heading\s*\{[^}]*align-items: baseline;[^}]*flex-wrap: wrap;/);
+    assert.match(styles, /\.ci-scope\s*\{[^}]*font-size: 13px;/);
+    assert.doesNotMatch(script, /data\.DateRange|<span class="ci-scope">/);
+    const states = [];
+    const elements = new Map();
+    for (const hostId of ['homeOverallInsights', 'homePlatformInsights']) {
+        const parts = new Map(['.ci-content', '.ci-mode', '.ci-metadata', '.ci-time', '.ci-provenance', '.ci-refresh'].map(selector => [selector, {
+            textContent: '', innerHTML: '', setAttribute() {}, addEventListener() {}, querySelectorAll: () => []
+        }]));
+        elements.set(hostId, { id: hostId, isConnected: true, innerHTML: '', querySelector: selector => parts.get(selector), querySelectorAll: () => [] });
+        elements.set(hostId + 'Scope', { textContent: '' });
+    }
+    const portal = { currentDashboardPlatform: '' };
+    const context = vm.createContext({
+        active: null,
+        window: { CMF_PORTAL: portal },
+        document: { getElementById: id => elements.get(id) },
+        load: state => states.push(state),
+        clearTimeout() {}, setTimeout() {},
+        pagination: () => '', findings: () => '', escape: value => String(value)
+    });
+    for (const name of ['render', 'draw']) {
+        const definition = script.match(new RegExp('    function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n    \\}'));
+        assert.ok(definition);
+        vm.runInContext(definition[0], context);
+    }
+    for (const [platform, hostId, label] of [
+        ['CMF_OVERALL_ALL_COMPONENTS_TABLE', 'homeOverallInsights', 'Overall (12 included platforms)'],
+        ['CMF_NVL_S_ALL_COMPONENTS_TABLE', 'homePlatformInsights', 'NVL-S']
+    ]) {
+        portal.currentDashboardPlatform = platform;
+        context.render({ GeneratedAt: '2026-11-04T12:00:00Z', PlatformLabel: label });
+        const state = states.at(-1);
+        assert.equal(elements.get(hostId + 'Scope').textContent, label);
+        assert.doesNotMatch(state.host.innerHTML, /ci-scope|All acceptance dates/);
+        assert.match(state.host.innerHTML, /^<div class="ci-controls"><div class="ci-tabs"/);
+        assert.match(state.host.innerHTML, /<\/button><\/div><div class="ci-toolbar"><span class="ai-summary-status-value ci-mode">/);
+        state.pages = { highlights: { items: [] } };
+        state.data = { Scope: label, DateRange: 'All acceptance dates', Mode: 'evidence', Records: 0, DistinctIssues: 0, DuplicateRecords: 0, ExcludedRecords: 0, GeneratedAt: '2026-11-04T12:00:00Z', ExpiresAt: '2099-01-01T00:00:00Z', SourceStatus: 'Local records' };
+        context.draw(state);
+        assert.equal(elements.get(hostId + 'Scope').textContent, label);
+    }
+});
+
+test('AI Insights findings reuse the shared assistant sections without changing evidence or links', () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const styles = fs.readFileSync(path.join(root, 'Content', 'cmf-dashboard-insights.css'), 'utf8');
+    const context = vm.createContext({});
+    for (const name of ['escape', 'links', 'findings']) {
+        const definition = script.match(new RegExp('    function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n    \\}'));
+        assert.ok(definition);
+        vm.runInContext(definition[0], context);
+    }
+    const markup = context.findings([{
+        Title: 'Merge HSD 14012345678', RelatedId: '14012345678', AiReviewed: true,
+        Evidence: '2 distinct HSDs <unconfirmed>', Action: 'Compare linked records.',
+        DistinctIssues: 2, Occurrences: 2, PlatformCount: 1,
+        Reasons: [{ Text: 'Same explicit link.' }, { Text: 'Shared component.', Source: 'component', IssueIds: ['14012345679'] }],
+        Issues: [{ Id: '14012345679', Platform: 'NVL-H', Title: 'Example <title>' }]
+    }], 'No findings.');
+    assert.match(markup, /<li class="cmf-assistant-text-section cmf-assistant-description-section"><h3>/);
+    assert.match(markup, /<p class="ci-evidence">2 distinct HSDs &lt;unconfirmed&gt;<\/p>/);
+    assert.match(markup, /Why related:[\s\S]*Same explicit link\./);
+    assert.match(markup, /Supporting comparisons[\s\S]*Shared component\./);
+    assert.match(markup, /Suggested review:[\s\S]*Compare linked records\./);
+    assert.match(markup, /href="https:\/\/hsdes\.intel\.com\/resource\/14012345679"/);
+    assert.match(markup, /Example &lt;title&gt;/);
+    assert.match(context.findings([], 'No findings.'), /class="ci-empty">No findings\./);
+    assert.match(styles, /\.ci-controls\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) auto;/);
+    assert.match(styles, /\.ci-status:empty\s*\{\s*display: none;/);
+    assert.match(styles, /\.ci-footer\s*\{[^}]*display: flex;[^}]*flex-wrap: wrap;/);
+});
+
 test('dashboard date controls share the platform row and align to the visible AI card across scales', () => {
     assert.match(page, /<div class="dashboard-platform-toolbar">\s*<div class="platform-chip-rail"[^>]*><\/div>\s*<div class="dashboard-date-filter">/);
     const definition = page.match(/        function syncDashboardPlatformToolbarWidth\([^)]*\) \{[\s\S]*?\r?\n        \}/);
@@ -329,6 +420,8 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.equal(options[0].series[0].symbol, 'none');
     assert.equal(options[0].series[1].symbol, 'circle');
     assert.equal(options[0].series[1].showAllSymbol, true);
+    assert.ok(options[0].series.every(series => !series.label));
+    assert.equal(options[0].grid.top, 30);
     assert.equal(options[0].series[0].areaStyle.color, 'rgba(128,0,0,0.12)');
     assert.equal(options[0].series[1].areaStyle.color, 'rgba(3,105,161,0.12)');
     const tooltip = options[0].tooltip.formatter([
@@ -353,6 +446,14 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.equal(bars.series[0].itemStyle.borderColor, '#0369a1');
     assert.equal(bars.series[1].itemStyle.color, '#dcfce7');
     assert.equal(bars.series[1].itemStyle.borderColor, '#16a34a');
+    assert.equal(bars.grid.top, 40);
+    for (const series of bars.series) {
+        assert.equal(series.label.show, true);
+        assert.equal(series.label.position, 'top');
+        assert.equal(series.label.formatter({ value: 0 }), '');
+        assert.equal(series.label.formatter({ value: 1 }), '1');
+        assert.equal(series.label.formatter({ value: 123 }), '123');
+    }
     assert.equal(bars.xAxis.boundaryGap, true);
     assert.ok(bars.series.every(series => !series.stack));
     assert.equal(bars.series[0].data[0].value, 7);
@@ -440,7 +541,7 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     const original = JSON.stringify(snapshot);
     for (const chartType of ['line', 'bar']) {
         view.value = chartType;
-        const start = chartType === 'line' ? 1 : 3;
+        const start = chartType === 'line' ? 0 : 3;
         const expected = snapshot.Trend.slice(start).map(item => item.WeekLabel);
         for (const mode of ['today', '7days', '30days', '12months', 'custom']) {
             dateMode.value = mode;
@@ -461,10 +562,10 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
                 const popupCount = popups.length;
                 chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
                 assert.equal(popups.length, popupCount);
-                chart.__cmfTrendLastAxisIndex = 1;
+                chart.__cmfTrendLastAxisIndex = 2;
             }
             chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
-            const populatedIndex = chartType === 'line' ? start + 1 : start;
+            const populatedIndex = chartType === 'line' ? start + 2 : start;
             assert.deepEqual(popups.at(-1), [chartType === 'line' ? 'Open and Implemented' : 'All', 'WW' + populatedIndex, 11 - populatedIndex]);
         }
         dateMode.value = 'all';
@@ -512,13 +613,30 @@ test('Overall week-end line uses summary-card scope and current status buckets w
     assert.match(server, /WHERE cmf_request = 'cmf_ok' AND sysdebug LIKE '%customer_must_fix%'/);
     const predicate = server.match(/    private static string BuildTrendWeekEndStatusPredicate\([^)]*\)[\s\S]*?\r?\n    \}/);
     assert.ok(predicate);
-    assert.match(predicate[0], /status NOT IN \('complete', 'rejected', 'implemented'\)/);
-    assert.match(predicate[0], /status = 'implemented'/);
+    assert.match(predicate[0], /status NOT IN \('complete', 'rejected', 'implemented', 'future'\)/);
+    assert.match(predicate[0], /status IN \('implemented', 'future'\)/);
     assert.match(predicate[0], /weekOffsetSql \+ " = 0 AND " \+ currentStatusPredicate/);
     assert.match(predicate[0], /weekOffsetSql \+ " > 0 AND " \+ historicalPredicate/);
     const drilldown = server.match(/    public static SummaryIssueLinksResponse GetTrendWeekIssueLinks\([^)]*\)[\s\S]*?\r?\n    \}/);
     assert.ok(drilldown);
-    assert.match(drilldown[0], /if \(!isWeekEndBalance\)\s*\{\s*AppendDashboardDriverFilter\(baseWhere, driverFilterValue\);\s*AppendDashboardColumnFilters\(baseWhere, columnFilters\);/);
+    assert.doesNotMatch(drilldown[0], /AppendDashboardDriverFilter|AppendDashboardColumnFilters/);
+});
+
+test('dashboard activity and weekly-flow drilldowns cannot inherit Issue List session filters across platforms', () => {
+    const source = server.match(/    private string BuildHomeDashboardSourceSql\([^)]*\)[\s\S]*?\r?\n    \}/);
+    const drilldown = server.match(/    public static SummaryIssueLinksResponse GetTrendWeekIssueLinks\([^)]*\)[\s\S]*?\r?\n    \}/);
+    assert.ok(source);
+    assert.ok(drilldown);
+    for (const definition of [source[0], drilldown[0]]) {
+        assert.doesNotMatch(definition, /Session\[|GetAllFilterValues|BuildDefaultIssueDriverFilter|GetDashboardDriverFilterValueForWeb|GetDashboardColumnFiltersForWeb|AppendDashboardDriverFilter|AppendDashboardColumnFilters/);
+    }
+    assert.match(source[0], /ResolveDashboardPlatformSelection\(platformTable\)/);
+    assert.match(source[0], /BuildDashboardComponentSourceSql\(platformTable, true\)/);
+    assert.match(source[0], /status NOT IN \('rejected'\)/);
+    assert.match(source[0], /sysdebug LIKE \('%customer_must_fix%'\) AND cmf_request IN \('cmf_ok'\)/);
+    assert.match(drilldown[0], /BuildSummaryIssueComponentSourceSql\(resolvedPlatform\)/);
+    assert.match(drilldown[0], /BuildSummaryIssueRecordTypePredicate\("src", includeUnique, includeDuplicates\)/);
+    assert.match(drilldown[0], /if \(!isWeekEndBalance\)\s*\{\s*baseWhere.Append\(" AND LOWER\(LTRIM\(RTRIM\(ISNULL\(src.status, ''\)\)\)\) <> 'rejected'"\);/);
 });
 
 test('all record-type drilldowns show the CMF request field separately from issue status', () => {
