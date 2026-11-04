@@ -48,17 +48,6 @@ public static class CmfPlatformCatalog
 {
     public const string OverallPlatformTableName = "CMF_OVERALL_ALL_COMPONENTS_TABLE";
 
-    public static int GetPlatformDisplayPriority(string label)
-    {
-        if (string.IsNullOrWhiteSpace(label)) return 999;
-        string clean = label.Trim().ToUpperInvariant();
-        if (clean == "NVL-H") return 1;
-        if (clean == "NVL-S") return 2;
-        if (clean == "NVL-HX" || clean == "NVL_HX") return 3;
-        if (clean.StartsWith("NVL")) return 4;
-        return 10;
-    }
-
     public static List<CmfPlatformDefinition> OrderBySummaryCounts(
         IEnumerable<CmfPlatformDefinition> platforms,
         IDictionary<string, CmfPlatformSummaryCounts> counts)

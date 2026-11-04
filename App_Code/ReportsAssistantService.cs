@@ -1107,7 +1107,7 @@ public static class ReportsAssistantService
                 fixedVersionExpr
             }) + " FROM " + platformTable + whereClause;
 
-            using (SqlCommand command = new SqlCommand(sql, connection))
+            using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
             using (SqlDataAdapter adapter = new SqlDataAdapter(command))
             {
                 adapter.Fill(table);
@@ -1126,7 +1126,7 @@ public static class ReportsAssistantService
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_NAME = @tableName";
 
-        using (SqlCommand command = new SqlCommand(sql, connection))
+        using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
         {
             command.Parameters.AddWithValue("@tableName", platformTable);
             using (SqlDataReader reader = command.ExecuteReader())

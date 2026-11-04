@@ -450,9 +450,9 @@ WHERE pending.status NOT IN ('complete', 'rejected') AND " + dateFilter.BuildPen
                 command.Parameters.Add(parameter, SqlDbType.NVarChar, 128).Value = tableName;
                 queries.Add(@"SELECT " + parameter + @" AS PlatformTable,
 COUNT_BIG(CASE WHEN src.cmf_request IN ('cmf_ok','cmf_duplicate')
-    AND src.status NOT IN ('complete','rejected','implemented') THEN 1 END) AS OpenCount,
+    AND src.status NOT IN ('complete','rejected','implemented','future') THEN 1 END) AS OpenCount,
 COUNT_BIG(CASE WHEN src.cmf_request IN ('cmf_ok','cmf_duplicate')
-    AND src.status = 'implemented' THEN 1 END) AS ImplementedCount,
+    AND src.status IN ('implemented','future') THEN 1 END) AS ImplementedCount,
 " + pendingCount + @" AS PendingCount,
 COUNT_BIG(CASE WHEN src.cmf_request IN ('cmf_ok','cmf_duplicate') THEN 1 END) AS TotalCount
 FROM [dbo].[" + tableName + @"] AS src
@@ -461,7 +461,7 @@ WHERE src.sysdebug LIKE '%customer_must_fix%' AND " + dateFilter.BuildPredicate(
 
             if (queries.Count > 0)
             {
-                command.CommandText = string.Join(" UNION ALL ", queries);
+                command.CommandText = CmfPlatformCatalog.ScopeIssueSql(string.Join(" UNION ALL ", queries));
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
@@ -902,11 +902,16 @@ WHERE src.sysdebug LIKE '%customer_must_fix%' AND " + dateFilter.BuildPredicate(
         CmfDashboardDateFilter filter;
         string error;
         CmfDashboardDateFilter.TryCreate(saved == null ? "all" : saved.Mode,
-            saved == null ? "cmf-request" : saved.Basis,
+            "cmf-accepted",
             saved != null && saved.Start.HasValue ? saved.Start.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : string.Empty,
             saved != null && saved.EndExclusive.HasValue ? saved.EndExclusive.Value.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : string.Empty,
             DateTime.Today, out filter, out error);
         return filter;
+    }
+
+    protected bool ShowSummaryTrends
+    {
+        get { return GetDashboardDateFilter().ShowSummaryTrends; }
     }
 
     private static string FilterDashboardTableSource(string tableName)
@@ -923,7 +928,7 @@ WHERE src.sysdebug LIKE '%customer_must_fix%' AND " + dateFilter.BuildPredicate(
         CmfDashboardDateFilter filter;
         string error;
         if (!CmfDashboardDateFilter.TryCreate(ddlDashboardDateMode.SelectedValue,
-            ddlDashboardDateBasis.SelectedValue, txtDashboardDateStart.Text, txtDashboardDateEnd.Text,
+            "cmf-accepted", txtDashboardDateStart.Text, txtDashboardDateEnd.Text,
             DateTime.Today, out filter, out error))
         {
             ShowWelcomeHome();
@@ -1245,7 +1250,7 @@ FROM " + pendingTable);
         return new List<string> { dashboardPlatform };
     }
 
-    private static string BuildSummaryIssueComponentSourceSql(string dashboardPlatform, bool applyDashboardDateFilter = true)
+    private static string BuildSummaryIssueComponentSourceSql(string dashboardPlatform, bool applyDashboardDateFilter = true, bool includeInsightsMetadata = false)
     {
         List<string> sourceTables = GetSummaryIssueSourceTablesForWeb(dashboardPlatform);
         List<string> unionParts = new List<string>();
@@ -1253,13 +1258,14 @@ FROM " + pendingTable);
         for (int index = 0; index < sourceTables.Count; index++)
         {
             string tableName = sourceTables[index];
-            unionParts.Add(@"SELECT
-    cp_id,
+                unionParts.Add(@"SELECT
+            " + (includeInsightsMetadata ? "title, promoted_id, merge_id, " : string.Empty) + @"cp_id,
     status,
     cmf_request,
     sysdebug,
     closed_reason,
     date_cmf_ask,
+    date_cmf_decided,
     submitted_date,
     implemented_date,
     closed_date,
@@ -1683,11 +1689,11 @@ LEFT JOIN (" + componentSource + @") AS c
                     }
                     else if (string.Equals(response.MetricKey, "implemented", StringComparison.OrdinalIgnoreCase))
                     {
-                        whereBuilder.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) = 'implemented'");
+                        whereBuilder.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN ('implemented', 'future')");
                     }
                     else if (string.Equals(response.MetricKey, "open", StringComparison.OrdinalIgnoreCase))
                     {
-                        whereBuilder.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) NOT IN ('complete', 'rejected', 'implemented')");
+                        whereBuilder.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) NOT IN ('complete', 'rejected', 'implemented', 'future')");
                     }
 
                     wherePredicate = whereBuilder.ToString();
@@ -1708,7 +1714,7 @@ ORDER BY group_name, cp_id";
 
                 Dictionary<string, HashSet<string>> idsByGroup = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 
-                using (SqlCommand command = new SqlCommand(sql, connection))
+                using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
@@ -1842,7 +1848,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
                 Dictionary<string, HashSet<string>> idsByGroup = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
                                 HashSet<string> idstNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                using (SqlCommand command = new SqlCommand(sql, connection))
+                using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
                 {
                     command.Parameters.AddWithValue("@ingredient", normalizedIngredient);
                     command.Parameters.AddWithValue("@source_platform", sourcePlatform);
@@ -1996,14 +2002,6 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
                     baseWhere.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) <> 'rejected'");
                 }
 
-                string driverFilterValue = GetDashboardDriverFilterValueForWeb();
-                Dictionary<string, string> columnFilters = GetDashboardColumnFiltersForWeb();
-                if (!isWeekEndBalance)
-                {
-                    AppendDashboardDriverFilter(baseWhere, driverFilterValue);
-                    AppendDashboardColumnFilters(baseWhere, columnFilters);
-                }
-
                 if (isWeekEndBalance)
                 {
                     string cutoffSql = BuildTrendWeekEndExclusiveSql("@week_offset");
@@ -2059,7 +2057,7 @@ WHERE " + baseWhere + @"
 ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
 
                 Dictionary<string, HashSet<string>> idsByGroup = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
-                using (SqlCommand command = new SqlCommand(sql, connection))
+                using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
                 {
                     command.Parameters.AddWithValue("@week_offset", weekOffset);
 
@@ -2157,7 +2155,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     private DataTable ExecuteDataTable(string query, Action<SqlCommand> configureCommand = null)
     {
         using (SqlConnection connection = new SqlConnection(ConnectionString))
-        using (SqlCommand command = new SqlCommand(query, connection))
+        using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(query, connection))
         using (SqlDataAdapter dataAdapter = new SqlDataAdapter(command))
         {
             if (configureCommand != null)
@@ -2392,7 +2390,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
                 query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE CMF_REQUEST in ('cmf_ask','cmf_incomplete') AND status not in ('complete','rejected')" + designFilterClause;
                 break;
             case "trg4":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND status NOT IN('complete', 'rejected')" + designFilterClause;
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND status NOT IN('complete', 'rejected', 'implemented', 'future')" + designFilterClause;
                 break;
             case "trg5":
                 query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason NOT LIKE('%internal%') AND closed_reason IN('below_zbb', 'cannot_reproduce', 'customer_disengaged', 'customer_enquiry_resolved', 'expected_behavior', 'feature_not_por', 'feature_por_not_ready', 'filed_by_mistake', 'inactive', 'known_errata', 'not_a_defect', 'poor_sighting_quality', 'proj_cancelled', 'test/test_env'))" + designFilterClause;
@@ -2442,7 +2440,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
                 query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE CMF_REQUEST in ('cmf_ask','cmf_incomplete')" + ingredientFilterClause;
                 break;
             case "trg4":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND status NOT IN('complete', 'rejected')" + ingredientFilterClause;
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND status NOT IN('complete', 'rejected', 'implemented', 'future')" + ingredientFilterClause;
                 break;
             case "trg5":
                 query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason NOT LIKE('%internal%') AND closed_reason IN('below_zbb', 'cannot_reproduce', 'customer_disengaged', 'customer_enquiry_resolved', 'expected_behavior', 'feature_not_por', 'feature_por_not_ready', 'filed_by_mistake', 'inactive', 'known_errata', 'not_a_defect', 'poor_sighting_quality', 'proj_cancelled', 'test/test_env'))" + ingredientFilterClause;
@@ -2518,7 +2516,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         modalQuery.Append("FROM ");
         modalQuery.Append(issueSourceSql);
         modalQuery.Append(" WHERE sysdebug LIKE('%customer_must_fix%') ");
-        modalQuery.Append("AND status IN ('implemented', 'verified')");
+        modalQuery.Append("AND status IN ('implemented', 'verified', 'future')");
 
         if (design == "RVP")
         {
@@ -2539,7 +2537,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
                 }
 
                 AppendDriversInClause(modalQuery, command, selectedDrivers, "modalDriver");
-                command.CommandText = modalQuery.ToString();
+                command.CommandText = CmfPlatformCatalog.ScopeIssueSql(modalQuery.ToString());
             });
 
         GridView_design_summary_modal0.DataSource = dt;
@@ -2661,14 +2659,9 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     {
         ApplyFocusedPortalMode();
         dashboardHeaderTools.Visible = homeWelcomePanel.Visible;
-        ddlDashboardDateBasis.Visible = ddlDashboardDateMode.SelectedValue != "all";
-        bool isTodayRange = ddlDashboardDateMode.SelectedValue == "today";
-        ddlDashboardDateBasis.Items.FindByValue("cmf-request").Text = isTodayRange ? "CMFs Requested" : "CMFs Requested in";
-        ddlDashboardDateBasis.Items.FindByValue("cmf-accepted").Text = isTodayRange ? "CMFs Accepted" : "CMFs Accepted in";
-        ddlDashboardDateBasis.Items.FindByValue("submitted").Text = isTodayRange ? "Issues submitted" : "Issues Submitted in";
         string target = Request["__EVENTTARGET"] ?? string.Empty;
         if (IsPostBack && string.IsNullOrWhiteSpace(HomeDashboardSnapshotJson)
-            && (target == ddlDashboardDateMode.UniqueID || target == ddlDashboardDateBasis.UniqueID
+            && (target == ddlDashboardDateMode.UniqueID
                 || target == btnApplyDashboardDates.UniqueID))
         {
             BindHomeDashboard();
@@ -3419,6 +3412,80 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     }
 
     [WebMethod(EnableSession = true)]
+    public static CmfDashboardInsights GetDashboardInsights(string platform)
+    {
+        try
+        {
+            string selection = ResolveDashboardPlatformSelectionForWeb(platform);
+            if (!string.IsNullOrWhiteSpace(platform) && !string.Equals(platform, selection, StringComparison.OrdinalIgnoreCase))
+            {
+                return new CmfDashboardInsights { Success = false, Message = "Select a valid dashboard platform." };
+            }
+            string source = BuildSummaryIssueComponentSourceSql(selection, false, true);
+            DataTable data = new DataTable();
+            using (var connection = new SqlConnection(ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString))
+            using (SqlCommand command = CmfSummaryTrendService.CreateBalanceEvidenceCommand(connection, "(" + source + ") AS insight_source", DateTime.Today))
+            {
+                connection.Open();
+                using (SqlDataReader reader = command.ExecuteReader()) data.Load(reader);
+            }
+            string scope = string.Equals(selection, OverallDashboardPlatformTable, StringComparison.OrdinalIgnoreCase)
+                ? "Overall (" + GetSummaryIssueSourceTablesForWeb(selection).Count.ToString(CultureInfo.InvariantCulture) + " included platforms)"
+                : CmfDashboardInsightsService.PlatformLabel(selection);
+            CmfDashboardInsights evidence = CmfDashboardInsightsService.Build(data, scope, DateTime.Today);
+            evidence.SourceHash = CmfAssistantResponseCache.Fingerprint(new { Evidence = evidence.SourceHash, SourceScope = source });
+            evidence.EvidenceKey = Guid.NewGuid().ToString("N");
+            HttpRuntime.Cache.Insert("cmf-insight-evidence:" + HttpContext.Current.User.Identity.Name + ":" + evidence.EvidenceKey,
+                evidence, null, DateTime.UtcNow.AddMinutes(5), System.Web.Caching.Cache.NoSlidingExpiration);
+            return CmfDashboardInsightsService.CreateView(evidence, evidence.EvidenceKey);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.TraceError("Dashboard Insights failed: " + ex.GetType().Name);
+            return new CmfDashboardInsights { Success = false, Message = "Dashboard insights are temporarily unavailable. Refresh to retry." };
+        }
+    }
+
+    private static CmfDashboardInsights GetCachedDashboardInsights(string evidenceKey)
+    {
+        Guid token;
+        return Guid.TryParseExact(evidenceKey, "N", out token)
+            ? HttpRuntime.Cache["cmf-insight-evidence:" + HttpContext.Current.User.Identity.Name + ":" + evidenceKey] as CmfDashboardInsights
+            : null;
+    }
+
+    [WebMethod]
+    public static CmfInsightPage GetDashboardInsightPage(string evidenceKey, string view, int page)
+    {
+        CmfDashboardInsights evidence = GetCachedDashboardInsights(evidenceKey);
+        return evidence == null
+            ? new CmfInsightPage { Success = false, Message = "Dashboard evidence expired. Refresh to retry." }
+            : CmfDashboardInsightsService.CreatePage(evidence, view, page);
+    }
+
+    [WebMethod]
+    public static CmfDashboardInsights RankDashboardInsights(string evidenceKey, bool refresh)
+    {
+        CmfDashboardInsights evidence = GetCachedDashboardInsights(evidenceKey);
+        if (evidence == null)
+            return new CmfDashboardInsights { Success = false, Message = "Dashboard evidence expired. Refresh to retry." };
+        try
+        {
+            CmfDashboardInsights result = CmfDashboardInsightsService.AddAi(evidence, refresh);
+            string rankedKey = Guid.NewGuid().ToString("N");
+            HttpRuntime.Cache.Insert("cmf-insight-evidence:" + HttpContext.Current.User.Identity.Name + ":" + rankedKey,
+                result, null, DateTime.Parse(result.ExpiresAt, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+                System.Web.Caching.Cache.NoSlidingExpiration);
+            return CmfDashboardInsightsService.CreateView(result, rankedKey);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.TraceError("Dashboard AI ranking failed: " + ex.GetType().Name);
+            return new CmfDashboardInsights { Success = false, Message = "AI ranking unavailable. Calculated evidence remains available." };
+        }
+    }
+
+    [WebMethod(EnableSession = true)]
     public static AiSummaryResponse GetHomeExecutiveSummary(string platformLabel, string snapshotContext)
     {
         try
@@ -3462,13 +3529,13 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     private static string BuildTrendWeekEndStatusPredicate(string alias, string cutoffSql, bool implemented, string weekOffsetSql)
     {
         string prefix = alias + ".";
-        string openStatusPredicate = prefix + "status NOT IN ('complete', 'rejected', 'implemented')";
-        string currentStatusPredicate = implemented ? prefix + "status = 'implemented'" : openStatusPredicate;
+        string openStatusPredicate = prefix + "status NOT IN ('complete', 'rejected', 'implemented', 'future')";
+        string currentStatusPredicate = implemented ? prefix + "status IN ('implemented', 'future')" : openStatusPredicate;
         string historicalPredicate = "TRY_CAST(" + prefix + "date_cmf_ask AS DATE) < (" + cutoffSql + ")"
             + " AND (TRY_CAST(" + prefix + "closed_date AS DATE) IS NULL OR TRY_CAST(" + prefix + "closed_date AS DATE) >= (" + cutoffSql + "))"
             + (implemented
-                ? " AND " + prefix + "status IN ('implemented', 'complete', 'rejected') AND TRY_CAST(" + prefix + "implemented_date AS DATE) < (" + cutoffSql + ")"
-                : " AND (" + openStatusPredicate + " OR (" + prefix + "status IN ('implemented', 'complete', 'rejected') AND (TRY_CAST(" + prefix + "implemented_date AS DATE) IS NULL OR TRY_CAST(" + prefix + "implemented_date AS DATE) >= (" + cutoffSql + "))))");
+                ? " AND " + prefix + "status IN ('implemented', 'future', 'complete', 'rejected') AND TRY_CAST(" + prefix + "implemented_date AS DATE) < (" + cutoffSql + ")"
+                : " AND (" + openStatusPredicate + " OR (" + prefix + "status IN ('implemented', 'future', 'complete', 'rejected') AND (TRY_CAST(" + prefix + "implemented_date AS DATE) IS NULL OR TRY_CAST(" + prefix + "implemented_date AS DATE) >= (" + cutoffSql + "))))");
         return "((" + weekOffsetSql + " = 0 AND " + currentStatusPredicate + ") OR (" + weekOffsetSql + " > 0 AND " + historicalPredicate + "))";
     }
 
@@ -3476,19 +3543,9 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     {
         platformTable = ResolveDashboardPlatformSelection(platformTable);
         string dashboardSourceSql = BuildDashboardComponentSourceSql(platformTable, true);
-        string filterValue = Session["filterValue"] as string;
-        if (string.IsNullOrWhiteSpace(filterValue) || filterValue == "AllDrivers")
-        {
-            filterValue = BuildDefaultIssueDriverFilter(platformTable);
-            Session["filterValue"] = filterValue;
-        }
-
-        Dictionary<string, string> filters = GetAllFilterValues();
         StringBuilder whereClause = new StringBuilder();
         whereClause.Append(includeRejected ? "WHERE " : "WHERE status NOT IN ('rejected') AND ");
         whereClause.Append("sysdebug LIKE ('%customer_must_fix%') AND cmf_request IN ('cmf_ok') ");
-        AppendDashboardDriverFilter(whereClause, filterValue);
-        AppendDashboardColumnFilters(whereClause, filters);
 
         return @"(SELECT
     status,
@@ -3513,7 +3570,7 @@ FROM " + dashboardSourceSql + @"
 
     private string BuildDefaultIssueDriverFilter(string platformTable)
     {
-        return string.Join(",", GetDistinctDrivers(platformTable, "open", "implemented").ToArray());
+        return string.Join(",", GetDistinctDrivers(platformTable, "open", "implemented", "future").ToArray());
     }
 
     private static bool UsesPublicIssueStatusScope(string platformTable)
@@ -3627,19 +3684,19 @@ FROM " + dashboardSourceSql + @"
         {
             con.Open();
 
-            using (SqlCommand metricsCommand = new SqlCommand(@"
+            using (SqlCommand metricsCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT
                 COUNT(1) AS ActiveIssues,
                 SUM(CASE WHEN LOWER(LTRIM(RTRIM(ISNULL(status, '')))) = 'open' THEN 1 ELSE 0 END) AS NeedsAttention,
                 SUM(CASE WHEN LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS ClosedIssues,
-                SUM(CASE WHEN LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('implemented', 'verified') THEN 1 ELSE 0 END) AS StaleIssues,
+                SUM(CASE WHEN LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('implemented', 'verified', 'future') THEN 1 ELSE 0 END) AS StaleIssues,
     SUM(CASE WHEN TRY_CAST(implemented_date AS DATE) >= DATEADD(DAY, -7, CAST(GETDATE() AS DATE)) THEN 1 ELSE 0 END) AS ResolvedThisWeek,
     ISNULL(AVG(CAST(CASE
         WHEN TRY_CAST(date_cmf_decided AS DATE) IS NOT NULL AND TRY_CAST(implemented_date AS DATE) IS NOT NULL
              AND TRY_CAST(implemented_date AS DATE) >= TRY_CAST(date_cmf_decided AS DATE)
         THEN DATEDIFF(DAY, TRY_CAST(date_cmf_decided AS DATE), TRY_CAST(implemented_date AS DATE))
         ELSE NULL END AS DECIMAL(10, 2))), 0) AS AverageResolutionDays,
-    SUM(CASE WHEN ISNULL(status, '') NOT IN ('complete', 'rejected', 'implemented', 'verified')
+    SUM(CASE WHEN ISNULL(status, '') NOT IN ('complete', 'rejected', 'implemented', 'verified', 'future')
               AND ISNULL(customer_impact, '') IN ('1-critical', '2-high', '3-medium')
         THEN 1 ELSE 0 END) AS CustomersAffected,
         SUM(CASE WHEN TRY_CAST(date_cmf_ask AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) AS NewToday,
@@ -3665,7 +3722,7 @@ FROM " + dashboardSourceSql, con))
             string weekEndSourceSql = "(SELECT * FROM " + BuildDashboardComponentSourceSql(dashboardPlatform, true)
                 + " WHERE cmf_request = 'cmf_ok' AND sysdebug LIKE '%customer_must_fix%') AS platform_cmf_issues";
             string weekEndCutoffSql = BuildTrendWeekEndExclusiveSql("w.week_offset");
-            using (SqlCommand trendCommand = new SqlCommand(@"
+            using (SqlCommand trendCommand = CmfPlatformCatalog.CreateReadCommand(@"
 WITH weeks AS (
     SELECT 0 AS week_offset
     UNION ALL
@@ -3694,7 +3751,7 @@ implemented_issues AS (
         FROM " + dashboardSourceSql + @"
         WHERE TRY_CAST(implemented_date AS DATE) IS NOT NULL
             AND DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE)) BETWEEN 0 AND 103
-            AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('implemented', 'verified')
+            AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('implemented', 'verified', 'future')
         GROUP BY DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE))
 )
 SELECT
@@ -3734,12 +3791,12 @@ OPTION (MAXRECURSION 0)", con))
                 }
             }
 
-            using (SqlCommand statusCommand = new SqlCommand(@"
+            using (SqlCommand statusCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 5
     CASE
         WHEN ISNULL(status, '') = '' THEN 'Unknown'
         WHEN status IN ('complete', 'rejected') THEN 'Closed'
-        WHEN status IN ('implemented', 'verified') THEN 'Validation'
+        WHEN status IN ('implemented', 'verified', 'future') THEN 'Validation'
         ELSE status
     END AS status_bucket,
     COUNT(*) AS bucket_count
@@ -3747,7 +3804,7 @@ FROM " + dashboardSourceSql + @"
 GROUP BY CASE
         WHEN ISNULL(status, '') = '' THEN 'Unknown'
         WHEN status IN ('complete', 'rejected') THEN 'Closed'
-        WHEN status IN ('implemented', 'verified') THEN 'Validation'
+    WHEN status IN ('implemented', 'verified', 'future') THEN 'Validation'
         ELSE status
     END
 ORDER BY bucket_count DESC", con))
@@ -3762,7 +3819,7 @@ ORDER BY bucket_count DESC", con))
                 }
             }
 
-            using (SqlCommand componentCommand = new SqlCommand(@"
+            using (SqlCommand componentCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 6
     CASE WHEN ISNULL(component_group, '') = '' THEN 'Unassigned' ELSE component_group END AS component_group,
     COUNT(*) AS issue_count
@@ -3780,7 +3837,7 @@ ORDER BY issue_count DESC", con))
                 }
             }
 
-            using (SqlCommand milestoneRiskCommand = new SqlCommand(@"
+            using (SqlCommand milestoneRiskCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 1
     CASE WHEN ISNULL(LTRIM(RTRIM(drivers)), '') = '' THEN 'Unassigned milestone' ELSE LTRIM(RTRIM(drivers)) END AS milestone,
     COUNT(*) AS risk_count
@@ -3797,7 +3854,7 @@ ORDER BY risk_count DESC, milestone", con))
                 }
             }
 
-            using (SqlCommand topRiskCommand = new SqlCommand(@"
+            using (SqlCommand topRiskCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 1
     risk_name,
     SUM(risk_weight) AS risk_score
@@ -3831,7 +3888,7 @@ ORDER BY risk_score DESC, risk_name", con))
                 }
             }
 
-            using (SqlCommand blockerCommand = new SqlCommand(@"
+            using (SqlCommand blockerCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 3
     CASE WHEN LEN(LTRIM(RTRIM(ISNULL(title, '')))) > 92 THEN LEFT(LTRIM(RTRIM(title)), 89) + '...' ELSE LTRIM(RTRIM(ISNULL(title, 'Untitled issue'))) END AS issue_title
 FROM " + dashboardSourceSql + @"
@@ -3857,10 +3914,10 @@ ORDER BY
                 }
             }
 
-            using (SqlCommand weeklyChangesCommand = new SqlCommand(@"
+            using (SqlCommand weeklyChangesCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT
     SUM(CASE WHEN TRY_CAST(date_cmf_ask AS DATE) >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE)) THEN 1 ELSE 0 END) AS NewThisWeek,
-    SUM(CASE WHEN TRY_CAST(implemented_date AS DATE) >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE)) AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('implemented', 'verified') THEN 1 ELSE 0 END) AS ImplementedThisWeek,
+    SUM(CASE WHEN TRY_CAST(implemented_date AS DATE) >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE)) AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('implemented', 'verified', 'future') THEN 1 ELSE 0 END) AS ImplementedThisWeek,
     SUM(CASE WHEN TRY_CAST(implemented_date AS DATE) >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE)) AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS ClosedThisWeek,
     SUM(CASE WHEN LOWER(LTRIM(RTRIM(ISNULL(priority, '')))) IN ('p0-blocker', 'p1-showstopper') OR LOWER(LTRIM(RTRIM(ISNULL(customer_impact, '')))) IN ('1-critical', '2-high') THEN 1 ELSE 0 END) AS HighRiskNow
 FROM " + dashboardSourceSql, con))
@@ -3877,8 +3934,8 @@ FROM " + dashboardSourceSql, con))
                         ? newThisWeek.ToString(CultureInfo.InvariantCulture) + " new issue" + (newThisWeek == 1 ? " was" : "s were") + " added this week."
                         : "No new issues were added this week.");
                     snapshot.WeeklyChanges.Add(implementedThisWeek > 0
-                        ? implementedThisWeek.ToString(CultureInfo.InvariantCulture) + " issue" + (implementedThisWeek == 1 ? " moved" : "s moved") + " into implemented or verified status."
-                        : "No issues moved into implemented or verified status this week.");
+                        ? implementedThisWeek.ToString(CultureInfo.InvariantCulture) + " issue" + (implementedThisWeek == 1 ? " has" : "s have") + " an implementation date this week in the Implemented/Verified group (including future)."
+                        : "No issues in the Implemented/Verified group (including future) have an implementation date this week.");
                     snapshot.WeeklyChanges.Add(closedThisWeek > 0
                         ? closedThisWeek.ToString(CultureInfo.InvariantCulture) + " issue" + (closedThisWeek == 1 ? " was" : "s were") + " closed this week."
                         : "No issues were closed this week.");
@@ -3951,8 +4008,8 @@ issue_agg AS (
     SELECT
         oem,
         COUNT(1) AS total_issues,
-        SUM(CASE WHEN status_norm NOT IN ('complete', 'rejected', 'implemented') THEN 1 ELSE 0 END) AS open_issues,
-        SUM(CASE WHEN status_norm = 'implemented' THEN 1 ELSE 0 END) AS implemented_issues,
+        SUM(CASE WHEN status_norm NOT IN ('complete', 'rejected', 'implemented', 'future') THEN 1 ELSE 0 END) AS open_issues,
+        SUM(CASE WHEN status_norm IN ('implemented', 'future') THEN 1 ELSE 0 END) AS implemented_issues,
         SUM(CASE WHEN status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS closed_issues,
         ISNULL(AVG(CAST(CASE
             WHEN decided_date IS NOT NULL AND implemented_date IS NOT NULL AND implemented_date >= decided_date
@@ -4031,7 +4088,7 @@ FROM combined c
 LEFT JOIN trend_agg t ON t.oem = c.oem
 ORDER BY total_issues DESC, c.oem";
 
-        using (SqlCommand command = new SqlCommand(sql, connection))
+        using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
         {
             command.Parameters.Add("@today", SqlDbType.Date).Value = DateTime.Today;
             using (SqlDataReader reader = command.ExecuteReader())
@@ -4102,7 +4159,7 @@ GROUP BY
             Dictionary<string, int> ingredientCountsForPlatform = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                         Dictionary<string, int> ingredientLosCountsForPlatform = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-            using (SqlCommand command = new SqlCommand(sql, connection))
+            using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
             using (SqlDataReader reader = command.ExecuteReader())
             {
                 while (reader.Read())
@@ -4288,7 +4345,7 @@ SELECT
 FROM " + pendingSourceSql + @"
 WHERE status NOT IN ('complete', 'rejected')";
 
-        using (SqlCommand command = new SqlCommand(sql, connection))
+        using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
         using (SqlDataReader reader = command.ExecuteReader())
         {
             if (reader.Read())
@@ -4373,7 +4430,7 @@ GROUP BY
         ELSE component_group
     END";
 
-        using (SqlCommand command = new SqlCommand(sql, connection))
+        using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
         using (SqlDataReader reader = command.ExecuteReader())
         {
             while (reader.Read())
@@ -4409,17 +4466,19 @@ GROUP BY
 
             Dictionary<string, CmfSummaryTrend> weeklyTrends = CmfSummaryTrendService.Load(
                 con, BuildDashboardComponentSourceSql(platformTable), DateTime.Today);
+            Dictionary<string, CmfSummaryTrend> balanceTrends = CmfSummaryTrendService.LoadBalanceEstimates(
+                con, componentSourceSql, DateTime.Today);
 
             Dictionary<string, int> implementedConstituents = GetConstituentCountsByIngredient(
                 con,
                 componentSourceSql,
-                "status = 'implemented'");
+                "status IN ('implemented','future')");
             Dictionary<string, int> openConstituents = GetConstituentCountsByIngredient(
                 con,
                 componentSourceSql,
-                "status NOT IN ('complete','rejected','implemented')");
+                "status NOT IN ('complete','rejected','implemented','future')");
 
-            using (SqlCommand summaryCommand = new SqlCommand(@"
+            using (SqlCommand summaryCommand = CmfPlatformCatalog.CreateReadCommand(@"
 WITH base AS (
     SELECT
         cmf_request,
@@ -4440,10 +4499,10 @@ SELECT
     SUM(CASE WHEN cmf_request = 'cmf_duplicate' THEN 1 ELSE 0 END) AS Duplicates,
     SUM(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') AND status IN ('complete','rejected') THEN 1 ELSE 0 END) AS ClosedCount,
     SUM(CASE WHEN cmf_request = 'cmf_duplicate' AND status IN ('complete','rejected') THEN 1 ELSE 0 END) AS ClosedDup,
-    SUM(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') AND status = 'implemented' THEN 1 ELSE 0 END) AS ImplementedCount,
-    SUM(CASE WHEN cmf_request = 'cmf_duplicate' AND status = 'implemented' THEN 1 ELSE 0 END) AS ImplementedDup,
-    SUM(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') AND status NOT IN ('complete','rejected','implemented') THEN 1 ELSE 0 END) AS PendingCount,
-    SUM(CASE WHEN cmf_request = 'cmf_duplicate' AND status NOT IN ('complete','rejected','implemented') THEN 1 ELSE 0 END) AS PendingDup,
+    SUM(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') AND status IN ('implemented','future') THEN 1 ELSE 0 END) AS ImplementedCount,
+    SUM(CASE WHEN cmf_request = 'cmf_duplicate' AND status IN ('implemented','future') THEN 1 ELSE 0 END) AS ImplementedDup,
+    SUM(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') AND status NOT IN ('complete','rejected','implemented','future') THEN 1 ELSE 0 END) AS PendingCount,
+    SUM(CASE WHEN cmf_request = 'cmf_duplicate' AND status NOT IN ('complete','rejected','implemented','future') THEN 1 ELSE 0 END) AS PendingDup,
     ISNULL(AVG(CAST(DATEDIFF(DAY, ISNULL(ask_date, decided_date), decided_date) AS FLOAT)), 0) AS DispositionTpt,
     ISNULL(AVG(CAST(CASE WHEN implemented_date < decided_date THEN 0 ELSE DATEDIFF(DAY, ISNULL(decided_date, implemented_date), implemented_date) END AS FLOAT)), 0) AS ResolutionTpt,
     ISNULL(AVG(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') THEN CAST(days_active_int AS FLOAT) ELSE NULL END), 0) AS OverallTpt,
@@ -4528,21 +4587,21 @@ CROSS JOIN wk", con))
                         Label = "Total CMFs",
                         Value = total.ToString(CultureInfo.InvariantCulture),
                         Note = duplicates + " duplicates",
-                        WeeklyTrend = weeklyTrends["Total CMFs"]
+                        WeeklyTrend = balanceTrends["Total CMFs"]
                     });
                     snapshot.SummaryFacts.Add(new HomeDashboardFact
                     {
                         Label = "Closed",
                         Value = closed.ToString(CultureInfo.InvariantCulture),
                         Note = closedDup + " duplicates",
-                        WeeklyTrend = weeklyTrends["Closed"]
+                        WeeklyTrend = balanceTrends["Closed"]
                     });
                     snapshot.SummaryFacts.Add(new HomeDashboardFact
                     {
                         Label = "Implemented",
                         Value = implemented.ToString(CultureInfo.InvariantCulture),
                         Note = implementedDup + " duplicates",
-                        WeeklyTrend = weeklyTrends["Implemented"],
+                        WeeklyTrend = balanceTrends["Implemented"],
                         ConstituentTooltip = BuildConstituentTooltipFromCounts(
                             implementedConstituents,
                             "No implemented constituent counts in this scope.")
@@ -4552,6 +4611,7 @@ CROSS JOIN wk", con))
                         Label = "Open",
                         Value = pending.ToString(CultureInfo.InvariantCulture),
                         Note = pendingDup + " duplicates",
+                        WeeklyTrend = balanceTrends["Open"],
                         ConstituentTooltip = BuildConstituentTooltipFromCounts(
                             openConstituents,
                             "No open constituent counts in this scope.")
@@ -4577,12 +4637,13 @@ CROSS JOIN wk", con))
                         Label = "CMF Overall TPT",
                         Value = overallTpt.ToString(CultureInfo.InvariantCulture),
                         Note = "days",
-                        TrendNote = FormatTptTrendNote(overallTrendDays)
+                        TrendNote = FormatTptTrendNote(overallTrendDays),
+                        WeeklyTrend = weeklyTrends["CMF Overall TPT"]
                     });
                 }
             }
 
-            using (SqlCommand milestoneCommand = new SqlCommand(@"
+            using (SqlCommand milestoneCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT LTRIM(RTRIM(drivers)) AS Driver, COUNT(*) AS CMFCount
 FROM " + componentSourceSql + @"
 WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
@@ -4599,11 +4660,11 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             }
 
             List<string> milestoneDrivers = new List<string>();
-            using (SqlCommand driverListCommand = new SqlCommand(@"
+            using (SqlCommand driverListCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT DISTINCT LTRIM(RTRIM(drivers)) AS Driver
 FROM " + componentSourceSql + @"
 WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
-  AND status IN ('open','implemented','verified')
+    AND status IN ('open','implemented','verified','future')
   AND sysdebug LIKE '%customer_must_fix%'
   AND cmf_request NOT IN ('cmf_reject')
 ORDER BY LTRIM(RTRIM(drivers))", con))
@@ -4636,7 +4697,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                 }
             }
 
-            using (SqlCommand componentCommand = new SqlCommand(@"
+            using (SqlCommand componentCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT
     CASE WHEN ISNULL(component_group, '') = '' THEN 'Unassigned' ELSE component_group END AS Component,
     LTRIM(RTRIM(drivers)) AS Driver,
@@ -4644,10 +4705,10 @@ SELECT
     SUM(CASE WHEN status = 'open' AND cmf_request NOT IN ('cmf_duplicate','cmf_reject') AND los = 'Yes' THEN 1 ELSE 0 END) AS OpenUniqueLosCount,
     SUM(CASE WHEN status = 'open' AND cmf_request = 'cmf_duplicate' THEN 1 ELSE 0 END) AS OpenDuplicateCount,
     SUM(CASE WHEN status = 'open' AND cmf_request = 'cmf_duplicate' AND los = 'Yes' THEN 1 ELSE 0 END) AS OpenDuplicateLosCount,
-    SUM(CASE WHEN status IN ('implemented','verified') AND cmf_request = 'cmf_ok' THEN 1 ELSE 0 END) AS ImplementedUniqueCount,
-    SUM(CASE WHEN status IN ('implemented','verified') AND cmf_request = 'cmf_duplicate' THEN 1 ELSE 0 END) AS ImplementedDuplicateCount
+    SUM(CASE WHEN status IN ('implemented','verified','future') AND cmf_request = 'cmf_ok' THEN 1 ELSE 0 END) AS ImplementedUniqueCount,
+    SUM(CASE WHEN status IN ('implemented','verified','future') AND cmf_request = 'cmf_duplicate' THEN 1 ELSE 0 END) AS ImplementedDuplicateCount
 FROM " + componentSourceSql + @"
-WHERE status IN ('open','implemented','verified')
+WHERE status IN ('open','implemented','verified','future')
   AND sysdebug LIKE '%customer_must_fix%'
   AND cmf_request NOT IN ('cmf_reject')
   AND ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
@@ -4774,9 +4835,11 @@ ORDER BY Component, Driver", con))
             if (!string.IsNullOrWhiteSpace(pendingSourceSql))
             {
                 int pendingAgeThresholdDays = GetPendingSummaryAgeThresholdDays();
+                int? oldestPendingAgeDays = null;
+                DateTime pendingAgeToday = DateTime.Today;
                 Dictionary<string, List<string>> pendingOpenIdsByRowKey = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
                 Dictionary<string, List<string>> pendingOverTwoDaysIdsByRowKey = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-                using (SqlCommand pendingIdsCommand = new SqlCommand(@"
+                using (SqlCommand pendingIdsCommand = CmfPlatformCatalog.CreateReadCommand(@"
 WITH pending_rows AS (
     SELECT
         CASE WHEN pending.component_group IS NULL OR pending.component_group = '' OR pending.component_group = 'no iDST assigned' THEN 'Unassigned' ELSE pending.component_group END AS component_group,
@@ -4826,10 +4889,15 @@ FROM pending_rows", con))
                         idSet.Add(normalizedCpId);
 
                         bool isOverTwoDays = pendingAgeThresholdDays <= 0;
-                        if (!isOverTwoDays && !idsReader.IsDBNull(3))
+                        if (!idsReader.IsDBNull(3))
                         {
                             DateTime askDate = idsReader.GetDateTime(3).Date;
-                            isOverTwoDays = (DateTime.Today - askDate).TotalDays > pendingAgeThresholdDays;
+                            int ageDays = (pendingAgeToday - askDate).Days;
+                            if (ageDays >= 0 && (!oldestPendingAgeDays.HasValue || ageDays > oldestPendingAgeDays.Value))
+                            {
+                                oldestPendingAgeDays = ageDays;
+                            }
+                            isOverTwoDays = isOverTwoDays || ageDays > pendingAgeThresholdDays;
                         }
 
                         if (isOverTwoDays)
@@ -4860,7 +4928,7 @@ FROM pending_rows", con))
                     }
                 }
 
-                using (SqlCommand pendingCommand = new SqlCommand(@"
+                using (SqlCommand pendingCommand = CmfPlatformCatalog.CreateReadCommand(@"
 WITH pending_rows AS (
     SELECT
         CASE WHEN pending.component_group IS NULL OR pending.component_group = '' OR pending.component_group = 'no iDST assigned' THEN 'Unassigned' ELSE pending.component_group END AS component_group,
@@ -4958,14 +5026,25 @@ ORDER BY component_group, idst_name", con))
                         }
                     }
 
+                    reader.Close();
+                    CmfDashboardDateFilter pendingDateFilter = GetDashboardDateFilter();
+                    CmfSummaryTrend pendingEstimate = pendingDateFilter.Start.HasValue && pendingDateFilter.Basis == "cmf-accepted"
+                        ? CmfSummaryTrend.CreatePendingEstimate(totalPending, null, DateTime.Today, 0)
+                        : CmfSummaryTrendService.LoadPendingEstimate(con, pendingSourceSql,
+                            BuildSummaryIssueComponentSourceSql(platformTable), totalPending, DateTime.Today);
                     snapshot.PendingIssues = totalPending;
                     snapshot.SummaryFacts.Add(new HomeDashboardFact
                     {
                         Label = "Pending",
                         Value = totalPending.ToString(CultureInfo.InvariantCulture),
-                        Note = "CMF pending table",
+                        Note = oldestPendingAgeDays.HasValue
+                            ? "Oldest: " + oldestPendingAgeDays.Value.ToString(CultureInfo.InvariantCulture)
+                                + (oldestPendingAgeDays.Value == 1 ? " day" : " days")
+                            : totalPending > 0 ? "Oldest: N/A" : string.Empty,
+                        WeeklyTrend = pendingEstimate,
                         ConstituentTooltip = pendingConstituentLines.Count > 0
                             ? string.Join("\n", pendingConstituentLines.ToArray())
+                                + "\nOldest is calendar days since the CMF request date, not the last reopening. Missing, invalid and future request dates are excluded."
                             : "No pending constituent counts in this scope."
                     });
                     snapshot.PendingSummary.Rows.Add(new List<string> { "Total", string.Empty, totalPending.ToString(CultureInfo.InvariantCulture) });
@@ -5038,7 +5117,7 @@ WHERE LOWER(LTRIM(RTRIM(ISNULL(sysdebug, '')))) LIKE '%customer_must_fix%'
   AND LOWER(LTRIM(RTRIM(ISNULL(cmf_request, '')))) <> 'cmf_reject'
 ORDER BY LTRIM(RTRIM(ISNULL(drivers, '')))";
 
-        using (SqlCommand driverCommand = new SqlCommand(dynamicDriverSql, connection))
+        using (SqlCommand driverCommand = CmfPlatformCatalog.CreateReadCommand(dynamicDriverSql, connection))
         using (SqlDataReader driverReader = driverCommand.ExecuteReader())
         {
             while (driverReader.Read())
@@ -5077,7 +5156,7 @@ SELECT
 FROM " + datedPlatformSource + @" A
 INNER JOIN " + designTable + @" B ON A.customer_detail = B.customer_detail
 WHERE LOWER(LTRIM(RTRIM(ISNULL(A.sysdebug, '')))) LIKE '%customer_must_fix%'
-  AND LOWER(LTRIM(RTRIM(ISNULL(A.status, '')))) IN ('open', 'implemented', 'verified')
+    AND LOWER(LTRIM(RTRIM(ISNULL(A.status, '')))) IN ('open', 'implemented', 'verified', 'future')
   AND LOWER(LTRIM(RTRIM(ISNULL(A.cmf_request, '')))) <> 'cmf_reject'";
 
         Dictionary<string, string> designNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -5086,7 +5165,7 @@ WHERE LOWER(LTRIM(RTRIM(ISNULL(A.sysdebug, '')))) LIKE '%customer_must_fix%'
         Dictionary<string, Dictionary<string, int>> designOpenByDriver = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
         Dictionary<string, int> designImplVerifiedCount = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-        using (SqlCommand summaryCommand = new SqlCommand(summarySql, connection))
+        using (SqlCommand summaryCommand = CmfPlatformCatalog.CreateReadCommand(summarySql, connection))
         using (SqlDataReader summaryReader = summaryCommand.ExecuteReader())
         {
             while (summaryReader.Read())
@@ -5129,7 +5208,8 @@ WHERE LOWER(LTRIM(RTRIM(ISNULL(A.sysdebug, '')))) LIKE '%customer_must_fix%'
                     designDriverOpenCounts[driverName] += 1;
                 }
                 else if (string.Equals(statusNorm, "implemented", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(statusNorm, "verified", StringComparison.OrdinalIgnoreCase))
+                    || string.Equals(statusNorm, "verified", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(statusNorm, "future", StringComparison.OrdinalIgnoreCase))
                 {
                     designImplVerifiedCount[designName] += 1;
                 }
@@ -5258,11 +5338,11 @@ WHERE LOWER(LTRIM(RTRIM(ISNULL(A.sysdebug, '')))) LIKE '%customer_must_fix%'
         if (snapshot == null || con == null) return;
 
         List<string> drivers = new List<string>();
-        using (SqlCommand driverCommand = new SqlCommand(@"
+        using (SqlCommand driverCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT DISTINCT LTRIM(RTRIM(drivers)) AS Driver
 FROM " + platformTable + @"
 WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
-  AND status IN ('open','implemented','verified')
+    AND status IN ('open','implemented','verified','future')
   AND sysdebug LIKE '%customer_must_fix%'
   AND cmf_request NOT IN ('cmf_reject')
 ORDER BY LTRIM(RTRIM(drivers))", con))
@@ -5298,16 +5378,16 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             query.Append(", SUM(CASE WHEN drivers = @driver").Append(index).Append(" AND status = 'open' AND cmf_request NOT IN ('cmf_duplicate','cmf_reject') THEN 1 ELSE 0 END) AS OpenCount").Append(index);
             query.Append(", SUM(CASE WHEN drivers = @driver").Append(index).Append(" AND status = 'open' AND los = 'Yes' THEN 1 ELSE 0 END) AS LosCount").Append(index);
             query.Append(", SUM(CASE WHEN drivers = @driver").Append(index).Append(" AND status = 'open' AND cmf_request = 'cmf_duplicate' THEN 1 ELSE 0 END) AS DuplicateCount").Append(index);
-            query.Append(", SUM(CASE WHEN drivers = @driver").Append(index).Append(" AND status IN ('implemented','verified') AND cmf_request = 'cmf_ok' THEN 1 ELSE 0 END) AS ImplementedCount").Append(index);
+            query.Append(", SUM(CASE WHEN drivers = @driver").Append(index).Append(" AND status IN ('implemented','verified','future') AND cmf_request = 'cmf_ok' THEN 1 ELSE 0 END) AS ImplementedCount").Append(index);
         }
-        query.Append(" FROM (SELECT CASE WHEN ISNULL(component_group, '') = '' THEN 'Unassigned' ELSE component_group END AS Component, LTRIM(RTRIM(drivers)) AS drivers, status, cmf_request, los FROM ").Append(platformTable).Append(" WHERE status IN ('open','implemented','verified') AND sysdebug LIKE '%customer_must_fix%' AND cmf_request NOT IN ('cmf_reject')) AS SourceRows GROUP BY Component ORDER BY Component");
+        query.Append(" FROM (SELECT CASE WHEN ISNULL(component_group, '') = '' THEN 'Unassigned' ELSE component_group END AS Component, LTRIM(RTRIM(drivers)) AS drivers, status, cmf_request, los FROM ").Append(platformTable).Append(" WHERE status IN ('open','implemented','verified','future') AND sysdebug LIKE '%customer_must_fix%' AND cmf_request NOT IN ('cmf_reject')) AS SourceRows GROUP BY Component ORDER BY Component");
 
         int[] totalOpen = new int[drivers.Count];
         int[] totalLos = new int[drivers.Count];
         int[] totalDuplicates = new int[drivers.Count];
         int[] totalImplemented = new int[drivers.Count];
 
-        using (SqlCommand componentCommand = new SqlCommand(query.ToString(), con))
+        using (SqlCommand componentCommand = CmfPlatformCatalog.CreateReadCommand(query.ToString(), con))
         {
             for (int index = 0; index < drivers.Count; index++)
             {
@@ -5421,7 +5501,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
 
     private static bool SqlTableExists(SqlConnection connection, string tableName)
     {
-        using (SqlCommand command = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @TableName", connection))
+        using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @TableName", connection))
         {
             command.Parameters.AddWithValue("@TableName", tableName);
             return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture) > 0;
@@ -5430,7 +5510,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
 
     private static bool SqlTableHasRows(SqlConnection connection, string tableName)
     {
-        using (SqlCommand command = new SqlCommand("SELECT TOP 1 1 FROM " + tableName, connection))
+        using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand("SELECT TOP 1 1 FROM " + tableName, connection))
         {
             object result = command.ExecuteScalar();
             return result != null && result != DBNull.Value;
@@ -6461,7 +6541,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             {
                 closedIssues++;
             }
-            else if (status == "implemented" || status == "verified")
+            else if (status == "implemented" || status == "verified" || status == "future")
             {
                 implementedIssues++;
             }
@@ -6699,7 +6779,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
 
         query += " ORDER BY filterValue;";
 
-        using (var cmd = new SqlCommand(query, con))
+        using (var cmd = CmfPlatformCatalog.CreateReadCommand(query, con))
         {
             // Add parameter if filterValue exists and is not AllDrivers
             if (!string.IsNullOrEmpty(filterValue) && filterValue != "AllDrivers")
@@ -6768,7 +6848,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
 
         query += " ORDER BY owner;";
 
-        using (var cmd = new SqlCommand(query, con))
+        using (var cmd = CmfPlatformCatalog.CreateReadCommand(query, con))
         {
             // Add parameter if filterValue exists and is not AllDrivers
             if (!string.IsNullOrEmpty(filterValue) && filterValue != "AllDrivers")
@@ -7031,11 +7111,11 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         string sourceSql = BuildDashboardComponentSourceSql(platform);
         string driverQuery = "SELECT DISTINCT([drivers]) FROM " + sourceSql +
                              " WHERE drivers IS NOT NULL AND LTRIM(RTRIM(drivers)) <> '' " +
-                             " AND status in ('open','implemented') " +
+                             " AND status in ('open','implemented','future') " +
                              " AND cmf_request not in ('cmf_reject') " +
                              " AND sysdebug Like ('%customer_must_fix%') ";
 
-        using (SqlCommand cmd = new SqlCommand(driverQuery, con))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(driverQuery, con))
         using (SqlDataReader reader = cmd.ExecuteReader())
         {
             List<string> driversList = new List<string>();
@@ -7088,7 +7168,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         {
             con.Open();
 
-            using (SqlCommand cmd = new SqlCommand(@"
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(@"
          SELECT Username
          FROM dbo.CMFUserVisitCounts_Final
          WHERE DisplayName IS NULL;", con))
@@ -7165,7 +7245,6 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         {
             var dateFilter = GetDashboardDateFilter();
             ddlDashboardDateMode.SelectedValue = dateFilter.Mode;
-            ddlDashboardDateBasis.SelectedValue = dateFilter.Basis;
             txtDashboardDateStart.Text = (dateFilter.Start ?? DateTime.Today.AddDays(-6)).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             txtDashboardDateEnd.Text = (dateFilter.EndExclusive.HasValue ? dateFilter.EndExclusive.Value.AddDays(-1) : DateTime.Today).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             dashboardCustomDates.Visible = dateFilter.Mode == "custom";
@@ -7270,7 +7349,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             {
                 con.Open();
                 string query = "SELECT COUNT(*) FROM " + session_count_table + " WHERE Username = @username";
-                SqlCommand cmd = new SqlCommand(query, con);
+                SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(query, con);
                 cmd.Parameters.AddWithValue("@username", var_username);
                 int count = (int)cmd.ExecuteScalar();
 
@@ -7290,7 +7369,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                 }
 
                 query = "SELECT ISNULL(SUM(SessionCount), 0) FROM " + session_count_table;
-                cmd = new SqlCommand(query, con);
+                cmd = CmfPlatformCatalog.CreateReadCommand(query, con);
                 count = (int)cmd.ExecuteScalar();
                 session_count.Text = "Total Visits: " + count.ToString();
             }
@@ -8153,10 +8232,10 @@ LEFT JOIN " + designTable + @" AS d
             // Keep the same status scope on initial loads and postbacks.
             string whereClause = "";
             string issueStatusClause = isOverallSelection
-                ? "(status IN ('open', 'implemented') OR (main.source_platform IN ('CMF_NVL_H_ALL_COMPONENTS_TABLE', 'CMF_NVL_S_ALL_COMPONENTS_TABLE') AND status NOT IN ('rejected')))"
+                ? "(status IN ('open', 'implemented', 'future') OR (main.source_platform IN ('CMF_NVL_H_ALL_COMPONENTS_TABLE', 'CMF_NVL_S_ALL_COMPONENTS_TABLE') AND status NOT IN ('rejected')))"
                 : UsesPublicIssueStatusScope(platformTable)
                     ? "status NOT IN ('rejected')"
-                    : "status IN ('open', 'implemented')";
+                    : "status IN ('open', 'implemented', 'future')";
 
             if (!string.IsNullOrEmpty(filterValue) && filterValue != "AllDrivers")
             {
@@ -8208,7 +8287,7 @@ LEFT JOIN " + designTable + @" AS d
             master_query += whereClause + order_clause;
 
             // Execute final query
-            using (SqlCommand cmd = new SqlCommand(master_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(master_query, con))
             {
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
                 {
@@ -9327,7 +9406,7 @@ LEFT JOIN " + designTable + @" AS d
                     return "Context Lookup: Issue " + issueId.Trim() + " was not found in the selected platform or any allowed CMF platform table.";
                 }
 
-                using (SqlCommand cmd = new SqlCommand(@"
+                using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 1
     main.cp_id,
     main.title,
@@ -9470,7 +9549,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
             return false;
         }
 
-        using (SqlCommand cmd = new SqlCommand("SELECT TOP 1 1 FROM " + platformTable + " WHERE CAST(cp_id AS VARCHAR(50)) = @issueId", connection))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand("SELECT TOP 1 1 FROM " + platformTable + " WHERE CAST(cp_id AS VARCHAR(50)) = @issueId", connection))
         {
             cmd.Parameters.AddWithValue("@issueId", issueId.Trim());
             object result = cmd.ExecuteScalar();
@@ -9522,7 +9601,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
             return null;
         }
 
-        using (SqlCommand cmd = new SqlCommand(@"
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 1
     main.cp_id,
     main.title,
@@ -11073,9 +11152,9 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 driverList += ")";
                 main_query = "SELECT A.customer_detail AS Design, B.sw_image_freeze AS SWImageFreeze, B.support_model AS SupportModel " +
                              driverCaseStatements +
-                             ", SUM(CASE WHEN A.status IN ('implemented', 'verified') AND A.drivers in " + driverList + " THEN 1 ELSE 0 END) AS Implemented_Verified " +
+                             ", SUM(CASE WHEN A.status IN ('implemented', 'verified', 'future') AND A.drivers in " + driverList + " THEN 1 ELSE 0 END) AS Implemented_Verified " +
                              "FROM " + selectedPlatform + " A INNER JOIN " + designTable + " B ON A.customer_detail = B.customer_detail " +
-                             "Where sysdebug Like ('%customer_must_fix%') AND status in ('open','implemented','verified') and cmf_request not in ('cmf_reject') GROUP BY A.customer_detail, B.sw_image_freeze, B.support_model " +
+                             "Where sysdebug Like ('%customer_must_fix%') AND status in ('open','implemented','verified','future') and cmf_request not in ('cmf_reject') GROUP BY A.customer_detail, B.sw_image_freeze, B.support_model " +
                              "ORDER BY Implemented_Verified DESC  ";
             }
             else
@@ -11083,7 +11162,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 string ddrivers;
                 string alldriver_query = "SELECT DISTINCT([drivers]) FROM " + selectedPlatform + " WHERE status in ('open') and cmf_request not in ('cmf_reject') AND sysdebug Like ('%customer_must_fix%') ";
 
-                using (SqlCommand cmd = new SqlCommand(alldriver_query, con))
+                using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(alldriver_query, con))
                 {
                     con.Open();
                     using (SqlDataReader reader = cmd.ExecuteReader())
@@ -11137,17 +11216,17 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 }
                 driverList += ")";
 
-                string implementedVerifiedCondition = drivers.Count > 0 ? "A.status IN ('implemented', 'verified') " : "A.status IN ('implemented', 'verified')";
+                string implementedVerifiedCondition = drivers.Count > 0 ? "A.status IN ('implemented', 'verified', 'future') " : "A.status IN ('implemented', 'verified', 'future')";
 
                 main_query = "SELECT A.customer_detail AS Design, B.sw_image_freeze AS SWImageFreeze, B.support_model AS SupportModel " +
                              driverCaseStatements +
                              ", SUM(CASE WHEN " + implementedVerifiedCondition + " THEN 1 ELSE 0 END) AS Implemented_Verified " +
                              "FROM " + selectedPlatform + " A INNER JOIN " + designTable + " B ON A.customer_detail = B.customer_detail " +
-                             "Where sysdebug Like ('%customer_must_fix%') AND status in ('open','implemented','verified') and cmf_request not in ('cmf_reject') GROUP BY A.customer_detail, B.sw_image_freeze, B.support_model " +
+                             "Where sysdebug Like ('%customer_must_fix%') AND status in ('open','implemented','verified','future') and cmf_request not in ('cmf_reject') GROUP BY A.customer_detail, B.sw_image_freeze, B.support_model " +
                              "ORDER BY Implemented_Verified DESC ";
             }
 
-            using (SqlCommand cmd = new SqlCommand(main_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(main_query, con))
             {
                 System.Data.DataTable dt = new System.Data.DataTable();
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
@@ -11268,7 +11347,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
 ";
 
     using (SqlConnection con = new SqlConnection(ConnectionString))
-        using (SqlCommand cmd = new SqlCommand(milestoneQuery, con))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(milestoneQuery, con))
         {
             System.Data.DataTable mapTable = new System.Data.DataTable();
             SqlDataAdapter da = new SqlDataAdapter(cmd);
@@ -11304,7 +11383,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
             string notesquery = @"SELECT (SELECT ISNULL(AVG(CAST(DATEDIFF(DAY, ISNULL(date_cmf_ask, date_cmf_decided), date_cmf_decided) AS INT)), 0) FROM " + platformTable + " WHERE TRY_CAST(date_cmf_decided AS DATE) IS NOT NULL AND sysdebug Like ('%customer_must_fix%')) AS disp_tpt,(SELECT ISNULL(AVG(CAST(CASE WHEN TRY_CAST(implemented_date AS DATE) < TRY_CAST(date_cmf_decided AS DATE) THEN 0 ELSE DATEDIFF(DAY, ISNULL(date_cmf_decided, implemented_date), implemented_date) END AS INT)), 0) FROM " + platformTable + " WHERE TRY_CAST(implemented_date AS DATE) IS NOT NULL AND sysdebug Like ('%customer_must_fix%')) AS resolve_tpt, (SELECT ISNULL(AVG(CAST(days_active AS INT)), 0) FROM " + platformTable + " WHERE sysdebug Like ('%customer_must_fix%') AND cmf_request in ('cmf_ok','cmf_duplicate')) AS crit_tpt";
 
             System.Data.DataTable notestable = new System.Data.DataTable();
-            using (SqlCommand cmd = new SqlCommand(notesquery, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(notesquery, con))
             {
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 da.Fill(notestable);
@@ -11344,7 +11423,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
 
             System.Data.DataTable comptable = new System.Data.DataTable();
 
-            using (SqlCommand cmd2 = new SqlCommand(compquery, con2))
+            using (SqlCommand cmd2 = CmfPlatformCatalog.CreateReadCommand(compquery, con2))
             {
                 SqlDataAdapter da2 = new SqlDataAdapter(cmd2);
                 da2.Fill(comptable);
@@ -11381,8 +11460,8 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                     // Issues count (open records only)
                     driverCaseStatements += ", SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request != 'cmf_duplicate' AND A.cmf_request != 'cmf_reject' AND A.status IN ('open') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_Issues]";
                     // Implemented count (implemented records only)
-                    driverCaseStatements += ", SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_ok' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_Implemented], " +
-                        "SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_duplicate' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_ImplementedDup]";
+                    driverCaseStatements += ", SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_ok' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified','future') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_Implemented], " +
+                        "SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_duplicate' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified','future') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_ImplementedDup]";
                     Driver_name = safeColumnName + "_Issues";
                 }
 
@@ -11413,9 +11492,9 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 // Build the main query
                 full_query = "SELECT  CASE  WHEN Component = 'Total' THEN 'Total'  ELSE Component END AS Component " + firstPatternCaseStatements +
                 " FROM (    SELECT 'Total' AS Component " + driverCaseStatements + "" + losCaseStatements +
-                "  FROM " + selectedPlatform + " A     INNER JOIN " + componentTable + " B       ON A.component_group = B.component_group    WHERE A.status IN ('open','implemented','verified') AND A.sysdebug Like ('%customer_must_fix%')  and cmf_request not in ('cmf_reject')  " +
+                "  FROM " + selectedPlatform + " A     INNER JOIN " + componentTable + " B       ON A.component_group = B.component_group    WHERE A.status IN ('open','implemented','verified','future') AND A.sysdebug Like ('%customer_must_fix%')  and cmf_request not in ('cmf_reject')  " +
                 "UNION ALL   SELECT B.component_group AS Component " + driverCaseStatements + "       " + losCaseStatements +
-                "  FROM " + selectedPlatform + " A   INNER JOIN " + componentTable + " B         ON A.component_group = B.component_group  WHERE A.status IN ('open','implemented','verified') AND A.sysdebug Like ('%customer_must_fix%')  and cmf_request not in ('cmf_reject') GROUP BY B.component_group";
+                "  FROM " + selectedPlatform + " A   INNER JOIN " + componentTable + " B         ON A.component_group = B.component_group  WHERE A.status IN ('open','implemented','verified','future') AND A.sysdebug Like ('%customer_must_fix%')  and cmf_request not in ('cmf_reject') GROUP BY B.component_group";
 
                 // Add HAVING clause to filter out components with all zeros
                 //if (drivers.Count > 0)
@@ -11444,7 +11523,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
             else
             {
                 string ddrivers;
-                List<string> allDrivers = GetDistinctDrivers(platformTable, "open", "implemented", "verified");
+                List<string> allDrivers = GetDistinctDrivers(platformTable, "open", "implemented", "verified", "future");
                 ddrivers = string.Join(", ", allDrivers);
 
                 filtervalue = ddrivers;
@@ -11469,8 +11548,8 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                     // Issues count (open records only)
                     driverCaseStatements += ", SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request != 'cmf_duplicate' AND A.cmf_request != 'cmf_reject' AND A.status IN ('open') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_Issues]";
                     // Implemented count (implemented records only)
-                    driverCaseStatements += ", SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_ok' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_Implemented], " +
-                        "SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_duplicate' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_ImplementedDup]";
+                    driverCaseStatements += ", SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_ok' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified','future') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_Implemented], " +
+                        "SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_duplicate' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified','future') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_ImplementedDup]";
                     Driver_name = safeColumnName + "_Issues";
                 }
 
@@ -11550,7 +11629,7 @@ firstPatternCaseStatements +
 "   FROM " + selectedPlatform + " A " +
 "   INNER JOIN " + componentTable + " B " +
 "       ON A.component_group = B.component_group " +
-"   WHERE A.status IN ('open','implemented','verified') " +
+"   WHERE A.status IN ('open','implemented','verified','future') " +
 "     AND A.sysdebug LIKE '%customer_must_fix%' " +
 "     AND A.cmf_request NOT IN ('cmf_reject') " +
 
@@ -11562,7 +11641,7 @@ firstPatternCaseStatements +
 "   FROM " + selectedPlatform + " A " +
 "   INNER JOIN " + componentTable + " B " +
 "       ON A.component_group = B.component_group " +
-"   WHERE A.status IN ('open','implemented','verified') " +
+"   WHERE A.status IN ('open','implemented','verified','future') " +
 "     AND A.sysdebug LIKE '%customer_must_fix%' " +
 "     AND A.cmf_request NOT IN ('cmf_reject') " +
 "   GROUP BY A.component_group " +
@@ -11581,22 +11660,22 @@ firstPatternCaseStatements +
         SELECT 
             SUM(CASE WHEN cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') THEN 1 ELSE 0 END) AS TotalCount,
             SUM(CASE WHEN [cmf_request] = 'cmf_duplicate' AND sysdebug Like ('%customer_must_fix%') THEN 1 ELSE 0 END) AS Duplicates,
-            SUM(CASE WHEN [cmf_request] in ('cmf_ok', 'cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND ([status] NOT IN ('complete', 'rejected', 'implemented')) THEN 1 ELSE 0 END) AS OpenCount,
-            SUM(CASE WHEN [cmf_request] in ('cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND ([status] NOT IN ('complete', 'rejected', 'implemented')) THEN 1 ELSE 0 END ) AS OpenDup,
+            SUM(CASE WHEN [cmf_request] in ('cmf_ok', 'cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND ([status] NOT IN ('complete', 'rejected', 'implemented', 'future')) THEN 1 ELSE 0 END) AS OpenCount,
+            SUM(CASE WHEN [cmf_request] in ('cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND ([status] NOT IN ('complete', 'rejected', 'implemented', 'future')) THEN 1 ELSE 0 END ) AS OpenDup,
             SUM(CASE WHEN cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND ([status] = 'complete' OR [status] = 'rejected') THEN 1 ELSE 0 END) AS ClosedCount,
             SUM(CASE WHEN cmf_request in ('cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND ([status] = 'complete' OR [status] = 'rejected') THEN 1 ELSE 0 END) AS ClosedDup,
-            SUM(CASE WHEN cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] = 'implemented' THEN 1 ELSE 0 END) AS ImplementedCount,
-            SUM(CASE WHEN cmf_request in ('cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] = 'implemented' THEN 1 ELSE 0 END) AS ImplementedDup,
+            SUM(CASE WHEN cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] IN ('implemented', 'future') THEN 1 ELSE 0 END) AS ImplementedCount,
+            SUM(CASE WHEN cmf_request in ('cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] IN ('implemented', 'future') THEN 1 ELSE 0 END) AS ImplementedDup,
             STUFF((
                 SELECT ', ' + [component_group]
                 FROM " + selectedPlatform + @"
-                WHERE cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] = 'implemented' 
+                WHERE cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] IN ('implemented', 'future') 
                 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '') AS ImplementedComponents
         FROM " + selectedPlatform;
 
             // Fetch summary data
             System.Data.DataTable summaryTable = new System.Data.DataTable();
-            using (SqlCommand cmd = new SqlCommand(summaryQuery, conn))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(summaryQuery, conn))
             {
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 if (!string.IsNullOrEmpty(filtervalue) && filtervalue != "AllDrivers")
@@ -11708,7 +11787,7 @@ firstPatternCaseStatements +
                 }
             }
 
-            using (SqlCommand cmd = new SqlCommand(full_query, conn))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(full_query, conn))
             {
                 System.Data.DataTable dt = new System.Data.DataTable();
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
@@ -12768,7 +12847,7 @@ firstPatternCaseStatements +
             ORDER BY d.date_cmf_ask DESC";
             }
 
-            using (SqlCommand cmd = new SqlCommand(main_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(main_query, con))
             {
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
                 {
@@ -12875,12 +12954,12 @@ SELECT
         WHEN SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END) = 0 THEN 'N/A'
         ELSE
             CAST(ROUND(
-                100.0 * SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected') THEN 1 ELSE 0 END)
+                100.0 * SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected', 'implemented', 'future') THEN 1 ELSE 0 END)
                 / NULLIF(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END), 0),
                 1
             ) AS VARCHAR(20))
             + '% ('
-            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected', 'implemented', 'future') THEN 1 ELSE 0 END) AS VARCHAR(20))
             + '/'
             + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END) AS VARCHAR(20))
             + ')'
@@ -12994,7 +13073,7 @@ GROUP BY Design
 ORDER BY Total_CMF_Approved DESC";
 
             using (SqlConnection con = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand(overallQuery, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(overallQuery, con))
             using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
             {
                 System.Data.DataTable dt = new System.Data.DataTable();
@@ -13043,7 +13122,7 @@ ORDER BY Total_CMF_Approved DESC";
                                       ELSE CAST(ROUND(
                                           (SELECT CAST(COUNT(cp_id) AS FLOAT)
                                            FROM " + selectedPlatform + @"
-                                           WHERE status NOT IN('complete', 'rejected') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_detail = A.customer_detail)
+                                           WHERE status NOT IN('complete', 'rejected', 'implemented', 'future') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_detail = A.customer_detail)
                                           /
                                           (SELECT CAST(COUNT(cp_id) AS FLOAT)
                                            FROM " + selectedPlatform + @"
@@ -13051,7 +13130,7 @@ ORDER BY Total_CMF_Approved DESC";
                                           * 100.0, 1) AS VARCHAR) + '%' +' (' +
                                           CAST((SELECT COUNT(cp_id)
                                                 FROM " + selectedPlatform + @"
-                                                WHERE status NOT IN('complete', 'rejected') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_detail = A.customer_detail) AS VARCHAR) +'/' +
+                                                WHERE status NOT IN('complete', 'rejected', 'implemented', 'future') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_detail = A.customer_detail) AS VARCHAR) +'/' +
                                           CAST((SELECT COUNT(cp_id)
                                                 FROM " + selectedPlatform + @"
                                                 WHERE cmf_request IN('cmf_ok', 'cmf_duplicate') AND customer_detail = A.customer_detail AND sysdebug LIKE('%customer_must_fix%')) AS VARCHAR) +')'
@@ -13221,7 +13300,7 @@ ORDER BY Total_CMF_Approved DESC";
         using (SqlConnection con = new SqlConnection(connectionString))
         {
 
-            using (SqlCommand cmd = new SqlCommand(main_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(main_query, con))
 
             {
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
@@ -13552,7 +13631,7 @@ ORDER BY
     TRY_CAST(issue_src.cp_id AS BIGINT),
     CAST(issue_src.cp_id AS VARCHAR(64));";
 
-            using (SqlCommand cmd = new SqlCommand(sql, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(sql, con))
             using (SqlDataAdapter da = new SqlDataAdapter(cmd))
             {
                 cmd.Parameters.AddWithValue("@cpIds", cpIdsCsv);
@@ -13667,7 +13746,7 @@ WHERE LOWER(LTRIM(RTRIM(ISNULL(pending_bucket_src.status, '')))) NOT IN ('comple
     AND " + agePredicate + @"
 ORDER BY cp_id";
 
-                    using (SqlCommand cmd = new SqlCommand(sql, con))
+                    using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(sql, con))
                     {
                         cmd.Parameters.AddWithValue("@minDays", minDays);
                         if (!isGreaterThanRange)
@@ -13776,7 +13855,7 @@ ORDER BY TRY_CONVERT(DATETIME, pending_src.date_cmf_ask) DESC,
          TRY_CAST(pending_src.cp_id AS BIGINT) DESC,
          CAST(pending_src.cp_id AS VARCHAR(64)) DESC;";
 
-                    using (SqlCommand cmd = new SqlCommand(sql, con))
+                    using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(sql, con))
                     using (SqlDataAdapter da = new SqlDataAdapter(cmd))
                     {
                         cmd.Parameters.AddWithValue("@cpIds", cpIdsCsv);
@@ -13931,7 +14010,7 @@ WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
     AND drivers = @Driver
     AND cmf_request = 'cmf_duplicate'
     AND sysdebug LIKE '%customer_must_fix%'
-    AND status IN ('implemented','verified')
+    AND status IN ('implemented','verified','future')
 ORDER BY cmf_request desc";
                         }
                         else
@@ -13944,7 +14023,7 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
         AND A.component_group = @Component
     AND A.cmf_request = 'cmf_duplicate'
     AND A.sysdebug LIKE '%customer_must_fix%'
-    AND A.status IN ('implemented','verified')
+    AND A.status IN ('implemented','verified','future')
 ORDER BY A.cmf_request desc";
                         }
                 }
@@ -13959,7 +14038,7 @@ WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
     AND drivers = @Driver
     AND cmf_request IN ('cmf_ok', 'cmf_duplicate')
     AND sysdebug LIKE '%customer_must_fix%'
-    AND status IN ('implemented','verified')
+    AND status IN ('implemented','verified','future')
 ORDER BY cmf_request desc";
                         }
                         else
@@ -13972,7 +14051,7 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
         AND A.component_group = @Component
     AND A.cmf_request IN ('cmf_ok', 'cmf_duplicate')
     AND A.sysdebug LIKE '%customer_must_fix%'
-    AND A.status IN ('implemented','verified')
+    AND A.status IN ('implemented','verified','future')
 ORDER BY A.cmf_request desc";
                         }
                 }
@@ -13987,7 +14066,7 @@ WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
   AND drivers = @Driver
   AND cmf_request = 'cmf_ok'
   AND sysdebug LIKE '%customer_must_fix%'
-  AND status IN ('implemented','verified')
+    AND status IN ('implemented','verified','future')
 ORDER BY cmf_request desc";
             }
             else
@@ -14000,7 +14079,7 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
     AND A.component_group = @Component
   AND A.cmf_request = 'cmf_ok'
   AND A.sysdebug LIKE '%customer_must_fix%'
-  AND A.status IN ('implemented','verified')
+    AND A.status IN ('implemented','verified','future')
 ORDER BY A.cmf_request desc";
             }
         }
@@ -14011,7 +14090,7 @@ ORDER BY A.cmf_request desc";
         }
 
         using (SqlConnection con = new SqlConnection(connectionString))
-        using (SqlCommand cmd = new SqlCommand(sql, con))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(sql, con))
         {
             object driverParam = (driver != null) ? (object)driver.Trim() : (object)DBNull.Value;
             cmd.Parameters.Add("@Driver", SqlDbType.NVarChar, 256).Value = driverParam;
@@ -14095,7 +14174,7 @@ INNER JOIN (
 ) ids ON CAST(issue_src.cp_id AS VARCHAR(64)) = ids.cp_id";
 
         using (SqlConnection con = new SqlConnection(ConnectionString))
-        using (SqlCommand cmd = new SqlCommand(detailSql, con))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(detailSql, con))
         using (SqlDataAdapter da = new SqlDataAdapter(cmd))
         {
             cmd.Parameters.AddWithValue("@cpIds", string.Join(",", cpIds.ToArray()));
@@ -14441,7 +14520,7 @@ WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
     AND drivers = @Driver
     AND cmf_request = 'cmf_duplicate'
     AND sysdebug LIKE '%customer_must_fix%'
-    AND status IN ('implemented','verified')
+    AND status IN ('implemented','verified','future')
 ORDER BY cmf_request desc";
                         }
                         else
@@ -14454,7 +14533,7 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
         AND A.component_group = @Component
     AND A.cmf_request = 'cmf_duplicate'
     AND A.sysdebug LIKE '%customer_must_fix%'
-    AND A.status IN ('implemented','verified')
+    AND A.status IN ('implemented','verified','future')
 ORDER BY A.cmf_request desc";
                         }
                 }
@@ -14469,7 +14548,7 @@ WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
     AND drivers = @Driver
     AND cmf_request IN ('cmf_ok', 'cmf_duplicate')
     AND sysdebug LIKE '%customer_must_fix%'
-    AND status IN ('implemented','verified')
+    AND status IN ('implemented','verified','future')
 ORDER BY cmf_request desc";
                         }
                         else
@@ -14482,7 +14561,7 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
         AND A.component_group = @Component
     AND A.cmf_request IN ('cmf_ok', 'cmf_duplicate')
     AND A.sysdebug LIKE '%customer_must_fix%'
-    AND A.status IN ('implemented','verified')
+    AND A.status IN ('implemented','verified','future')
 ORDER BY A.cmf_request desc";
                         }
                 }
@@ -14497,7 +14576,7 @@ WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
   AND drivers = @Driver
   AND cmf_request = 'cmf_ok'
   AND sysdebug LIKE '%customer_must_fix%'
-  AND status IN ('implemented','verified')
+    AND status IN ('implemented','verified','future')
 ORDER BY cmf_request desc";
             }
             else
@@ -14510,13 +14589,13 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
     AND A.component_group = @Component
   AND A.cmf_request = 'cmf_ok'
   AND A.sysdebug LIKE '%customer_must_fix%'
-  AND A.status IN ('implemented','verified')
+    AND A.status IN ('implemented','verified','future')
 ORDER BY A.cmf_request desc";
             }
         }
 
         using (SqlConnection con = new SqlConnection(connectionString))
-        using (SqlCommand cmd = new SqlCommand(sql, con))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(sql, con))
         {
             if (requiresDriverParam)
             {
@@ -14581,7 +14660,7 @@ WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
 ORDER BY cp_id";
 
         using (SqlConnection con = new SqlConnection(connectionString))
-        using (SqlCommand cmd = new SqlCommand(sql, con))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(sql, con))
         using (SqlDataAdapter da = new SqlDataAdapter(cmd))
         {
             object driverParam = (driver != null) ? (object)driver.Trim() : (object)DBNull.Value;
@@ -14828,11 +14907,11 @@ ORDER BY cp_id";
 
             if (string.Equals(normalizedMetric, "open", StringComparison.OrdinalIgnoreCase))
             {
-                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) NOT IN ('complete', 'rejected', 'implemented') ");
+                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) NOT IN ('complete', 'rejected', 'implemented', 'future') ");
             }
             else if (string.Equals(normalizedMetric, "implemented", StringComparison.OrdinalIgnoreCase))
             {
-                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) = 'implemented' ");
+                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) IN ('implemented', 'future') ");
             }
             else if (string.Equals(normalizedMetric, "closed", StringComparison.OrdinalIgnoreCase))
             {
@@ -14896,7 +14975,7 @@ ORDER BY
 
         DataTable dt = new DataTable();
         using (SqlConnection con = new SqlConnection(ConnectionString))
-        using (SqlCommand cmd = new SqlCommand(sql.ToString(), con))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(sql.ToString(), con))
         using (SqlDataAdapter da = new SqlDataAdapter(cmd))
         {
             if (!includeAllOems)
@@ -15607,12 +15686,12 @@ SELECT
         WHEN SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END) = 0 THEN 'N/A'
         ELSE
             CAST(ROUND(
-                100.0 * SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected') THEN 1 ELSE 0 END)
+                100.0 * SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected', 'implemented', 'future') THEN 1 ELSE 0 END)
                 / NULLIF(SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END), 0),
                 1
             ) AS VARCHAR(20))
             + '% ('
-            + CAST(SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + CAST(SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected', 'implemented', 'future') THEN 1 ELSE 0 END) AS VARCHAR(20))
             + '/'
             + CAST(SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END) AS VARCHAR(20))
             + ')'
@@ -15727,7 +15806,7 @@ GROUP BY Component
 ORDER BY Total_CMF_Approved DESC";
 
             using (SqlConnection con = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand(overallQuery, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(overallQuery, con))
             using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
             {
                 System.Data.DataTable dt = new System.Data.DataTable();
@@ -15773,7 +15852,7 @@ ORDER BY Total_CMF_Approved DESC";
                                   ELSE CAST(ROUND(
                                       (SELECT CAST(COUNT(cp_id) AS FLOAT)
                                        FROM " + selectedPlatform + @"
-                                       WHERE status NOT IN('complete', 'rejected') AND cmf_request IN('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND component_group = A.component_group)
+                                       WHERE status NOT IN('complete', 'rejected', 'implemented', 'future') AND cmf_request IN('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND component_group = A.component_group)
                                       /
                                       (SELECT CAST(COUNT(cp_id) AS FLOAT)
                                        FROM " + selectedPlatform + @"
@@ -15781,7 +15860,7 @@ ORDER BY Total_CMF_Approved DESC";
                                       * 100.0, 1) AS VARCHAR)+ '%' +' (' +
                                       CAST((SELECT COUNT(cp_id)
                                             FROM " + selectedPlatform + @"
-                                            WHERE status NOT IN('complete', 'rejected') AND cmf_request IN('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND component_group = A.component_group) AS VARCHAR) +'/' +
+                                            WHERE status NOT IN('complete', 'rejected', 'implemented', 'future') AND cmf_request IN('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND component_group = A.component_group) AS VARCHAR) +'/' +
                                       CAST((SELECT COUNT(cp_id)
                                             FROM " + selectedPlatform + @"
                                             WHERE cmf_request IN ('cmf_ok') AND component_group = A.component_group AND sysdebug LIKE('%customer_must_fix%')) AS VARCHAR) +')'
@@ -15949,7 +16028,7 @@ ORDER BY Total_CMF_Approved DESC";
         using (SqlConnection con = new SqlConnection(connectionString))
         {
 
-            using (SqlCommand cmd = new SqlCommand(main_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(main_query, con))
 
             {
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
@@ -16006,12 +16085,12 @@ SELECT
         WHEN SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END) = 0 THEN 'N/A'
         ELSE
             CAST(ROUND(
-                100.0 * SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected') THEN 1 ELSE 0 END)
+                100.0 * SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected', 'implemented', 'future') THEN 1 ELSE 0 END)
                 / NULLIF(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END), 0),
                 1
             ) AS VARCHAR(20))
             + '% ('
-            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected', 'implemented', 'future') THEN 1 ELSE 0 END) AS VARCHAR(20))
             + '/'
             + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END) AS VARCHAR(20))
             + ')'
@@ -16125,7 +16204,7 @@ GROUP BY OEM
 ORDER BY Total_CMF_Approved DESC";
 
             using (SqlConnection con = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand(overallQuery, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(overallQuery, con))
             using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
             {
                 System.Data.DataTable dt = new System.Data.DataTable();
@@ -16169,7 +16248,7 @@ ORDER BY Total_CMF_Approved DESC";
                                   ELSE CAST(ROUND(
                                       (SELECT CAST(COUNT(cp_id) AS FLOAT)
                                        FROM " + selectedPlatform + @"
-                                       WHERE status NOT IN('complete', 'rejected') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_company = A.customer_company)
+                                       WHERE status NOT IN('complete', 'rejected', 'implemented', 'future') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_company = A.customer_company)
                                       /
                                       (SELECT CAST(COUNT(cp_id) AS FLOAT)
                                        FROM " + selectedPlatform + @"
@@ -16177,7 +16256,7 @@ ORDER BY Total_CMF_Approved DESC";
                                       * 100.0, 1) AS VARCHAR) + '%' +' (' +
                                       CAST((SELECT COUNT(cp_id)
                                             FROM " + selectedPlatform + @"
-                                            WHERE status NOT IN('complete', 'rejected') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_company = A.customer_company) AS VARCHAR) +'/' +
+                                            WHERE status NOT IN('complete', 'rejected', 'implemented', 'future') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_company = A.customer_company) AS VARCHAR) +'/' +
                                       CAST((SELECT COUNT(cp_id)
                                             FROM " + selectedPlatform + @"
                                             WHERE cmf_request IN('cmf_ok', 'cmf_duplicate') AND customer_company = A.customer_company AND sysdebug LIKE('%customer_must_fix%')) AS VARCHAR) +')'
@@ -16346,7 +16425,7 @@ ORDER BY Total_CMF_Approved DESC";
 
         using (SqlConnection con = new SqlConnection(connectionString))
         {
-            using (SqlCommand cmd = new SqlCommand(main_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(main_query, con))
             {
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
                 {
@@ -17494,7 +17573,7 @@ ORDER BY Total_CMF_Approved DESC";
 
             using (SqlConnection con = new SqlConnection(connectionString))
             {
-                using (SqlCommand cmd = new SqlCommand(alldriver_query, con))
+                using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(alldriver_query, con))
                 {
                     con.Open();
                     using (SqlDataReader reader = cmd.ExecuteReader())
@@ -17831,7 +17910,7 @@ ORDER BY Total_CMF_Approved DESC";
                 headerTitle.InnerText = WorkWeek + " | CMF Live Dashboard - All";
                 master_query += " WHERE status not in ('complete', 'rejected') Order by drivers";
             }
-            using (SqlCommand cmd = new SqlCommand(master_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(master_query, con))
             {
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
                 {
@@ -17876,7 +17955,7 @@ ORDER BY Total_CMF_Approved DESC";
                 main_query += "  WHERE drivers = @FilterValue ";
             }
 
-            using (SqlCommand cmd = new SqlCommand(main_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(main_query, con))
             {
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
                 {
@@ -17955,11 +18034,11 @@ ORDER BY Total_CMF_Approved DESC";
                 SUM(CASE WHEN cmf_request = 'cmf_ok' AND sysdebug Like ('%customer_must_fix%') THEN 1 ELSE 0 END) AS TotalCount,
                 SUM(CASE WHEN [cmf_request] = 'cmf_duplicate' AND sysdebug Like ('%customer_must_fix%') THEN 1 ELSE 0 END) AS Duplicates,
                 SUM(CASE WHEN cmf_request = 'cmf_ok' AND sysdebug Like ('%customer_must_fix%') AND ([status] = 'complete' OR [status] = 'rejected') THEN 1 ELSE 0 END) AS ClosedCount,
-                SUM(CASE WHEN cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] = 'implemented' THEN 1 ELSE 0 END) AS ImplementedCount,
+                SUM(CASE WHEN cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] IN ('implemented', 'future') THEN 1 ELSE 0 END) AS ImplementedCount,
                 STUFF((
                     SELECT ', ' + [component_group]
                     FROM " + selectedPlatform + @"
-                    WHERE cmf_request = 'cmf_ok' AND sysdebug Like ('%customer_must_fix%') AND [status] = 'implemented' 
+                    WHERE cmf_request = 'cmf_ok' AND sysdebug Like ('%customer_must_fix%') AND [status] IN ('implemented', 'future') 
                     FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '') AS ImplementedComponents
             FROM " + selectedPlatform;
 
@@ -17968,7 +18047,7 @@ ORDER BY Total_CMF_Approved DESC";
 
             // Fetch summary data
             System.Data.DataTable summaryTable = new System.Data.DataTable();
-            using (SqlCommand cmd = new SqlCommand(summaryQuery, conn))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(summaryQuery, conn))
             {
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 if (!string.IsNullOrEmpty(filtervalue) && filtervalue != "AllDrivers")
