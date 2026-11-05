@@ -25682,7 +25682,7 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 </script>
     <script src="Scripts/cmf-portal-main.js?v=20261103-title-actions"></script>
-    <script src="Scripts/cmf-dashboard-insights.js?v=5"></script>
+    <script src="Scripts/cmf-dashboard-insights.js?v=8"></script>
 
     <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261103-title-unhindered" />
     <link rel="stylesheet" href="Content/cmf-dashboard-insights.css?v=5" />

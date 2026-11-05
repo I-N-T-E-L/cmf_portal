@@ -109,11 +109,13 @@ public sealed class CmfSummaryTrend
 
 public static class CmfSummaryTrendService
 {
-    private static string BuildBalanceEvidenceSql(string sourceSql, bool includeMetadata)
+    private static string BuildBalanceEvidenceSql(string sourceSql, bool includeMetadata, bool includeInsightFields = false)
     {
         return @"
 WITH base AS (
-    SELECT " + (includeMetadata ? "cp_id, title, source_platform, component, component_group, promoted_id, merge_id, cmf_request, " : string.Empty) + @"status, TRY_CAST(date_cmf_ask AS date) AS ask_date,
+    SELECT " + (includeMetadata ? "cp_id, title, source_platform, component, component_group, promoted_id, merge_id, cmf_request, " : string.Empty)
+        + (includeInsightFields ? "processor, family, release, sysdebug_forum, sysdebug, closed_reason, submitted_date, must_fix_for, drivers, repro_on_rvp, idst, los, customer_company, customer_detail, customer_owner, " : string.Empty)
+        + @"status, TRY_CAST(date_cmf_ask AS date) AS ask_date,
         TRY_CAST(date_cmf_decided AS date) AS decided_date,
         TRY_CAST(implemented_date AS date) AS implemented_date,
         TRY_CAST(closed_date AS date) AS closed_date
@@ -140,9 +142,9 @@ WITH base AS (
 ";
     }
 
-    public static SqlCommand CreateBalanceEvidenceCommand(SqlConnection connection, string sourceSql, DateTime today)
+    public static SqlCommand CreateBalanceEvidenceCommand(SqlConnection connection, string sourceSql, DateTime today, bool includeInsightFields = false)
     {
-        var command = CmfPlatformCatalog.CreateReadCommand(BuildBalanceEvidenceSql(sourceSql, true) + "SELECT * FROM comparable", connection);
+        var command = CmfPlatformCatalog.CreateReadCommand(BuildBalanceEvidenceSql(sourceSql, true, includeInsightFields) + "SELECT * FROM comparable", connection);
         command.Parameters.Add("@cmfBalanceToday", SqlDbType.Date).Value = today.Date;
         return command;
     }

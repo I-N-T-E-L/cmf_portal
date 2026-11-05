@@ -168,10 +168,87 @@ test('AI Insights scope sits beside each heading at 13px without the acceptance-
         assert.match(state.host.innerHTML, /^<div class="ci-controls"><div class="ci-tabs"/);
         assert.match(state.host.innerHTML, /<\/button><\/div><div class="ci-toolbar"><span class="ai-summary-status-value ci-mode">/);
         state.pages = { highlights: { items: [] } };
-        state.data = { Scope: label, DateRange: 'All acceptance dates', Mode: 'evidence', Records: 0, DistinctIssues: 0, DuplicateRecords: 0, ExcludedRecords: 0, GeneratedAt: '2026-11-04T12:00:00Z', ExpiresAt: '2099-01-01T00:00:00Z', SourceStatus: 'Local records' };
+        state.data = { Scope: label, DateRange: 'All acceptance dates', Mode: 'ai', Records: 0, DistinctIssues: 0, DuplicateRecords: 0, ExcludedRecords: 0, GeneratedAt: '2026-11-04T12:00:00Z', ExpiresAt: '2099-01-01T00:00:00Z', SourceStatus: 'All returned text AI-reviewed' };
         context.draw(state);
         assert.equal(elements.get(hostId + 'Scope').textContent, label);
     }
+});
+
+test('AI Insights polls hybrid group review and never presents calculated groups as AI opinions', async () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    function harness(replies) {
+        const parts = new Map(['.ci-content', '.ci-mode', '.ci-time', '.ci-metadata', '.ci-provenance', '.ci-status', '.ci-refresh'].map(selector => [selector, {
+            textContent: '', innerHTML: 'old calculated content', attributes: {},
+            setAttribute(name, value) { this.attributes[name] = value; }
+        }]));
+        const state = { serial: 0, platform: 'CMF_NVL_H_ALL_COMPONENTS_TABLE', data: { Mode: 'evidence' },
+            host: { isConnected: true, querySelector: selector => parts.get(selector) } };
+        const requests = [], received = [], timers = new Map();
+        let nextTimer = 0;
+        const context = vm.createContext({
+            active: state, AbortController,
+            setTimeout(callback, delay) { const id = ++nextTimer; timers.set(id, { callback, delay }); return id; },
+            clearTimeout(id) { timers.delete(id); },
+            async fetch(url, options) {
+                requests.push({ url, body: JSON.parse(options.body), signal: options.signal });
+                const reply = replies.shift();
+                if (reply instanceof Error) throw reply;
+                assert.ok(reply, 'Unexpected extra request');
+                return { ok: true, async json() { return { d: reply }; } };
+            },
+            receive(target, data) { assert.equal(data.Mode, 'ai'); received.push(data); target.data = data; },
+            draw(target) { parts.get('.ci-content').innerHTML = 'AI result: ' + target.data.Highlights[0].Title; }
+        });
+        for (const name of ['request', 'status', 'load']) {
+            const definition = script.match(new RegExp('    function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n    \\}'));
+            assert.ok(definition);
+            vm.runInContext(definition[0], context);
+        }
+        return { context, state, parts, requests, received, timers };
+    }
+    const source = { Success: true, Mode: 'ai-loading', EvidenceKey: 'opaque', Records: 12, DistinctIssues: 11, CandidateCount: 6, ReviewedCandidates: 0, Highlights: [] };
+    const complete = { Success: true, Mode: 'ai', Message: 'AI review complete.', Highlights: [{ Title: 'Technical pattern' }] };
+    const running = harness([source, { ...source, ReviewedCandidates: 2, Message: 'AI reviewed 2/6 ranked groups.' }, complete]);
+    running.context.load(running.state, true);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(running.received.length, 0);
+    assert.equal(running.parts.get('.ci-content').innerHTML, '');
+    assert.equal(running.parts.get('.ci-mode').textContent, 'Analyzing');
+    assert.match(running.parts.get('.ci-metadata').textContent, /6 ranked groups \| 2 reviewed/);
+    assert.equal(running.requests.length, 2, 'An empty pre-AI highlights list must not skip the AI pipeline');
+    assert.deepEqual(running.requests[1].body, { evidenceKey: 'opaque', refresh: true });
+    const poll = Array.from(running.timers.values()).find(timer => timer.delay === 3000);
+    assert.ok(poll, 'Long analysis must poll without a total elapsed-time cutoff');
+    poll.callback();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(running.received.length, 1);
+    assert.equal(running.requests[2].body.refresh, false);
+    assert.match(running.parts.get('.ci-content').innerHTML, /Technical pattern/);
+    for (const failure of [new Error('Network unavailable.'), { Success: false, Mode: 'ai-unavailable', Message: 'AI analysis could not complete.' }]) {
+        const unavailable = harness([source, failure]);
+        unavailable.context.load(unavailable.state, false);
+        await new Promise(resolve => setImmediate(resolve));
+        assert.equal(unavailable.received.length, 0);
+        assert.equal(unavailable.parts.get('.ci-mode').textContent, 'Unavailable');
+        assert.equal(unavailable.parts.get('.ci-content').attributes['aria-busy'], 'false');
+        assert.doesNotMatch(unavailable.parts.get('.ci-content').innerHTML, /old calculated content|Technical pattern/);
+        assert.equal(unavailable.parts.get('.ci-refresh').disabled, false);
+    }
+    assert.doesNotMatch(script, /Calculated|Showing calculated|calculated evidence is available/);
+});
+
+test('hybrid Insights warms all platforms, preserves source evidence, and derives Overall without raw HSD analysis', () => {
+    assert.match(server, /WarmPlatforms\(CmfPlatformCatalog\.GetAllPlatformTables\(\), LoadDashboardInsightEvidence\)/);
+    assert.match(server, /GetSummaryIssueSourceTablesForWeb\(selection\)/);
+    assert.match(server, /evidence\.PlatformEvidence\.Add\(platformEvidence\)/);
+    assert.match(server, /cmf-insight-result:/);
+    assert.match(server, /new\[\] \{ "processor", "family", "release", "sysdebug_forum" \}/);
+    const service = fs.readFileSync(path.join(root, 'App_Code', 'CmfDashboardInsightsService.cs'), 'utf8');
+    assert.match(service, /new SemaphoreSlim\(2\)/);
+    assert.match(service, /evidence\.PlatformEvidence == null[\s\S]*?AnalyzeHybrid[\s\S]*?: AnalyzeRollup/);
+    const rollup = service.match(/    public static CmfDashboardInsights AnalyzeRollup\([\s\S]*?\r?\n    \}/)[0];
+    assert.doesNotMatch(rollup, /FetchArticle|AnalyzeHybrid|\.Documents/);
+    assert.match(rollup, /platform\.Highlights/);
 });
 
 test('AI Insights findings reuse the shared assistant sections without changing evidence or links', () => {
@@ -198,6 +275,10 @@ test('AI Insights findings reuse the shared assistant sections without changing 
     assert.match(markup, /href="https:\/\/hsdes\.intel\.com\/resource\/14012345679"/);
     assert.match(markup, /Example &lt;title&gt;/);
     assert.match(context.findings([], 'No findings.'), /class="ci-empty">No findings\./);
+    const rollup = context.findings([{ Title: 'Platform-derived trait', Evidence: 'Cached platform opinions.', Action: 'Review sources.',
+        DistinctIssues: 2, Occurrences: 99, PlatformCount: 2, SourceInsightIds: ['source'], Issues: [] }], 'No findings.');
+    assert.match(rollup, /2 distinct linked HSDs/);
+    assert.doesNotMatch(rollup, /99 record occurrence/);
     assert.match(styles, /\.ci-controls\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) auto;/);
     assert.match(styles, /\.ci-status:empty\s*\{\s*display: none;/);
     assert.match(styles, /\.ci-footer\s*\{[^}]*display: flex;[^}]*flex-wrap: wrap;/);
