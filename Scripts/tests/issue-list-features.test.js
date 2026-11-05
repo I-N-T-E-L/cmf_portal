@@ -17,25 +17,23 @@ test('Issue List preserves the reference column order with separate promoted fie
         return Array.from(grid.matchAll(/HeaderStyle-CssClass="(field-[^"]+)"/g), match => match[1]);
     }
     const old = fs.readFileSync(path.join(root, 'others', 'test_scripts', 'CMF_Web_portal_old.aspx'), 'utf8');
-    const expected = fields(old).filter(name => name !== 'field-edit_column');
+    const expected = ['field-actions', ...fields(old).filter(name => name !== 'field-edit_column')];
     const actual = fields(page).map(name => name === 'field-impact_processor' ? 'field-impact' : name);
     assert.deepEqual(actual, expected);
     assert.doesNotMatch(page, /HeaderText="Promoted ID \/ Owner"/);
     assert.equal((page.match(/id="issueColumnPicker"/g) || []).length, 1);
 });
 
-test('Issue List actions live beneath Title with hover/focus labels and existing edit commands', () => {
+test('Issue List actions live in sticky Actions column with existing edit commands', () => {
     const grid = page.match(/<asp:GridView ID="overall_request_details"[\s\S]*?<\/asp:GridView>/)[0];
-    const title = grid.match(/<asp:TemplateField HeaderText="Title"[\s\S]*?<\/asp:TemplateField>/)[0];
-    assert.doesNotMatch(grid, /HeaderText="Actions"|issue-row-actions-menu/);
-    assert.match(title, /runIssueRowAiAction\(this, 'debug'\)/);
-    assert.match(title, /runIssueRowAiAction\(this, 'details'\)/);
-    for (const command of ['Edit', 'Update', 'Cancel']) assert.ok(title.includes('CommandName="' + command + '"'));
-    assert.match(title, /CssClass="issue-title-text"/);
-    assert.match(theme, /td\.field-title\s*\{[\s\S]*?display:\s*flex/);
-    assert.match(theme, /\.issue-title-text\s*\{[\s\S]*?margin:\s*auto 0/);
-    assert.doesNotMatch(theme, /\.issue-title-actions\s*\{[\s\S]*?border-top:\s*1px solid/);
-    assert.match(theme, /\.issue-title-action:is\(:hover, :focus\) \.issue-action-label/);
+    const actionsCol = grid.match(/<asp:TemplateField HeaderText="Actions"[\s\S]*?<\/asp:TemplateField>/)[0];
+    assert.match(actionsCol, /runIssueRowAiAction\(this, 'debug'\)/);
+    assert.match(actionsCol, /runIssueRowAiAction\(this, 'details'\)/);
+    for (const command of ['Edit', 'Update', 'Cancel']) assert.ok(actionsCol.includes('CommandName="' + command + '"'));
+    assert.match(theme, /th\.field-actions\s*\{[\s\S]*?position:\s*sticky/);
+    assert.match(theme, /td\.field-actions\s*\{[\s\S]*?position:\s*sticky/);
+    assert.match(theme, /th\.field-actions\s*\{[\s\S]*?left:\s*0/);
+    assert.match(theme, /td\.field-actions\s*\{[\s\S]*?left:\s*0/);
     const main = fs.readFileSync(path.join(root, 'Scripts', 'cmf-portal-main.js'), 'utf8');
     const action = main.match(/function runIssueRowAiAction\([^)]*\) \{[\s\S]*?\r?\n\}/)[0];
     const clicks = [];

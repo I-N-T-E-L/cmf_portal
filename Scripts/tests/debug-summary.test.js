@@ -15,7 +15,7 @@ function createSummaryDrawer(response, mode = 'AI Debug Summary', history) {
         innerHTML: '', textContent: '', className: '', style: { display: 'none' }
     }]));
     const messages = [];
-    const key = '123_' + mode + '_debug-recent-v12';
+    const key = '123_' + mode + '_debug-recent-v14';
     const context = vm.createContext({
         document: { getElementById: id => elements.get(id) },
         window: { _aiChatStore: history ? { [key]: history } : {} },
@@ -131,7 +131,7 @@ test('debug generation and follow-ups bypass shared forum context without changi
     assert.match(context, /if \(!forDebugSummary\) AppendSummaryContextLine\(builder, "Sysdebug"/);
     assert.match(server, /GenerateFollowUpResponse\(request, question \?\? string.Empty, forDebugSummary\)/);
     const service = fs.readFileSync(path.join(__dirname, '..', '..', 'App_Code', 'AiSummaryService.cs'), 'utf8');
-    assert.match(service, /ConversationStore\["debug-recent-v12:" \+ issueId\]/);
+    assert.match(service, /ConversationStore\["debug-recent-v14:" \+ issueId\]/);
     assert.match(service, /HsdPortalService.FetchArticle\(issueId, forDebugSummary\)/);
     assert.match(service, /HsdPortalService.FetchArticle\(pid, forDebugSummary\)/);
 });

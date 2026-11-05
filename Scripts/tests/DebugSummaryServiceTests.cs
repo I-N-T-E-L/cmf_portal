@@ -27,8 +27,8 @@ public static class DebugSummaryServiceTests
         foreach (string invalid in new[] {
             "", "A paragraph.", "**Issue Summary**\n- Test result.",
             "- **Risk Assessment**: High.", "- # Heading", "- ",
-            "- One.\n- Two.\n- Three.\n- Four.\n- Five.",
-            "- " + string.Join(" ", new string[101]).Replace(" ", "word ") + "word"
+            "- One.\n- Two.\n- Three.\n- Four.\n- Five.\n- Six.",
+            "- " + string.Join(" ", new string[151]).Replace(" ", "word ") + "word"
         })
         {
             Check(!(bool)Invoke("TryNormalizeDebugSummary", new object[] { invalid, null }),
@@ -54,8 +54,8 @@ public static class DebugSummaryServiceTests
             "Undated activity can be presented as the latest.");
         Check(prompt.Contains("layman can easily comprehend") && prompt.Contains("explain their meaning or practical purpose in plain words"),
             "Layman-friendly guidance or technical term explanations were omitted.");
-        Check(prompt.Contains("most recent debugging") && prompt.Contains("no more than 100 words"),
-            "The update is not recent and brief.");
+        Check(prompt.Contains("most recent debugging") && prompt.Contains("debug suggestions"),
+            "The update does not include debug suggestions.");
         Check(prompt.Contains("existing sysdebug_forum field is excluded"), "Forum exclusion was omitted.");
         Check(!prompt.Contains("Sysdebug: category"), "The debug category leaked into the evidence prompt.");
         Check(!prompt.Contains("**Risk Assessment**") && !prompt.Contains("**Decision Impact**"),

@@ -1712,6 +1712,110 @@ body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td 
     word-break: normal !important;
 }
 
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-actions {
+    --issue-column-width: 46px;
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+    padding: 6px 2px !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.field-actions {
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 40 !important;
+    background: #edf1f7 !important;
+    border-right: 1px solid #cbd5e1 !important;
+    font-size: 10px !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.field-actions {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 25 !important;
+    background-color: #ffffff !important;
+    border-right: 1px solid #cbd5e1 !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary tr:nth-child(even) td.field-actions {
+    background-color: #fafbfe !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary tr:hover td.field-actions {
+    background-color: #f0f4f9 !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-actions::after {
+    content: "" !important;
+    position: absolute !important;
+    top: -1px !important;
+    bottom: -1px !important;
+    right: 0 !important;
+    width: 2px !important;
+    background: #cbd5e1 !important;
+    box-shadow: 2px 0 5px rgba(15, 23, 42, 0.08) !important;
+    pointer-events: none !important;
+}
+
+body #issueTabShell #overall_request_details .issue-actions-cell {
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    width: 100% !important;
+}
+
+body #issueTabShell #overall_request_details .issue-action-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 22px !important;
+    min-width: 22px !important;
+    height: 22px !important;
+    padding: 0 !important;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    background: #f8fafc;
+    color: #375472;
+    cursor: pointer;
+    text-decoration: none !important;
+    font-size: 11px !important;
+    line-height: 1 !important;
+    transition: background .12s, color .12s, border-color .12s;
+}
+
+body #issueTabShell #overall_request_details .issue-action-btn.action-debug:hover {
+    background: #eef6ff !important;
+    color: #0071c5 !important;
+    border-color: #7cb5ec !important;
+}
+
+body #issueTabShell #overall_request_details .issue-action-btn.action-details:hover {
+    background: #f0fdf4 !important;
+    color: #15803d !important;
+    border-color: #86efac !important;
+}
+
+body #issueTabShell #overall_request_details .issue-action-btn.action-edit:hover {
+    background: #fffbeb !important;
+    color: #b45309 !important;
+    border-color: #fde68a !important;
+}
+
+body #issueTabShell #overall_request_details .issue-action-btn.action-save {
+    background: #ecfdf3 !important;
+    color: #15803d !important;
+    border-color: #86efac !important;
+}
+
+body #issueTabShell #overall_request_details .issue-action-btn.action-cancel {
+    background: #fff1f2 !important;
+    color: #be123c !important;
+    border-color: #fecdd3 !important;
+}
+
 body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-sno {
     --issue-column-width: 52px;
 }
@@ -1724,12 +1828,71 @@ body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is
     --issue-column-width: 88px;
 }
 
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-sightingid {
+    --issue-column-width: 95px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-promotedid {
+    --issue-column-width: 95px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-customer_detail {
+    --issue-column-width: 120px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-duplicatedetails {
+    --issue-column-width: 120px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-customer_company {
+    --issue-column-width: 85px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-component {
+    --issue-column-width: 130px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-component_group {
+    --issue-column-width: 95px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-owner {
+    --issue-column-width: 110px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-promoted_owner {
+    --issue-column-width: 110px;
+}
+
 body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td):is(.field-rvp_repro, .field-imagefreeze) {
+    --issue-column-width: 75px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-status {
+    --issue-column-width: 140px;
+    width: 140px !important;
+    min-width: 140px !important;
+    max-width: 140px !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-idst {
+    --issue-column-width: 85px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-processor {
     --issue-column-width: 80px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-impact_processor {
+    --issue-column-width: 120px;
 }
 
 body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-days_open {
     --issue-column-width: 72px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-closed_reason {
+    --issue-column-width: 130px;
 }
 
 body #issueTabShell #overall_request_details .issue-sno-index {
@@ -1758,15 +1921,17 @@ body #issueTabShell #overall_request_details .issue-inline-edit-actions {
 
 body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.field-los,
 body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.field-los {
-    width: 60px !important;
-    min-width: 60px !important;
-    max-width: 60px !important;
+    --issue-column-width: 88px;
+    width: 88px !important;
+    min-width: 88px !important;
+    max-width: 88px !important;
 }
 
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td):is(.field-title, .field-status) {
-    width: 400px !important;
-    min-width: 400px !important;
-    max-width: 400px !important;
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-title {
+    --issue-column-width: 260px;
+    width: 260px !important;
+    min-width: 260px !important;
+    max-width: 260px !important;
 }
 
 body #issueTabShell #overall_request_details :is(.field-title, .field-status) :is(.pending-cell-text, .status-one-line) {
@@ -2041,35 +2206,15 @@ body #issueTabShell #overall_request_details :is(.field-sightingid, .field-statu
 }
 
 body #issueTabShell #overall_request_details td.field-title {
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    text-align: center !important;
-    height: 100% !important;
-    box-sizing: border-box !important;
     vertical-align: middle !important;
+    text-align: center !important;
 }
 
 body #issueTabShell #overall_request_details .issue-title-text {
     display: block;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    flex-grow: 0;
-    margin: auto 0;
     text-align: center;
-    width: 100%;
-}
-
-body #issueTabShell #overall_request_details .issue-title-actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    margin-top: 0;
-    margin-bottom: 0;
-    padding-top: 0;
-    border-top: none !important;
     width: 100%;
 }
 
@@ -2378,4 +2523,82 @@ body a:focus-visible {
     body .issue-kpi-row {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
+}
+
+/* AI Debug Summary & Actionable Suggestions Modern Styling */
+.debug-summary-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.debug-findings-list {
+    margin: 0;
+    padding-left: 18px;
+    color: #1a202c;
+    line-height: 1.55;
+    font-size: 13px;
+}
+
+.debug-findings-list li {
+    margin-bottom: 8px;
+}
+
+.debug-suggestions-card {
+    background: linear-gradient(135deg, rgba(238, 246, 255, 0.95) 0%, rgba(240, 253, 250, 0.95) 100%);
+    border: 1px solid #bfdbfe;
+    border-left: 4px solid #0284c7;
+    border-radius: 8px;
+    padding: 12px 14px;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.08);
+}
+
+.debug-suggestions-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.debug-suggestions-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #0369a1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.debug-suggestions-badge i {
+    color: #f59e0b;
+    font-size: 13px;
+}
+
+.debug-suggestions-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.debug-suggestion-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #0f172a;
+}
+
+.debug-suggestion-bullet {
+    color: #0284c7;
+    font-size: 13px;
+    font-weight: bold;
+    flex-shrink: 0;
+    line-height: 1.4;
+}
+
+.debug-suggestion-text {
+    flex: 1;
 }

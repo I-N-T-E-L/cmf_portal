@@ -16501,7 +16501,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 // Chat-first UI: hide the standalone body and render the summary as the first assistant message
                 if (!window._aiChatStore) window._aiChatStore = {}; // issueId => [{role,text}, ...]
                 window._aiCurrentIssueId = (payload.issueId || '') + '_' + (payload.mode || 'AI Debug Summary')
-                    + (isDebugSummary ? '_debug-recent-v12' : '');
+                    + (isDebugSummary ? '_debug-recent-v14' : '');
 
                 var chat = document.getElementById('aiSummaryChat');
                 var messages = document.getElementById('aiSummaryChatMessages');
@@ -16512,7 +16512,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
                     // If we have stored conversation for this issue, render it; otherwise seed with summary
                     var hist = window._aiChatStore[window._aiCurrentIssueId];
-                    if (isDebugSummary && hist && hist.length && hist[0].role === 'assistant') {
+                    if (hist && hist.length && hist[0].role === 'assistant') {
                         hist[0].text = assistantSummary;
                     }
                     messages.innerHTML = '';
@@ -16542,6 +16542,64 @@ td:nth-child(odd), th:nth-child(odd) {
                 bodyNode.innerHTML = 'Error while calling summary service. <a href="#" onclick="regenerateAiSummary(); return false;" style="color:var(--portal-primary); text-decoration:underline;">↻ Retry</a>';
                 bodyNode.className = 'ai-summary-body';
             });
+        }
+
+        function formatDebugSummaryBullets(rawText) {
+            var text = String(rawText || '').trim();
+            if (!/^\s*[-*•]/m.test(text)) {
+                return renderMarkdown(escapeHtml(text).replace(/\n/g, '\n'));
+            }
+
+            var lines = text.split('\n');
+            var findings = [];
+            var suggestions = [];
+
+            lines.forEach(function (rawLine) {
+                var line = rawLine.replace(/^\s*[-*•]\s*/, '').trim();
+                if (!line) return;
+                var isSuggestion = /^(?:\[(?:debug\s+)?suggestion\]|suggestion\s*:|recommended(?:\s+next\s+step)?\s*:|next\s+step\s*:)/i.test(line) ||
+                    (/^(?:complete|test|verify|run|check|isolate|proceed|try)\b/i.test(line) && (findings.length >= 2 || suggestions.length > 0));
+
+                if (isSuggestion) {
+                    var clean = line.replace(/^(?:\[(?:debug\s+)?suggestion\]|suggestion\s*:|recommended(?:\s+next\s+step)?\s*:|next\s+step\s*:)\s*/i, '').trim();
+                    suggestions.push(clean);
+                } else {
+                    findings.push(line);
+                }
+            });
+
+            if (suggestions.length === 0 && findings.length > 2) {
+                var last = findings[findings.length - 1];
+                if (/^(?:complete|test|verify|run|check|isolate|try|investigate|ensure)\b/i.test(last)) {
+                    suggestions.unshift(findings.pop());
+                }
+            }
+
+            var html = '<div class="debug-summary-wrapper">';
+            if (findings.length > 0) {
+                html += '<div class="debug-findings-block"><ul class="debug-findings-list">';
+                findings.forEach(function (f) {
+                    html += '<li>' + escapeHtml(f) + '</li>';
+                });
+                html += '</ul></div>';
+            }
+
+            if (suggestions.length > 0) {
+                html += '<div class="debug-suggestions-card">';
+                html += '<div class="debug-suggestions-header">';
+                html += '<span class="debug-suggestions-badge"><i class="fas fa-lightbulb" aria-hidden="true"></i> Actionable Debug Suggestions</span>';
+                html += '</div>';
+                html += '<div class="debug-suggestions-body">';
+                suggestions.forEach(function (s) {
+                    html += '<div class="debug-suggestion-item">';
+                    html += '<span class="debug-suggestion-bullet">➜</span>';
+                    html += '<div class="debug-suggestion-text">' + escapeHtml(s) + '</div>';
+                    html += '</div>';
+                });
+                html += '</div></div>';
+            }
+            html += '</div>';
+            return html;
         }
 
         function prepareIssueDetailsForDrawer(summary) {
@@ -16691,13 +16749,15 @@ td:nth-child(odd), th:nth-child(odd) {
             // Check if text already contains our injected structured HTML wrappers (e.g. from prepareIssueDetailsForDrawer)
             if (text.indexOf('class="issue-details-grid"') > -1) {
                 inner.innerHTML = text; // Inject raw HTML
+            } else if (window._aiSummaryLastPayload && (window._aiSummaryLastPayload.mode === 'AI Debug Summary' || window._aiSummaryLastPayload.mode === 'AI Summary')) {
+                inner.innerHTML = formatDebugSummaryBullets(text);
             } else {
                 inner.innerHTML = renderMarkdown(escapeHtml(text).replace(/\n/g, '\n'));
             }
 
             if (role === 'assistant' && window._aiSummaryLastPayload) {
                 var isAI_IssueDetails = window._aiSummaryLastPayload.mode === 'AI issue details';
-                var isAI_Summary = window._aiSummaryLastPayload.mode === 'AI Summary';
+                var isAI_Summary = window._aiSummaryLastPayload.mode === 'AI Summary' || window._aiSummaryLastPayload.mode === 'AI Debug Summary';
 
                 if (isAI_IssueDetails || isAI_Summary) {
                     var actionRibbon = document.createElement('div');
@@ -22874,8 +22934,9 @@ td:nth-child(odd), th:nth-child(odd) {
                 if (!layout || !Array.isArray(layout.order) || !Array.isArray(layout.hidden)) {
                     throw new TypeError('Invalid column layout.');
                 }
+                var combinedOrder = Array.from(new Set(layout.order.concat(fields))).filter(function (field) { return fields.indexOf(field) >= 0; });
                 return {
-                    order: Array.from(new Set(layout.order.concat(fields))).filter(function (field) { return fields.indexOf(field) >= 0; }),
+                    order: combinedOrder,
                     hidden: Array.from(new Set(layout.hidden)).filter(function (field) { return fields.indexOf(field) >= 0; })
                 };
             } catch (error) {
@@ -25688,7 +25749,7 @@ td:nth-child(odd), th:nth-child(odd) {
     <script src="Scripts/cmf-portal-main.js?v=20261103-title-actions"></script>
     <script src="Scripts/cmf-dashboard-insights.js?v=5"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261103-title-unhindered" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261104-vertical-actions" />
     <link rel="stylesheet" href="Content/cmf-dashboard-insights.css?v=5" />
 
 </head>
@@ -26659,6 +26720,23 @@ Submit
 
     <Columns>
 
+        <asp:TemplateField HeaderText="Actions" ItemStyle-CssClass="field-actions" HeaderStyle-CssClass="field-actions">
+            <HeaderTemplate>Actions</HeaderTemplate>
+            <ItemTemplate>
+                <div class="issue-actions-cell" role="group" aria-label="Issue actions">
+                    <button type="button" class="issue-action-btn action-debug" onclick="runIssueRowAiAction(this, 'debug')" title="AI Debug Summary" aria-label="AI Debug Summary"><span aria-hidden="true">&#10024;</span></button>
+                    <button type="button" class="issue-action-btn action-details" onclick="runIssueRowAiAction(this, 'details')" title="AI Issue Details" aria-label="AI Issue Details"><i class="fas fa-file-alt" aria-hidden="true"></i></button>
+                    <asp:LinkButton ID="btnRowEdit" runat="server" CommandName="Edit" CausesValidation="false" CssClass="issue-action-btn action-edit" ToolTip="Edit row" aria-label="Edit row"><i class="fas fa-pencil-alt" aria-hidden="true"></i></asp:LinkButton>
+                </div>
+            </ItemTemplate>
+            <EditItemTemplate>
+                <div class="issue-actions-cell" role="group" aria-label="Edit actions">
+                    <asp:LinkButton ID="btnRowUpdate" runat="server" CommandName="Update" CssClass="issue-action-btn action-save" ToolTip="Save changes" aria-label="Save changes"><i class="fas fa-check" aria-hidden="true"></i></asp:LinkButton>
+                    <asp:LinkButton ID="btnRowCancel" runat="server" CommandName="Cancel" CausesValidation="false" CssClass="issue-action-btn action-cancel" ToolTip="Cancel edit" aria-label="Cancel edit"><i class="fas fa-times" aria-hidden="true"></i></asp:LinkButton>
+                </div>
+            </EditItemTemplate>
+        </asp:TemplateField>
+
         <asp:TemplateField HeaderText="S.No" ItemStyle-CssClass="field-sno" HeaderStyle-CssClass="field-sno">
             <ItemTemplate><%# Container.DataItemIndex + 1 %></ItemTemplate>
         </asp:TemplateField>
@@ -26740,18 +26818,9 @@ Submit
         <asp:TemplateField HeaderText="Title" ItemStyle-CssClass="field-title" HeaderStyle-CssClass="field-title">
             <ItemTemplate>
                 <asp:Label ID="lblIssueTitle" runat="server" CssClass="issue-title-text" Text='<%# HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(Convert.ToString(Eval("title"))) ? "unknown" : Convert.ToString(Eval("title"))) %>' />
-                <div class="issue-title-actions" role="group" aria-label="Issue actions">
-                    <button type="button" class="issue-title-action" onclick="runIssueRowAiAction(this, 'debug')" aria-label="AI Debug Summary"><span aria-hidden="true">&#10024;</span><span class="issue-action-label">AI Debug Summary</span></button>
-                    <button type="button" class="issue-title-action" onclick="runIssueRowAiAction(this, 'details')" aria-label="AI Issue Details"><i class="fas fa-file-alt" aria-hidden="true"></i><span class="issue-action-label">AI Issue Details</span></button>
-                    <asp:LinkButton ID="btnRowEdit" runat="server" CommandName="Edit" CausesValidation="false" CssClass="issue-title-action" aria-label="Edit"><i class="fas fa-pencil-alt" aria-hidden="true"></i><span class="issue-action-label">Edit</span></asp:LinkButton>
-                </div>
             </ItemTemplate>
             <EditItemTemplate>
                 <asp:Label ID="lblIssueTitle" runat="server" CssClass="issue-title-text" Text='<%# HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(Convert.ToString(Eval("title"))) ? "unknown" : Convert.ToString(Eval("title"))) %>' />
-                <div class="issue-title-actions" role="group" aria-label="Edit actions">
-                    <asp:LinkButton ID="btnRowUpdate" runat="server" CommandName="Update" CssClass="issue-title-action" aria-label="Save changes"><i class="fas fa-check" aria-hidden="true"></i><span class="issue-action-label">Save changes</span></asp:LinkButton>
-                    <asp:LinkButton ID="btnRowCancel" runat="server" CommandName="Cancel" CausesValidation="false" CssClass="issue-title-action" aria-label="Cancel edit"><i class="fas fa-times" aria-hidden="true"></i><span class="issue-action-label">Cancel edit</span></asp:LinkButton>
-                </div>
             </EditItemTemplate>
         </asp:TemplateField>
 
@@ -26850,8 +26919,6 @@ Submit
                     </div>
                 </div>
             </HeaderTemplate>
-            <ItemStyle Width="100px" />
-            <HeaderStyle Width="100px" />
             <ItemTemplate><span class="los-column"><%# Eval("los") %></span></ItemTemplate>
             <EditItemTemplate>
                 <asp:DropDownList ID="ddllos" runat="server" CssClass="form-control"></asp:DropDownList>

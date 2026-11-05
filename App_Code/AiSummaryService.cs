@@ -184,7 +184,7 @@ public static class AiSummaryService
         contextDetails = EnrichContextWithHsdArticles(issueId, contextDetails, true);
 
         int confidence = CalculateSummaryConfidence(status, sysdebug, contextDetails);
-        string hash = ComputeHash("summary-debug-recent-v12|" + GetAiProviderCacheSignature() + "|" + issueId + "|" + title + "|" + submittedDate + "|" + status + "|" + contextDetails);
+        string hash = ComputeHash("summary-debug-recent-v14|" + GetAiProviderCacheSignature() + "|" + issueId + "|" + title + "|" + submittedDate + "|" + status + "|" + contextDetails);
         string cacheKey = "ai-summary:" + hash;
 
         AiSummaryResponse cached = TryGetCached(cacheKey);
@@ -230,7 +230,7 @@ public static class AiSummaryService
             {
                 lock (CacheSync)
                 {
-                    ConversationStore["debug-recent-v12:" + issueId] = concise;
+                    ConversationStore["debug-recent-v14:" + issueId] = concise;
                 }
             }
         }
@@ -251,7 +251,7 @@ public static class AiSummaryService
             UsedFallback = false
         };
 
-        SetCached(cacheKey, result, DateTime.UtcNow.AddMinutes(30));
+        SetCached(cacheKey, result, DateTime.UtcNow.AddMinutes(5));
         return result;
     }
 
@@ -270,7 +270,7 @@ public static class AiSummaryService
         string status = SafeText(request.Status);
         string sysdebug = forDebugSummary ? string.Empty : SafeText(request.Sysdebug);
         string contextDetails = SafeText(request.ContextDetails);
-        string conversationKey = forDebugSummary ? "debug-recent-v12:" + issueId : issueId;
+        string conversationKey = forDebugSummary ? "debug-recent-v14:" + issueId : issueId;
 
         if (forDebugSummary)
         {
@@ -344,7 +344,7 @@ public static class AiSummaryService
         {
             b.AppendLine("You are an assistant strictly for this specific sighting only (Sighting ID: " + issueId + "). You must strictly answer questions only related to this particular selected sighting. If the user asks questions unrelated to this sighting or asks about other sightings, politely decline and state that you can only answer questions related to sighting " + issueId + ".");
             b.AppendLine("All fetched information must be reported accurately without any manipulation, fabrication, or guessing. Never combine, merge, or modify first and last names, and never combine an alias with another person's name. When asked about the owner, author, or engineer of recent debug activity, identify the exact name, username, or alias as documented in the source evidence (such as the update author, mentioned engineer, or ticket owner) and state their documented role accurately.");
-            b.AppendLine("Help draft or answer questions about recent documented engineering activity. Never use the existing sysdebug_forum field or its previous summaries as evidence. Current source evidence takes precedence over the previous assistant response. Distinguish planned tests from completed tests and suspected causes from confirmed causes. Write in simple, natural English that a layman can easily understand, explaining technical terms or parameters in plain words. Keep the response concise, at most 100 words, technically accurate, and grammatically correct. Do not add unsolicited source-coverage disclaimers or commentary about retrieval, missing history, or the feature itself. Answer direct questions about available evidence honestly.");
+            b.AppendLine("Help draft or answer questions about recent documented engineering activity and provide valuable, relevant debug suggestions when asked. Never use the existing sysdebug_forum field or its previous summaries as evidence. Current source evidence takes precedence over the previous assistant response. Distinguish planned tests from completed tests and suspected causes from confirmed causes. Write in simple, natural English that a layman can easily understand, explaining technical terms or parameters in plain words. Keep the response concise, at most 120 words, technically accurate, and grammatically correct. Do not add unsolicited source-coverage disclaimers or commentary about retrieval, missing history, or the feature itself. Answer direct questions about available evidence honestly.");
         }
         b.AppendLine();
         b.AppendLine("Ticket metadata:");
@@ -426,7 +426,7 @@ public static class AiSummaryService
         {
         }
         int confidence = CalculateSummaryConfidence(status, sysdebug, contextDetails);
-        string hash = ComputeHash("issue-details-context-brief-live-v7|" + GetAiProviderCacheSignature() + "|" + issueId + "|" + title + "|" + submittedDate + "|" + status + "|" + sysdebug + "|" + contextDetails);
+        string hash = ComputeHash("issue-details-context-brief-live-v8|" + GetAiProviderCacheSignature() + "|" + issueId + "|" + title + "|" + submittedDate + "|" + status + "|" + sysdebug + "|" + contextDetails);
         string cacheKey = "ai-issue-details:" + hash;
 
         AiSummaryResponse cached = TryGetCached(cacheKey);
@@ -465,7 +465,7 @@ public static class AiSummaryService
             UsedFallback = !hasModelDetails
         };
 
-        SetCached(cacheKey, result, DateTime.UtcNow.AddMinutes(30));
+        SetCached(cacheKey, result, DateTime.UtcNow.AddMinutes(5));
         return result;
     }
 
@@ -996,13 +996,13 @@ public static class AiSummaryService
         builder.AppendLine("- Do not infer debugging, log analysis, root cause, or resolution from the title, sysdebug category, priority, attachment name, or presence of an attachment. Attachment contents are not available unless explicitly supplied.");
         builder.AppendLine("- If no debugging activity is documented in the supplied information, say 'No debugging activity is documented in the available HSD information.' Do not fill the gap with generic advice.");
         builder.AppendLine("- Use source-coverage and retrieval notes only to constrain factual claims internally. Do not turn them into summary bullets or closing remarks. Do not claim all HSD history was reviewed or that undocumented debugging did not occur.");
-        builder.AppendLine("- Do not recommend closure, escalation, risk ratings, owner actions, or new debug steps. A pending test may be mentioned only if it is explicitly recorded in HSD.");
+        builder.AppendLine("- After summarizing recent debug activity, provide 1-2 valuable, relevant, and adaptive debug suggestions based on the documented findings and test outcomes (for example, specific parameters or timing margins to check, next test conditions, firmware configurations to isolate, or stress duration), prefixing each suggestion bullet with '[Suggestion]' (for example: '- [Suggestion] Complete the test...').");
         builder.AppendLine("- Omit metadata-only bullets, author names, raw history-entry identifiers, kit/link identifiers, and long lists of missing artifacts. Include a version or measurement only when it explains a test or finding.");
         builder.AppendLine("- Combine repeated reproduction evidence into one point. If debugging is documented but incomplete, state the remaining uncertainty briefly rather than listing every test that was not documented.");
         builder.AppendLine();
         builder.AppendLine("OUTPUT REQUIREMENTS:");
         builder.AppendLine("- Return only a single flat Markdown bullet list, with each bullet on its own line starting with '- '.");
-        builder.AppendLine("- Return 1-4 short bullets and no more than 100 words overall; usually 2-3 bullets and 40-80 words are sufficient. Do not pad the list.");
+        builder.AppendLine("- Return 2-5 short bullets and no more than 140 words overall (typically 2-3 bullets summarizing recent debugging followed by 1-2 valuable debug suggestions). Do not pad the list.");
         builder.AppendLine("- Write in simple, grammatically sound, and natural English that a layman can easily comprehend without prior knowledge of the issue.");
         builder.AppendLine("- Technical terms, acronyms, and specific parameters (such as MRC/firmware versions, memory turnaround timings like TAT or tRdRd, voltages, or test tools) may be included, but always explain their meaning or practical purpose in plain words (for example, explaining that MRC is memory firmware, or that TAT/tRdRd adjustments are memory timing settings).");
         builder.AppendLine("- Avoid dense, unexplained engineer shorthand or isolated variable names. State clearly what was tested or changed, what happened (passed, failed, or hung), and what that result means.");
@@ -1042,8 +1042,8 @@ public static class AiSummaryService
             }
             bullets.Add(line);
         }
-        if (bullets.Count == 0 || bullets.Count > 4
-            || string.Join(" ", bullets.ToArray()).Split((char[])null, StringSplitOptions.RemoveEmptyEntries).Length - bullets.Count > 100) return false;
+        if (bullets.Count == 0 || bullets.Count > 5
+            || string.Join(" ", bullets.ToArray()).Split((char[])null, StringSplitOptions.RemoveEmptyEntries).Length - bullets.Count > 150) return false;
 
         summary = string.Join("\n", bullets.ToArray());
         return true;
