@@ -1259,7 +1259,7 @@ FROM " + pendingTable);
         {
             string tableName = sourceTables[index];
                 unionParts.Add(@"SELECT
-            " + (includeInsightsMetadata ? "title, promoted_id, merge_id, " : string.Empty) + @"cp_id,
+            " + (includeInsightsMetadata ? "title, promoted_id, merge_id, " + BuildInsightOptionalFieldsSql(tableName) : string.Empty) + @"cp_id,
     status,
     cmf_request,
     sysdebug,
@@ -1284,6 +1284,26 @@ FROM " + tableName + (applyDashboardDateFilter ? " WHERE " + GetDashboardDateFil
         }
 
         return string.Join(" UNION ALL ", unionParts);
+    }
+
+    private static string BuildInsightOptionalFieldsSql(string tableName)
+    {
+        string cacheKey = "cmf-insight-columns:" + tableName;
+        var columns = HttpRuntime.Cache[cacheKey] as HashSet<string>;
+        if (columns == null)
+        {
+            columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            using (var connection = new SqlConnection(ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString))
+            using (var command = new SqlCommand("SELECT name FROM sys.columns WHERE object_id = OBJECT_ID(@table)", connection))
+            {
+                command.Parameters.Add("@table", SqlDbType.NVarChar, 256).Value = tableName;
+                connection.Open();
+                using (var reader = command.ExecuteReader()) while (reader.Read()) columns.Add(reader.GetString(0));
+            }
+            HttpRuntime.Cache.Insert(cacheKey, columns, null, DateTime.UtcNow.AddMinutes(30), System.Web.Caching.Cache.NoSlidingExpiration);
+        }
+        return string.Join(", ", new[] { "processor", "family", "release", "sysdebug_forum" }.Select(column =>
+            (columns.Contains(column) ? "CAST([" + column + "] AS nvarchar(max))" : "CAST(NULL AS nvarchar(max))") + " AS [" + column + "]")) + ", ";
     }
 
     private static string BuildSummaryDesignMetadataSourceSql(string dashboardPlatform, SqlConnection connection = null)
@@ -3421,28 +3441,64 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
             {
                 return new CmfDashboardInsights { Success = false, Message = "Select a valid dashboard platform." };
             }
-            string source = BuildSummaryIssueComponentSourceSql(selection, false, true);
-            DataTable data = new DataTable();
-            using (var connection = new SqlConnection(ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString))
-            using (SqlCommand command = CmfSummaryTrendService.CreateBalanceEvidenceCommand(connection, "(" + source + ") AS insight_source", DateTime.Today))
-            {
-                connection.Open();
-                using (SqlDataReader reader = command.ExecuteReader()) data.Load(reader);
-            }
-            string scope = string.Equals(selection, OverallDashboardPlatformTable, StringComparison.OrdinalIgnoreCase)
-                ? "Overall (" + GetSummaryIssueSourceTablesForWeb(selection).Count.ToString(CultureInfo.InvariantCulture) + " included platforms)"
-                : CmfDashboardInsightsService.PlatformLabel(selection);
-            CmfDashboardInsights evidence = CmfDashboardInsightsService.Build(data, scope, DateTime.Today);
-            evidence.SourceHash = CmfAssistantResponseCache.Fingerprint(new { Evidence = evidence.SourceHash, SourceScope = source });
-            evidence.EvidenceKey = Guid.NewGuid().ToString("N");
-            HttpRuntime.Cache.Insert("cmf-insight-evidence:" + HttpContext.Current.User.Identity.Name + ":" + evidence.EvidenceKey,
-                evidence, null, DateTime.UtcNow.AddMinutes(5), System.Web.Caching.Cache.NoSlidingExpiration);
-            return CmfDashboardInsightsService.CreateView(evidence, evidence.EvidenceKey);
+            CmfDashboardInsights sourceEvidence = LoadDashboardInsightEvidence(selection);
+            string evidenceKey = Guid.NewGuid().ToString("N");
+            HttpRuntime.Cache.Insert("cmf-insight-evidence:" + HttpContext.Current.User.Identity.Name + ":" + evidenceKey,
+                sourceEvidence, null, System.Web.Caching.Cache.NoAbsoluteExpiration, TimeSpan.FromMinutes(30));
+            CmfDashboardInsightsService.AddAi(sourceEvidence, false);
+            CmfDashboardInsightsService.WarmPlatforms(CmfPlatformCatalog.GetAllPlatformTables(), LoadDashboardInsightEvidence);
+            return CmfDashboardInsightsService.CreateView(sourceEvidence, evidenceKey);
         }
         catch (Exception ex)
         {
             System.Diagnostics.Trace.TraceError("Dashboard Insights failed: " + ex.GetType().Name);
             return new CmfDashboardInsights { Success = false, Message = "Dashboard insights are temporarily unavailable. Refresh to retry." };
+        }
+    }
+
+    private static CmfDashboardInsights LoadDashboardInsightEvidence(string selection)
+    {
+        string key = "cmf-insight-source:" + selection + ":" + DateTime.Today.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        using (CmfAssistantResponseCache.Enter(key))
+        {
+            var cached = HttpRuntime.Cache[key] as CmfDashboardInsights;
+            if (cached != null) return cached;
+            string source = BuildSummaryIssueComponentSourceSql(selection, false, true);
+            var data = new DataTable();
+            using (var connection = new SqlConnection(ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString))
+            using (var command = CmfSummaryTrendService.CreateBalanceEvidenceCommand(connection, "(" + source + ") AS insight_source", DateTime.Today, true))
+            {
+                connection.Open();
+                using (var reader = command.ExecuteReader()) data.Load(reader);
+            }
+            bool overall = string.Equals(selection, OverallDashboardPlatformTable, StringComparison.OrdinalIgnoreCase);
+            var tables = GetSummaryIssueSourceTablesForWeb(selection);
+            var evidence = CmfDashboardInsightsService.Build(data, overall ? "Overall (" + tables.Count + " included platforms)"
+                : CmfDashboardInsightsService.PlatformLabel(selection), DateTime.Today);
+            evidence.SourceHash = CmfAssistantResponseCache.Fingerprint(new { Evidence = evidence.SourceHash, SourceScope = selection });
+            if (overall)
+            {
+                evidence.PlatformEvidence = new List<CmfDashboardInsights>();
+                foreach (string table in tables)
+                {
+                    string platformKey = "cmf-insight-source:" + table + ":" + DateTime.Today.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+                    using (CmfAssistantResponseCache.Enter(platformKey))
+                    {
+                        var platformEvidence = HttpRuntime.Cache[platformKey] as CmfDashboardInsights;
+                        if (platformEvidence == null)
+                        {
+                            var subset = data.Clone();
+                            foreach (DataRow row in data.Rows) if (string.Equals(Convert.ToString(row["source_platform"]), table, StringComparison.OrdinalIgnoreCase)) subset.ImportRow(row);
+                            platformEvidence = CmfDashboardInsightsService.Build(subset, CmfDashboardInsightsService.PlatformLabel(table), DateTime.Today);
+                            platformEvidence.SourceHash = CmfAssistantResponseCache.Fingerprint(new { Evidence = platformEvidence.SourceHash, SourceScope = table });
+                            HttpRuntime.Cache.Insert(platformKey, platformEvidence, null, DateTime.UtcNow.AddMinutes(5), System.Web.Caching.Cache.NoSlidingExpiration);
+                        }
+                        evidence.PlatformEvidence.Add(platformEvidence);
+                    }
+                }
+            }
+            HttpRuntime.Cache.Insert(key, evidence, null, DateTime.UtcNow.AddMinutes(5), System.Web.Caching.Cache.NoSlidingExpiration);
+            return evidence;
         }
     }
 
@@ -3460,7 +3516,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         CmfDashboardInsights evidence = GetCachedDashboardInsights(evidenceKey);
         return evidence == null
             ? new CmfInsightPage { Success = false, Message = "Dashboard evidence expired. Refresh to retry." }
-            : CmfDashboardInsightsService.CreatePage(evidence, view, page);
+            : CmfDashboardInsightsService.CreatePage(HttpRuntime.Cache["cmf-insight-result:" + HttpContext.Current.User.Identity.Name + ":" + evidenceKey] as CmfDashboardInsights ?? evidence, view, page);
     }
 
     [WebMethod]
@@ -3472,16 +3528,16 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         try
         {
             CmfDashboardInsights result = CmfDashboardInsightsService.AddAi(evidence, refresh);
-            string rankedKey = Guid.NewGuid().ToString("N");
-            HttpRuntime.Cache.Insert("cmf-insight-evidence:" + HttpContext.Current.User.Identity.Name + ":" + rankedKey,
-                result, null, DateTime.Parse(result.ExpiresAt, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
-                System.Web.Caching.Cache.NoSlidingExpiration);
-            return CmfDashboardInsightsService.CreateView(result, rankedKey);
+            if (result.Mode == "ai")
+                HttpRuntime.Cache.Insert("cmf-insight-result:" + HttpContext.Current.User.Identity.Name + ":" + evidenceKey,
+                    result, null, DateTime.Parse(result.ExpiresAt, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+                    System.Web.Caching.Cache.NoSlidingExpiration);
+            return CmfDashboardInsightsService.CreateView(result, evidenceKey);
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Trace.TraceError("Dashboard AI ranking failed: " + ex.GetType().Name);
-            return new CmfDashboardInsights { Success = false, Message = "AI ranking unavailable. Calculated evidence remains available." };
+            System.Diagnostics.Trace.TraceError("Dashboard AI analysis failed: " + ex.GetType().Name);
+            return new CmfDashboardInsights { Success = false, Message = "AI analysis unavailable. No calculated fallback is shown. Refresh to retry." };
         }
     }
 

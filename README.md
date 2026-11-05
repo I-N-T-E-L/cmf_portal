@@ -98,34 +98,58 @@ the all-date Insights scope, including when the dashboard displays a short date
 range. Aging is measured from acceptance. Counts of
 excluded records are shown; historical reopenings cannot be recovered.
 
-Similar Issues groups records sharing explicit promoted or merge HSD IDs. Distinct
-HSD counts, platform counts, record occurrences, and current comparable-open counts
-are separate. Each group explains the explicit relationship, shared component or
-ingredient classifications, and any exact meaningful title phrases repeated across
-distinct HSDs, with supporting record links and title excerpts. Missing title
-overlap is stated explicitly. These links and overlaps do not establish identical
-symptoms or a common cause. Embedding-based or text-only grouping is not implemented.
+Insights uses a hybrid pipeline. All distinct accepted issues participate in local
+categorical grouping: Closed (`complete`, `rejected`), Implemented (`implemented`,
+`future`), and Open (the Summary complement). Pending requests are excluded.
+Duplicate occurrences remain distinct from HSD membership. Invalid historical
+dates affect balance metrics, not grouping eligibility.
 
-Calculated evidence appears first. The existing GNAI/GitHub transport then ranks
-server-supplied findings and selects bounded suggested-review actions. Up to three
-candidate HSDs are enriched with bounded source fields; a second call to the same
-model reviews the ranking. Code rejects unknown or duplicate finding IDs, unknown
-actions, extra factual fields, and malformed output. Models cannot change counts,
-write HSD records, or publish unsupported free-text claims through this contract.
-The second pass is not independent verification. If AI fails, calculated evidence
-and HSD links remain visible.
+Each platform is grouped independently using exact categorical tokens from
+processor, component group, component/ingredient, family and release. A candidate
+requires at least two matching fields and two distinct HSDs. Platform-wide groups,
+unknown placeholder values and equivalent memberships are excluded. Candidates
+are ranked by categorical specificity, group size and open-issue share; these are
+calculated ranks, not model confidence scores. No top-three or total issue/group
+limit is applied.
 
-Ranking runs without a session lock, using an expiring opaque evidence token bound
-to the current authenticated identity. Caches include prompt version, provider,
-source fingerprint, date scope, and included platforms. Successful rankings expire
-after five minutes; fallback results expire after one minute. Refresh rebuilds
-evidence and bypasses ranking cache. All qualifying highlights and relationship
-groups remain available through pages of eight, with no fixed total-results cap.
-Highlights require a changed open balance, at least two comparable open records,
-an open record aged at least 14 days, or an explicit link shared by multiple HSDs.
-AI can prioritize any number of supported findings; findings it does not rank remain
-available as calculated evidence. Per-finding markers distinguish AI-prioritized
-items. Trends show up to 15 groups per dimension; HSD excerpts remain bounded.
+AI reviews every qualifying ranked group using shared classifications, calculated
+counts, member titles, dates and available local forum text. It may reject a weak
+group, support a useful shared trait, or request rich HSD details for that group.
+Only requested group members are fetched, once per platform analysis. Enrichment
+selects useful descriptions, summaries, comments, forum, reproduction steps,
+investigation and fix text rather than sending the entire provider field/schema
+tree. Long selected fields are split into overlapping chunks without dropping
+their tails. Requests are batched by size rather than a total issue-count cap;
+there is no exhaustive all-pairs observation comparison.
+Each Insights model request defaults to a 120-second timeout, independently of
+other assistants. `AI:InsightsRequestTimeoutSeconds` can set it between 15 and 300
+seconds; this is a per-request timeout, not an issue-count or whole-job limit.
+
+Shared classification traits appear in Highlights and are not presented as proof
+of common symptoms or cause. Similar Issues contains only AI-supported technical
+comparisons citing specific text from at least two distinct HSDs. The server checks
+group coverage and in-scope evidence keys, and supplies source text itself rather
+than trusting model-written quotations. This validates provenance, not the truth
+of every model interpretation. All counts remain server-derived; no HSD is changed.
+Ungrouped issues are not individually reviewed. A scope without qualifying groups
+shows that fact without claiming an AI review occurred.
+
+Loading the dashboard automatically queues all catalog platforms, not just the
+selected tab. The selected scope starts first; at most two analysis jobs execute
+concurrently. Platform tabs share cached jobs with the warm-up path. Overall waits
+for all included platform reviews, then feeds their cached findings to AI for
+individual and cross-platform shared-trait interpretation; it does not fetch raw
+HSDs again. Overall exclusions still apply. A failed platform is reported explicitly
+rather than silently omitted from a supposedly complete Overall result.
+
+ASP.NET background work runs outside the polling request/session lock. The panel
+shows calculated group counts and AI-review progress separately; calculated
+patterns are never substituted for AI opinions on model failure. Source preparation
+is cached for five minutes and completed analysis for thirty minutes, keyed by
+source, platform, prompt version and provider. Refresh bypasses completed AI results
+but may reuse the five-minute source cache. Evidence tokens and paginated result
+access are bound to the authenticated user. All findings remain accessible through
+pages of eight; pagination is display-only, not an analysis limit.
 
 ### Dashboard Date Filter
 
