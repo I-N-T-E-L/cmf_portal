@@ -28,6 +28,7 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using System.Web.Script.Serialization;
 using System.Xml.Linq;
+using Spreadsheet = DocumentFormat.OpenXml.Spreadsheet;
 
 public class CMFIssueCountTemplate : ITemplate
 {
@@ -108,6 +109,9 @@ public class HomeDashboardTrendPoint
     public DateTime WeekStart { get; set; }
     public int NewIssues { get; set; }
     public int ResolvedIssues { get; set; }
+    public int ImplementedIssues { get; set; }
+    public int WeekEndOpenIssues { get; set; }
+    public int WeekEndImplementedIssues { get; set; }
     public int NeedsAttention { get; set; }
 }
 
@@ -123,6 +127,7 @@ public class HomeDashboardFact
     public string Value { get; set; }
     public string Note { get; set; }
     public string TrendNote { get; set; }
+    public CmfSummaryTrend WeeklyTrend { get; set; }
     public string ConstituentTooltip { get; set; }
 }
 
@@ -143,7 +148,9 @@ public class HomeDashboardOemRow
     public int Closed { get; set; }
     public decimal AvgResolutionDays { get; set; }
     public string RiskLevel { get; set; }
-    public int TrendPercent { get; set; }
+    public int TrendCount { get; set; }
+    public int RecentRequestCount { get; set; }
+    public int PreviousRequestCount { get; set; }
 }
 
 public class HomeDashboardHeatmapRow
@@ -211,22 +218,29 @@ public class HomeDashboardSnapshot
 public partial class CMF_Web_portal : System.Web.UI.Page
 {
     private const string PendingSummaryLinksDelimiter = ":::OPEN_HSDS:::";
+    private const string PendingSummaryOverTwoDaysDelimiter = ":::OVER_TWO_DAYS:::";
+    private const string PendingSummaryOverTwoDaysIdsDelimiter = ":::OVER_TWO_DAYS_IDS:::";
+    private const string PendingSummaryAgeThresholdSessionKey = "pendingSummaryAgeThresholdDays";
+    private const int DefaultPendingSummaryAgeThresholdDays = 2;
     private const string ActiveFocusedTabSessionKey = "activeFocusedTab";
     private const string UserModeSessionKey = "portalUserMode";
     private const string DashboardPlatformSessionKey = "dashboardSelectedPlatform";
     private const string IssuePendingPlatformSessionKey = "issuePendingSelectedPlatform";
+    private const string PendingPlatformsSessionKey = "cmfPendingSelectedPlatforms";
+    private static string DefaultIssuePendingPlatformTable { get { return DefaultPlatformTable; } }
     private const string OverallExcludedPlatformsSessionKey = "overallExcludedPlatforms";
+    private const string AllMilestonesDriverToken = "__ALL_MILESTONES__";
     private const string IssueGridCacheKeySessionKey = "issueGridCacheKey";
     private const string IssueGridCacheDataSessionKey = "issueGridCacheData";
     private const string IssueGlobalSearchSessionKey = "issueGlobalSearch";
-    private static readonly string DefaultPlatformTable = CmfPlatformCatalog.GetDefaultPlatformTableName();
+    private static string DefaultPlatformTable { get { return CmfPlatformCatalog.GetDefaultPlatformTableName(); } }
     private const string OverallDashboardPlatformTable = CmfPlatformCatalog.OverallPlatformTableName;
 
-    private static readonly string[] DashboardAggregatePlatformTables = CmfPlatformCatalog.GetAllPlatformTables();
+    private static string[] DashboardAggregatePlatformTables { get { return CmfPlatformCatalog.GetAllPlatformTables(); } }
 
     private static readonly object AssistantContextCacheSync = new object();
-    private static readonly HashSet<string> AllowedPlatformTables = CmfPlatformCatalog.GetAllowedPlatformTables();
-    private static readonly CmfPlatformDefinition[] OrderedPlatformOptions = CmfPlatformCatalog.GetOrderedPlatforms();
+    private static HashSet<string> AllowedPlatformTables { get { return CmfPlatformCatalog.GetAllowedPlatformTables(); } }
+    private static CmfPlatformDefinition[] OrderedPlatformOptions { get { return CmfPlatformCatalog.GetOrderedPlatforms(); } }
 
     private List<string> drivers = new List<string>();
 
@@ -255,6 +269,11 @@ public partial class CMF_Web_portal : System.Web.UI.Page
     protected string HomeDashboardSnapshotJson { get; private set; }
 
     protected string HomeDashboardPlatformLabel { get; private set; }
+
+    protected int PendingSummaryAgeThresholdDaysForClient
+    {
+        get { return GetPendingSummaryAgeThresholdDays(); }
+    }
 
     public static string WorkWeek;
     private Dictionary<string, string> driverColumns;
@@ -319,6 +338,80 @@ public partial class CMF_Web_portal : System.Web.UI.Page
         return ResolvePlatformTable(resolvedSelection);
     }
 
+    private static int NormalizePendingSummaryAgeThresholdDays(int thresholdDays)
+    {
+        if (thresholdDays < 0)
+        {
+            return 0;
+        }
+
+        return thresholdDays;
+    }
+
+    private int GetPendingSummaryAgeThresholdDays()
+    {
+        object raw = Session[PendingSummaryAgeThresholdSessionKey];
+        if (raw == null)
+        {
+            return DefaultPendingSummaryAgeThresholdDays;
+        }
+
+        if (raw is int)
+        {
+            return NormalizePendingSummaryAgeThresholdDays((int)raw);
+        }
+
+        int parsed;
+        if (int.TryParse(Convert.ToString(raw, CultureInfo.InvariantCulture), NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed))
+        {
+            return NormalizePendingSummaryAgeThresholdDays(parsed);
+        }
+
+        return DefaultPendingSummaryAgeThresholdDays;
+    }
+
+    private int ParsePendingSummaryAgeThresholdDaysFromArgument(string eventArgument)
+    {
+        string decoded = HttpUtility.UrlDecode(eventArgument ?? string.Empty) ?? string.Empty;
+        long parsedLong;
+        if (long.TryParse(decoded, NumberStyles.Integer, CultureInfo.InvariantCulture, out parsedLong))
+        {
+            if (parsedLong > int.MaxValue)
+            {
+                return int.MaxValue;
+            }
+
+            return NormalizePendingSummaryAgeThresholdDays((int)parsedLong);
+        }
+
+        StringBuilder digits = new StringBuilder();
+        for (int index = 0; index < decoded.Length; index++)
+        {
+            char token = decoded[index];
+            if (char.IsDigit(token))
+            {
+                digits.Append(token);
+            }
+        }
+
+        if (digits.Length > 0 && long.TryParse(digits.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out parsedLong))
+        {
+            if (parsedLong > int.MaxValue)
+            {
+                return int.MaxValue;
+            }
+
+            return NormalizePendingSummaryAgeThresholdDays((int)parsedLong);
+        }
+
+        return GetPendingSummaryAgeThresholdDays();
+    }
+
+    private void SetPendingSummaryAgeThresholdDays(int thresholdDays)
+    {
+        Session[PendingSummaryAgeThresholdSessionKey] = NormalizePendingSummaryAgeThresholdDays(thresholdDays);
+    }
+
     private void SetDashboardPlatformSelection(string platform)
     {
         Session[DashboardPlatformSessionKey] = ResolveDashboardPlatformSelection(platform);
@@ -326,52 +419,71 @@ public partial class CMF_Web_portal : System.Web.UI.Page
 
     private List<CmfPlatformDefinition> GetAvailableIndividualPlatforms()
     {
-        const string cacheKey = "CMF_AvailableIndividualPlatforms";
-        if (HttpContext.Current != null)
-        {
-            List<CmfPlatformDefinition> cached = HttpContext.Current.Items[cacheKey] as List<CmfPlatformDefinition>;
-            if (cached != null)
-            {
-                return cached;
-            }
-        }
+        return new List<CmfPlatformDefinition>(CmfPlatformCatalog.GetOrderedPlatforms());
+    }
 
-        List<CmfPlatformDefinition> available = new List<CmfPlatformDefinition>();
+    private List<CmfPlatformDefinition> UpdatePlatformChipOrder()
+    {
+        List<CmfPlatformDefinition> platforms = GetAvailableIndividualPlatforms();
+        Dictionary<string, CmfPlatformSummaryCounts> counts = new Dictionary<string, CmfPlatformSummaryCounts>(StringComparer.OrdinalIgnoreCase);
+        CmfDashboardDateFilter dateFilter = GetDashboardDateFilter();
         using (SqlConnection connection = new SqlConnection(ConnectionString))
+        using (SqlCommand command = connection.CreateCommand())
         {
             connection.Open();
-            foreach (CmfPlatformDefinition option in OrderedPlatformOptions)
+            List<string> queries = new List<string>();
+            for (int index = 0; index < platforms.Count; index++)
             {
-                if (!SqlTableExists(connection, option.TableName))
+                string tableName = platforms[index].TableName;
+                string pendingTable = tableName.Replace("_ALL_COMPONENTS_TABLE", string.Empty) + "_CMF_ASK";
+                string pendingCount = "CAST(0 AS bigint)";
+                if (SqlTableExists(connection, pendingTable))
                 {
-                    continue;
+                    pendingCount = @"(SELECT COUNT_BIG(pending.cp_id)
+FROM [dbo].[" + pendingTable + @"] AS pending
+LEFT JOIN [dbo].[" + tableName + @"] AS src_comp
+  ON CAST(pending.cp_id AS VARCHAR(64)) = CAST(src_comp.cp_id AS VARCHAR(64))
+WHERE pending.status NOT IN ('complete', 'rejected') AND " + dateFilter.BuildPendingPredicate("pending") + ")";
                 }
 
-                if (SqlTableHasRows(connection, option.TableName))
+                string parameter = "@platform" + index.ToString(CultureInfo.InvariantCulture);
+                command.Parameters.Add(parameter, SqlDbType.NVarChar, 128).Value = tableName;
+                queries.Add(@"SELECT " + parameter + @" AS PlatformTable,
+COUNT_BIG(CASE WHEN src.cmf_request IN ('cmf_ok','cmf_duplicate')
+    AND src.status NOT IN ('complete','rejected','implemented','future') THEN 1 END) AS OpenCount,
+COUNT_BIG(CASE WHEN src.cmf_request IN ('cmf_ok','cmf_duplicate')
+    AND src.status IN ('implemented','future') THEN 1 END) AS ImplementedCount,
+" + pendingCount + @" AS PendingCount,
+COUNT_BIG(CASE WHEN src.cmf_request IN ('cmf_ok','cmf_duplicate') THEN 1 END) AS TotalCount
+FROM [dbo].[" + tableName + @"] AS src
+WHERE src.sysdebug LIKE '%customer_must_fix%' AND " + dateFilter.BuildPredicate("src"));
+            }
+
+            if (queries.Count > 0)
+            {
+                command.CommandText = CmfPlatformCatalog.ScopeIssueSql(string.Join(" UNION ALL ", queries));
+                using (SqlDataReader reader = command.ExecuteReader())
                 {
-                    available.Add(option);
+                    while (reader.Read())
+                    {
+                        counts[reader.GetString(0)] = new CmfPlatformSummaryCounts(reader.GetInt64(1), reader.GetInt64(2), reader.GetInt64(3), reader.GetInt64(4));
+                    }
                 }
             }
         }
 
-        if (available.Count == 0)
+        List<CmfPlatformDefinition> orderedPlatforms = CmfPlatformCatalog.OrderBySummaryCounts(platforms, counts);
+        List<Dictionary<string, string>> options = new List<Dictionary<string, string>>();
+        foreach (CmfPlatformDefinition platform in orderedPlatforms)
         {
-            CmfPlatformDefinition fallback = OrderedPlatformOptions.FirstOrDefault(p =>
-                string.Equals(p.TableName, DefaultPlatformTable, StringComparison.OrdinalIgnoreCase))
-                ?? OrderedPlatformOptions.FirstOrDefault();
-
-            if (fallback != null)
-            {
-                available.Add(fallback);
-            }
+            options.Add(new Dictionary<string, string> { { "label", platform.Label }, { "value", platform.TableName } });
         }
-
-        if (HttpContext.Current != null)
+        if (platforms.Count > 0)
         {
-            HttpContext.Current.Items[cacheKey] = available;
+            options.Add(new Dictionary<string, string> { { "label", "Overall" }, { "value", OverallDashboardPlatformTable } });
         }
-
-        return available;
+        AvailablePlatformChipOptionsJson = new JavaScriptSerializer().Serialize(options);
+        return orderedPlatforms;
     }
 
     private string ResolveFirstAvailablePlatform(IEnumerable<string> candidates, HashSet<string> availableSet, List<CmfPlatformDefinition> availablePlatforms)
@@ -748,7 +860,7 @@ public partial class CMF_Web_portal : System.Web.UI.Page
 
         if (!hasOverallInAvailable)
         {
-            availableForClient.Insert(0, OverallDashboardPlatformTable);
+            availableForClient.Add(OverallDashboardPlatformTable);
             System.Diagnostics.Trace.TraceWarning("CMF portal guard: injected missing Overall entry into available platform list.");
         }
 
@@ -774,7 +886,7 @@ public partial class CMF_Web_portal : System.Web.UI.Page
 
         if (!hasOverallChip)
         {
-            chipOptionsForClient.Insert(0, new Dictionary<string, string>
+            chipOptionsForClient.Add(new Dictionary<string, string>
             {
                 { "label", "Overall" },
                 { "value", OverallDashboardPlatformTable }
@@ -784,12 +896,58 @@ public partial class CMF_Web_portal : System.Web.UI.Page
         }
     }
 
-    private string BuildDashboardComponentSourceSql(string platformSelection)
+    private static CmfDashboardDateFilter GetDashboardDateFilter()
+    {
+        var saved = HttpContext.Current.Session["DashboardDateFilter"] as CmfDashboardDateFilter;
+        CmfDashboardDateFilter filter;
+        string error;
+        CmfDashboardDateFilter.TryCreate(saved == null ? "all" : saved.Mode,
+            "cmf-accepted",
+            saved != null && saved.Start.HasValue ? saved.Start.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : string.Empty,
+            saved != null && saved.EndExclusive.HasValue ? saved.EndExclusive.Value.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : string.Empty,
+            DateTime.Today, out filter, out error);
+        return filter;
+    }
+
+    protected bool ShowSummaryTrends
+    {
+        get { return GetDashboardDateFilter().ShowSummaryTrends; }
+    }
+
+    private static string FilterDashboardTableSource(string tableName)
+    {
+        var filter = GetDashboardDateFilter();
+        return filter.Start.HasValue
+            ? "(SELECT * FROM " + tableName + " WHERE " + filter.BuildPredicate(null) + ")"
+            : tableName;
+    }
+
+    protected void DashboardDateFilter_Changed(object sender, EventArgs e)
+    {
+        dashboardCustomDates.Visible = ddlDashboardDateMode.SelectedValue == "custom";
+        CmfDashboardDateFilter filter;
+        string error;
+        if (!CmfDashboardDateFilter.TryCreate(ddlDashboardDateMode.SelectedValue,
+            "cmf-accepted", txtDashboardDateStart.Text, txtDashboardDateEnd.Text,
+            DateTime.Today, out filter, out error))
+        {
+            ShowWelcomeHome();
+            lblDashboardDateError.Text = error;
+            return;
+        }
+
+        Session["DashboardDateFilter"] = filter;
+        lblDashboardDateError.Text = string.Empty;
+        ShowWelcomeHome();
+        SetActiveFocusedTab("home");
+    }
+
+    private string BuildDashboardComponentSourceSql(string platformSelection, bool applyDashboardDateFilter = false)
     {
         string resolvedSelection = ResolveDashboardPlatformSelection(platformSelection);
         if (!IsOverallDashboardPlatform(resolvedSelection))
         {
-            return resolvedSelection;
+            return applyDashboardDateFilter ? FilterDashboardTableSource(resolvedSelection) + " AS dashboard_platform" : resolvedSelection;
         }
 
         List<string> unionParts = new List<string>();
@@ -802,8 +960,10 @@ public partial class CMF_Web_portal : System.Web.UI.Page
     customer_impact,
     title,
     implemented_date,
+    closed_date,
     date_cmf_decided,
     date_cmf_ask,
+    submitted_date,
     must_fix_for,
     component_group,
     drivers,
@@ -816,7 +976,7 @@ public partial class CMF_Web_portal : System.Web.UI.Page
     cmf_request,
     sysdebug,
     days_active
-FROM " + tableName);
+FROM " + tableName + (applyDashboardDateFilter ? " WHERE " + GetDashboardDateFilter().BuildPredicate(null) : string.Empty));
         }
 
         return "(" + string.Join(" UNION ALL ", unionParts) + ") AS overall_platform";
@@ -927,7 +1087,9 @@ FROM " + tableName);
     customer_owner,
     customer_detail,
     date_cmf_ask,
+    submitted_date,
     cmf_request,
+    why_cmf_change,
     impact,
     status,
     '" + tableName + @"' AS source_platform
@@ -1088,7 +1250,7 @@ FROM " + pendingTable);
         return new List<string> { dashboardPlatform };
     }
 
-    private static string BuildSummaryIssueComponentSourceSql(string dashboardPlatform)
+    private static string BuildSummaryIssueComponentSourceSql(string dashboardPlatform, bool applyDashboardDateFilter = true, bool includeInsightsMetadata = false)
     {
         List<string> sourceTables = GetSummaryIssueSourceTablesForWeb(dashboardPlatform);
         List<string> unionParts = new List<string>();
@@ -1096,13 +1258,17 @@ FROM " + pendingTable);
         for (int index = 0; index < sourceTables.Count; index++)
         {
             string tableName = sourceTables[index];
-            unionParts.Add(@"SELECT
-    cp_id,
+                unionParts.Add(@"SELECT
+            " + (includeInsightsMetadata ? "title, promoted_id, merge_id, " + BuildInsightOptionalFieldsSql(tableName) : string.Empty) + @"cp_id,
     status,
     cmf_request,
     sysdebug,
+    closed_reason,
     date_cmf_ask,
+    date_cmf_decided,
+    submitted_date,
     implemented_date,
+    closed_date,
             must_fix_for,
     component_group,
     drivers,
@@ -1114,10 +1280,55 @@ FROM " + pendingTable);
     component,
     customer_owner,
     '" + tableName + @"' AS source_platform
-FROM " + tableName);
+FROM " + tableName + (applyDashboardDateFilter ? " WHERE " + GetDashboardDateFilter().BuildPredicate(null) : string.Empty));
         }
 
         return string.Join(" UNION ALL ", unionParts);
+    }
+
+    private static string BuildInsightOptionalFieldsSql(string tableName)
+    {
+        string cacheKey = "cmf-insight-columns:" + tableName;
+        var columns = HttpRuntime.Cache[cacheKey] as HashSet<string>;
+        if (columns == null)
+        {
+            columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            using (var connection = new SqlConnection(ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString))
+            using (var command = new SqlCommand("SELECT name FROM sys.columns WHERE object_id = OBJECT_ID(@table)", connection))
+            {
+                command.Parameters.Add("@table", SqlDbType.NVarChar, 256).Value = tableName;
+                connection.Open();
+                using (var reader = command.ExecuteReader()) while (reader.Read()) columns.Add(reader.GetString(0));
+            }
+            HttpRuntime.Cache.Insert(cacheKey, columns, null, DateTime.UtcNow.AddMinutes(30), System.Web.Caching.Cache.NoSlidingExpiration);
+        }
+        return string.Join(", ", new[] { "processor", "family", "release", "sysdebug_forum" }.Select(column =>
+            (columns.Contains(column) ? "CAST([" + column + "] AS nvarchar(max))" : "CAST(NULL AS nvarchar(max))") + " AS [" + column + "]")) + ", ";
+    }
+
+    private static string BuildSummaryDesignMetadataSourceSql(string dashboardPlatform, SqlConnection connection = null)
+    {
+        List<string> sourceTables = GetSummaryIssueSourceTablesForWeb(dashboardPlatform);
+        List<string> unionParts = new List<string>();
+
+        for (int index = 0; index < sourceTables.Count; index++)
+        {
+            string tableName = sourceTables[index];
+            string designTable = tableName.Replace("_ALL_COMPONENTS_TABLE", string.Empty) + "_DESIGN_TABLE";
+            if (connection != null && !SqlTableExists(connection, designTable))
+            {
+                continue;
+            }
+
+                unionParts.Add(@"SELECT
+            LTRIM(RTRIM(customer_detail)) AS customer_detail,
+            ISNULL(MAX(NULLIF(LTRIM(RTRIM(sw_image_freeze)), '')), 'N/A') AS sw_image_freeze,
+            '" + tableName + @"' AS source_platform
+        FROM " + designTable + @"
+        GROUP BY LTRIM(RTRIM(customer_detail))");
+        }
+
+        return unionParts.Count == 0 ? string.Empty : string.Join(" UNION ALL ", unionParts);
     }
 
     private static string BuildSummaryIssuePendingSourceSql(SqlConnection connection, string dashboardPlatform)
@@ -1147,7 +1358,7 @@ FROM " + tableName);
     component,
     customer_owner,
     '" + tableName + @"' AS source_platform
-FROM " + pendingTable);
+FROM " + pendingTable + " WHERE " + GetDashboardDateFilter().BuildPendingPredicate(null));
         }
 
         return unionParts.Count == 0 ? null : string.Join(" UNION ALL ", unionParts);
@@ -1178,7 +1389,7 @@ FROM " + pendingTable);
     private static string NormalizeTrendSeriesMetricKey(string seriesName)
     {
         string normalized = (seriesName ?? string.Empty).Trim().ToLowerInvariant();
-        if (normalized == "all")
+        if (normalized == "all" || normalized == "open and implemented")
         {
             return "all";
         }
@@ -1263,7 +1474,6 @@ END";
     {
         List<string> options = new List<string>
         {
-            "issue",
             "ingredient"
         };
 
@@ -1276,6 +1486,7 @@ END";
         options.Add("design");
         options.Add("component");
         options.Add("owner");
+        options.Add("idst");
         return options;
     }
 
@@ -1283,7 +1494,7 @@ END";
     {
         string normalized = (groupBy ?? string.Empty).Trim().ToLowerInvariant();
         List<string> allowed = BuildTrendGroupByOptions(isOverallScope);
-        return allowed.Contains(normalized, StringComparer.OrdinalIgnoreCase) ? normalized : "issue";
+        return allowed.Contains(normalized, StringComparer.OrdinalIgnoreCase) ? normalized : "ingredient";
     }
 
     private static string GetDashboardDriverFilterValueForWeb()
@@ -1396,8 +1607,17 @@ END";
         return string.Compare(left, right, StringComparison.OrdinalIgnoreCase);
     }
 
+    private static string BuildSummaryIssueRecordTypePredicate(string alias, bool includeUnique, bool includeDuplicates, bool pending = false)
+    {
+        if (!includeUnique && !includeDuplicates) return "1 = 0";
+        if (pending) return includeUnique ? "1 = 1" : "1 = 0";
+        string values = includeUnique && includeDuplicates ? "'cmf_ok', 'cmf_duplicate'"
+            : (includeUnique ? "'cmf_ok'" : "'cmf_duplicate'");
+        return "LOWER(LTRIM(RTRIM(ISNULL(" + alias + ".cmf_request, '')))) IN (" + values + ")";
+    }
+
     [WebMethod(EnableSession = true)]
-    public static SummaryIssueLinksResponse GetSummaryCardIssueLinks(string metricKey, string groupBy, string dashboardPlatform)
+    public static SummaryIssueLinksResponse GetSummaryCardIssueLinks(string metricKey, string groupBy, string dashboardPlatform, bool includeUnique = true, bool includeDuplicates = true)
     {
         SummaryIssueLinksResponse response = new SummaryIssueLinksResponse
         {
@@ -1454,7 +1674,7 @@ END";
                         return response;
                     }
 
-                    string componentSource = BuildSummaryIssueComponentSourceSql(resolvedPlatform);
+                    string componentSource = BuildSummaryIssueComponentSourceSql(resolvedPlatform, false);
                     sourceSql = @"(
 SELECT
     CAST(p.cp_id AS VARCHAR(64)) AS cp_id,
@@ -1489,16 +1709,18 @@ LEFT JOIN (" + componentSource + @") AS c
                     }
                     else if (string.Equals(response.MetricKey, "implemented", StringComparison.OrdinalIgnoreCase))
                     {
-                        whereBuilder.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) = 'implemented'");
+                        whereBuilder.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN ('implemented', 'future')");
                     }
                     else if (string.Equals(response.MetricKey, "open", StringComparison.OrdinalIgnoreCase))
                     {
-                        whereBuilder.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) NOT IN ('complete', 'rejected', 'implemented')");
+                        whereBuilder.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) NOT IN ('complete', 'rejected', 'implemented', 'future')");
                     }
 
                     wherePredicate = whereBuilder.ToString();
                 }
 
+                wherePredicate += " AND " + BuildSummaryIssueRecordTypePredicate("src", includeUnique, includeDuplicates,
+                    string.Equals(response.MetricKey, "pending", StringComparison.OrdinalIgnoreCase));
                 string groupExpression = BuildSummaryGroupExpression(response.GroupBy);
                 string sql = @"
 SELECT DISTINCT
@@ -1512,7 +1734,7 @@ ORDER BY group_name, cp_id";
 
                 Dictionary<string, HashSet<string>> idsByGroup = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 
-                using (SqlCommand command = new SqlCommand(sql, connection))
+                using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
@@ -1578,7 +1800,7 @@ ORDER BY group_name, cp_id";
     }
 
     [WebMethod(EnableSession = true)]
-    public static SummaryIssueLinksResponse GetOverallHeatmapIssueLinks(string ingredient, string platformLabel, string groupBy)
+    public static SummaryIssueLinksResponse GetOverallHeatmapIssueLinks(string ingredient, string platformLabel, string groupBy, bool includeUnique = true, bool includeDuplicates = true)
     {
         SummaryIssueLinksResponse response = new SummaryIssueLinksResponse
         {
@@ -1622,7 +1844,7 @@ ORDER BY group_name, cp_id";
 
                 string sourceSql = "(" + BuildSummaryIssueComponentSourceSql(OverallDashboardPlatformTable) + ") AS src";
                 string wherePredicate = @"LOWER(LTRIM(RTRIM(ISNULL(src.sysdebug, '')))) LIKE '%customer_must_fix%'
-  AND LOWER(LTRIM(RTRIM(ISNULL(src.cmf_request, '')))) = 'cmf_ok'
+    AND " + BuildSummaryIssueRecordTypePredicate("src", includeUnique, includeDuplicates) + @"
   AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) = 'open'
   AND ISNULL(LTRIM(RTRIM(src.drivers)), '') <> ''
   AND " + BuildOverallHeatmapIngredientExpression() + @" = @ingredient
@@ -1646,7 +1868,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
                 Dictionary<string, HashSet<string>> idsByGroup = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
                                 HashSet<string> idstNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                using (SqlCommand command = new SqlCommand(sql, connection))
+                using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
                 {
                     command.Parameters.AddWithValue("@ingredient", normalizedIngredient);
                     command.Parameters.AddWithValue("@source_platform", sourcePlatform);
@@ -1727,7 +1949,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     }
 
     [WebMethod(EnableSession = true)]
-    public static SummaryIssueLinksResponse GetTrendWeekIssueLinks(string seriesName, string weekLabel, int weekOffset, string dashboardPlatform, string groupBy, bool includeOpen, bool includeClosed)
+    public static SummaryIssueLinksResponse GetTrendWeekIssueLinks(string seriesName, string weekLabel, int weekOffset, string dashboardPlatform, string groupBy, bool includeOpen, bool includeClosed, bool includeUnique = true, bool includeDuplicates = true)
     {
         string resolvedPlatform = ResolveDashboardPlatformSelectionForWeb(dashboardPlatform);
         bool isOverallScope = string.Equals(resolvedPlatform, OverallDashboardPlatformTable, StringComparison.OrdinalIgnoreCase);
@@ -1759,10 +1981,12 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
 
         if (!response.AvailableGroupBy.Contains(response.GroupBy, StringComparer.OrdinalIgnoreCase))
         {
-            response.GroupBy = "issue";
+            response.GroupBy = "ingredient";
         }
 
         string normalizedWeekLabel = string.IsNullOrWhiteSpace(weekLabel) ? "Selected Week" : weekLabel.Trim();
+        bool isWeekEndBalance = string.Equals(seriesName, "Open and Implemented", StringComparison.OrdinalIgnoreCase);
+        string completedStatusValues = "'complete', 'rejected'";
         bool metricAllowsOpen = string.Equals(response.MetricKey, "all", StringComparison.OrdinalIgnoreCase)
             || string.Equals(response.MetricKey, "open", StringComparison.OrdinalIgnoreCase);
         bool metricAllowsClosed = string.Equals(response.MetricKey, "all", StringComparison.OrdinalIgnoreCase)
@@ -1788,35 +2012,41 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
                 string sourceSql = "(" + BuildSummaryIssueComponentSourceSql(resolvedPlatform) + ") AS src";
                 string statusPredicate;
                 string weekPredicate;
-                string groupExpression = string.Equals(response.GroupBy, "issue", StringComparison.OrdinalIgnoreCase)
-                    ? "''"
-                    : BuildSummaryGroupExpression(response.GroupBy);
+                string groupExpression = BuildSummaryGroupExpression(response.GroupBy);
 
                 StringBuilder baseWhere = new StringBuilder();
-                baseWhere.Append("LOWER(LTRIM(RTRIM(ISNULL(src.cmf_request, '')))) = 'cmf_ok'");
+                baseWhere.Append(BuildSummaryIssueRecordTypePredicate("src", includeUnique, includeDuplicates));
                 baseWhere.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.sysdebug, '')))) LIKE '%customer_must_fix%'");
-                baseWhere.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) <> 'rejected'");
+                if (!isWeekEndBalance)
+                {
+                    baseWhere.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) <> 'rejected'");
+                }
 
-                string driverFilterValue = GetDashboardDriverFilterValueForWeb();
-                Dictionary<string, string> columnFilters = GetDashboardColumnFiltersForWeb();
-                AppendDashboardDriverFilter(baseWhere, driverFilterValue);
-                AppendDashboardColumnFilters(baseWhere, columnFilters);
-
-                if (allowOpen && !allowClosed)
+                if (isWeekEndBalance)
+                {
+                    string cutoffSql = BuildTrendWeekEndExclusiveSql("@week_offset");
+                    string openPredicate = BuildTrendWeekEndStatusPredicate("src", cutoffSql, false, "@week_offset");
+                    string implementedPredicate = BuildTrendWeekEndStatusPredicate("src", cutoffSql, true, "@week_offset");
+                    statusPredicate = "1 = 1";
+                    weekPredicate = allowOpen && allowClosed
+                        ? "((" + openPredicate + ") OR (" + implementedPredicate + "))"
+                        : (allowOpen ? openPredicate : implementedPredicate);
+                }
+                else if (allowOpen && !allowClosed)
                 {
                     statusPredicate = "LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) = 'open'";
                     weekPredicate = "TRY_CAST(src.date_cmf_ask AS DATE) IS NOT NULL AND DATEDIFF(WEEK, TRY_CAST(src.date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) = @week_offset";
                 }
                 else if (!allowOpen && allowClosed)
                 {
-                    statusPredicate = "LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN ('complete', 'rejected')";
+                    statusPredicate = "LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN (" + completedStatusValues + ")";
                     weekPredicate = "TRY_CAST(src.implemented_date AS DATE) IS NOT NULL AND DATEDIFF(WEEK, TRY_CAST(src.implemented_date AS DATE), CAST(GETDATE() AS DATE)) = @week_offset";
                 }
                 else
                 {
                     statusPredicate = @"(
         LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) = 'open'
-        OR LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN ('complete', 'rejected')
+                OR LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN (" + completedStatusValues + @")
     )";
 
                     weekPredicate = @"(
@@ -1827,7 +2057,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         )
         OR
         (
-            LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN ('complete', 'rejected')
+            LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN (" + completedStatusValues + @")
             AND TRY_CAST(src.implemented_date AS DATE) IS NOT NULL
             AND DATEDIFF(WEEK, TRY_CAST(src.implemented_date AS DATE), CAST(GETDATE() AS DATE)) = @week_offset
         )
@@ -1847,7 +2077,7 @@ WHERE " + baseWhere + @"
 ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
 
                 Dictionary<string, HashSet<string>> idsByGroup = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
-                using (SqlCommand command = new SqlCommand(sql, connection))
+                using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
                 {
                     command.Parameters.AddWithValue("@week_offset", weekOffset);
 
@@ -1861,9 +2091,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
                                 continue;
                             }
 
-                            string groupName = string.Equals(response.GroupBy, "issue", StringComparison.OrdinalIgnoreCase)
-                                ? normalizedWeekLabel
-                                : ReadString(reader, 1).Trim();
+                            string groupName = ReadString(reader, 1).Trim();
                             if (string.IsNullOrWhiteSpace(groupName))
                             {
                                 groupName = "Unassigned";
@@ -1932,7 +2160,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
             string pendingTable = basePlatform + "_CMF_ASK";
             if (SqlTableExists(connection, pendingTable))
             {
-                unionParts.Add("SELECT cp_id, status, component_group, '" + tableName + "' AS source_platform FROM " + pendingTable);
+                unionParts.Add("SELECT cp_id, status, component_group, date_cmf_ask, '" + tableName + "' AS source_platform FROM " + pendingTable + " WHERE " + GetDashboardDateFilter().BuildPendingPredicate(null));
             }
         }
 
@@ -1947,7 +2175,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     private DataTable ExecuteDataTable(string query, Action<SqlCommand> configureCommand = null)
     {
         using (SqlConnection connection = new SqlConnection(ConnectionString))
-        using (SqlCommand command = new SqlCommand(query, connection))
+        using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(query, connection))
         using (SqlDataAdapter dataAdapter = new SqlDataAdapter(command))
         {
             if (configureCommand != null)
@@ -2071,104 +2299,230 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         }
     }
 
+    private const string DesignSummaryAllToken = "__all_designs__";
+    private const string IngredientSummaryAllToken = "__all_ingredients__";
+
+    private static string NormalizeLegacyTrigger(string trigger)
+    {
+        string normalized = (trigger ?? string.Empty).Trim();
+        if (normalized.StartsWith("_", StringComparison.Ordinal))
+        {
+            normalized = normalized.Substring(1);
+        }
+
+        return normalized.ToLowerInvariant();
+    }
+
+    private static string MapQuickLinkMetricToLegacyTrigger(string metricKey)
+    {
+        string normalizedMetric = NormalizeSummaryMetricKey(metricKey);
+        switch (normalizedMetric)
+        {
+            case "pending":
+                return "trg2";
+            case "open":
+                return "trg4";
+            case "total":
+            default:
+                return "trg1";
+        }
+    }
+
+    private static void ParseDesignSummaryModalArgument(string input, out string rawDesign, out string trigger, out bool includeAllDesigns)
+    {
+        rawDesign = string.Empty;
+        trigger = string.Empty;
+        includeAllDesigns = false;
+
+        string token = (input ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return;
+        }
+
+        string[] parts = token.Split(new[] { "||" }, StringSplitOptions.None);
+        if (parts.Length >= 2)
+        {
+            rawDesign = (parts[0] ?? string.Empty).Trim();
+            trigger = MapQuickLinkMetricToLegacyTrigger(parts[1]);
+            includeAllDesigns = string.Equals(rawDesign, DesignSummaryAllToken, StringComparison.OrdinalIgnoreCase);
+            if (string.Equals(rawDesign, "unassigned", StringComparison.OrdinalIgnoreCase))
+            {
+                rawDesign = string.Empty;
+            }
+
+            return;
+        }
+
+        ParseTriggeredValue(token, out rawDesign, out trigger);
+        trigger = NormalizeLegacyTrigger(trigger);
+        includeAllDesigns = string.Equals(rawDesign, DesignSummaryAllToken, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void ParseIngredientSummaryModalArgument(string input, out string rawIngredient, out string trigger, out bool includeAllIngredients)
+    {
+        rawIngredient = string.Empty;
+        trigger = string.Empty;
+        includeAllIngredients = false;
+
+        string token = (input ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return;
+        }
+
+        string[] parts = token.Split(new[] { "||" }, StringSplitOptions.None);
+        if (parts.Length >= 2)
+        {
+            rawIngredient = (parts[0] ?? string.Empty).Trim();
+            trigger = MapQuickLinkMetricToLegacyTrigger(parts[1]);
+            includeAllIngredients = string.Equals(rawIngredient, IngredientSummaryAllToken, StringComparison.OrdinalIgnoreCase);
+            if (string.Equals(rawIngredient, "unassigned", StringComparison.OrdinalIgnoreCase))
+            {
+                rawIngredient = string.Empty;
+            }
+
+            return;
+        }
+
+        ParseTriggeredValue(token, out rawIngredient, out trigger);
+        trigger = NormalizeLegacyTrigger(trigger);
+        includeAllIngredients = string.Equals(rawIngredient, IngredientSummaryAllToken, StringComparison.OrdinalIgnoreCase);
+    }
+
     private DataTable GetDesignSummaryModalData(string design)
     {
         string rawDesign;
         string trigger;
-        ParseTriggeredValue(design, out rawDesign, out trigger);
+        bool includeAllDesigns;
+        ParseDesignSummaryModalArgument(design, out rawDesign, out trigger, out includeAllDesigns);
 
         string issueSourceSql = BuildIssueDataSourceSql(selectedPlatform, "issue_src");
         string query;
+        string designFilterClause = includeAllDesigns ? string.Empty : " AND customer_detail = @detail";
 
         switch (trigger)
         {
             case "trg1":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE CMF_REQUEST in ('cmf_ok','cmf_duplicate') AND customer_detail = @detail";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE CMF_REQUEST in ('cmf_ok','cmf_duplicate')" + designFilterClause;
                 break;
             case "trg2":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE CMF_REQUEST in ('cmf_ask','cmf_incomplete') AND status not in ('complete','rejected') AND customer_detail = @detail";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE CMF_REQUEST in ('cmf_ask','cmf_incomplete') AND status not in ('complete','rejected')" + designFilterClause;
                 break;
             case "trg4":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND status NOT IN('complete', 'rejected') AND customer_detail = @detail";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND status NOT IN('complete', 'rejected', 'implemented', 'future')" + designFilterClause;
                 break;
             case "trg5":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason NOT LIKE('%internal%') AND closed_reason IN('below_zbb', 'cannot_reproduce', 'customer_disengaged', 'customer_enquiry_resolved', 'expected_behavior', 'feature_not_por', 'feature_por_not_ready', 'filed_by_mistake', 'inactive', 'known_errata', 'not_a_defect', 'poor_sighting_quality', 'proj_cancelled', 'test/test_env')) AND customer_detail = @detail";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason NOT LIKE('%internal%') AND closed_reason IN('below_zbb', 'cannot_reproduce', 'customer_disengaged', 'customer_enquiry_resolved', 'expected_behavior', 'feature_not_por', 'feature_por_not_ready', 'filed_by_mistake', 'inactive', 'known_errata', 'not_a_defect', 'poor_sighting_quality', 'proj_cancelled', 'test/test_env'))" + designFilterClause;
                 break;
             case "trg6":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason LIKE('%internal%') OR closed_reason IN('same_source_fix', 'unknown_fix', 'workaround', 'backout', 'bug_fix', 'documentation', 'duplicate', 'fw', 'high_risk', 'hw', 'intel_silicon_bug', 'internal_doc_bug', 'internal_fw_bug', 'internal_hw_bug', 'internal_mmanufacturing', 'internal_si_bug', 'internal_sw_bug', 'product_changed', 'promoted', 'pushed_to_other_database', 'rcr_created', 'regression_reverted', 'requirements_updated', 'transferred', 'user_verified', 'wont_fix', 'zbb')) AND customer_detail = @detail";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason LIKE('%internal%') OR closed_reason IN('same_source_fix', 'unknown_fix', 'workaround', 'backout', 'bug_fix', 'documentation', 'duplicate', 'fw', 'high_risk', 'hw', 'intel_silicon_bug', 'internal_doc_bug', 'internal_fw_bug', 'internal_hw_bug', 'internal_mmanufacturing', 'internal_si_bug', 'internal_sw_bug', 'product_changed', 'promoted', 'pushed_to_other_database', 'rcr_created', 'regression_reverted', 'requirements_updated', 'transferred', 'user_verified', 'wont_fix', 'zbb'))" + designFilterClause;
                 break;
             case "trg7":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason IN('3rd_party', '3rd_party_hw_bug', '3rd_party_sw_bug', 'application_bug', 'os_issue')) AND customer_detail = @detail";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason IN('3rd_party', '3rd_party_hw_bug', '3rd_party_sw_bug', 'application_bug', 'os_issue'))" + designFilterClause;
                 break;
             case "trg8":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason IN('await_user_verify', 'board_issue', 'config_issue', 'customer_bios_issue', 'customer_hw_issue', 'customer_sw_issue', 'inquiry_closed', 'platform_out_of_spec', 'test_bug')) AND customer_detail = @detail";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason IN('await_user_verify', 'board_issue', 'config_issue', 'customer_bios_issue', 'customer_hw_issue', 'customer_sw_issue', 'inquiry_closed', 'platform_out_of_spec', 'test_bug'))" + designFilterClause;
                 break;
             default:
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE CMF_REQUEST in ('cmf_reject') AND customer_detail = @detail";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE CMF_REQUEST in ('cmf_reject')" + designFilterClause;
                 break;
         }
 
-        return ExecuteDataTable(query, command => command.Parameters.AddWithValue("@detail", rawDesign));
+        return ExecuteDataTable(
+            query,
+            command =>
+            {
+                if (!includeAllDesigns)
+                {
+                    command.Parameters.AddWithValue("@detail", rawDesign);
+                }
+            });
     }
 
     private DataTable GetIngredientSummaryModalData(string ingred)
     {
         string rawIngredient;
         string trigger;
-        ParseTriggeredValue(ingred, out rawIngredient, out trigger);
+        bool includeAllIngredients;
+        ParseIngredientSummaryModalArgument(ingred, out rawIngredient, out trigger, out includeAllIngredients);
 
         string issueSourceSql = BuildIssueDataSourceSql(selectedPlatform, "issue_src");
         string query;
+        string ingredientFilterClause = includeAllIngredients ? string.Empty : " AND component_group = @componentGroup";
 
         switch (trigger)
         {
             case "trg1":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE ((CMF_REQUEST in ('cmf_ok') and [sysdebug] like ('%customer_must_fix%')) OR ((CMF_REQUEST in ('cmf_ok') AND CMF_REQUEST NOT IN ('cmf_ok','cmf_duplicate')))) and component_group = @componentGroup";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE ((CMF_REQUEST in ('cmf_ok') and [sysdebug] like ('%customer_must_fix%')) OR ((CMF_REQUEST in ('cmf_ok') AND CMF_REQUEST NOT IN ('cmf_ok','cmf_duplicate'))))" + ingredientFilterClause;
                 break;
             case "trg2":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE CMF_REQUEST in ('cmf_ask','cmf_incomplete') and component_group = @componentGroup";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE CMF_REQUEST in ('cmf_ask','cmf_incomplete')" + ingredientFilterClause;
                 break;
             case "trg4":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND status NOT IN('complete', 'rejected') AND component_group = @componentGroup";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND status NOT IN('complete', 'rejected', 'implemented', 'future')" + ingredientFilterClause;
                 break;
             case "trg5":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason NOT LIKE('%internal%') AND closed_reason IN('below_zbb', 'cannot_reproduce', 'customer_disengaged', 'customer_enquiry_resolved', 'expected_behavior', 'feature_not_por', 'feature_por_not_ready', 'filed_by_mistake', 'inactive', 'known_errata', 'not_a_defect', 'poor_sighting_quality', 'proj_cancelled', 'test/test_env')) AND component_group = @componentGroup";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason NOT LIKE('%internal%') AND closed_reason IN('below_zbb', 'cannot_reproduce', 'customer_disengaged', 'customer_enquiry_resolved', 'expected_behavior', 'feature_not_por', 'feature_por_not_ready', 'filed_by_mistake', 'inactive', 'known_errata', 'not_a_defect', 'poor_sighting_quality', 'proj_cancelled', 'test/test_env'))" + ingredientFilterClause;
                 break;
             case "trg6":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason LIKE('%internal%') OR closed_reason IN('same_source_fix', 'unknown_fix', 'workaround', 'backout', 'bug_fix', 'documentation', 'duplicate', 'fw', 'high_risk', 'hw', 'intel_silicon_bug', 'internal_doc_bug', 'internal_fw_bug', 'internal_hw_bug', 'internal_mmanufacturing', 'internal_si_bug', 'internal_sw_bug', 'product_changed', 'promoted', 'pushed_to_other_database', 'rcr_created', 'regression_reverted', 'requirements_updated', 'transferred', 'user_verified', 'wont_fix', 'zbb')) AND component_group = @componentGroup";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason LIKE('%internal%') OR closed_reason IN('same_source_fix', 'unknown_fix', 'workaround', 'backout', 'bug_fix', 'documentation', 'duplicate', 'fw', 'high_risk', 'hw', 'intel_silicon_bug', 'internal_doc_bug', 'internal_fw_bug', 'internal_hw_bug', 'internal_mmanufacturing', 'internal_si_bug', 'internal_sw_bug', 'product_changed', 'promoted', 'pushed_to_other_database', 'rcr_created', 'regression_reverted', 'requirements_updated', 'transferred', 'user_verified', 'wont_fix', 'zbb'))" + ingredientFilterClause;
                 break;
             case "trg7":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason IN('3rd_party', '3rd_party_hw_bug', '3rd_party_sw_bug', 'application_bug', 'os_issue')) AND component_group = @componentGroup";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason IN('3rd_party', '3rd_party_hw_bug', '3rd_party_sw_bug', 'application_bug', 'os_issue'))" + ingredientFilterClause;
                 break;
             case "trg8":
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason IN('await_user_verify', 'board_issue', 'config_issue', 'customer_bios_issue', 'customer_hw_issue', 'customer_sw_issue', 'inquiry_closed', 'platform_out_of_spec', 'test_bug')) AND component_group = @componentGroup";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE cmf_request IN ('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND status IN('complete', 'rejected') AND (closed_reason IN('await_user_verify', 'board_issue', 'config_issue', 'customer_bios_issue', 'customer_hw_issue', 'customer_sw_issue', 'inquiry_closed', 'platform_out_of_spec', 'test_bug'))" + ingredientFilterClause;
                 break;
             default:
-                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE ((CMF_REQUEST in ('cmf_reject') and [sysdebug] like ('%customer_must_fix%')) OR ((CMF_REQUEST in ('cmf_reject') AND CMF_REQUEST NOT IN ('cmf_ok','cmf_duplicate')))) and component_group = @componentGroup";
+                query = "SELECT TOP 1000 [cp_id], [title], [status], [component], [cmf_request], [customer_owner], [promoted_id], [closed_reason], [days_active], [idst], [drivers] FROM " + issueSourceSql + " WHERE ((CMF_REQUEST in ('cmf_reject') and [sysdebug] like ('%customer_must_fix%')) OR ((CMF_REQUEST in ('cmf_reject') AND CMF_REQUEST NOT IN ('cmf_ok','cmf_duplicate'))))" + ingredientFilterClause;
                 break;
         }
 
-        return ExecuteDataTable(query, command => command.Parameters.AddWithValue("@componentGroup", rawIngredient));
+        return ExecuteDataTable(
+            query,
+            command =>
+            {
+                if (!includeAllIngredients)
+                {
+                    command.Parameters.AddWithValue("@componentGroup", rawIngredient);
+                }
+            });
     }
 
     private void ShowModal0()
     {
-        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "$('#detailsModal0').modal('show');", true);
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModal0').modal('show');", true);
     }
 
     private void ShowModal()
     {
-        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "$('#detailsModal').modal('show');", true);
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModal').modal('show');", true);
     }
 
     private void ShowModal2()
     {
-        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "$('#detailsModal2').modal('show');", true);
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModal2').modal('show');", true);
+    }
+
+    private void ShowIngredientIndicatorSummaryModal()
+    {
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowIngredientIndicatorSummaryModalScript", "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModalIngredientIndicator').modal('show');", true);
     }
 
     private void ShowModal3()
     {
-        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "$('#detailsModal3').modal('show');", true);
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowModalScript", "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModal3').modal('show');", true);
+    }
+
+    private void ShowOemIndicatorSummaryModal()
+    {
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowOemIndicatorSummaryModalScript", "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModalOemIndicator').modal('show');", true);
+    }
+
+    private void ShowDesignIndicatorSummaryModal()
+    {
+        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDesignIndicatorSummaryModalScript", "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModalDesignIndicator').modal('show');", true);
     }
 
     private void BindImplementedVerifiedDetailsModal(string design)
@@ -2182,7 +2536,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         modalQuery.Append("FROM ");
         modalQuery.Append(issueSourceSql);
         modalQuery.Append(" WHERE sysdebug LIKE('%customer_must_fix%') ");
-        modalQuery.Append("AND status IN ('implemented', 'verified')");
+        modalQuery.Append("AND status IN ('implemented', 'verified', 'future')");
 
         if (design == "RVP")
         {
@@ -2203,7 +2557,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
                 }
 
                 AppendDriversInClause(modalQuery, command, selectedDrivers, "modalDriver");
-                command.CommandText = modalQuery.ToString();
+                command.CommandText = CmfPlatformCatalog.ScopeIssueSql(modalQuery.ToString());
             });
 
         GridView_design_summary_modal0.DataSource = dt;
@@ -2324,10 +2678,27 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     protected override void OnPreRender(EventArgs e)
     {
         ApplyFocusedPortalMode();
+        dashboardHeaderTools.Visible = homeWelcomePanel.Visible;
+        string target = Request["__EVENTTARGET"] ?? string.Empty;
+        if (IsPostBack && string.IsNullOrWhiteSpace(HomeDashboardSnapshotJson)
+            && (target == ddlDashboardDateMode.UniqueID
+                || target == btnApplyDashboardDates.UniqueID))
+        {
+            BindHomeDashboard();
+        }
         if (ScriptManager1 != null && lnkPendingBreadcrumbHome != null)
         {
             ScriptManager1.RegisterPostBackControl(lnkPendingBreadcrumbHome);
         }
+        if (ScriptManager1 != null && btnPendingViewExport != null)
+        {
+            ScriptManager1.RegisterPostBackControl(btnPendingViewExport);
+        }
+        if (ScriptManager1 != null && btnIssueViewExport != null)
+        {
+            ScriptManager1.RegisterPostBackControl(btnIssueViewExport);
+        }
+        if (IsPostBack) UpdatePlatformChipOrder();
         RegisterActiveTabClientState();
         base.OnPreRender(e);
     }
@@ -2343,8 +2714,26 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         ScriptManager.RegisterStartupScript(this, GetType(), "activeFocusedTabState", script, true);
     }
 
+    private static string NormalizeFocusedTabKey(string tabKey)
+    {
+        string normalized = (tabKey ?? string.Empty).Trim().ToLowerInvariant();
+        switch (normalized)
+        {
+            case "home":
+            case "issue":
+            case "cmf":
+            case "pending":
+            case "reports":
+            case "config":
+                return normalized;
+            default:
+                return "home";
+        }
+    }
+
     private void SetActiveFocusedTab(string tabKey)
     {
+        tabKey = NormalizeFocusedTabKey(tabKey);
         string baseClass = "modern-button tab-pill";
         string navBaseClass = "portal-nav-link";
         btnShowGridView1.CssClass = baseClass;
@@ -2416,7 +2805,234 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     protected string GetActiveFocusedTab()
     {
         string activeTab = Session[ActiveFocusedTabSessionKey] as string;
-        return string.IsNullOrWhiteSpace(activeTab) ? "issue" : activeTab;
+        return NormalizeFocusedTabKey(activeTab);
+    }
+
+    private static bool IsQuickLinkDesignEventTarget(string eventTarget)
+    {
+        return string.Equals(eventTarget, "lnkQuickOverallDesign", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(eventTarget, "lnkQuickPlatformDesign", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(eventTarget, "lnkQuickLegacyDesign", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsQuickLinkIngredientEventTarget(string eventTarget)
+    {
+        return string.Equals(eventTarget, "lnkQuickOverallIngredient", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(eventTarget, "lnkQuickPlatformIngredient", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(eventTarget, "lnkQuickLegacyIngredient", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsQuickLinkOemEventTarget(string eventTarget)
+    {
+        return string.Equals(eventTarget, "lnkQuickOverallOem", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(eventTarget, "lnkQuickPlatformOem", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(eventTarget, "lnkQuickLegacyOem", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void RehydrateFocusedTabForPopupFlow()
+    {
+        string activeFocusedTab = GetActiveFocusedTab();
+        SetActiveFocusedTab(activeFocusedTab);
+
+        if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
+        {
+            ShowWelcomeHome();
+            return;
+        }
+
+        if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
+        {
+            ShowModernCmfSummary();
+            return;
+        }
+
+        RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void PrepareHomeQuickLinkPopupFlow()
+    {
+        if (ScriptManager1 != null && ScriptManager1.IsInAsyncPostBack)
+        {
+            selectedPlatform = ResolveDashboardPlatformSelection();
+            return;
+        }
+
+        SetActiveFocusedTab("home");
+        ShowWelcomeHome();
+    }
+
+    protected void btnPopupAsyncDispatch_Click(object sender, EventArgs e)
+    {
+        string action = (hfPopupAsyncAction != null ? hfPopupAsyncAction.Value : string.Empty) ?? string.Empty;
+        string arg1 = (hfPopupAsyncArg1 != null ? hfPopupAsyncArg1.Value : string.Empty) ?? string.Empty;
+        string arg2 = (hfPopupAsyncArg2 != null ? hfPopupAsyncArg2.Value : string.Empty) ?? string.Empty;
+        string arg3 = (hfPopupAsyncArg3 != null ? hfPopupAsyncArg3.Value : string.Empty) ?? string.Empty;
+
+        string packedArgument = Request["__EVENTARGUMENT"] ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(packedArgument))
+        {
+            string[] packedParts = packedArgument.Split(new[] { "||" }, StringSplitOptions.None);
+
+            if (string.IsNullOrWhiteSpace(action) && packedParts.Length > 0)
+            {
+                action = packedParts[0] ?? string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(arg1) && packedParts.Length > 1)
+            {
+                arg1 = HttpUtility.UrlDecode(packedParts[1] ?? string.Empty);
+            }
+
+            if (string.IsNullOrWhiteSpace(arg2) && packedParts.Length > 2)
+            {
+                arg2 = HttpUtility.UrlDecode(packedParts[2] ?? string.Empty);
+            }
+
+            if (string.IsNullOrWhiteSpace(arg3) && packedParts.Length > 3)
+            {
+                arg3 = HttpUtility.UrlDecode(packedParts[3] ?? string.Empty);
+            }
+        }
+
+        switch (action)
+        {
+            case "ShowDesignIndicatorSummaryModal":
+                PrepareHomeQuickLinkPopupFlow();
+                BindGridView_design_summary();
+                ShowDesignIndicatorSummaryModal();
+                break;
+
+            case "ShowIngredientIndicatorSummaryModal":
+                PrepareHomeQuickLinkPopupFlow();
+                BindGridView_component_summary();
+                ShowIngredientIndicatorSummaryModal();
+                break;
+
+            case "ShowOemIndicatorSummaryModal":
+                PrepareHomeQuickLinkPopupFlow();
+                BindGridView_oem_summary();
+                ShowOemIndicatorSummaryModal();
+                break;
+
+            case "ShowModal":
+                if (!string.IsNullOrWhiteSpace(arg1))
+                {
+                    PrepareHomeQuickLinkPopupFlow();
+                    HiddenModalDesign.Value = arg1;
+                    Session["DesignValue"] = arg1;
+                    BindModalGrid(arg1);
+                    ShowModal();
+                }
+                break;
+
+            case "ShowModal2":
+                if (!string.IsNullOrWhiteSpace(arg1))
+                {
+                    PrepareHomeQuickLinkPopupFlow();
+                    HiddenModalDesign.Value = arg1;
+                    Session["DesignValue"] = arg1;
+                    BindModalGrid2(arg1);
+                    ShowModal2();
+                }
+                break;
+
+            case "ShowModal3":
+                if (!string.IsNullOrWhiteSpace(arg1))
+                {
+                    PrepareHomeQuickLinkPopupFlow();
+                    HiddenModalDesign.Value = arg1;
+                    Session["DesignValue"] = arg1;
+                    BindModalGrid3(arg1);
+                    ShowModal3();
+                }
+                break;
+
+            case "ShowDriverModal":
+                if (!string.IsNullOrWhiteSpace(arg1) && !string.IsNullOrWhiteSpace(arg2))
+                {
+                    PrepareHomeQuickLinkPopupFlow();
+                    HiddenModalDesign.Value = arg1;
+                    if (HiddenModalDriver != null)
+                    {
+                        HiddenModalDriver.Value = arg2;
+                    }
+                    Session["DesignValue"] = arg1;
+                    BindDriverDetailsModal(arg1, arg2);
+                    ShowModal0();
+                }
+                break;
+
+            case "ShowImplementedVerifiedModal":
+                if (!string.IsNullOrWhiteSpace(arg1))
+                {
+                    PrepareHomeQuickLinkPopupFlow();
+                    HiddenModalDesign.Value = arg1;
+                    Session["DesignValue"] = arg1;
+                    BindImplementedVerifiedDetailsModal(arg1);
+                    ShowModal0();
+                }
+                break;
+
+            case "ShowDriverIssues":
+                if (!string.IsNullOrWhiteSpace(arg1))
+                {
+                    PrepareHomeQuickLinkPopupFlow();
+                    HiddenDriverName.Value = arg1;
+                    Session["DriverName"] = arg1;
+                    BindDriverIssues(arg1);
+                    ShowDriverIssues();
+                }
+                break;
+
+            case "ShowCMFIssues":
+                if (!string.IsNullOrWhiteSpace(arg1) && !string.IsNullOrWhiteSpace(arg2) && !string.IsNullOrWhiteSpace(arg3))
+                {
+                    PrepareHomeQuickLinkPopupFlow();
+                    HiddenComponentName.Value = arg1;
+                    HiddenDriverName.Value = arg2;
+                    HiddenIssueType.Value = arg3;
+
+                    Session["ComponentName"] = arg1;
+                    Session["DriverName"] = arg2;
+                    Session["IssueType"] = arg3;
+
+                    BindCMFIssues(arg1, arg2, arg3);
+                    ShowCMFIssues();
+                }
+                break;
+
+            case "ShowSummaryMetricIssues":
+                if (!string.IsNullOrWhiteSpace(arg1))
+                {
+                    PrepareHomeQuickLinkPopupFlow();
+                    BindSummaryMetricIssues(arg1);
+                    ShowSummaryMetricIssuesModal();
+                }
+                break;
+
+            case "ShowPendingSummaryIssues":
+                if (!string.IsNullOrWhiteSpace(arg1))
+                {
+                    PrepareHomeQuickLinkPopupFlow();
+                    BindPendingSummaryIssues(arg1);
+                    ShowCMFIssues();
+                }
+                break;
+
+            case "ShowPendingAgeBucketIssues":
+                if (!string.IsNullOrWhiteSpace(arg1))
+                {
+                    PrepareHomeQuickLinkPopupFlow();
+                    BindPendingAgeBucketIssues(arg1);
+                    ShowCMFIssues();
+                }
+                break;
+        }
+
+        if (hfPopupAsyncAction != null) hfPopupAsyncAction.Value = string.Empty;
+        if (hfPopupAsyncArg1 != null) hfPopupAsyncArg1.Value = string.Empty;
+        if (hfPopupAsyncArg2 != null) hfPopupAsyncArg2.Value = string.Empty;
+        if (hfPopupAsyncArg3 != null) hfPopupAsyncArg3.Value = string.Empty;
     }
 
     protected string GetIssueGlobalSearchQuery()
@@ -2467,13 +3083,23 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     private string GetIssuePendingPlatform()
     {
         string value = Session[IssuePendingPlatformSessionKey] as string;
-        if (!string.IsNullOrWhiteSpace(value))
+        if (string.IsNullOrWhiteSpace(value))
         {
-            return ResolveIssuePendingPlatformSelection(value);
+            value = DefaultIssuePendingPlatformTable;
         }
 
-        string globalPlatform = Session["selectedPlatform"] as string ?? ddlTables.SelectedValue;
-        return ResolveIssuePendingPlatformSelection(globalPlatform);
+        return ResolveIssuePendingPlatformSelection(value);
+    }
+
+    private List<string> GetPendingPlatformSelections()
+    {
+        string[] selections = Session[PendingPlatformsSessionKey] as string[];
+        List<string> platforms = (selections ?? new string[0])
+            .Where(value => AllowedPlatformTables.Contains(value) && !IsOverallDashboardPlatform(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (platforms.Count == 0) platforms.Add(GetIssuePendingPlatform());
+        return platforms;
     }
 
     private void ApplyIssuePendingPlatformContext()
@@ -2491,6 +3117,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         Session["companyFilter"] = "All";
         Session["detailFilter"] = "All";
         Session["componentFilter"] = "All";
+        Session["issueStatusFilter"] = "All";
     }
 
     private void SetIssuePagerVisible(bool isVisible)
@@ -2531,7 +3158,17 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     {
         if (mainDataWrapper != null)
         {
-            mainDataWrapper.Visible = isVisible;
+            // Keep wrapper rendered so async popup dispatch controls remain available on Home.
+            mainDataWrapper.Visible = true;
+            mainDataWrapper.Style["display"] = isVisible ? string.Empty : "none";
+            if (isVisible)
+            {
+                mainDataWrapper.Attributes.Remove("aria-hidden");
+            }
+            else
+            {
+                mainDataWrapper.Attributes["aria-hidden"] = "true";
+            }
         }
     }
 
@@ -2583,7 +3220,6 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         analyticsPanel.Visible = false;
         SetMainDataWrapperVisible(false);
         issueListHeaderPanel.Visible = false;
-        sharedFilterPanel.Visible = false;
         fieldSelectorPanel.Visible = false;
         SetIssuePagerVisible(false);
         configRulesPanel.Visible = false;
@@ -2630,7 +3266,6 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         analyticsPanel.Visible = false;
         SetMainDataWrapperVisible(false);
         issueListHeaderPanel.Visible = false;
-        sharedFilterPanel.Visible = false;
         fieldSelectorPanel.Visible = false;
         cmf_pending_header_panel.Visible = false;
         SetIssuePagerVisible(false);
@@ -2790,14 +3425,119 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
             lblHomeDashboardGeneratedAt.Text = snapshot.GeneratedAt;
         }
 
-        if (lblCmfSummaryGeneratedAt != null)
-        {
-            lblCmfSummaryGeneratedAt.Text = snapshot.GeneratedAt;
-        }
-
         if (lnkPlatformDashboard != null)
         {
             lnkPlatformDashboard.Visible = lnkPlatformDashboard.Visible;
+        }
+    }
+
+    [WebMethod(EnableSession = true)]
+    public static CmfDashboardInsights GetDashboardInsights(string platform)
+    {
+        try
+        {
+            string selection = ResolveDashboardPlatformSelectionForWeb(platform);
+            if (!string.IsNullOrWhiteSpace(platform) && !string.Equals(platform, selection, StringComparison.OrdinalIgnoreCase))
+            {
+                return new CmfDashboardInsights { Success = false, Message = "Select a valid dashboard platform." };
+            }
+            CmfDashboardInsights sourceEvidence = LoadDashboardInsightEvidence(selection);
+            string evidenceKey = Guid.NewGuid().ToString("N");
+            HttpRuntime.Cache.Insert("cmf-insight-evidence:" + HttpContext.Current.User.Identity.Name + ":" + evidenceKey,
+                sourceEvidence, null, System.Web.Caching.Cache.NoAbsoluteExpiration, TimeSpan.FromMinutes(30));
+            CmfDashboardInsightsService.AddAi(sourceEvidence, false);
+            CmfDashboardInsightsService.WarmPlatforms(CmfPlatformCatalog.GetAllPlatformTables(), LoadDashboardInsightEvidence);
+            return CmfDashboardInsightsService.CreateView(sourceEvidence, evidenceKey);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.TraceError("Dashboard Insights failed: " + ex.GetType().Name);
+            return new CmfDashboardInsights { Success = false, Message = "Dashboard insights are temporarily unavailable. Refresh to retry." };
+        }
+    }
+
+    private static CmfDashboardInsights LoadDashboardInsightEvidence(string selection)
+    {
+        string key = "cmf-insight-source:" + selection + ":" + DateTime.Today.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        using (CmfAssistantResponseCache.Enter(key))
+        {
+            var cached = HttpRuntime.Cache[key] as CmfDashboardInsights;
+            if (cached != null) return cached;
+            string source = BuildSummaryIssueComponentSourceSql(selection, false, true);
+            var data = new DataTable();
+            using (var connection = new SqlConnection(ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString))
+            using (var command = CmfSummaryTrendService.CreateBalanceEvidenceCommand(connection, "(" + source + ") AS insight_source", DateTime.Today, true))
+            {
+                connection.Open();
+                using (var reader = command.ExecuteReader()) data.Load(reader);
+            }
+            bool overall = string.Equals(selection, OverallDashboardPlatformTable, StringComparison.OrdinalIgnoreCase);
+            var tables = GetSummaryIssueSourceTablesForWeb(selection);
+            var evidence = CmfDashboardInsightsService.Build(data, overall ? "Overall (" + tables.Count + " included platforms)"
+                : CmfDashboardInsightsService.PlatformLabel(selection), DateTime.Today);
+            evidence.SourceHash = CmfAssistantResponseCache.Fingerprint(new { Evidence = evidence.SourceHash, SourceScope = selection });
+            if (overall)
+            {
+                evidence.PlatformEvidence = new List<CmfDashboardInsights>();
+                foreach (string table in tables)
+                {
+                    string platformKey = "cmf-insight-source:" + table + ":" + DateTime.Today.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+                    using (CmfAssistantResponseCache.Enter(platformKey))
+                    {
+                        var platformEvidence = HttpRuntime.Cache[platformKey] as CmfDashboardInsights;
+                        if (platformEvidence == null)
+                        {
+                            var subset = data.Clone();
+                            foreach (DataRow row in data.Rows) if (string.Equals(Convert.ToString(row["source_platform"]), table, StringComparison.OrdinalIgnoreCase)) subset.ImportRow(row);
+                            platformEvidence = CmfDashboardInsightsService.Build(subset, CmfDashboardInsightsService.PlatformLabel(table), DateTime.Today);
+                            platformEvidence.SourceHash = CmfAssistantResponseCache.Fingerprint(new { Evidence = platformEvidence.SourceHash, SourceScope = table });
+                            HttpRuntime.Cache.Insert(platformKey, platformEvidence, null, DateTime.UtcNow.AddMinutes(5), System.Web.Caching.Cache.NoSlidingExpiration);
+                        }
+                        evidence.PlatformEvidence.Add(platformEvidence);
+                    }
+                }
+            }
+            HttpRuntime.Cache.Insert(key, evidence, null, DateTime.UtcNow.AddMinutes(5), System.Web.Caching.Cache.NoSlidingExpiration);
+            return evidence;
+        }
+    }
+
+    private static CmfDashboardInsights GetCachedDashboardInsights(string evidenceKey)
+    {
+        Guid token;
+        return Guid.TryParseExact(evidenceKey, "N", out token)
+            ? HttpRuntime.Cache["cmf-insight-evidence:" + HttpContext.Current.User.Identity.Name + ":" + evidenceKey] as CmfDashboardInsights
+            : null;
+    }
+
+    [WebMethod]
+    public static CmfInsightPage GetDashboardInsightPage(string evidenceKey, string view, int page)
+    {
+        CmfDashboardInsights evidence = GetCachedDashboardInsights(evidenceKey);
+        return evidence == null
+            ? new CmfInsightPage { Success = false, Message = "Dashboard evidence expired. Refresh to retry." }
+            : CmfDashboardInsightsService.CreatePage(HttpRuntime.Cache["cmf-insight-result:" + HttpContext.Current.User.Identity.Name + ":" + evidenceKey] as CmfDashboardInsights ?? evidence, view, page);
+    }
+
+    [WebMethod]
+    public static CmfDashboardInsights RankDashboardInsights(string evidenceKey, bool refresh)
+    {
+        CmfDashboardInsights evidence = GetCachedDashboardInsights(evidenceKey);
+        if (evidence == null)
+            return new CmfDashboardInsights { Success = false, Message = "Dashboard evidence expired. Refresh to retry." };
+        try
+        {
+            CmfDashboardInsights result = CmfDashboardInsightsService.AddAi(evidence, refresh);
+            if (result.Mode == "ai")
+                HttpRuntime.Cache.Insert("cmf-insight-result:" + HttpContext.Current.User.Identity.Name + ":" + evidenceKey,
+                    result, null, DateTime.Parse(result.ExpiresAt, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+                    System.Web.Caching.Cache.NoSlidingExpiration);
+            return CmfDashboardInsightsService.CreateView(result, evidenceKey);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.TraceError("Dashboard AI analysis failed: " + ex.GetType().Name);
+            return new CmfDashboardInsights { Success = false, Message = "AI analysis unavailable. No calculated fallback is shown. Refresh to retry." };
         }
     }
 
@@ -2835,22 +3575,33 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         }
     }
 
-    private string BuildHomeDashboardSourceSql(string platformTable)
+    private static string BuildTrendWeekEndExclusiveSql(string weekOffsetSql)
+    {
+        return "CASE WHEN " + weekOffsetSql + " = 0 THEN DATEADD(DAY, 1, CAST(GETDATE() AS DATE)) ELSE "
+            + "DATEADD(DAY, 7 - DATEDIFF(DAY, CONVERT(date, '19000101', 112), CAST(GETDATE() AS DATE)) % 7 - 7 * "
+            + weekOffsetSql + ", CAST(GETDATE() AS DATE)) END";
+    }
+
+    private static string BuildTrendWeekEndStatusPredicate(string alias, string cutoffSql, bool implemented, string weekOffsetSql)
+    {
+        string prefix = alias + ".";
+        string openStatusPredicate = prefix + "status NOT IN ('complete', 'rejected', 'implemented', 'future')";
+        string currentStatusPredicate = implemented ? prefix + "status IN ('implemented', 'future')" : openStatusPredicate;
+        string historicalPredicate = "TRY_CAST(" + prefix + "date_cmf_ask AS DATE) < (" + cutoffSql + ")"
+            + " AND (TRY_CAST(" + prefix + "closed_date AS DATE) IS NULL OR TRY_CAST(" + prefix + "closed_date AS DATE) >= (" + cutoffSql + "))"
+            + (implemented
+                ? " AND " + prefix + "status IN ('implemented', 'future', 'complete', 'rejected') AND TRY_CAST(" + prefix + "implemented_date AS DATE) < (" + cutoffSql + ")"
+                : " AND (" + openStatusPredicate + " OR (" + prefix + "status IN ('implemented', 'future', 'complete', 'rejected') AND (TRY_CAST(" + prefix + "implemented_date AS DATE) IS NULL OR TRY_CAST(" + prefix + "implemented_date AS DATE) >= (" + cutoffSql + "))))");
+        return "((" + weekOffsetSql + " = 0 AND " + currentStatusPredicate + ") OR (" + weekOffsetSql + " > 0 AND " + historicalPredicate + "))";
+    }
+
+    private string BuildHomeDashboardSourceSql(string platformTable, bool includeRejected = false)
     {
         platformTable = ResolveDashboardPlatformSelection(platformTable);
-        string dashboardSourceSql = BuildDashboardComponentSourceSql(platformTable);
-        string filterValue = Session["filterValue"] as string;
-        if (string.IsNullOrWhiteSpace(filterValue) || filterValue == "AllDrivers")
-        {
-            filterValue = BuildDefaultIssueDriverFilter(platformTable);
-            Session["filterValue"] = filterValue;
-        }
-
-        Dictionary<string, string> filters = GetAllFilterValues();
+        string dashboardSourceSql = BuildDashboardComponentSourceSql(platformTable, true);
         StringBuilder whereClause = new StringBuilder();
-        whereClause.Append("WHERE status NOT IN ('rejected') AND sysdebug LIKE ('%customer_must_fix%') AND cmf_request IN ('cmf_ok') ");
-        AppendDashboardDriverFilter(whereClause, filterValue);
-        AppendDashboardColumnFilters(whereClause, filters);
+        whereClause.Append(includeRejected ? "WHERE " : "WHERE status NOT IN ('rejected') AND ");
+        whereClause.Append("sysdebug LIKE ('%customer_must_fix%') AND cmf_request IN ('cmf_ok') ");
 
         return @"(SELECT
     status,
@@ -2858,6 +3609,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     customer_impact,
     title,
     implemented_date,
+    closed_date,
     date_cmf_decided,
     date_cmf_ask,
     component_group,
@@ -2874,7 +3626,7 @@ FROM " + dashboardSourceSql + @"
 
     private string BuildDefaultIssueDriverFilter(string platformTable)
     {
-        return string.Join(",", GetDistinctDrivers(platformTable, "open", "implemented").ToArray());
+        return string.Join(",", GetDistinctDrivers(platformTable, "open", "implemented", "future").ToArray());
     }
 
     private static bool UsesPublicIssueStatusScope(string platformTable)
@@ -2988,19 +3740,19 @@ FROM " + dashboardSourceSql + @"
         {
             con.Open();
 
-            using (SqlCommand metricsCommand = new SqlCommand(@"
+            using (SqlCommand metricsCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT
                 COUNT(1) AS ActiveIssues,
                 SUM(CASE WHEN LOWER(LTRIM(RTRIM(ISNULL(status, '')))) = 'open' THEN 1 ELSE 0 END) AS NeedsAttention,
                 SUM(CASE WHEN LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS ClosedIssues,
-                SUM(CASE WHEN LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('implemented', 'verified') THEN 1 ELSE 0 END) AS StaleIssues,
+                SUM(CASE WHEN LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('implemented', 'verified', 'future') THEN 1 ELSE 0 END) AS StaleIssues,
     SUM(CASE WHEN TRY_CAST(implemented_date AS DATE) >= DATEADD(DAY, -7, CAST(GETDATE() AS DATE)) THEN 1 ELSE 0 END) AS ResolvedThisWeek,
     ISNULL(AVG(CAST(CASE
         WHEN TRY_CAST(date_cmf_decided AS DATE) IS NOT NULL AND TRY_CAST(implemented_date AS DATE) IS NOT NULL
              AND TRY_CAST(implemented_date AS DATE) >= TRY_CAST(date_cmf_decided AS DATE)
         THEN DATEDIFF(DAY, TRY_CAST(date_cmf_decided AS DATE), TRY_CAST(implemented_date AS DATE))
         ELSE NULL END AS DECIMAL(10, 2))), 0) AS AverageResolutionDays,
-    SUM(CASE WHEN ISNULL(status, '') NOT IN ('complete', 'rejected', 'implemented', 'verified')
+    SUM(CASE WHEN ISNULL(status, '') NOT IN ('complete', 'rejected', 'implemented', 'verified', 'future')
               AND ISNULL(customer_impact, '') IN ('1-critical', '2-high', '3-medium')
         THEN 1 ELSE 0 END) AS CustomersAffected,
         SUM(CASE WHEN TRY_CAST(date_cmf_ask AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) AS NewToday,
@@ -3023,7 +3775,10 @@ FROM " + dashboardSourceSql, con))
                 }
             }
 
-            using (SqlCommand trendCommand = new SqlCommand(@"
+            string weekEndSourceSql = "(SELECT * FROM " + BuildDashboardComponentSourceSql(dashboardPlatform, true)
+                + " WHERE cmf_request = 'cmf_ok' AND sysdebug LIKE '%customer_must_fix%') AS platform_cmf_issues";
+            string weekEndCutoffSql = BuildTrendWeekEndExclusiveSql("w.week_offset");
+            using (SqlCommand trendCommand = CmfPlatformCatalog.CreateReadCommand(@"
 WITH weeks AS (
     SELECT 0 AS week_offset
     UNION ALL
@@ -3046,15 +3801,32 @@ resolved_issues AS (
       AND DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE)) BETWEEN 0 AND 103
             AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('complete', 'rejected')
     GROUP BY DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE))
+),
+implemented_issues AS (
+        SELECT DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE)) AS week_offset, COUNT(*) AS count_value
+        FROM " + dashboardSourceSql + @"
+        WHERE TRY_CAST(implemented_date AS DATE) IS NOT NULL
+            AND DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE)) BETWEEN 0 AND 103
+            AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('implemented', 'verified', 'future')
+        GROUP BY DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE))
 )
 SELECT
     DATEADD(WEEK, -w.week_offset, CAST(GETDATE() AS DATE)) AS week_date,
     ISNULL(n.count_value, 0) AS new_issues,
         ISNULL(r.count_value, 0) AS resolved_issues,
-        0 AS needs_attention
+        0 AS needs_attention,
+        ISNULL(i.count_value, 0) AS implemented_issues,
+        ISNULL(e.open_count, 0) AS week_end_open,
+        ISNULL(e.implemented_count, 0) AS week_end_implemented
 FROM weeks w
 LEFT JOIN new_issues n ON n.week_offset = w.week_offset
 LEFT JOIN resolved_issues r ON r.week_offset = w.week_offset
+    LEFT JOIN implemented_issues i ON i.week_offset = w.week_offset
+OUTER APPLY (
+    SELECT
+        (SELECT COUNT(*) FROM " + weekEndSourceSql + @" WHERE " + BuildTrendWeekEndStatusPredicate("platform_cmf_issues", weekEndCutoffSql, false, "w.week_offset") + @") AS open_count,
+        (SELECT COUNT(*) FROM " + weekEndSourceSql + @" WHERE " + BuildTrendWeekEndStatusPredicate("platform_cmf_issues", weekEndCutoffSql, true, "w.week_offset") + @") AS implemented_count
+) e
 ORDER BY week_date
 OPTION (MAXRECURSION 0)", con))
             using (SqlDataReader reader = trendCommand.ExecuteReader())
@@ -3068,16 +3840,19 @@ OPTION (MAXRECURSION 0)", con))
                     point.NewIssues = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
                     point.ResolvedIssues = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
                     point.NeedsAttention = reader.IsDBNull(3) ? 0 : reader.GetInt32(3);
+                    point.ImplementedIssues = reader.IsDBNull(4) ? 0 : reader.GetInt32(4);
+                    point.WeekEndOpenIssues = reader.IsDBNull(5) ? 0 : reader.GetInt32(5);
+                    point.WeekEndImplementedIssues = reader.IsDBNull(6) ? 0 : reader.GetInt32(6);
                     snapshot.Trend.Add(point);
                 }
             }
 
-            using (SqlCommand statusCommand = new SqlCommand(@"
+            using (SqlCommand statusCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 5
     CASE
         WHEN ISNULL(status, '') = '' THEN 'Unknown'
         WHEN status IN ('complete', 'rejected') THEN 'Closed'
-        WHEN status IN ('implemented', 'verified') THEN 'Validation'
+        WHEN status IN ('implemented', 'verified', 'future') THEN 'Validation'
         ELSE status
     END AS status_bucket,
     COUNT(*) AS bucket_count
@@ -3085,7 +3860,7 @@ FROM " + dashboardSourceSql + @"
 GROUP BY CASE
         WHEN ISNULL(status, '') = '' THEN 'Unknown'
         WHEN status IN ('complete', 'rejected') THEN 'Closed'
-        WHEN status IN ('implemented', 'verified') THEN 'Validation'
+    WHEN status IN ('implemented', 'verified', 'future') THEN 'Validation'
         ELSE status
     END
 ORDER BY bucket_count DESC", con))
@@ -3100,7 +3875,7 @@ ORDER BY bucket_count DESC", con))
                 }
             }
 
-            using (SqlCommand componentCommand = new SqlCommand(@"
+            using (SqlCommand componentCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 6
     CASE WHEN ISNULL(component_group, '') = '' THEN 'Unassigned' ELSE component_group END AS component_group,
     COUNT(*) AS issue_count
@@ -3118,7 +3893,7 @@ ORDER BY issue_count DESC", con))
                 }
             }
 
-            using (SqlCommand milestoneRiskCommand = new SqlCommand(@"
+            using (SqlCommand milestoneRiskCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 1
     CASE WHEN ISNULL(LTRIM(RTRIM(drivers)), '') = '' THEN 'Unassigned milestone' ELSE LTRIM(RTRIM(drivers)) END AS milestone,
     COUNT(*) AS risk_count
@@ -3135,7 +3910,7 @@ ORDER BY risk_count DESC, milestone", con))
                 }
             }
 
-            using (SqlCommand topRiskCommand = new SqlCommand(@"
+            using (SqlCommand topRiskCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 1
     risk_name,
     SUM(risk_weight) AS risk_score
@@ -3169,7 +3944,7 @@ ORDER BY risk_score DESC, risk_name", con))
                 }
             }
 
-            using (SqlCommand blockerCommand = new SqlCommand(@"
+            using (SqlCommand blockerCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 3
     CASE WHEN LEN(LTRIM(RTRIM(ISNULL(title, '')))) > 92 THEN LEFT(LTRIM(RTRIM(title)), 89) + '...' ELSE LTRIM(RTRIM(ISNULL(title, 'Untitled issue'))) END AS issue_title
 FROM " + dashboardSourceSql + @"
@@ -3195,10 +3970,10 @@ ORDER BY
                 }
             }
 
-            using (SqlCommand weeklyChangesCommand = new SqlCommand(@"
+            using (SqlCommand weeklyChangesCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT
     SUM(CASE WHEN TRY_CAST(date_cmf_ask AS DATE) >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE)) THEN 1 ELSE 0 END) AS NewThisWeek,
-    SUM(CASE WHEN TRY_CAST(implemented_date AS DATE) >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE)) AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('implemented', 'verified') THEN 1 ELSE 0 END) AS ImplementedThisWeek,
+    SUM(CASE WHEN TRY_CAST(implemented_date AS DATE) >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE)) AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('implemented', 'verified', 'future') THEN 1 ELSE 0 END) AS ImplementedThisWeek,
     SUM(CASE WHEN TRY_CAST(implemented_date AS DATE) >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE)) AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS ClosedThisWeek,
     SUM(CASE WHEN LOWER(LTRIM(RTRIM(ISNULL(priority, '')))) IN ('p0-blocker', 'p1-showstopper') OR LOWER(LTRIM(RTRIM(ISNULL(customer_impact, '')))) IN ('1-critical', '2-high') THEN 1 ELSE 0 END) AS HighRiskNow
 FROM " + dashboardSourceSql, con))
@@ -3215,8 +3990,8 @@ FROM " + dashboardSourceSql, con))
                         ? newThisWeek.ToString(CultureInfo.InvariantCulture) + " new issue" + (newThisWeek == 1 ? " was" : "s were") + " added this week."
                         : "No new issues were added this week.");
                     snapshot.WeeklyChanges.Add(implementedThisWeek > 0
-                        ? implementedThisWeek.ToString(CultureInfo.InvariantCulture) + " issue" + (implementedThisWeek == 1 ? " moved" : "s moved") + " into implemented or verified status."
-                        : "No issues moved into implemented or verified status this week.");
+                        ? implementedThisWeek.ToString(CultureInfo.InvariantCulture) + " issue" + (implementedThisWeek == 1 ? " has" : "s have") + " an implementation date this week in the Implemented/Verified group (including future)."
+                        : "No issues in the Implemented/Verified group (including future) have an implementation date this week.");
                     snapshot.WeeklyChanges.Add(closedThisWeek > 0
                         ? closedThisWeek.ToString(CultureInfo.InvariantCulture) + " issue" + (closedThisWeek == 1 ? " was" : "s were") + " closed this week."
                         : "No issues were closed this week.");
@@ -3264,12 +4039,13 @@ FROM " + dashboardSourceSql, con))
             return;
         }
 
-        string overallComponentSourceSql = BuildDashboardComponentSourceSql(OverallDashboardPlatformTable);
+        string overallComponentSourceSql = BuildDashboardComponentSourceSql(OverallDashboardPlatformTable, true);
         if (string.IsNullOrWhiteSpace(overallComponentSourceSql))
         {
             return;
         }
 
+        string overallTrendSourceSql = BuildDashboardComponentSourceSql(OverallDashboardPlatformTable);
         string sql = @"
 WITH issue_base AS (
     SELECT
@@ -3288,18 +4064,35 @@ issue_agg AS (
     SELECT
         oem,
         COUNT(1) AS total_issues,
-        SUM(CASE WHEN status_norm NOT IN ('complete', 'rejected', 'implemented') THEN 1 ELSE 0 END) AS open_issues,
-        SUM(CASE WHEN status_norm = 'implemented' THEN 1 ELSE 0 END) AS implemented_issues,
+        SUM(CASE WHEN status_norm NOT IN ('complete', 'rejected', 'implemented', 'future') THEN 1 ELSE 0 END) AS open_issues,
+        SUM(CASE WHEN status_norm IN ('implemented', 'future') THEN 1 ELSE 0 END) AS implemented_issues,
         SUM(CASE WHEN status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS closed_issues,
         ISNULL(AVG(CAST(CASE
             WHEN decided_date IS NOT NULL AND implemented_date IS NOT NULL AND implemented_date >= decided_date
             THEN DATEDIFF(DAY, decided_date, implemented_date)
             ELSE NULL END AS DECIMAL(10, 2))), 0) AS avg_resolution_days,
-        SUM(CASE WHEN priority_norm IN ('p0-blocker', 'p1-showstopper') OR impact_norm IN ('1-critical', '2-high') THEN 1 ELSE 0 END) AS high_risk_signals,
-        SUM(CASE WHEN ask_date >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE)) THEN 1 ELSE 0 END) AS this_week,
-        SUM(CASE WHEN ask_date >= DATEADD(DAY, -6 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE))
-                  AND ask_date < DATEADD(DAY, 1 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE)) THEN 1 ELSE 0 END) AS last_week
+        SUM(CASE WHEN priority_norm IN ('p0-blocker', 'p1-showstopper') OR impact_norm IN ('1-critical', '2-high') THEN 1 ELSE 0 END) AS high_risk_signals
     FROM issue_base
+    GROUP BY oem
+),
+trend_base AS (
+    SELECT
+        CASE WHEN ISNULL(LTRIM(RTRIM(customer_company)), '') = '' THEN 'Unassigned' ELSE LTRIM(RTRIM(customer_company)) END AS oem,
+        TRY_CAST(date_cmf_ask AS DATE) AS ask_date
+    FROM " + overallTrendSourceSql + @"
+    WHERE LOWER(LTRIM(RTRIM(ISNULL(sysdebug, '')))) LIKE '%customer_must_fix%'
+      AND LOWER(LTRIM(RTRIM(ISNULL(cmf_request, '')))) = 'cmf_ok'
+),
+trend_agg AS (
+    SELECT
+        oem,
+        SUM(CASE WHEN ask_date >= DATEADD(DAY, -6, @today)
+                  AND ask_date < DATEADD(DAY, 1, @today) THEN 1 ELSE 0 END) AS recent_requests,
+        SUM(CASE WHEN ask_date >= DATEADD(DAY, -13, @today)
+                  AND ask_date < DATEADD(DAY, -6, @today) THEN 1 ELSE 0 END) AS previous_requests
+    FROM trend_base
+    WHERE ask_date >= DATEADD(DAY, -13, @today)
+      AND ask_date < DATEADD(DAY, 1, @today)
     GROUP BY oem
 ),
 pending_base AS (
@@ -3325,15 +4118,13 @@ combined AS (
         ISNULL(i.implemented_issues, 0) AS implemented_issues,
         ISNULL(i.closed_issues, 0) AS closed_issues,
         ISNULL(i.avg_resolution_days, 0) AS avg_resolution_days,
-        ISNULL(i.high_risk_signals, 0) AS high_risk_signals,
-        ISNULL(i.this_week, 0) AS this_week,
-        ISNULL(i.last_week, 0) AS last_week
+        ISNULL(i.high_risk_signals, 0) AS high_risk_signals
     FROM issue_agg i
     FULL OUTER JOIN pending_agg p
       ON p.oem = i.oem
 )
 SELECT
-    oem,
+    c.oem,
     total_issues,
     open_issues,
     high_risk_signals,
@@ -3346,30 +4137,35 @@ SELECT
         WHEN total_issues > 0 AND (open_issues * 1.0 / NULLIF(total_issues, 0)) >= 0.35 THEN 'Medium'
         ELSE 'Low'
     END AS risk_level,
-    CASE
-        WHEN last_week = 0 THEN CASE WHEN this_week = 0 THEN 0 ELSE 100 END
-        ELSE CAST(ROUND(((this_week - last_week) * 100.0) / NULLIF(last_week, 0), 0) AS INT)
-    END AS trend_percent
-FROM combined
-ORDER BY total_issues DESC, oem";
+    ISNULL(t.recent_requests, 0) - ISNULL(t.previous_requests, 0) AS trend_count,
+    ISNULL(t.recent_requests, 0) AS recent_requests,
+    ISNULL(t.previous_requests, 0) AS previous_requests
+FROM combined c
+LEFT JOIN trend_agg t ON t.oem = c.oem
+ORDER BY total_issues DESC, c.oem";
 
-        using (SqlCommand command = new SqlCommand(sql, connection))
-        using (SqlDataReader reader = command.ExecuteReader())
+        using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
         {
-            while (reader.Read())
+            command.Parameters.Add("@today", SqlDbType.Date).Value = DateTime.Today;
+            using (SqlDataReader reader = command.ExecuteReader())
             {
-                HomeDashboardOemRow row = new HomeDashboardOemRow();
-                row.OemName = ReadString(reader, 0);
-                row.TotalIssues = ReadInt(reader, 1);
-                row.OpenIssues = ReadInt(reader, 2);
-                row.HighRiskCmfs = ReadInt(reader, 3);
-                row.CmfPending = ReadInt(reader, 4);
-                row.Implemented = ReadInt(reader, 5);
-                row.Closed = ReadInt(reader, 6);
-                row.AvgResolutionDays = reader.IsDBNull(7) ? 0 : Convert.ToDecimal(reader.GetValue(7), CultureInfo.InvariantCulture);
-                row.RiskLevel = ReadString(reader, 8);
-                row.TrendPercent = ReadInt(reader, 9);
-                snapshot.OemSummary.Add(row);
+                while (reader.Read())
+                {
+                    HomeDashboardOemRow row = new HomeDashboardOemRow();
+                    row.OemName = ReadString(reader, 0);
+                    row.TotalIssues = ReadInt(reader, 1);
+                    row.OpenIssues = ReadInt(reader, 2);
+                    row.HighRiskCmfs = ReadInt(reader, 3);
+                    row.CmfPending = ReadInt(reader, 4);
+                    row.Implemented = ReadInt(reader, 5);
+                    row.Closed = ReadInt(reader, 6);
+                    row.AvgResolutionDays = reader.IsDBNull(7) ? 0 : Convert.ToDecimal(reader.GetValue(7), CultureInfo.InvariantCulture);
+                    row.RiskLevel = ReadString(reader, 8);
+                    row.TrendCount = ReadInt(reader, 9);
+                    row.RecentRequestCount = ReadInt(reader, 10);
+                    row.PreviousRequestCount = ReadInt(reader, 11);
+                    snapshot.OemSummary.Add(row);
+                }
             }
         }
     }
@@ -3412,13 +4208,14 @@ WHERE status = 'open'
     AND cmf_request = 'cmf_ok'
     AND ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
     AND sysdebug LIKE '%customer_must_fix%'
+    AND " + GetDashboardDateFilter().BuildPredicate(null) + @"
 GROUP BY
         CASE WHEN ISNULL(LTRIM(RTRIM(component_group)), '') = '' THEN 'Unassigned' ELSE LTRIM(RTRIM(component_group)) END";
 
             Dictionary<string, int> ingredientCountsForPlatform = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                         Dictionary<string, int> ingredientLosCountsForPlatform = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-            using (SqlCommand command = new SqlCommand(sql, connection))
+            using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
             using (SqlDataReader reader = command.ExecuteReader())
             {
                 while (reader.Read())
@@ -3571,10 +4368,13 @@ GROUP BY
             return;
         }
 
-        string pendingSourceSql = BuildPendingAskSourceSql(connection, dashboardPlatform, "pending_age_src");
+        string pendingAgeCte = BuildPendingAskCteSql(connection, dashboardPlatform);
+        string pendingSourceSql = string.IsNullOrWhiteSpace(pendingAgeCte) ? null
+            : "(SELECT * FROM (" + pendingAgeCte + ") AS pending_dates WHERE "
+                + GetDashboardDateFilter().BuildPendingPredicate("pending_dates") + ") AS pending_age_src";
         if (string.IsNullOrWhiteSpace(pendingSourceSql))
         {
-            string componentSourceSql = BuildDashboardComponentSourceSql(dashboardPlatform);
+            string componentSourceSql = BuildDashboardComponentSourceSql(dashboardPlatform, true);
             if (!string.IsNullOrWhiteSpace(componentSourceSql))
             {
                 pendingSourceSql = @"(
@@ -3594,22 +4394,22 @@ WHERE cmf_request IN ('cmf_ask', 'cmf_incomplete')
 
         string sql = @"
 SELECT
-    SUM(CASE WHEN TRY_CAST(date_cmf_ask AS DATE) IS NOT NULL AND DATEDIFF(DAY, TRY_CAST(date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) BETWEEN 0 AND 7 THEN 1 ELSE 0 END) AS age_0_7,
-    SUM(CASE WHEN TRY_CAST(date_cmf_ask AS DATE) IS NOT NULL AND DATEDIFF(DAY, TRY_CAST(date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) BETWEEN 8 AND 15 THEN 1 ELSE 0 END) AS age_8_15,
-    SUM(CASE WHEN TRY_CAST(date_cmf_ask AS DATE) IS NOT NULL AND DATEDIFF(DAY, TRY_CAST(date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) BETWEEN 16 AND 30 THEN 1 ELSE 0 END) AS age_16_30,
-    SUM(CASE WHEN TRY_CAST(date_cmf_ask AS DATE) IS NOT NULL AND DATEDIFF(DAY, TRY_CAST(date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) > 30 THEN 1 ELSE 0 END) AS age_over_30
+            SUM(CASE WHEN TRY_CAST(date_cmf_ask AS DATE) IS NOT NULL AND DATEDIFF(DAY, TRY_CAST(date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) BETWEEN 0 AND 1 THEN 1 ELSE 0 END) AS age_0_1,
+            SUM(CASE WHEN TRY_CAST(date_cmf_ask AS DATE) IS NOT NULL AND DATEDIFF(DAY, TRY_CAST(date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) = 2 THEN 1 ELSE 0 END) AS age_1_2,
+    SUM(CASE WHEN TRY_CAST(date_cmf_ask AS DATE) IS NOT NULL AND DATEDIFF(DAY, TRY_CAST(date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) BETWEEN 3 AND 4 THEN 1 ELSE 0 END) AS age_2_4,
+    SUM(CASE WHEN TRY_CAST(date_cmf_ask AS DATE) IS NOT NULL AND DATEDIFF(DAY, TRY_CAST(date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) > 4 THEN 1 ELSE 0 END) AS age_over_4
 FROM " + pendingSourceSql + @"
 WHERE status NOT IN ('complete', 'rejected')";
 
-        using (SqlCommand command = new SqlCommand(sql, connection))
+        using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
         using (SqlDataReader reader = command.ExecuteReader())
         {
             if (reader.Read())
             {
-                snapshot.PendingAgeBuckets.Add(new HomeDashboardCategoryPoint { Name = "0-7 Days", Value = ReadInt(reader, 0) });
-                snapshot.PendingAgeBuckets.Add(new HomeDashboardCategoryPoint { Name = "8-15 Days", Value = ReadInt(reader, 1) });
-                snapshot.PendingAgeBuckets.Add(new HomeDashboardCategoryPoint { Name = "16-30 Days", Value = ReadInt(reader, 2) });
-                snapshot.PendingAgeBuckets.Add(new HomeDashboardCategoryPoint { Name = "> 30 Days", Value = ReadInt(reader, 3) });
+                snapshot.PendingAgeBuckets.Add(new HomeDashboardCategoryPoint { Name = "0-1 Days", Value = ReadInt(reader, 0) });
+                snapshot.PendingAgeBuckets.Add(new HomeDashboardCategoryPoint { Name = "1-2 Days", Value = ReadInt(reader, 1) });
+                snapshot.PendingAgeBuckets.Add(new HomeDashboardCategoryPoint { Name = "2-4 Days", Value = ReadInt(reader, 2) });
+                snapshot.PendingAgeBuckets.Add(new HomeDashboardCategoryPoint { Name = "> 4 Days", Value = ReadInt(reader, 3) });
             }
         }
     }
@@ -3686,7 +4486,7 @@ GROUP BY
         ELSE component_group
     END";
 
-        using (SqlCommand command = new SqlCommand(sql, connection))
+        using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
         using (SqlDataReader reader = command.ExecuteReader())
         {
             while (reader.Read())
@@ -3710,7 +4510,7 @@ GROUP BY
         if (snapshot == null) return;
         platformTable = ResolveDashboardPlatformSelection(platformTable);
         bool isOverall = IsOverallDashboardPlatform(platformTable);
-        string componentSourceSql = BuildDashboardComponentSourceSql(platformTable);
+        string componentSourceSql = BuildDashboardComponentSourceSql(platformTable, true);
         string basePlatform = platformTable.Replace("_ALL_COMPONENTS_TABLE", string.Empty);
         string pendingTable = basePlatform + "_CMF_ASK";
         decimal averageResolutionDays = 0m;
@@ -3720,16 +4520,21 @@ GROUP BY
         {
             con.Open();
 
+            Dictionary<string, CmfSummaryTrend> weeklyTrends = CmfSummaryTrendService.Load(
+                con, BuildDashboardComponentSourceSql(platformTable), DateTime.Today);
+            Dictionary<string, CmfSummaryTrend> balanceTrends = CmfSummaryTrendService.LoadBalanceEstimates(
+                con, componentSourceSql, DateTime.Today);
+
             Dictionary<string, int> implementedConstituents = GetConstituentCountsByIngredient(
                 con,
                 componentSourceSql,
-                "status = 'implemented'");
+                "status IN ('implemented','future')");
             Dictionary<string, int> openConstituents = GetConstituentCountsByIngredient(
                 con,
                 componentSourceSql,
-                "status NOT IN ('complete','rejected','implemented')");
+                "status NOT IN ('complete','rejected','implemented','future')");
 
-            using (SqlCommand summaryCommand = new SqlCommand(@"
+            using (SqlCommand summaryCommand = CmfPlatformCatalog.CreateReadCommand(@"
 WITH base AS (
     SELECT
         cmf_request,
@@ -3750,10 +4555,10 @@ SELECT
     SUM(CASE WHEN cmf_request = 'cmf_duplicate' THEN 1 ELSE 0 END) AS Duplicates,
     SUM(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') AND status IN ('complete','rejected') THEN 1 ELSE 0 END) AS ClosedCount,
     SUM(CASE WHEN cmf_request = 'cmf_duplicate' AND status IN ('complete','rejected') THEN 1 ELSE 0 END) AS ClosedDup,
-    SUM(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') AND status = 'implemented' THEN 1 ELSE 0 END) AS ImplementedCount,
-    SUM(CASE WHEN cmf_request = 'cmf_duplicate' AND status = 'implemented' THEN 1 ELSE 0 END) AS ImplementedDup,
-    SUM(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') AND status NOT IN ('complete','rejected','implemented') THEN 1 ELSE 0 END) AS PendingCount,
-    SUM(CASE WHEN cmf_request = 'cmf_duplicate' AND status NOT IN ('complete','rejected','implemented') THEN 1 ELSE 0 END) AS PendingDup,
+    SUM(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') AND status IN ('implemented','future') THEN 1 ELSE 0 END) AS ImplementedCount,
+    SUM(CASE WHEN cmf_request = 'cmf_duplicate' AND status IN ('implemented','future') THEN 1 ELSE 0 END) AS ImplementedDup,
+    SUM(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') AND status NOT IN ('complete','rejected','implemented','future') THEN 1 ELSE 0 END) AS PendingCount,
+    SUM(CASE WHEN cmf_request = 'cmf_duplicate' AND status NOT IN ('complete','rejected','implemented','future') THEN 1 ELSE 0 END) AS PendingDup,
     ISNULL(AVG(CAST(DATEDIFF(DAY, ISNULL(ask_date, decided_date), decided_date) AS FLOAT)), 0) AS DispositionTpt,
     ISNULL(AVG(CAST(CASE WHEN implemented_date < decided_date THEN 0 ELSE DATEDIFF(DAY, ISNULL(decided_date, implemented_date), implemented_date) END AS FLOAT)), 0) AS ResolutionTpt,
     ISNULL(AVG(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') THEN CAST(days_active_int AS FLOAT) ELSE NULL END), 0) AS OverallTpt,
@@ -3833,13 +4638,26 @@ CROSS JOIN wk", con))
                     int resolutionTrendDays = resolutionThisWeek - resolutionLastWeek;
                     int overallTrendDays = overallThisWeek - overallLastWeek;
 
-                    snapshot.SummaryFacts.Add(new HomeDashboardFact { Label = "Total CMFs", Value = total.ToString(CultureInfo.InvariantCulture), Note = duplicates + " duplicates" });
-                    snapshot.SummaryFacts.Add(new HomeDashboardFact { Label = "Closed", Value = closed.ToString(CultureInfo.InvariantCulture), Note = closedDup + " duplicates" });
+                    snapshot.SummaryFacts.Add(new HomeDashboardFact
+                    {
+                        Label = "Total CMFs",
+                        Value = total.ToString(CultureInfo.InvariantCulture),
+                        Note = duplicates + " duplicates",
+                        WeeklyTrend = balanceTrends["Total CMFs"]
+                    });
+                    snapshot.SummaryFacts.Add(new HomeDashboardFact
+                    {
+                        Label = "Closed",
+                        Value = closed.ToString(CultureInfo.InvariantCulture),
+                        Note = closedDup + " duplicates",
+                        WeeklyTrend = balanceTrends["Closed"]
+                    });
                     snapshot.SummaryFacts.Add(new HomeDashboardFact
                     {
                         Label = "Implemented",
                         Value = implemented.ToString(CultureInfo.InvariantCulture),
                         Note = implementedDup + " duplicates",
+                        WeeklyTrend = balanceTrends["Implemented"],
                         ConstituentTooltip = BuildConstituentTooltipFromCounts(
                             implementedConstituents,
                             "No implemented constituent counts in this scope.")
@@ -3849,6 +4667,7 @@ CROSS JOIN wk", con))
                         Label = "Open",
                         Value = pending.ToString(CultureInfo.InvariantCulture),
                         Note = pendingDup + " duplicates",
+                        WeeklyTrend = balanceTrends["Open"],
                         ConstituentTooltip = BuildConstituentTooltipFromCounts(
                             openConstituents,
                             "No open constituent counts in this scope.")
@@ -3858,26 +4677,29 @@ CROSS JOIN wk", con))
                         Label = "CMF Disposition TPT",
                         Value = dispositionTpt.ToString(CultureInfo.InvariantCulture),
                         Note = "days",
-                        TrendNote = FormatTptTrendNote(dispositionTrendDays)
+                        TrendNote = FormatTptTrendNote(dispositionTrendDays),
+                        WeeklyTrend = weeklyTrends["CMF Disposition TPT"]
                     });
                     snapshot.TptFacts.Add(new HomeDashboardFact
                     {
                         Label = "CMF Resolution TPT",
                         Value = resolutionTpt.ToString(CultureInfo.InvariantCulture),
                         Note = "days",
-                        TrendNote = FormatTptTrendNote(resolutionTrendDays)
+                        TrendNote = FormatTptTrendNote(resolutionTrendDays),
+                        WeeklyTrend = weeklyTrends["CMF Resolution TPT"]
                     });
                     snapshot.TptFacts.Add(new HomeDashboardFact
                     {
                         Label = "CMF Overall TPT",
                         Value = overallTpt.ToString(CultureInfo.InvariantCulture),
                         Note = "days",
-                        TrendNote = FormatTptTrendNote(overallTrendDays)
+                        TrendNote = FormatTptTrendNote(overallTrendDays),
+                        WeeklyTrend = weeklyTrends["CMF Overall TPT"]
                     });
                 }
             }
 
-            using (SqlCommand milestoneCommand = new SqlCommand(@"
+            using (SqlCommand milestoneCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT LTRIM(RTRIM(drivers)) AS Driver, COUNT(*) AS CMFCount
 FROM " + componentSourceSql + @"
 WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
@@ -3894,11 +4716,11 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             }
 
             List<string> milestoneDrivers = new List<string>();
-            using (SqlCommand driverListCommand = new SqlCommand(@"
+            using (SqlCommand driverListCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT DISTINCT LTRIM(RTRIM(drivers)) AS Driver
 FROM " + componentSourceSql + @"
 WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
-  AND status IN ('open','implemented','verified')
+    AND status IN ('open','implemented','verified','future')
   AND sysdebug LIKE '%customer_must_fix%'
   AND cmf_request NOT IN ('cmf_reject')
 ORDER BY LTRIM(RTRIM(drivers))", con))
@@ -3931,7 +4753,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                 }
             }
 
-            using (SqlCommand componentCommand = new SqlCommand(@"
+            using (SqlCommand componentCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT
     CASE WHEN ISNULL(component_group, '') = '' THEN 'Unassigned' ELSE component_group END AS Component,
     LTRIM(RTRIM(drivers)) AS Driver,
@@ -3939,10 +4761,10 @@ SELECT
     SUM(CASE WHEN status = 'open' AND cmf_request NOT IN ('cmf_duplicate','cmf_reject') AND los = 'Yes' THEN 1 ELSE 0 END) AS OpenUniqueLosCount,
     SUM(CASE WHEN status = 'open' AND cmf_request = 'cmf_duplicate' THEN 1 ELSE 0 END) AS OpenDuplicateCount,
     SUM(CASE WHEN status = 'open' AND cmf_request = 'cmf_duplicate' AND los = 'Yes' THEN 1 ELSE 0 END) AS OpenDuplicateLosCount,
-    SUM(CASE WHEN status IN ('implemented','verified') AND cmf_request = 'cmf_ok' THEN 1 ELSE 0 END) AS ImplementedUniqueCount,
-    SUM(CASE WHEN status IN ('implemented','verified') AND cmf_request = 'cmf_duplicate' THEN 1 ELSE 0 END) AS ImplementedDuplicateCount
+    SUM(CASE WHEN status IN ('implemented','verified','future') AND cmf_request = 'cmf_ok' THEN 1 ELSE 0 END) AS ImplementedUniqueCount,
+    SUM(CASE WHEN status IN ('implemented','verified','future') AND cmf_request = 'cmf_duplicate' THEN 1 ELSE 0 END) AS ImplementedDuplicateCount
 FROM " + componentSourceSql + @"
-WHERE status IN ('open','implemented','verified')
+WHERE status IN ('open','implemented','verified','future')
   AND sysdebug LIKE '%customer_must_fix%'
   AND cmf_request NOT IN ('cmf_reject')
   AND ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
@@ -4058,18 +4880,22 @@ ORDER BY Component, Driver", con))
             }
             else if (SqlTableExists(con, pendingTable))
             {
-                pendingSourceSql = "SELECT cp_id, status, component_group, '" + platformTable + "' AS source_platform FROM " + pendingTable;
+                pendingSourceSql = "SELECT cp_id, status, component_group, date_cmf_ask, '" + platformTable + "' AS source_platform FROM " + pendingTable + " WHERE " + GetDashboardDateFilter().BuildPendingPredicate(null);
             }
             else
             {
                 pendingSourceSql = null;
             }
 
-            string componentLookupSourceSql = "(" + BuildSummaryIssueComponentSourceSql(platformTable) + ") AS src_comp";
+            string componentLookupSourceSql = "(" + BuildSummaryIssueComponentSourceSql(platformTable, false) + ") AS src_comp";
             if (!string.IsNullOrWhiteSpace(pendingSourceSql))
             {
+                int pendingAgeThresholdDays = GetPendingSummaryAgeThresholdDays();
+                int? oldestPendingAgeDays = null;
+                DateTime pendingAgeToday = DateTime.Today;
                 Dictionary<string, List<string>> pendingOpenIdsByRowKey = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-                using (SqlCommand pendingIdsCommand = new SqlCommand(@"
+                Dictionary<string, List<string>> pendingOverTwoDaysIdsByRowKey = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+                using (SqlCommand pendingIdsCommand = CmfPlatformCatalog.CreateReadCommand(@"
 WITH pending_rows AS (
     SELECT
         CASE WHEN pending.component_group IS NULL OR pending.component_group = '' OR pending.component_group = 'no iDST assigned' THEN 'Unassigned' ELSE pending.component_group END AS component_group,
@@ -4077,18 +4903,20 @@ WITH pending_rows AS (
             WHEN src_comp.idst IS NULL OR LTRIM(RTRIM(src_comp.idst)) = '' THEN 'Unassigned'
             ELSE LTRIM(RTRIM(src_comp.idst))
         END AS idst_name,
-        CAST(pending.cp_id AS VARCHAR(64)) AS cp_id
+        CAST(pending.cp_id AS VARCHAR(64)) AS cp_id,
+        TRY_CAST(pending.date_cmf_ask AS DATE) AS date_cmf_ask
         FROM (" + pendingSourceSql + @") AS pending
     LEFT JOIN " + componentLookupSourceSql + @"
       ON CAST(pending.cp_id AS VARCHAR(64)) = CAST(src_comp.cp_id AS VARCHAR(64))
      AND pending.source_platform = src_comp.source_platform
     WHERE pending.status NOT IN ('complete', 'rejected')
 )
-SELECT component_group, idst_name, cp_id
+SELECT component_group, idst_name, cp_id, date_cmf_ask
 FROM pending_rows", con))
                 using (SqlDataReader idsReader = pendingIdsCommand.ExecuteReader())
                 {
                     Dictionary<string, HashSet<string>> pendingOpenIdsSets = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+                    Dictionary<string, HashSet<string>> pendingOverTwoDaysIdsSets = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
                     while (idsReader.Read())
                     {
                         string component = ReadString(idsReader, 0);
@@ -4113,7 +4941,32 @@ FROM pending_rows", con))
                             pendingOpenIdsSets[rowKey] = idSet;
                         }
 
-                        idSet.Add(cpId.Trim());
+                        string normalizedCpId = cpId.Trim();
+                        idSet.Add(normalizedCpId);
+
+                        bool isOverTwoDays = pendingAgeThresholdDays <= 0;
+                        if (!idsReader.IsDBNull(3))
+                        {
+                            DateTime askDate = idsReader.GetDateTime(3).Date;
+                            int ageDays = (pendingAgeToday - askDate).Days;
+                            if (ageDays >= 0 && (!oldestPendingAgeDays.HasValue || ageDays > oldestPendingAgeDays.Value))
+                            {
+                                oldestPendingAgeDays = ageDays;
+                            }
+                            isOverTwoDays = isOverTwoDays || ageDays > pendingAgeThresholdDays;
+                        }
+
+                        if (isOverTwoDays)
+                        {
+                            HashSet<string> overTwoDaysSet;
+                            if (!pendingOverTwoDaysIdsSets.TryGetValue(rowKey, out overTwoDaysSet))
+                            {
+                                overTwoDaysSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                                pendingOverTwoDaysIdsSets[rowKey] = overTwoDaysSet;
+                            }
+
+                            overTwoDaysSet.Add(normalizedCpId);
+                        }
                     }
 
                     foreach (KeyValuePair<string, HashSet<string>> entry in pendingOpenIdsSets)
@@ -4122,9 +4975,16 @@ FROM pending_rows", con))
                         orderedIds.Sort(StringComparer.OrdinalIgnoreCase);
                         pendingOpenIdsByRowKey[entry.Key] = orderedIds;
                     }
+
+                    foreach (KeyValuePair<string, HashSet<string>> entry in pendingOverTwoDaysIdsSets)
+                    {
+                        List<string> orderedIds = new List<string>(entry.Value);
+                        orderedIds.Sort(StringComparer.OrdinalIgnoreCase);
+                        pendingOverTwoDaysIdsByRowKey[entry.Key] = orderedIds;
+                    }
                 }
 
-                using (SqlCommand pendingCommand = new SqlCommand(@"
+                using (SqlCommand pendingCommand = CmfPlatformCatalog.CreateReadCommand(@"
 WITH pending_rows AS (
     SELECT
         CASE WHEN pending.component_group IS NULL OR pending.component_group = '' OR pending.component_group = 'no iDST assigned' THEN 'Unassigned' ELSE pending.component_group END AS component_group,
@@ -4132,7 +4992,8 @@ WITH pending_rows AS (
             WHEN src_comp.idst IS NULL OR LTRIM(RTRIM(src_comp.idst)) = '' THEN 'Unassigned'
             ELSE LTRIM(RTRIM(src_comp.idst))
         END AS idst_name,
-        CAST(pending.cp_id AS VARCHAR(64)) AS cp_id
+        CAST(pending.cp_id AS VARCHAR(64)) AS cp_id,
+        TRY_CAST(pending.date_cmf_ask AS DATE) AS date_cmf_ask
         FROM (" + pendingSourceSql + @") AS pending
     LEFT JOIN " + componentLookupSourceSql + @"
       ON CAST(pending.cp_id AS VARCHAR(64)) = CAST(src_comp.cp_id AS VARCHAR(64))
@@ -4142,12 +5003,19 @@ WITH pending_rows AS (
 SELECT
     component_group,
     idst_name,
-    COUNT(cp_id) AS pending_count
+    COUNT(cp_id) AS pending_count,
+    SUM(CASE
+    WHEN @pending_age_threshold_days <= 0 THEN 1
+    WHEN TRY_CAST(date_cmf_ask AS DATE) IS NOT NULL
+         AND DATEDIFF(DAY, TRY_CAST(date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) > @pending_age_threshold_days
+        THEN 1 ELSE 0 END) AS pending_over_two_days
 FROM pending_rows
 GROUP BY component_group, idst_name
 ORDER BY component_group, idst_name", con))
-                using (SqlDataReader reader = pendingCommand.ExecuteReader())
                 {
+                    pendingCommand.Parameters.Add("@pending_age_threshold_days", SqlDbType.Int).Value = pendingAgeThresholdDays;
+                    using (SqlDataReader reader = pendingCommand.ExecuteReader())
+                    {
                     int totalPending = 0;
                     List<string> pendingConstituentLines = new List<string>();
                     Dictionary<string, int> pendingCountsByComponent = isOverall
@@ -4158,6 +5026,7 @@ ORDER BY component_group, idst_name", con))
                         string component = ReadString(reader, 0);
                         string idstName = ReadString(reader, 1);
                         int count = ReadInt(reader, 2);
+                        int overTwoDaysCount = ReadInt(reader, 3);
                         totalPending += count;
 
                         if (string.IsNullOrWhiteSpace(idstName))
@@ -4168,7 +5037,15 @@ ORDER BY component_group, idst_name", con))
                         string rowKey = component.Trim() + "\u001f" + idstName.Trim();
 
                         List<string> openIds;
+                        List<string> overTwoDaysIds;
                         string pendingCellValue = count.ToString(CultureInfo.InvariantCulture);
+                        pendingCellValue = pendingCellValue
+                            + PendingSummaryOverTwoDaysDelimiter
+                            + overTwoDaysCount.ToString(CultureInfo.InvariantCulture);
+                        if (pendingOverTwoDaysIdsByRowKey.TryGetValue(rowKey, out overTwoDaysIds) && overTwoDaysIds != null && overTwoDaysIds.Count > 0)
+                        {
+                            pendingCellValue = pendingCellValue + PendingSummaryOverTwoDaysIdsDelimiter + string.Join(",", overTwoDaysIds.ToArray());
+                        }
                         if (pendingOpenIdsByRowKey.TryGetValue(rowKey, out openIds) && openIds != null && openIds.Count > 0)
                         {
                             pendingCellValue = pendingCellValue + PendingSummaryLinksDelimiter + string.Join(",", openIds.ToArray());
@@ -4205,17 +5082,29 @@ ORDER BY component_group, idst_name", con))
                         }
                     }
 
+                    reader.Close();
+                    CmfDashboardDateFilter pendingDateFilter = GetDashboardDateFilter();
+                    CmfSummaryTrend pendingEstimate = pendingDateFilter.Start.HasValue && pendingDateFilter.Basis == "cmf-accepted"
+                        ? CmfSummaryTrend.CreatePendingEstimate(totalPending, null, DateTime.Today, 0)
+                        : CmfSummaryTrendService.LoadPendingEstimate(con, pendingSourceSql,
+                            BuildSummaryIssueComponentSourceSql(platformTable), totalPending, DateTime.Today);
                     snapshot.PendingIssues = totalPending;
                     snapshot.SummaryFacts.Add(new HomeDashboardFact
                     {
                         Label = "Pending",
                         Value = totalPending.ToString(CultureInfo.InvariantCulture),
-                        Note = "CMF pending table",
+                        Note = oldestPendingAgeDays.HasValue
+                            ? "Oldest: " + oldestPendingAgeDays.Value.ToString(CultureInfo.InvariantCulture)
+                                + (oldestPendingAgeDays.Value == 1 ? " day" : " days")
+                            : totalPending > 0 ? "Oldest: N/A" : string.Empty,
+                        WeeklyTrend = pendingEstimate,
                         ConstituentTooltip = pendingConstituentLines.Count > 0
                             ? string.Join("\n", pendingConstituentLines.ToArray())
+                                + "\nOldest is calendar days since the CMF request date, not the last reopening. Missing, invalid and future request dates are excluded."
                             : "No pending constituent counts in this scope."
                     });
                     snapshot.PendingSummary.Rows.Add(new List<string> { "Total", string.Empty, totalPending.ToString(CultureInfo.InvariantCulture) });
+                    }
                 }
             }
 
@@ -4275,15 +5164,16 @@ ORDER BY component_group, idst_name", con))
         List<string> dynamicDrivers = new List<string>();
         Dictionary<string, string> dynamicDriverMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
+        string datedPlatformSource = FilterDashboardTableSource(resolvedPlatformTable);
         string dynamicDriverSql = @"
 SELECT DISTINCT LTRIM(RTRIM(ISNULL(drivers, ''))) AS driver_name
-FROM " + resolvedPlatformTable + @"
+    FROM " + datedPlatformSource + @" AS design_drivers
 WHERE LOWER(LTRIM(RTRIM(ISNULL(sysdebug, '')))) LIKE '%customer_must_fix%'
   AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) = 'open'
   AND LOWER(LTRIM(RTRIM(ISNULL(cmf_request, '')))) <> 'cmf_reject'
 ORDER BY LTRIM(RTRIM(ISNULL(drivers, '')))";
 
-        using (SqlCommand driverCommand = new SqlCommand(dynamicDriverSql, connection))
+        using (SqlCommand driverCommand = CmfPlatformCatalog.CreateReadCommand(dynamicDriverSql, connection))
         using (SqlDataReader driverReader = driverCommand.ExecuteReader())
         {
             while (driverReader.Read())
@@ -4319,10 +5209,10 @@ SELECT
     ISNULL(NULLIF(LTRIM(RTRIM(B.support_model)), ''), '') AS support_model,
     LOWER(LTRIM(RTRIM(ISNULL(A.status, '')))) AS status_norm,
     LTRIM(RTRIM(ISNULL(A.drivers, ''))) AS driver_name
-FROM " + resolvedPlatformTable + @" A
+FROM " + datedPlatformSource + @" A
 INNER JOIN " + designTable + @" B ON A.customer_detail = B.customer_detail
 WHERE LOWER(LTRIM(RTRIM(ISNULL(A.sysdebug, '')))) LIKE '%customer_must_fix%'
-  AND LOWER(LTRIM(RTRIM(ISNULL(A.status, '')))) IN ('open', 'implemented', 'verified')
+    AND LOWER(LTRIM(RTRIM(ISNULL(A.status, '')))) IN ('open', 'implemented', 'verified', 'future')
   AND LOWER(LTRIM(RTRIM(ISNULL(A.cmf_request, '')))) <> 'cmf_reject'";
 
         Dictionary<string, string> designNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -4331,7 +5221,7 @@ WHERE LOWER(LTRIM(RTRIM(ISNULL(A.sysdebug, '')))) LIKE '%customer_must_fix%'
         Dictionary<string, Dictionary<string, int>> designOpenByDriver = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
         Dictionary<string, int> designImplVerifiedCount = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-        using (SqlCommand summaryCommand = new SqlCommand(summarySql, connection))
+        using (SqlCommand summaryCommand = CmfPlatformCatalog.CreateReadCommand(summarySql, connection))
         using (SqlDataReader summaryReader = summaryCommand.ExecuteReader())
         {
             while (summaryReader.Read())
@@ -4374,7 +5264,8 @@ WHERE LOWER(LTRIM(RTRIM(ISNULL(A.sysdebug, '')))) LIKE '%customer_must_fix%'
                     designDriverOpenCounts[driverName] += 1;
                 }
                 else if (string.Equals(statusNorm, "implemented", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(statusNorm, "verified", StringComparison.OrdinalIgnoreCase))
+                    || string.Equals(statusNorm, "verified", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(statusNorm, "future", StringComparison.OrdinalIgnoreCase))
                 {
                     designImplVerifiedCount[designName] += 1;
                 }
@@ -4503,11 +5394,11 @@ WHERE LOWER(LTRIM(RTRIM(ISNULL(A.sysdebug, '')))) LIKE '%customer_must_fix%'
         if (snapshot == null || con == null) return;
 
         List<string> drivers = new List<string>();
-        using (SqlCommand driverCommand = new SqlCommand(@"
+        using (SqlCommand driverCommand = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT DISTINCT LTRIM(RTRIM(drivers)) AS Driver
 FROM " + platformTable + @"
 WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
-  AND status IN ('open','implemented','verified')
+    AND status IN ('open','implemented','verified','future')
   AND sysdebug LIKE '%customer_must_fix%'
   AND cmf_request NOT IN ('cmf_reject')
 ORDER BY LTRIM(RTRIM(drivers))", con))
@@ -4543,16 +5434,16 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             query.Append(", SUM(CASE WHEN drivers = @driver").Append(index).Append(" AND status = 'open' AND cmf_request NOT IN ('cmf_duplicate','cmf_reject') THEN 1 ELSE 0 END) AS OpenCount").Append(index);
             query.Append(", SUM(CASE WHEN drivers = @driver").Append(index).Append(" AND status = 'open' AND los = 'Yes' THEN 1 ELSE 0 END) AS LosCount").Append(index);
             query.Append(", SUM(CASE WHEN drivers = @driver").Append(index).Append(" AND status = 'open' AND cmf_request = 'cmf_duplicate' THEN 1 ELSE 0 END) AS DuplicateCount").Append(index);
-            query.Append(", SUM(CASE WHEN drivers = @driver").Append(index).Append(" AND status IN ('implemented','verified') AND cmf_request = 'cmf_ok' THEN 1 ELSE 0 END) AS ImplementedCount").Append(index);
+            query.Append(", SUM(CASE WHEN drivers = @driver").Append(index).Append(" AND status IN ('implemented','verified','future') AND cmf_request = 'cmf_ok' THEN 1 ELSE 0 END) AS ImplementedCount").Append(index);
         }
-        query.Append(" FROM (SELECT CASE WHEN ISNULL(component_group, '') = '' THEN 'Unassigned' ELSE component_group END AS Component, LTRIM(RTRIM(drivers)) AS drivers, status, cmf_request, los FROM ").Append(platformTable).Append(" WHERE status IN ('open','implemented','verified') AND sysdebug LIKE '%customer_must_fix%' AND cmf_request NOT IN ('cmf_reject')) AS SourceRows GROUP BY Component ORDER BY Component");
+        query.Append(" FROM (SELECT CASE WHEN ISNULL(component_group, '') = '' THEN 'Unassigned' ELSE component_group END AS Component, LTRIM(RTRIM(drivers)) AS drivers, status, cmf_request, los FROM ").Append(platformTable).Append(" WHERE status IN ('open','implemented','verified','future') AND sysdebug LIKE '%customer_must_fix%' AND cmf_request NOT IN ('cmf_reject')) AS SourceRows GROUP BY Component ORDER BY Component");
 
         int[] totalOpen = new int[drivers.Count];
         int[] totalLos = new int[drivers.Count];
         int[] totalDuplicates = new int[drivers.Count];
         int[] totalImplemented = new int[drivers.Count];
 
-        using (SqlCommand componentCommand = new SqlCommand(query.ToString(), con))
+        using (SqlCommand componentCommand = CmfPlatformCatalog.CreateReadCommand(query.ToString(), con))
         {
             for (int index = 0; index < drivers.Count; index++)
             {
@@ -4666,7 +5557,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
 
     private static bool SqlTableExists(SqlConnection connection, string tableName)
     {
-        using (SqlCommand command = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @TableName", connection))
+        using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @TableName", connection))
         {
             command.Parameters.AddWithValue("@TableName", tableName);
             return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture) > 0;
@@ -4675,7 +5566,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
 
     private static bool SqlTableHasRows(SqlConnection connection, string tableName)
     {
-        using (SqlCommand command = new SqlCommand("SELECT TOP 1 1 FROM " + tableName, connection))
+        using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand("SELECT TOP 1 1 FROM " + tableName, connection))
         {
             object result = command.ExecuteScalar();
             return result != null && result != DBNull.Value;
@@ -5407,11 +6298,16 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         string currentPlatform = GetIssuePendingPlatform();
         CmfPlatformDefinition platform;
 
-        if (CmfPlatformCatalog.TryGetPlatformByTable(currentPlatform, out platform) &&
-            !string.IsNullOrWhiteSpace(platform.CdrDocumentUrl))
+        string dashboardUrl = null;
+        if (CmfPlatformCatalog.TryGetPlatformByTable(currentPlatform, out platform))
         {
-            lnkPlatformDashboard.NavigateUrl = platform.CdrDocumentUrl;
-            lnkPlatformDashboard.Text = platform.Label + " Dashboard";
+            dashboardUrl = !string.IsNullOrWhiteSpace(platform.DashboardProjectUrl) ? platform.DashboardProjectUrl : platform.CdrDocumentUrl;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dashboardUrl))
+        {
+            lnkPlatformDashboard.NavigateUrl = dashboardUrl;
+            lnkPlatformDashboard.Text = (platform != null ? platform.Label : "Platform") + " Dashboard";
             lnkPlatformDashboard.Visible = true;
             if (lnkPlatformDashboardPending != null)
             {
@@ -5440,14 +6336,13 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         }
     }
 
-    // Remove ddlProgressHeader_SelectedIndexChanged and ddlComponentHeader_SelectedIndexChanged
-
     protected void ddlOwnerHeader_SelectedIndexChanged(object sender, EventArgs e)
     {
         DropDownList ddl = sender as DropDownList;
         if (ddl != null)
         {
             Session["ownerFilter"] = ddl.SelectedValue;
+            if (ddlOwnerTop != null) ddlOwnerTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -5458,6 +6353,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         if (ddl != null)
         {
             Session["rvpReproFilter"] = ddl.SelectedValue;
+            if (ddlRvpReproTop != null) ddlRvpReproTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -5468,6 +6364,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         if (ddl != null)
         {
             Session["idstFilter"] = ddl.SelectedValue;
+            if (ddlIdstTop != null) ddlIdstTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -5478,6 +6375,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         if (ddl != null)
         {
             Session["companyFilter"] = ddl.SelectedValue;
+            if (ddlCompanyTop != null) ddlCompanyTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -5488,6 +6386,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         if (ddl != null)
         {
             Session["detailFilter"] = ddl.SelectedValue;
+            if (ddlDetailTop != null) ddlDetailTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -5498,6 +6397,18 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         if (ddl != null)
         {
             Session["componentFilter"] = ddl.SelectedValue;
+            if (ddlComponentTop != null) ddlComponentTop.SelectedValue = ddl.SelectedValue;
+            ApplyAllFilters();
+        }
+    }
+
+    protected void ddlComponentGroupHeader_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        DropDownList ddl = sender as DropDownList;
+        if (ddl != null)
+        {
+            Session["componentFilter"] = ddl.SelectedValue;
+            if (ddlComponentTop != null) ddlComponentTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -5508,6 +6419,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         if (ddl != null)
         {
             Session["losFilter"] = ddl.SelectedValue;
+            if (ddlLosTop != null) ddlLosTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -5518,6 +6430,18 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         if (ddl != null)
         {
             Session["milestoneFilter"] = ddl.SelectedValue;
+            if (ddlMilestoneTop != null) ddlMilestoneTop.SelectedValue = ddl.SelectedValue;
+            ApplyAllFilters();
+        }
+    }
+
+    protected void ddlStatusHeader_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        DropDownList ddl = sender as DropDownList;
+        if (ddl != null)
+        {
+            Session["issueStatusFilter"] = ddl.SelectedValue;
+            if (ddlStatusTop != null) ddlStatusTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
     }
@@ -5533,16 +6457,18 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         Session["companyFilter"] = null;
         Session["detailFilter"] = null;
         Session["componentFilter"] = null;
+        Session["issueStatusFilter"] = null;
 
         // Reset dropdown selections to "All"
-        ddlOwnerTop.SelectedValue = "All";
-        ddlRvpReproTop.SelectedValue = "All";
-        ddlIdstTop.SelectedValue = "All";
-        ddlLosTop.SelectedValue = "All";
-        ddlMilestoneTop.SelectedValue = "All";
-        ddlCompanyTop.SelectedValue = "All";
-        ddlDetailTop.SelectedValue = "All";
-        ddlComponentTop.SelectedValue = "All";
+        if (ddlOwnerTop != null) ddlOwnerTop.SelectedValue = "All";
+        if (ddlRvpReproTop != null) ddlRvpReproTop.SelectedValue = "All";
+        if (ddlIdstTop != null) ddlIdstTop.SelectedValue = "All";
+        if (ddlLosTop != null) ddlLosTop.SelectedValue = "All";
+        if (ddlMilestoneTop != null) ddlMilestoneTop.SelectedValue = "All";
+        if (ddlCompanyTop != null) ddlCompanyTop.SelectedValue = "All";
+        if (ddlDetailTop != null) ddlDetailTop.SelectedValue = "All";
+        if (ddlComponentTop != null) ddlComponentTop.SelectedValue = "All";
+        if (ddlStatusTop != null) ddlStatusTop.SelectedValue = "All";
 
         // Apply the cleared filters
         ApplyAllFilters();
@@ -5558,6 +6484,12 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         BindGridView(filterValue, filters, bindRelatedGrids: false);
     }
 
+    protected void ddlStatusTop_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        Session["issueStatusFilter"] = ddlStatusTop.SelectedValue;
+        ApplyAllFilters();
+    }
+
     // Updated to remove progress and component filters
     private Dictionary<string, string> GetAllFilterValues()
     {
@@ -5571,6 +6503,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         {"Company", Session["companyFilter"] as string ?? "All"},      // Fixed: use "companyFilter"
         {"Detail", Session["detailFilter"] as string ?? "All"},        // Fixed: use "detailFilter"
         {"Component", Session["componentFilter"] as string ?? "All"},  // Fixed: use "componentFilter"
+        {"IssueStatus", Session["issueStatusFilter"] as string ?? "All"},
     };
     }
 
@@ -5664,7 +6597,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             {
                 closedIssues++;
             }
-            else if (status == "implemented" || status == "verified")
+            else if (status == "implemented" || status == "verified" || status == "future")
             {
                 implementedIssues++;
             }
@@ -5798,6 +6731,9 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                 case "Component":
                     cmd.Parameters.AddWithValue("@ComponentFilter", filter.Value);
                     break;
+                case "IssueStatus":
+                    cmd.Parameters.AddWithValue("@IssueStatusFilter", filter.Value);
+                    break;
             }
         }
     }
@@ -5823,6 +6759,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             BindFilterData(con, "customer_company", "CompanyItems", currentPlatform, activeFilters, "Company");
             BindFilterData(con, "customer_detail", "DetailItems", currentPlatform, activeFilters, "Detail");
             BindFilterData(con, "component_group", "ComponentItems", currentPlatform, activeFilters, "Component");
+            BindFilterData(con, "status", "IssueStatusItems", currentPlatform, activeFilters, "IssueStatus");
         }
 
         PopulateTopFilterDropdowns();
@@ -5838,6 +6775,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         PopulateTopFilterDropdown("ddlDetailTop", "DetailItems", "detailFilter");
         PopulateTopFilterDropdown("ddlComponentTop", "ComponentItems", "componentFilter");
         PopulateTopFilterDropdown("ddlMilestoneTop", "MilestoneItems", "milestoneFilter");
+        PopulateTopFilterDropdown("ddlStatusTop", "IssueStatusItems", "issueStatusFilter");
     }
 
     private void BindFilterData(SqlConnection con, string columnName, string viewStateKey, string platform, Dictionary<string, string> activeFilters, string excludeFilterKey)
@@ -5897,7 +6835,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
 
         query += " ORDER BY filterValue;";
 
-        using (var cmd = new SqlCommand(query, con))
+        using (var cmd = CmfPlatformCatalog.CreateReadCommand(query, con))
         {
             // Add parameter if filterValue exists and is not AllDrivers
             if (!string.IsNullOrEmpty(filterValue) && filterValue != "AllDrivers")
@@ -5910,7 +6848,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             using (var rdr = cmd.ExecuteReader())
             {
                 List<FilterItem> items = new List<FilterItem>();
-                items.Add(new FilterItem("All", "All"));
+                items.Add(new FilterItem("Select All", "All"));
 
                 while (rdr.Read())
                 {
@@ -5966,7 +6904,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
 
         query += " ORDER BY owner;";
 
-        using (var cmd = new SqlCommand(query, con))
+        using (var cmd = CmfPlatformCatalog.CreateReadCommand(query, con))
         {
             // Add parameter if filterValue exists and is not AllDrivers
             if (!string.IsNullOrEmpty(filterValue) && filterValue != "AllDrivers")
@@ -5985,7 +6923,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                 }
 
                 List<FilterItem> items = new List<FilterItem>();
-                items.Add(new FilterItem("All", "All"));
+                items.Add(new FilterItem("Select All", "All"));
 
                 var ownerCache = Session["OwnerDisplayCache"] as Dictionary<string, string>
                                  ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -6068,9 +7006,20 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         return processed;
     }
 
-    // Populate issue filter controls above the table.
+    // Populate issue filter controls in table headers and top panel
     protected void overall_request_details_DataBound(object sender, EventArgs e)
     {
+        PopulateHeaderDropdown("ddlOwnerHeader", "OwnerItems", "ownerFilter");
+        PopulateHeaderDropdown("ddlRvpReproHeader", "RvpReproItems", "rvpReproFilter");
+        PopulateHeaderDropdown("ddlIdstHeader", "IdstItems", "idstFilter");
+        PopulateHeaderDropdown("ddlLosHeader", "LosItems", "losFilter");
+        PopulateHeaderDropdown("ddlCompanyHeader", "CompanyItems", "companyFilter");
+        PopulateHeaderDropdown("ddlDetailHeader", "DetailItems", "detailFilter");
+        PopulateHeaderDropdown("ddlComponentHeader", "ComponentItems", "componentFilter");
+        PopulateHeaderDropdown("ddlComponentGroupHeader", "ComponentItems", "componentFilter");
+        PopulateHeaderDropdown("ddlMilestoneHeader", "MilestoneItems", "milestoneFilter");
+        PopulateHeaderDropdown("ddlStatusHeader", "IssueStatusItems", "issueStatusFilter");
+
         PopulateTopFilterDropdown("ddlOwnerTop", "OwnerItems", "ownerFilter");
         PopulateTopFilterDropdown("ddlRvpReproTop", "RvpReproItems", "rvpReproFilter");
         PopulateTopFilterDropdown("ddlIdstTop", "IdstItems", "idstFilter");
@@ -6079,6 +7028,34 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         PopulateTopFilterDropdown("ddlDetailTop", "DetailItems", "detailFilter");
         PopulateTopFilterDropdown("ddlComponentTop", "ComponentItems", "componentFilter");
         PopulateTopFilterDropdown("ddlMilestoneTop", "MilestoneItems", "milestoneFilter");
+        PopulateTopFilterDropdown("ddlStatusTop", "IssueStatusItems", "issueStatusFilter");
+    }
+
+    private void PopulateHeaderDropdown(string dropdownId, string viewStateKey, string sessionKey)
+    {
+        if (overall_request_details.HeaderRow == null) return;
+        DropDownList ddl = overall_request_details.HeaderRow.FindControl(dropdownId) as DropDownList;
+        if (ddl != null && ViewState[viewStateKey] != null)
+        {
+            List<FilterItem> items = ViewState[viewStateKey] as List<FilterItem>;
+            if (items != null)
+            {
+                ddl.Items.Clear();
+
+                foreach (FilterItem item in items)
+                {
+                    ddl.Items.Add(new ListItem(item.Text, item.Value));
+                }
+
+                if (Session[sessionKey] != null)
+                {
+                    string value = Session[sessionKey].ToString();
+                    var item = ddl.Items.FindByValue(value);
+                    if (item != null)
+                        ddl.SelectedValue = value;
+                }
+            }
+        }
     }
 
     private void PopulateTopFilterDropdown(string dropdownId, string viewStateKey, string sessionKey)
@@ -6142,6 +7119,9 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                     case "Component":
                         clauses.Add(" AND LTRIM(RTRIM(" + prefix + "component_group)) = @ComponentFilter ");
                         break;
+                    case "IssueStatus":
+                        clauses.Add(" AND LTRIM(RTRIM(" + prefix + "status)) = @IssueStatusFilter ");
+                        break;
                     //case "los":
                     //    clauses.Add(" AND LTRIM(RTRIM(los)) = @LosFilter ");
                     //    break;
@@ -6187,11 +7167,11 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         string sourceSql = BuildDashboardComponentSourceSql(platform);
         string driverQuery = "SELECT DISTINCT([drivers]) FROM " + sourceSql +
                              " WHERE drivers IS NOT NULL AND LTRIM(RTRIM(drivers)) <> '' " +
-                             " AND status in ('open','implemented') " +
+                             " AND status in ('open','implemented','future') " +
                              " AND cmf_request not in ('cmf_reject') " +
                              " AND sysdebug Like ('%customer_must_fix%') ";
 
-        using (SqlCommand cmd = new SqlCommand(driverQuery, con))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(driverQuery, con))
         using (SqlDataReader reader = cmd.ExecuteReader())
         {
             List<string> driversList = new List<string>();
@@ -6244,7 +7224,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         {
             con.Open();
 
-            using (SqlCommand cmd = new SqlCommand(@"
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(@"
          SELECT Username
          FROM dbo.CMFUserVisitCounts_Final
          WHERE DisplayName IS NULL;", con))
@@ -6317,6 +7297,14 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
     protected void Page_Load(object sender, EventArgs e)
     {
         overall_request_details.DataBound += overall_request_details_DataBound;
+        if (!IsPostBack)
+        {
+            var dateFilter = GetDashboardDateFilter();
+            ddlDashboardDateMode.SelectedValue = dateFilter.Mode;
+            txtDashboardDateStart.Text = (dateFilter.Start ?? DateTime.Today.AddDays(-6)).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            txtDashboardDateEnd.Text = (dateFilter.EndExclusive.HasValue ? dateFilter.EndExclusive.Value.AddDays(-1) : DateTime.Today).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            dashboardCustomDates.Visible = dateFilter.Mode == "custom";
+        }
         //GridView_cmf_summary.RowCreated += GridView_cmf_summary_RowCreated;
 
         if (ddlUserMode != null && !IsPostBack)
@@ -6349,8 +7337,9 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             int workWeekNumber = cultureInfo.Calendar.GetWeekOfYear(currentDate, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
             WorkWeek = string.Format("WW'{0:D2}", workWeekNumber);
 
-            // Set initial platform correctly
-            ListItem defaultPlatformItem = ddlTables.Items.FindByValue(DefaultPlatformTable);
+            List<CmfPlatformDefinition> initialPlatforms = UpdatePlatformChipOrder();
+            string initialPlatform = initialPlatforms.Count > 0 ? initialPlatforms[0].TableName : DefaultPlatformTable;
+            ListItem defaultPlatformItem = ddlTables.Items.FindByValue(initialPlatform);
             if (defaultPlatformItem != null)
             {
                 ddlTables.ClearSelection();
@@ -6359,8 +7348,8 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
 
             selectedPlatform = ResolvePlatformTable(ddlTables.SelectedValue);
             Session["selectedPlatform"] = selectedPlatform;
-            Session[IssuePendingPlatformSessionKey] = OverallDashboardPlatformTable;
-            SetDashboardPlatformSelection(OverallDashboardPlatformTable);
+            Session[IssuePendingPlatformSessionKey] = selectedPlatform;
+            SetDashboardPlatformSelection(selectedPlatform);
             Session["isFirstLoad"] = null;
 
             btnExportToExcel.Visible = false;
@@ -6416,7 +7405,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             {
                 con.Open();
                 string query = "SELECT COUNT(*) FROM " + session_count_table + " WHERE Username = @username";
-                SqlCommand cmd = new SqlCommand(query, con);
+                SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(query, con);
                 cmd.Parameters.AddWithValue("@username", var_username);
                 int count = (int)cmd.ExecuteScalar();
 
@@ -6436,7 +7425,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                 }
 
                 query = "SELECT ISNULL(SUM(SessionCount), 0) FROM " + session_count_table;
-                cmd = new SqlCommand(query, con);
+                cmd = CmfPlatformCatalog.CreateReadCommand(query, con);
                 count = (int)cmd.ExecuteScalar();
                 session_count.Text = "Total Visits: " + count.ToString();
             }
@@ -6508,10 +7497,9 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                     bool dashboardDrivenTab = string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase);
-                    string dashboardSelection = ResolveDashboardPlatformSelection();
-                    if (dashboardDrivenTab && IsOverallDashboardPlatform(dashboardSelection))
+                    if (dashboardDrivenTab)
                     {
-                        selectedPlatform = OverallDashboardPlatformTable;
+                        selectedPlatform = ResolveDashboardPlatformSelection();
                     }
                     else
                     {
@@ -6522,38 +7510,52 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
 
             string eventArgument = Request["__EVENTARGUMENT"];
 
-            if (eventTarget == "ShowModal" && !string.IsNullOrEmpty(eventArgument))
+            if (eventTarget == "ShowDesignIndicatorSummaryModal" || IsQuickLinkDesignEventTarget(eventTarget))
             {
+                PrepareHomeQuickLinkPopupFlow();
+
+                BindGridView_design_summary();
+                ShowDesignIndicatorSummaryModal();
+            }
+
+            else if (eventTarget == "ShowModal" && !string.IsNullOrEmpty(eventArgument))
+            {
+                PrepareHomeQuickLinkPopupFlow();
+
                 HiddenModalDesign.Value = eventArgument;
                 Session["DesignValue"] = eventArgument;
                 BindModalGrid(eventArgument);
                 ShowModal();
             }
+            else if (eventTarget == "ShowIngredientIndicatorSummaryModal" || IsQuickLinkIngredientEventTarget(eventTarget))
+            {
+                PrepareHomeQuickLinkPopupFlow();
+
+                BindGridView_component_summary();
+                ShowIngredientIndicatorSummaryModal();
+            }
             else if (eventTarget == "ShowModal2" && !string.IsNullOrEmpty(eventArgument))
             {
+                PrepareHomeQuickLinkPopupFlow();
+
                 HiddenModalDesign.Value = eventArgument;
                 Session["DesignValue"] = eventArgument;
                 BindModalGrid2(eventArgument);
                 ShowModal2();
             }
+            else if (eventTarget == "ShowOemIndicatorSummaryModal" || IsQuickLinkOemEventTarget(eventTarget))
+            {
+                PrepareHomeQuickLinkPopupFlow();
+
+                BindGridView_oem_summary();
+                ShowOemIndicatorSummaryModal();
+            }
             else if (eventTarget == "ShowDriverIssues" && !string.IsNullOrEmpty(eventArgument))
             {
+                PrepareHomeQuickLinkPopupFlow();
+
                 HiddenDriverName.Value = eventArgument;
                 Session["DriverName"] = eventArgument; // persist for export
-
-                string activeFocusedTab = GetActiveFocusedTab();
-                if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
-                {
-                    ShowWelcomeHome();
-                }
-                else if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
-                {
-                    ShowModernCmfSummary();
-                }
-                else
-                {
-                    RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
-                }
 
                 BindDriverIssues(eventArgument);
                 ShowDriverIssues(); // opens the drivers modal
@@ -6570,6 +7572,8 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             }
             else if (eventTarget == "ShowCMFIssues" && !string.IsNullOrEmpty(eventArgument))
             {
+                PrepareHomeQuickLinkPopupFlow();
+
                 string[] parts = eventArgument.Split('|');
                 if (parts.Length == 3)
                 {
@@ -6585,45 +7589,22 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                     Session["DriverName"] = driver;
                     Session["IssueType"] = issueType;
 
-                    string activeFocusedTab = GetActiveFocusedTab();
-                    if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
-                    {
-                        ShowWelcomeHome();
-                    }
-                    else if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
-                    {
-                        ShowModernCmfSummary();
-                    }
-                    else
-                    {
-                        RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
-                    }
-
                     BindCMFIssues(component, driver, issueType);
                     ShowCMFIssues();
                 }
             }
             else if (eventTarget == "ShowPendingSummaryIssues" && !string.IsNullOrEmpty(eventArgument))
             {
-                string activeFocusedTab = GetActiveFocusedTab();
-                if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
-                {
-                    ShowWelcomeHome();
-                }
-                else if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
-                {
-                    ShowModernCmfSummary();
-                }
-                else
-                {
-                    RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
-                }
+                PrepareHomeQuickLinkPopupFlow();
 
                 BindPendingSummaryIssues(eventArgument);
                 ShowCMFIssues();
             }
-            else if (eventTarget == "ShowSummaryMetricIssues" && !string.IsNullOrEmpty(eventArgument))
+            else if (eventTarget == "SetPendingSummaryAgeThreshold")
             {
+                int thresholdDays = ParsePendingSummaryAgeThresholdDaysFromArgument(eventArgument);
+                SetPendingSummaryAgeThresholdDays(thresholdDays);
+
                 string activeFocusedTab = GetActiveFocusedTab();
                 if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
                 {
@@ -6637,25 +7618,17 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                 {
                     RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
                 }
+            }
+            else if (eventTarget == "ShowSummaryMetricIssues" && !string.IsNullOrEmpty(eventArgument))
+            {
+                PrepareHomeQuickLinkPopupFlow();
 
                 BindSummaryMetricIssues(eventArgument);
                 ShowSummaryMetricIssuesModal();
             }
             else if (eventTarget == "ShowPendingAgeBucketIssues" && !string.IsNullOrEmpty(eventArgument))
             {
-                string activeFocusedTab = GetActiveFocusedTab();
-                if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
-                {
-                    ShowWelcomeHome();
-                }
-                else if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
-                {
-                    ShowModernCmfSummary();
-                }
-                else
-                {
-                    RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
-                }
+                PrepareHomeQuickLinkPopupFlow();
 
                 BindPendingAgeBucketIssues(eventArgument);
                 ShowCMFIssues();
@@ -6679,28 +7652,18 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             }
             else if (eventTarget == "ShowModal3" && !string.IsNullOrEmpty(eventArgument))
             {
+                PrepareHomeQuickLinkPopupFlow();
+
                 HiddenModalDesign.Value = eventArgument;
                 Session["DesignValue"] = eventArgument;
-
-                string activeFocusedTab = GetActiveFocusedTab();
-                if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
-                {
-                    ShowWelcomeHome();
-                }
-                else if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
-                {
-                    ShowModernCmfSummary();
-                }
-                else
-                {
-                    RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
-                }
 
                 BindModalGrid3(eventArgument);
                 ShowModal3();
             }
             else if (eventTarget == "ShowDriverModal" && !string.IsNullOrEmpty(eventArgument))
             {
+                PrepareHomeQuickLinkPopupFlow();
+
                 string[] args = eventArgument.Split(',');
                 if (args.Length == 2)
                 {
@@ -6708,42 +7671,16 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                     string driver = args[1];
                     Session["DesignValue"] = design;
 
-                    string activeFocusedTab = GetActiveFocusedTab();
-                    if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
-                    {
-                        ShowWelcomeHome();
-                    }
-                    else if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
-                    {
-                        ShowModernCmfSummary();
-                    }
-                    else
-                    {
-                        RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
-                    }
-
                     BindDriverDetailsModal(design, driver);
                     ShowModal0();
                 }
             }
             else if (eventTarget == "ShowImplementedVerifiedModal" && !string.IsNullOrEmpty(eventArgument))
             {
+                PrepareHomeQuickLinkPopupFlow();
+
                 HiddenModalDesign.Value = eventArgument;
                 Session["DesignValue"] = eventArgument;
-
-                string activeFocusedTab = GetActiveFocusedTab();
-                if (string.Equals(activeFocusedTab, "home", StringComparison.OrdinalIgnoreCase))
-                {
-                    ShowWelcomeHome();
-                }
-                else if (string.Equals(activeFocusedTab, "cmf", StringComparison.OrdinalIgnoreCase))
-                {
-                    ShowModernCmfSummary();
-                }
-                else
-                {
-                    RebindFocusedTabData(string.Equals(activeFocusedTab, "reports", StringComparison.OrdinalIgnoreCase));
-                }
 
                 BindImplementedVerifiedDetailsModal(eventArgument);
                 ShowModal0();
@@ -7325,17 +8262,36 @@ LEFT JOIN " + designTable + @" AS d
 
             // Build dynamic master_query
             string master_query = base_master_query;
-            string order_clause = "ORDER BY \r\n    CASE WHEN LTRIM(RTRIM(ISNULL(main.drivers, ''))) = '' THEN 1 ELSE 0 END,\r\n    CASE \r\n        WHEN progress = 'Green' THEN 1  -- Give 'green' a lower priority, so it appears later\r\n        ELSE 0  -- Non-green rows get a higher priority (appear first)\r\n    END,\r\n    Driver, \r\n    CASE \r\n        WHEN progress = 'Red' THEN 1\r\n        WHEN progress = 'Orange' THEN 2\r\n        WHEN progress = 'Yellow' THEN 3\r\n        WHEN progress = 'Green' THEN 4  -- Green comes last, after all other colors\r\n    END,\r\n    component;\r\n ";
+            string order_clause = @"ORDER BY
+    CASE
+        WHEN LOWER(LTRIM(RTRIM(main.status))) = 'open' THEN 1
+        WHEN LOWER(LTRIM(RTRIM(main.status))) = 'complete' THEN 2
+        WHEN LOWER(LTRIM(RTRIM(main.status))) = 'future' THEN 3
+        WHEN LOWER(LTRIM(RTRIM(main.status))) = 'verified' THEN 4
+        WHEN LOWER(LTRIM(RTRIM(main.status))) = 'implemented' THEN 5
+        ELSE 6
+    END,
+    CASE WHEN LTRIM(RTRIM(ISNULL(main.drivers, ''))) = '' THEN 1 ELSE 0 END,
+    main.drivers,
+    CASE
+        WHEN main.progress = 'Red' THEN 1
+        WHEN main.progress = 'Orange' THEN 2
+        WHEN main.progress = 'Yellow' THEN 3
+        WHEN main.progress = 'Green' THEN 4
+    END,
+    main.component,
+    main.cp_id ASC;
+";
 
             ApplyIssuePageSizeFromSession();
 
             // Keep the same status scope on initial loads and postbacks.
             string whereClause = "";
             string issueStatusClause = isOverallSelection
-                ? "(status IN ('open', 'implemented') OR (main.source_platform IN ('CMF_NVL_H_ALL_COMPONENTS_TABLE', 'CMF_NVL_S_ALL_COMPONENTS_TABLE') AND status NOT IN ('rejected')))"
+                ? "(status IN ('open', 'implemented', 'future') OR (main.source_platform IN ('CMF_NVL_H_ALL_COMPONENTS_TABLE', 'CMF_NVL_S_ALL_COMPONENTS_TABLE') AND status NOT IN ('rejected')))"
                 : UsesPublicIssueStatusScope(platformTable)
                     ? "status NOT IN ('rejected')"
-                    : "status IN ('open', 'implemented')";
+                    : "status IN ('open', 'implemented', 'future')";
 
             if (!string.IsNullOrEmpty(filterValue) && filterValue != "AllDrivers")
             {
@@ -7387,7 +8343,7 @@ LEFT JOIN " + designTable + @" AS d
             master_query += whereClause + order_clause;
 
             // Execute final query
-            using (SqlCommand cmd = new SqlCommand(master_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(master_query, con))
             {
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
                 {
@@ -7424,6 +8380,9 @@ LEFT JOIN " + designTable + @" AS d
                                     break;
                                 case "Component":
                                     sda.SelectCommand.Parameters.AddWithValue("@ComponentFilter", filter.Value);
+                                    break;
+                                case "IssueStatus":
+                                    sda.SelectCommand.Parameters.AddWithValue("@IssueStatusFilter", filter.Value);
                                     break;
                             }
                         }
@@ -7652,7 +8611,7 @@ LEFT JOIN " + designTable + @" AS d
         return links.Count > 0 ? string.Join(", ", links) : "NA";
     }
 
-    protected string RenderIssueDetails(object sightingIdValue, object promotedIdValue, object titleValue, object cmfRequestValue, object submittedDateValue, object statusValue, object sysdebugValue)
+    protected string RenderIssueDetails(object sightingIdValue, object promotedIdValue, object titleValue, object cmfRequestValue, object submittedDateValue, object statusValue, object sysdebugValue, bool includeTitle = true)
     {
         string sightingId = sightingIdValue == null || sightingIdValue == DBNull.Value ? string.Empty : sightingIdValue.ToString().Trim();
         string title = titleValue == null || titleValue == DBNull.Value ? string.Empty : titleValue.ToString().Trim();
@@ -7666,13 +8625,16 @@ LEFT JOIN " + designTable + @" AS d
         if (!string.IsNullOrWhiteSpace(sightingId))
         {
             sb.AppendFormat(
-                "<a class=\"issue-id-link\" href=\"https://hsdes.intel.com/appstore/article/#{0}\" target=\"_blank\">#{1}</a>",
+                "<a class=\"issue-id-link\" href=\"https://hsdes.intel.com/appstore/article/#{0}\" target=\"_blank\">{1}</a>",
                 HttpUtility.HtmlAttributeEncode(sightingId),
                 HttpUtility.HtmlEncode(sightingId));
         }
         sb.Append("<button type=\"button\" class=\"ai-summary-btn ai-summary-btn-inline issue-details-ai-btn\" style=\"padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid #7cb5ec; background-color: #f3f9ff; font-size: 14px; width: 26px; height: 26px;\" onclick='" + onclick + "' title=\"AI Issue details\" aria-label=\"AI Issue details\">&#10024;</button>");
         sb.Append("</span>");
-        sb.AppendFormat("<span class=\"issue-title-text\">{0}</span>", HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(title) ? "Untitled issue" : title));
+        if (includeTitle)
+        {
+            sb.AppendFormat("<span class=\"issue-title-text\">{0}</span>", HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(title) ? "Untitled issue" : title));
+        }
         sb.Append("</span>");
         return sb.ToString();
     }
@@ -7736,18 +8698,18 @@ LEFT JOIN " + designTable + @" AS d
             JsEncode(customerOwnerValue));
     }
 
-    protected string RenderPendingRecommendationCell(object cpIdValue, object titleValue, object componentValue, object componentGroupValue, object cmfRequestValue, object impactValue, object idstValue, object reproOnRvpValue, object reproducibilityValue, object customerDetailValue, object customerOwnerValue)
+    protected string RenderPendingRecommendationCell(object cpIdValue, object titleValue, object componentValue, object componentGroupValue, object cmfRequestValue, object impactValue, object idstValue, object reproOnRvpValue, object reproducibilityValue, object customerDetailValue, object customerOwnerValue, object platformValue = null)
     {
         return "<span class=\"pending-ai-rec-cell\">" +
-            RenderPendingRecommendationButton(cpIdValue, titleValue, componentValue, componentGroupValue, cmfRequestValue, impactValue, idstValue, reproOnRvpValue, reproducibilityValue, customerDetailValue, customerOwnerValue) +
+            RenderPendingRecommendationButton(cpIdValue, titleValue, componentValue, componentGroupValue, cmfRequestValue, impactValue, idstValue, reproOnRvpValue, reproducibilityValue, customerDetailValue, customerOwnerValue, platformValue) +
             "</span>";
     }
 
-    protected string RenderPendingRecommendationButton(object cpIdValue, object titleValue, object componentValue, object componentGroupValue, object cmfRequestValue, object impactValue, object idstValue, object reproOnRvpValue, object reproducibilityValue, object customerDetailValue, object customerOwnerValue)
+    protected string RenderPendingRecommendationButton(object cpIdValue, object titleValue, object componentValue, object componentGroupValue, object cmfRequestValue, object impactValue, object idstValue, object reproOnRvpValue, object reproducibilityValue, object customerDetailValue, object customerOwnerValue, object platformValue = null)
     {
         string cpId = cpIdValue == null || cpIdValue == DBNull.Value ? string.Empty : cpIdValue.ToString();
         return string.Format(
-            "<button type=\"button\" class=\"pending-recommendation-btn pending-ai-rec-btn\" data-cmf-rec-id=\"{11}\" onclick='openCmfPendingRecommendationModal(\"{0}\", \"{1}\", \"{2}\", \"{3}\", \"{4}\", \"{5}\", \"{6}\", \"{7}\", \"{8}\", \"{9}\", \"{10}\")' title=\"Open CMF Analysis\" aria-label=\"Open CMF Analysis\"><span class=\"pending-ai-rec-icon\" aria-hidden=\"true\">&#10024;</span><span class=\"pending-ai-rec-label\">CMF Analysis</span></button>",
+            "<button type=\"button\" class=\"pending-recommendation-btn pending-ai-rec-btn\" data-cmf-rec-id=\"{11}\" data-cmf-platform=\"{12}\" onclick='openCmfPendingRecommendationModal(\"{0}\", \"{1}\", \"{2}\", \"{3}\", \"{4}\", \"{5}\", \"{6}\", \"{7}\", \"{8}\", \"{9}\", \"{10}\", this.getAttribute(\"data-cmf-platform\"))' title=\"Open CMF Analysis\" aria-label=\"Open CMF Analysis\"><span class=\"pending-ai-rec-icon\" aria-hidden=\"true\">&#10024;</span><span class=\"pending-ai-rec-label\">CMF Analysis</span></button>",
             JsEncode(cpIdValue),
             JsEncode(titleValue),
             JsEncode(componentValue),
@@ -7759,7 +8721,8 @@ LEFT JOIN " + designTable + @" AS d
             JsEncode(reproducibilityValue),
             JsEncode(customerDetailValue),
             JsEncode(customerOwnerValue),
-            HttpUtility.HtmlAttributeEncode(cpId));
+            HttpUtility.HtmlAttributeEncode(cpId),
+            HttpUtility.HtmlAttributeEncode(Convert.ToString(platformValue)));
     }
 
     protected string RenderSightingDetailsPanel(object cpIdValue, object titleValue, object componentValue, object cmfRequestValue, object impactValue, object idstValue, object reproOnRvpValue, object reproducibilityValue, object customerDetailValue, object customerOwnerValue)
@@ -7826,13 +8789,22 @@ LEFT JOIN " + designTable + @" AS d
         return sb.ToString();
     }
 
+    protected bool IsPendingRequestStale(object dateCmfAskValue)
+    {
+        DateTime askDate;
+        return dateCmfAskValue != null && dateCmfAskValue != DBNull.Value
+            && DateTime.TryParse(Convert.ToString(dateCmfAskValue), out askDate)
+            && DateTime.Now - askDate > TimeSpan.FromDays(2);
+    }
+
     protected string RenderPendingAskImpact(object cpIdValue, object titleValue, object componentValue, object dateCmfAskValue, object cmfRequestValue, object impactValue, object idstValue, object reproOnRvpValue, object reproducibilityValue, object customerDetailValue, object customerOwnerValue)
     {
         string dateCmfAsk = dateCmfAskValue == null || dateCmfAskValue == DBNull.Value ? string.Empty : dateCmfAskValue.ToString().Trim();
         string impact = impactValue == null || impactValue == DBNull.Value ? string.Empty : impactValue.ToString().Trim();
 
         DateTime parsedDate;
-        if (DateTime.TryParse(dateCmfAsk, out parsedDate))
+        bool hasAskDate = DateTime.TryParse(dateCmfAsk, out parsedDate);
+        if (hasAskDate)
         {
             dateCmfAsk = parsedDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
         }
@@ -7841,6 +8813,10 @@ LEFT JOIN " + designTable + @" AS d
         sb.Append("<span class=\"pending-status-cell\">");
         sb.Append("<span class=\"pending-chip-row\">");
         sb.AppendFormat("<span class=\"pending-chip\">Date: {0}</span>", HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(dateCmfAsk) ? "N/A" : dateCmfAsk));
+        if (hasAskDate && DateTime.Now - parsedDate > TimeSpan.FromDays(2))
+        {
+            sb.Append("<span class=\"pending-stale-label\" title=\"CMF ask date is more than 2 days old\"><i class=\"fas fa-clock\" aria-hidden=\"true\"></i>Stale</span>");
+        }
         sb.Append("</span>");
         sb.AppendFormat("<span class=\"pending-mini-label\">Impact</span><span>{0}</span>", HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(impact) ? "Impact not specified" : impact));
         sb.Append("</span>");
@@ -7955,9 +8931,9 @@ LEFT JOIN " + designTable + @" AS d
 
     protected string RenderDaysOpen(object daysOpenValue)
     {
-        string daysOpen = daysOpenValue == null || daysOpenValue == DBNull.Value ? "0" : daysOpenValue.ToString().Trim();
-        if (string.IsNullOrWhiteSpace(daysOpen)) daysOpen = "0";
-        return string.Format("<span class=\"days-open-pill\">{0}</span>", HttpUtility.HtmlEncode(daysOpen));
+        string daysOpen = daysOpenValue == null || daysOpenValue == DBNull.Value ? "unknown" : daysOpenValue.ToString().Trim();
+        if (string.IsNullOrWhiteSpace(daysOpen)) daysOpen = "unknown";
+        return HttpUtility.HtmlEncode(daysOpen);
     }
 
     protected string RenderCustomerDetailWithCompanyAndProcessor(
@@ -8125,25 +9101,29 @@ LEFT JOIN " + designTable + @" AS d
             }
         } catch { }
 
-        // Determine main status to display in pill - prioritize sysdebugForum, then rawStatus, then statusValue (IssueStatus)
+        // Lifecycle status is shown in Progress; this column contains only debug updates.
         string primaryStatusToDisplay = string.Empty;
         if (!string.IsNullOrWhiteSpace(sysdebugForum)) primaryStatusToDisplay = sysdebugForum;
         else if (!string.IsNullOrWhiteSpace(rawStatus)) primaryStatusToDisplay = rawStatus;
-        else primaryStatusToDisplay = status;
+        else primaryStatusToDisplay = string.Empty;
+
+        if (string.Equals(primaryStatusToDisplay, status, StringComparison.OrdinalIgnoreCase)
+            || new[] { "open", "closed", "complete", "implemented", "verified", "rejected" }
+            .Contains(primaryStatusToDisplay, StringComparer.OrdinalIgnoreCase))
+        {
+            primaryStatusToDisplay = string.Empty;
+        }
 
         string sysdebug = sysdebugValue == null || sysdebugValue == DBNull.Value ? string.Empty : sysdebugValue.ToString().Replace("\r", " ").Replace("\n", " ").Trim();
-        string sightingId = sightingIdValue == null || sightingIdValue == DBNull.Value ? string.Empty : sightingIdValue.ToString();
-        string onclick = "openAiSummaryModal(\"" + JsEncode(sightingIdValue) + "\", \"" + JsEncode(titleValue) + "\", \"" + JsEncode(FormatDateOnly(submittedDateValue)) + "\", \"" + JsEncode(statusValue) + "\", \"" + JsEncode(sysdebugValue) + "\", \"AI Summary\")";
+        string onclick = "openAiSummaryModal(\"" + JsEncode(sightingIdValue) + "\", \"" + JsEncode(titleValue) + "\", \"" + JsEncode(FormatDateOnly(submittedDateValue)) + "\", \"" + JsEncode(statusValue) + "\", \"" + JsEncode(sysdebugValue) + "\", \"AI Debug Summary\")";
 
         return "<div class=\"status-cell-wrap status-cell-wrap-compact\">" +
             "<div class=\"status-row status-row-primary\">" +
                 "<span class=\"status-label-group\">" +
-                "<span class=\"status-pill\" style=\"margin-right: 6px;\">" + HttpUtility.HtmlEncode(status) + "</span>" +
                 "<button type=\"button\" class=\"ai-summary-btn ai-summary-btn-inline issue-details-ai-btn\" style=\"padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid #7cb5ec; background-color: #f3f9ff; font-size: 14px; width: 26px; height: 26px; margin-right: 6px;\" onclick='" + onclick + "' title=\"AI Debug Summary\" aria-label=\"AI Debug Summary\">&#10024;</button>" +
                 "</span>" +
-                "<span class=\"status-confidence-pill status-confidence-empty\" data-ai-confidence-issue=\"" + HttpUtility.HtmlAttributeEncode(sightingId) + "\">AI not run</span>" +
             "</div>" +
-            "<div class=\"status-one-line\">" + HttpUtility.HtmlEncode(primaryStatusToDisplay) + "</div>" +
+            "<div class=\"status-one-line\">" + HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(primaryStatusToDisplay) ? "unknown" : primaryStatusToDisplay) + "</div>" +
             "</div>";
     }
 
@@ -8366,7 +9346,9 @@ LEFT JOIN " + designTable + @" AS d
                 };
             }
 
-            string issueContext = BuildIssueSummaryContext(NormalizePlatformForLookup(resolvedPlatform), issueId);
+            bool isDetails = string.Equals(mode, "details", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(mode, "AI issue details", StringComparison.OrdinalIgnoreCase);
+            string issueContext = BuildIssueSummaryContext(NormalizePlatformForLookup(resolvedPlatform), issueId, !isDetails);
 
             AiSummaryRequest request = new AiSummaryRequest
             {
@@ -8374,12 +9356,11 @@ LEFT JOIN " + designTable + @" AS d
                 Title = title,
                 SubmittedDate = submittedDate,
                 Status = status,
-                Sysdebug = sysdebug,
+                Sysdebug = isDetails ? sysdebug : string.Empty,
                 ContextDetails = issueContext
             };
 
-            if (string.Equals(mode, "details", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(mode, "AI issue details", StringComparison.OrdinalIgnoreCase))
+            if (isDetails)
             {
                 return AiSummaryService.GenerateIssueDetails(request);
             }
@@ -8404,7 +9385,8 @@ LEFT JOIN " + designTable + @" AS d
         string status,
         string sysdebug,
         string platform,
-        string question)
+        string question,
+        string mode)
     {
         try
         {
@@ -8427,7 +9409,9 @@ LEFT JOIN " + designTable + @" AS d
                 };
             }
 
-            string issueContext = BuildIssueSummaryContext(NormalizePlatformForLookup(resolvedPlatform), issueId);
+            bool forDebugSummary = !string.Equals(mode, "AI issue details", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(mode, "details", StringComparison.OrdinalIgnoreCase);
+            string issueContext = BuildIssueSummaryContext(NormalizePlatformForLookup(resolvedPlatform), issueId, forDebugSummary);
 
             AiSummaryRequest request = new AiSummaryRequest
             {
@@ -8435,11 +9419,11 @@ LEFT JOIN " + designTable + @" AS d
                 Title = title,
                 SubmittedDate = submittedDate,
                 Status = status,
-                Sysdebug = sysdebug,
+                Sysdebug = forDebugSummary ? string.Empty : sysdebug,
                 ContextDetails = issueContext
             };
 
-            return AiSummaryService.GenerateFollowUpResponse(request, question ?? string.Empty);
+            return AiSummaryService.GenerateFollowUpResponse(request, question ?? string.Empty, forDebugSummary);
         }
         catch (Exception ex)
         {
@@ -8451,7 +9435,7 @@ LEFT JOIN " + designTable + @" AS d
         }
     }
 
-    private static string BuildIssueSummaryContext(string platformTable, string issueId)
+    private static string BuildIssueSummaryContext(string platformTable, string issueId, bool forDebugSummary = false)
     {
         if (string.IsNullOrWhiteSpace(issueId))
         {
@@ -8478,10 +9462,12 @@ LEFT JOIN " + designTable + @" AS d
                     return "Context Lookup: Issue " + issueId.Trim() + " was not found in the selected platform or any allowed CMF platform table.";
                 }
 
-                using (SqlCommand cmd = new SqlCommand(@"
+                using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 1
     main.cp_id,
     main.title,
+    main.customer_owner,
+    main.owners_name,
     main.operating_system,
     main.component,
     main.cmf_request,
@@ -8522,6 +9508,8 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
                     builder.AppendLine("Context Platform Table: " + effectivePlatformTable);
                     AppendSummaryContextLine(builder, "Sighting ID", row, "cp_id");
                     AppendSummaryContextLine(builder, "Title", row, "title");
+                    AppendSummaryContextLine(builder, "Customer Owner", row, "customer_owner");
+                    AppendSummaryContextLine(builder, "Promoted Owner", row, "owners_name");
                     AppendSummaryContextLine(builder, "Operating System", row, "operating_system", "os");
                     AppendSummaryContextLine(builder, "Component", row, "component");
                     AppendSummaryContextLine(builder, "CMF Request", row, "cmf_request");
@@ -8532,7 +9520,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
                     AppendSummaryContextLine(builder, "CMF Status", row, "cmf_status");
                     AppendSummaryContextLine(builder, "Promoted Status", row, "promoted_status", "cmf_status", "status");
                     AppendSummaryContextLine(builder, "Drivers", row, "drivers");
-                    AppendSummaryContextLine(builder, "Sysdebug", row, "sysdebug");
+                    if (!forDebugSummary) AppendSummaryContextLine(builder, "Sysdebug", row, "sysdebug");
                     AppendSummaryContextLine(builder, "Impact", row, "impact");
                     AppendSummaryContextLine(builder, "Processor", row, "processor");
                     AppendSummaryContextLine(builder, "Reproducibility", row, "reproducibility", "repro_on_rvp");
@@ -8554,6 +9542,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
                             {
                                 AppendSummaryContextLine(builder, "Promoted Issue ID", promotedRow, "cp_id");
                                 AppendSummaryContextLine(builder, "Promoted Issue Title", promotedRow, "title");
+                                AppendSummaryContextLine(builder, "Promoted Issue Owner", promotedRow, "customer_owner", "owners_name");
                                 AppendSummaryContextLine(builder, "Promoted Issue Status", promotedRow, "status", "cmf_status");
                                 AppendSummaryContextLine(builder, "Promoted Issue CMF Request", promotedRow, "cmf_request");
                                 AppendSummaryContextLine(builder, "Promoted Issue Priority", promotedRow, "priority");
@@ -8568,6 +9557,8 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
                             }
                         }
                     }
+
+                    if (forDebugSummary) return builder.ToString().Trim();
 
                     // ── Section 2: HSD portal – sighting article ───────────────
                     HsdArticleData hsdSighting =
@@ -8596,8 +9587,13 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
             }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            if (forDebugSummary)
+            {
+                System.Diagnostics.Trace.TraceError("Debug summary context lookup failed: {0}", ex);
+                throw;
+            }
             return string.Empty;
         }
     }
@@ -8609,7 +9605,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
             return false;
         }
 
-        using (SqlCommand cmd = new SqlCommand("SELECT TOP 1 1 FROM " + platformTable + " WHERE CAST(cp_id AS VARCHAR(50)) = @issueId", connection))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand("SELECT TOP 1 1 FROM " + platformTable + " WHERE CAST(cp_id AS VARCHAR(50)) = @issueId", connection))
         {
             cmd.Parameters.AddWithValue("@issueId", issueId.Trim());
             object result = cmd.ExecuteScalar();
@@ -8661,7 +9657,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
             return null;
         }
 
-        using (SqlCommand cmd = new SqlCommand(@"
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 1
     main.cp_id,
     main.title,
@@ -8837,7 +9833,9 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         string reproducibility,
         string customerDetail,
         string customerOwner,
-        string platform)
+        string platform,
+        string description = null,
+        string impactSummary = null)
     {
         try
         {
@@ -8856,6 +9854,25 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 };
             }
 
+            string hsdContext = BuildPendingRecommendationContext(NormalizePlatformForLookup(resolvedPlatform), cpId, true);
+            if (!string.IsNullOrWhiteSpace(description) || !string.IsNullOrWhiteSpace(impactSummary))
+            {
+                StringBuilder contextEnrichment = new StringBuilder();
+                if (!string.IsNullOrWhiteSpace(description))
+                {
+                    contextEnrichment.AppendLine("PROVEN PROBLEM DESCRIPTION:");
+                    contextEnrichment.AppendLine(description.Trim());
+                    contextEnrichment.AppendLine();
+                }
+                if (!string.IsNullOrWhiteSpace(impactSummary))
+                {
+                    contextEnrichment.AppendLine("PROVEN IMPACT SUMMARY:");
+                    contextEnrichment.AppendLine(impactSummary.Trim());
+                    contextEnrichment.AppendLine();
+                }
+                hsdContext = contextEnrichment.ToString() + hsdContext;
+            }
+
             CmfRecommendationRequest request = new CmfRecommendationRequest
             {
                 CpId = cpId,
@@ -8869,7 +9886,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 CustomerDetail = customerDetail,
                 CustomerOwner = customerOwner,
                 Rules = CmfRecommendationService.GetActiveRulesText(),
-                HsdContext = BuildPendingRecommendationContext(NormalizePlatformForLookup(resolvedPlatform), cpId)
+                HsdContext = hsdContext
             };
 
             return CmfRecommendationService.GenerateCmfPendingRecommendation(request);
@@ -9158,7 +10175,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
     }
 
     [WebMethod]
-    public static AiSummaryResponse GetSightingImpactSummary(string cpId, string title, string impact, string platform)
+    public static AiSummaryResponse GetSightingImpactSummary(string cpId, string title, string impact, string platform, string description = null)
     {
         try
         {
@@ -9175,6 +10192,12 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
             string dbContext = BuildIssueSummaryContext(platform, cpId);
 
             StringBuilder contextBuilder = new StringBuilder();
+            if (!string.IsNullOrWhiteSpace(description))
+            {
+                contextBuilder.AppendLine("Problem Description:");
+                contextBuilder.AppendLine(description.Trim());
+                contextBuilder.AppendLine();
+            }
             if (!string.IsNullOrWhiteSpace(dbContext))
             {
                 contextBuilder.AppendLine(dbContext);
@@ -9197,46 +10220,84 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         }
     }
 
-    private static string BuildPendingHsdContext(string cpId)
+    [WebMethod]
+    public static CmfSightingChatResponse AskCmfSightingQuestion(string cpId, string title, string question, string platform, List<CmfSightingChatTurn> history)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(cpId) || string.IsNullOrWhiteSpace(question))
+            {
+                return new CmfSightingChatResponse
+                {
+                    Success = false,
+                    Message = "Sighting ID and question are required."
+                };
+            }
+
+            if (!IsAllowedOrOverallPlatform(platform))
+            {
+                return new CmfSightingChatResponse
+                {
+                    Success = false,
+                    Message = "Invalid platform input for sighting chat."
+                };
+            }
+
+            string hsdContext = BuildPendingHsdContext(cpId);
+            string dbContext = BuildIssueSummaryContext(platform, cpId);
+
+            StringBuilder contextBuilder = new StringBuilder();
+            if (!string.IsNullOrWhiteSpace(dbContext)) contextBuilder.AppendLine(dbContext);
+            if (!string.IsNullOrWhiteSpace(hsdContext))
+            {
+                if (contextBuilder.Length > 0) contextBuilder.AppendLine();
+                contextBuilder.AppendLine(hsdContext);
+            }
+
+            return AiSummaryService.GenerateSightingFollowUpAnswer(cpId, title, contextBuilder.ToString(), question, history);
+        }
+        catch (Exception ex)
+        {
+            return new CmfSightingChatResponse
+            {
+                Success = false,
+                Message = "Failed to answer sighting question: " + ex.Message
+            };
+        }
+    }
+
+    private static string BuildPendingHsdContext(string cpId, bool evidenceLed = false)
     {
         if (string.IsNullOrWhiteSpace(cpId)) return string.Empty;
-        string cacheKey = "cmf-assistant-hsd-context:" + cpId.Trim();
-        lock (AssistantContextCacheSync)
+        string cacheKey = (evidenceLed ? "cmf-assistant-hsd-evidence-v1:" : "cmf-assistant-hsd-context:") + cpId.Trim();
+        using (CmfAssistantResponseCache.Enter(cacheKey))
         {
             string cached = HttpRuntime.Cache[cacheKey] as string;
             if (cached != null) return cached;
-        }
 
         try
         {
             HsdArticleData article = HsdPortalService.FetchArticle(cpId.Trim());
-            string context = HsdPortalService.FormatForAiContext(article, "Pending Sighting");
-            lock (AssistantContextCacheSync)
-            {
-                HttpRuntime.Cache.Insert(cacheKey, context ?? string.Empty, null, DateTime.UtcNow.AddMinutes(10), System.Web.Caching.Cache.NoSlidingExpiration);
-            }
+            if (article == null || !article.FetchSuccess) return evidenceLed ? "External Evidence Status: Unavailable" : string.Empty;
+            string context = evidenceLed ? HsdPortalService.FormatForRecommendationContext(article) : HsdPortalService.FormatForAiContext(article, "Pending Sighting");
+            context += "\nHSD Source Fingerprint: " + CmfAssistantResponseCache.Fingerprint(article);
+            int refreshSeconds;
+            if (!int.TryParse(System.Configuration.ConfigurationManager.AppSettings["CMF:AssistantHsdRefreshSeconds"], out refreshSeconds)) refreshSeconds = 60;
+            refreshSeconds = Math.Max(15, Math.Min(300, refreshSeconds));
+            HttpRuntime.Cache.Insert(cacheKey, context, null, DateTime.UtcNow.AddSeconds(refreshSeconds), System.Web.Caching.Cache.NoSlidingExpiration);
             return context;
         }
         catch
         {
-            lock (AssistantContextCacheSync)
-            {
-                HttpRuntime.Cache.Insert(cacheKey, string.Empty, null, DateTime.UtcNow.AddMinutes(2), System.Web.Caching.Cache.NoSlidingExpiration);
-            }
-            return string.Empty;
+            return evidenceLed ? "External Evidence Status: Unavailable" : string.Empty;
+        }
         }
     }
 
-    private static string BuildPendingRecommendationContext(string platformTable, string cpId)
+    private static string BuildPendingRecommendationContext(string platformTable, string cpId, bool evidenceLed = false)
     {
         if (string.IsNullOrWhiteSpace(cpId)) return string.Empty;
         string resolvedPlatform = NormalizePlatformForLookup(platformTable);
-        string cacheKey = "cmf-assistant-recommendation-context:" + (resolvedPlatform ?? OverallDashboardPlatformTable) + ":" + cpId.Trim();
-        lock (AssistantContextCacheSync)
-        {
-            string cached = HttpRuntime.Cache[cacheKey] as string;
-            if (cached != null) return cached;
-        }
 
         StringBuilder builder = new StringBuilder();
         string dbContext = BuildIssueSummaryContext(resolvedPlatform, cpId);
@@ -9245,7 +10306,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
             builder.AppendLine(dbContext);
         }
 
-        string hsdContext = BuildPendingHsdContext(cpId);
+        string hsdContext = BuildPendingHsdContext(cpId, evidenceLed);
         if (!string.IsNullOrWhiteSpace(hsdContext) && builder.ToString().IndexOf(hsdContext, StringComparison.OrdinalIgnoreCase) < 0)
         {
             if (builder.Length > 0) builder.AppendLine();
@@ -9253,10 +10314,6 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         }
 
         string context = builder.ToString().Trim();
-        lock (AssistantContextCacheSync)
-        {
-            HttpRuntime.Cache.Insert(cacheKey, context, null, DateTime.UtcNow.AddMinutes(10), System.Web.Caching.Cache.NoSlidingExpiration);
-        }
         return context;
     }
 
@@ -9802,44 +10859,263 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         GridView_design_open.Columns[GridView_design_open.Columns.Count - 1].Visible = true;
     }
 
+    protected void btnIssueViewExport_Click(object sender, EventArgs e)
+    {
+        List<string> requestedColumns;
+        try
+        {
+            requestedColumns = new JavaScriptSerializer().Deserialize<List<string>>(hfIssueExportColumns.Value);
+        }
+        catch (ArgumentException)
+        {
+            issueExportMessage.InnerText = "Unable to export: invalid column selection.";
+            return;
+        }
+        catch (InvalidOperationException)
+        {
+            issueExportMessage.InnerText = "Unable to export: invalid column selection.";
+            return;
+        }
+
+        var indexes = GetIssueExportColumnIndexes(overall_request_details.Columns, requestedColumns);
+        if (indexes.Count == 0)
+        {
+            issueExportMessage.InnerText = "Select at least one data column to export.";
+            return;
+        }
+
+        bool paging = overall_request_details.AllowPaging;
+        int pageIndex = overall_request_details.PageIndex;
+        int editIndex = overall_request_details.EditIndex;
+        byte[] bytes;
+        try
+        {
+            overall_request_details.AllowPaging = false;
+            overall_request_details.PageIndex = 0;
+            overall_request_details.EditIndex = -1;
+            ApplyIssuePendingPlatformContext();
+            BindGridView(Session["filterValue"] as string, GetAllFilterValues(), bindRelatedGrids: false);
+            if (overall_request_details.Rows.Count == 0)
+            {
+                issueExportMessage.InnerText = "No matching issues to export.";
+                return;
+            }
+            using (var stream = new MemoryStream())
+            {
+                using (var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook))
+                {
+                    var workbookPart = document.AddWorkbookPart();
+                    workbookPart.Workbook = new Spreadsheet.Workbook();
+                    var styles = workbookPart.AddNewPart<WorkbookStylesPart>();
+                    styles.Stylesheet = new Spreadsheet.Stylesheet(
+                        new Spreadsheet.Fonts(new Spreadsheet.Font()),
+                        new Spreadsheet.Fills(new Spreadsheet.Fill(new Spreadsheet.PatternFill { PatternType = Spreadsheet.PatternValues.None }),
+                            new Spreadsheet.Fill(new Spreadsheet.PatternFill { PatternType = Spreadsheet.PatternValues.Gray125 })),
+                        new Spreadsheet.Borders(new Spreadsheet.Border()),
+                        new Spreadsheet.CellStyleFormats(new Spreadsheet.CellFormat()),
+                        new Spreadsheet.CellFormats(new Spreadsheet.CellFormat {
+                            Alignment = new Spreadsheet.Alignment { WrapText = true, Vertical = Spreadsheet.VerticalAlignmentValues.Top },
+                            ApplyAlignment = true
+                        }));
+                    var part = workbookPart.AddNewPart<WorksheetPart>();
+                    var data = new Spreadsheet.SheetData();
+                    var columns = new Spreadsheet.Columns();
+                    for (int i = 0; i < indexes.Count; i++)
+                    {
+                        string field = GetIssueFieldClass(overall_request_details.Columns[indexes[i]].ItemStyle.CssClass);
+                        columns.Append(new Spreadsheet.Column { Min = (uint)i + 1, Max = (uint)i + 1,
+                            Width = field == "field-title" || field == "field-status" ? 65 : 24, CustomWidth = true });
+                    }
+                    part.Worksheet = new Spreadsheet.Worksheet(columns, data);
+                    var sheets = workbookPart.Workbook.AppendChild(new Spreadsheet.Sheets());
+                    sheets.Append(new Spreadsheet.Sheet { Id = workbookPart.GetIdOfPart(part), SheetId = 1, Name = "Issue List" });
+                    var header = new Spreadsheet.Row();
+                    foreach (int i in indexes) header.Append(CreatePendingExportCell(overall_request_details.Columns[i].HeaderText));
+                    data.Append(header);
+                    foreach (GridViewRow row in overall_request_details.Rows)
+                    {
+                        var exportRow = new Spreadsheet.Row();
+                        foreach (int i in indexes) exportRow.Append(CreatePendingExportCell(GetIssueExportCellText(row.Cells[i])));
+                        data.Append(exportRow);
+                    }
+                    styles.Stylesheet.Save();
+                    part.Worksheet.Save();
+                    workbookPart.Workbook.Save();
+                }
+                bytes = stream.ToArray();
+            }
+        }
+        finally
+        {
+            overall_request_details.AllowPaging = paging;
+            overall_request_details.PageIndex = pageIndex;
+            overall_request_details.EditIndex = editIndex;
+        }
+        Response.Clear();
+        Response.Buffer = true;
+        Response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        Response.AddHeader("Content-Disposition", "attachment;filename=IssueList_" + DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture) + ".xlsx");
+        Response.Cache.SetCacheability(HttpCacheability.NoCache);
+        Response.Cache.SetNoStore();
+        Response.BinaryWrite(bytes);
+        Response.End();
+    }
+
+    private static List<int> GetIssueExportColumnIndexes(DataControlFieldCollection columns, IEnumerable<string> requestedColumns)
+    {
+        var allowed = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (int i = 0; i < columns.Count; i++)
+        {
+            string field = GetIssueFieldClass(columns[i].ItemStyle.CssClass);
+            if (columns[i].Visible && !string.IsNullOrEmpty(field) && field != "field-actions") allowed[field] = i;
+        }
+        var indexes = new List<int>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string field in requestedColumns ?? new List<string>())
+        {
+            int index;
+            if (field != null && allowed.TryGetValue(field, out index) && seen.Add(field)) indexes.Add(index);
+        }
+        return indexes;
+    }
+
+    private static string GetIssueExportCellText(TableCell cell)
+    {
+        Label title = cell.Controls.OfType<Label>().FirstOrDefault(label => label.ID == "lblIssueTitle");
+        if (title != null)
+        {
+            string text = HttpUtility.HtmlDecode(title.Text).Trim();
+            return string.IsNullOrWhiteSpace(text) ? "unknown" : text;
+        }
+        using (var buffer = new StringWriter())
+        using (var writer = new HtmlTextWriter(buffer))
+        {
+            cell.RenderControl(writer);
+            string html = System.Text.RegularExpressions.Regex.Replace(buffer.ToString(), @"<button\b[^>]*>[\s\S]*?</button>", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            html = System.Text.RegularExpressions.Regex.Replace(html, @"<br\s*/?>|</(?:div|p)>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            string text = HttpUtility.HtmlDecode(System.Text.RegularExpressions.Regex.Replace(html, "<[^>]*>", "")).Replace('\u00a0', ' ').Trim();
+            return string.IsNullOrWhiteSpace(text) ? "unknown" : text;
+        }
+    }
+
     // Export to Excel for CMF Pending List
     protected void btnExportToExcel_Click_cmf_pending(object sender, EventArgs e)
     {
-        // Set the response properties for the Excel download
-        Response.ContentType = "application/vnd.ms-excel";
-        Response.AddHeader("Content-Disposition", "attachment;filename=CMFPendingList.xls");
-        Response.Charset = "";
-        Response.Buffer = true;
+        HashSet<string> selectedIds = null;
+        List<int> selectedColumns = null;
+        if (sender == btnPendingViewExport)
+        {
+            try
+            {
+                var ids = new JavaScriptSerializer().Deserialize<List<string>>(hfPendingExportIds.Value);
+                if (ids == null || ids.Count == 0) return;
+                selectedIds = new HashSet<string>(ids, StringComparer.Ordinal);
+                var requestedColumns = new JavaScriptSerializer().Deserialize<List<int>>(hfPendingExportColumns.Value);
+                if (requestedColumns == null || requestedColumns.Count == 0 || requestedColumns.Count > GridView_cmf_pending.Columns.Count) return;
+                if (requestedColumns.Any(index => index < 0 || index >= GridView_cmf_pending.Columns.Count
+                    || GridView_cmf_pending.Columns[index].ItemStyle.CssClass.Contains("pending-field-ai-recommendation"))) return;
+                selectedColumns = requestedColumns.Distinct().ToList();
+            }
+            catch (ArgumentException)
+            {
+                return;
+            }
+            catch (InvalidOperationException)
+            {
+                return;
+            }
+        }
+
+        BindGridView_cmf_pending();
+        var exportColumns = selectedColumns ?? Enumerable.Range(0, GridView_cmf_pending.Columns.Count).ToList();
+        byte[] workbookBytes;
+        using (var stream = new MemoryStream())
+        {
+            using (var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook))
+            {
+                var workbookPart = document.AddWorkbookPart();
+                workbookPart.Workbook = new Spreadsheet.Workbook();
+                var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+                var sheetData = new Spreadsheet.SheetData();
+                var columns = new Spreadsheet.Columns();
+                for (int outputIndex = 0; outputIndex < exportColumns.Count; outputIndex++)
+                {
+                    int columnIndex = exportColumns[outputIndex];
+                    var field = GridView_cmf_pending.Columns[columnIndex] as BoundField;
+                    columns.Append(new Spreadsheet.Column
+                    {
+                        Min = (uint)outputIndex + 1,
+                        Max = (uint)outputIndex + 1,
+                        Width = field != null && (field.DataField == "title" || field.DataField == "impact") ? 60 : 24,
+                        CustomWidth = true
+                    });
+                }
+                worksheetPart.Worksheet = new Spreadsheet.Worksheet(columns, sheetData);
+                var sheets = workbookPart.Workbook.AppendChild(new Spreadsheet.Sheets());
+                sheets.Append(new Spreadsheet.Sheet { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "CMF Pending List" });
+                var headerRow = new Spreadsheet.Row();
+                foreach (int columnIndex in exportColumns)
+                {
+                    var column = GridView_cmf_pending.Columns[columnIndex];
+                    headerRow.Append(CreatePendingExportCell(column.HeaderText));
+                }
+                sheetData.Append(headerRow);
+
+                foreach (GridViewRow gridRow in GridView_cmf_pending.Rows)
+                {
+                    var keys = GridView_cmf_pending.DataKeys[gridRow.RowIndex];
+                    string issueId = Convert.ToString(keys.Values["cp_id"], CultureInfo.InvariantCulture);
+                    if (selectedIds != null && !selectedIds.Contains(issueId)) continue;
+                    var exportRow = new Spreadsheet.Row();
+                    foreach (int columnIndex in exportColumns)
+                    {
+                        var column = GridView_cmf_pending.Columns[columnIndex];
+                        string value;
+                        if (columnIndex == 0)
+                        {
+                            value = issueId;
+                        }
+                        else if (column.ItemStyle.CssClass == "pending-field-rvp")
+                        {
+                            value = Convert.ToString(keys.Values["repro_on_rvp"], CultureInfo.InvariantCulture);
+                        }
+                        else if (column.ItemStyle.CssClass == "pending-field-request-date")
+                        {
+                            var request = (Label)gridRow.FindControl("PendingRequestValue");
+                            var date = (Label)gridRow.FindControl("PendingAskDateValue");
+                            value = HttpUtility.HtmlDecode(request.Text) + "\n" + HttpUtility.HtmlDecode(date.Text);
+                        }
+                        else
+                        {
+                            value = HttpUtility.HtmlDecode(gridRow.Cells[columnIndex].Text).Replace("\u00a0", " ");
+                        }
+                        exportRow.Append(CreatePendingExportCell(value));
+                    }
+                    sheetData.Append(exportRow);
+                }
+                worksheetPart.Worksheet.Save();
+                workbookPart.Workbook.Save();
+            }
+            workbookBytes = stream.ToArray();
+        }
+
         Response.Clear();
-
-        // Temporarily disable paging for the export
-        GridView_cmf_pending.AllowPaging = false;
-
-        // Hide the last column for export
-        //if (GridView_cmf_pending.Columns.Count > 0)
-        //{
-        //    GridView_cmf_pending.Columns[GridView_cmf_pending.Columns.Count - 1].Visible = false;
-        //}
-
-        // Create a StringWriter to capture the HTML output
-        StringWriter sw = new StringWriter();
-        HtmlTextWriter hw = new HtmlTextWriter(sw);
-
-        // Render the GridView to the StringWriter
-        GridView_cmf_pending.RenderControl(hw);
-
-        // Get the HTML string and remove hyperlinks
-        string htmlOutput = sw.ToString();
-        string cleanedOutput = RemoveHyperlinksFromHtml(htmlOutput);
-
-        // Write the cleaned content to the Response output stream
-        Response.Output.Write(cleanedOutput);
-
-        // End the response to download the Excel file
+        Response.Buffer = true;
+        Response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        Response.AddHeader("Content-Disposition", "attachment;filename=CMFPendingList_" + DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture) + ".xlsx");
+        Response.Cache.SetCacheability(HttpCacheability.NoCache);
+        Response.Cache.SetNoStore();
+        Response.BinaryWrite(workbookBytes);
         Response.End();
+    }
 
-        // Re-enable the visibility of the last column after the export
-        GridView_cmf_pending.Columns[GridView_cmf_pending.Columns.Count - 1].Visible = true;
+    private static Spreadsheet.Cell CreatePendingExportCell(string value)
+    {
+        return new Spreadsheet.Cell
+        {
+            DataType = Spreadsheet.CellValues.InlineString,
+            InlineString = new Spreadsheet.InlineString(new Spreadsheet.Text(value ?? string.Empty) { Space = SpaceProcessingModeValues.Preserve })
+        };
     }
 
     // Export to Excel for OEM Summary
@@ -9932,9 +11208,9 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 driverList += ")";
                 main_query = "SELECT A.customer_detail AS Design, B.sw_image_freeze AS SWImageFreeze, B.support_model AS SupportModel " +
                              driverCaseStatements +
-                             ", SUM(CASE WHEN A.status IN ('implemented', 'verified') AND A.drivers in " + driverList + " THEN 1 ELSE 0 END) AS Implemented_Verified " +
+                             ", SUM(CASE WHEN A.status IN ('implemented', 'verified', 'future') AND A.drivers in " + driverList + " THEN 1 ELSE 0 END) AS Implemented_Verified " +
                              "FROM " + selectedPlatform + " A INNER JOIN " + designTable + " B ON A.customer_detail = B.customer_detail " +
-                             "Where sysdebug Like ('%customer_must_fix%') AND status in ('open','implemented','verified') and cmf_request not in ('cmf_reject') GROUP BY A.customer_detail, B.sw_image_freeze, B.support_model " +
+                             "Where sysdebug Like ('%customer_must_fix%') AND status in ('open','implemented','verified','future') and cmf_request not in ('cmf_reject') GROUP BY A.customer_detail, B.sw_image_freeze, B.support_model " +
                              "ORDER BY Implemented_Verified DESC  ";
             }
             else
@@ -9942,7 +11218,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 string ddrivers;
                 string alldriver_query = "SELECT DISTINCT([drivers]) FROM " + selectedPlatform + " WHERE status in ('open') and cmf_request not in ('cmf_reject') AND sysdebug Like ('%customer_must_fix%') ";
 
-                using (SqlCommand cmd = new SqlCommand(alldriver_query, con))
+                using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(alldriver_query, con))
                 {
                     con.Open();
                     using (SqlDataReader reader = cmd.ExecuteReader())
@@ -9996,17 +11272,17 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 }
                 driverList += ")";
 
-                string implementedVerifiedCondition = drivers.Count > 0 ? "A.status IN ('implemented', 'verified') " : "A.status IN ('implemented', 'verified')";
+                string implementedVerifiedCondition = drivers.Count > 0 ? "A.status IN ('implemented', 'verified', 'future') " : "A.status IN ('implemented', 'verified', 'future')";
 
                 main_query = "SELECT A.customer_detail AS Design, B.sw_image_freeze AS SWImageFreeze, B.support_model AS SupportModel " +
                              driverCaseStatements +
                              ", SUM(CASE WHEN " + implementedVerifiedCondition + " THEN 1 ELSE 0 END) AS Implemented_Verified " +
                              "FROM " + selectedPlatform + " A INNER JOIN " + designTable + " B ON A.customer_detail = B.customer_detail " +
-                             "Where sysdebug Like ('%customer_must_fix%') AND status in ('open','implemented','verified') and cmf_request not in ('cmf_reject') GROUP BY A.customer_detail, B.sw_image_freeze, B.support_model " +
+                             "Where sysdebug Like ('%customer_must_fix%') AND status in ('open','implemented','verified','future') and cmf_request not in ('cmf_reject') GROUP BY A.customer_detail, B.sw_image_freeze, B.support_model " +
                              "ORDER BY Implemented_Verified DESC ";
             }
 
-            using (SqlCommand cmd = new SqlCommand(main_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(main_query, con))
             {
                 System.Data.DataTable dt = new System.Data.DataTable();
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
@@ -10127,7 +11403,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
 ";
 
     using (SqlConnection con = new SqlConnection(ConnectionString))
-        using (SqlCommand cmd = new SqlCommand(milestoneQuery, con))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(milestoneQuery, con))
         {
             System.Data.DataTable mapTable = new System.Data.DataTable();
             SqlDataAdapter da = new SqlDataAdapter(cmd);
@@ -10163,7 +11439,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
             string notesquery = @"SELECT (SELECT ISNULL(AVG(CAST(DATEDIFF(DAY, ISNULL(date_cmf_ask, date_cmf_decided), date_cmf_decided) AS INT)), 0) FROM " + platformTable + " WHERE TRY_CAST(date_cmf_decided AS DATE) IS NOT NULL AND sysdebug Like ('%customer_must_fix%')) AS disp_tpt,(SELECT ISNULL(AVG(CAST(CASE WHEN TRY_CAST(implemented_date AS DATE) < TRY_CAST(date_cmf_decided AS DATE) THEN 0 ELSE DATEDIFF(DAY, ISNULL(date_cmf_decided, implemented_date), implemented_date) END AS INT)), 0) FROM " + platformTable + " WHERE TRY_CAST(implemented_date AS DATE) IS NOT NULL AND sysdebug Like ('%customer_must_fix%')) AS resolve_tpt, (SELECT ISNULL(AVG(CAST(days_active AS INT)), 0) FROM " + platformTable + " WHERE sysdebug Like ('%customer_must_fix%') AND cmf_request in ('cmf_ok','cmf_duplicate')) AS crit_tpt";
 
             System.Data.DataTable notestable = new System.Data.DataTable();
-            using (SqlCommand cmd = new SqlCommand(notesquery, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(notesquery, con))
             {
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 da.Fill(notestable);
@@ -10203,7 +11479,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
 
             System.Data.DataTable comptable = new System.Data.DataTable();
 
-            using (SqlCommand cmd2 = new SqlCommand(compquery, con2))
+            using (SqlCommand cmd2 = CmfPlatformCatalog.CreateReadCommand(compquery, con2))
             {
                 SqlDataAdapter da2 = new SqlDataAdapter(cmd2);
                 da2.Fill(comptable);
@@ -10240,8 +11516,8 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                     // Issues count (open records only)
                     driverCaseStatements += ", SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request != 'cmf_duplicate' AND A.cmf_request != 'cmf_reject' AND A.status IN ('open') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_Issues]";
                     // Implemented count (implemented records only)
-                    driverCaseStatements += ", SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_ok' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_Implemented], " +
-                        "SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_duplicate' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_ImplementedDup]";
+                    driverCaseStatements += ", SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_ok' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified','future') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_Implemented], " +
+                        "SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_duplicate' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified','future') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_ImplementedDup]";
                     Driver_name = safeColumnName + "_Issues";
                 }
 
@@ -10272,9 +11548,9 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 // Build the main query
                 full_query = "SELECT  CASE  WHEN Component = 'Total' THEN 'Total'  ELSE Component END AS Component " + firstPatternCaseStatements +
                 " FROM (    SELECT 'Total' AS Component " + driverCaseStatements + "" + losCaseStatements +
-                "  FROM " + selectedPlatform + " A     INNER JOIN " + componentTable + " B       ON A.component_group = B.component_group    WHERE A.status IN ('open','implemented','verified') AND A.sysdebug Like ('%customer_must_fix%')  and cmf_request not in ('cmf_reject')  " +
+                "  FROM " + selectedPlatform + " A     INNER JOIN " + componentTable + " B       ON A.component_group = B.component_group    WHERE A.status IN ('open','implemented','verified','future') AND A.sysdebug Like ('%customer_must_fix%')  and cmf_request not in ('cmf_reject')  " +
                 "UNION ALL   SELECT B.component_group AS Component " + driverCaseStatements + "       " + losCaseStatements +
-                "  FROM " + selectedPlatform + " A   INNER JOIN " + componentTable + " B         ON A.component_group = B.component_group  WHERE A.status IN ('open','implemented','verified') AND A.sysdebug Like ('%customer_must_fix%')  and cmf_request not in ('cmf_reject') GROUP BY B.component_group";
+                "  FROM " + selectedPlatform + " A   INNER JOIN " + componentTable + " B         ON A.component_group = B.component_group  WHERE A.status IN ('open','implemented','verified','future') AND A.sysdebug Like ('%customer_must_fix%')  and cmf_request not in ('cmf_reject') GROUP BY B.component_group";
 
                 // Add HAVING clause to filter out components with all zeros
                 //if (drivers.Count > 0)
@@ -10303,7 +11579,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
             else
             {
                 string ddrivers;
-                List<string> allDrivers = GetDistinctDrivers(platformTable, "open", "implemented", "verified");
+                List<string> allDrivers = GetDistinctDrivers(platformTable, "open", "implemented", "verified", "future");
                 ddrivers = string.Join(", ", allDrivers);
 
                 filtervalue = ddrivers;
@@ -10328,8 +11604,8 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                     // Issues count (open records only)
                     driverCaseStatements += ", SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request != 'cmf_duplicate' AND A.cmf_request != 'cmf_reject' AND A.status IN ('open') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_Issues]";
                     // Implemented count (implemented records only)
-                    driverCaseStatements += ", SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_ok' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_Implemented], " +
-                        "SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_duplicate' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_ImplementedDup]";
+                    driverCaseStatements += ", SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_ok' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified','future') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_Implemented], " +
+                        "SUM(CASE WHEN A.drivers = '" + driver + "' AND A.cmf_request = 'cmf_duplicate' AND A.sysdebug Like ('%customer_must_fix%') AND A.status in ('implemented','verified','future') THEN 1 ELSE 0 END) AS [" + safeColumnName + "_ImplementedDup]";
                     Driver_name = safeColumnName + "_Issues";
                 }
 
@@ -10409,7 +11685,7 @@ firstPatternCaseStatements +
 "   FROM " + selectedPlatform + " A " +
 "   INNER JOIN " + componentTable + " B " +
 "       ON A.component_group = B.component_group " +
-"   WHERE A.status IN ('open','implemented','verified') " +
+"   WHERE A.status IN ('open','implemented','verified','future') " +
 "     AND A.sysdebug LIKE '%customer_must_fix%' " +
 "     AND A.cmf_request NOT IN ('cmf_reject') " +
 
@@ -10421,7 +11697,7 @@ firstPatternCaseStatements +
 "   FROM " + selectedPlatform + " A " +
 "   INNER JOIN " + componentTable + " B " +
 "       ON A.component_group = B.component_group " +
-"   WHERE A.status IN ('open','implemented','verified') " +
+"   WHERE A.status IN ('open','implemented','verified','future') " +
 "     AND A.sysdebug LIKE '%customer_must_fix%' " +
 "     AND A.cmf_request NOT IN ('cmf_reject') " +
 "   GROUP BY A.component_group " +
@@ -10440,22 +11716,22 @@ firstPatternCaseStatements +
         SELECT 
             SUM(CASE WHEN cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') THEN 1 ELSE 0 END) AS TotalCount,
             SUM(CASE WHEN [cmf_request] = 'cmf_duplicate' AND sysdebug Like ('%customer_must_fix%') THEN 1 ELSE 0 END) AS Duplicates,
-            SUM(CASE WHEN [cmf_request] in ('cmf_ok', 'cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND ([status] NOT IN ('complete', 'rejected', 'implemented')) THEN 1 ELSE 0 END) AS OpenCount,
-            SUM(CASE WHEN [cmf_request] in ('cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND ([status] NOT IN ('complete', 'rejected', 'implemented')) THEN 1 ELSE 0 END ) AS OpenDup,
+            SUM(CASE WHEN [cmf_request] in ('cmf_ok', 'cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND ([status] NOT IN ('complete', 'rejected', 'implemented', 'future')) THEN 1 ELSE 0 END) AS OpenCount,
+            SUM(CASE WHEN [cmf_request] in ('cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND ([status] NOT IN ('complete', 'rejected', 'implemented', 'future')) THEN 1 ELSE 0 END ) AS OpenDup,
             SUM(CASE WHEN cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND ([status] = 'complete' OR [status] = 'rejected') THEN 1 ELSE 0 END) AS ClosedCount,
             SUM(CASE WHEN cmf_request in ('cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND ([status] = 'complete' OR [status] = 'rejected') THEN 1 ELSE 0 END) AS ClosedDup,
-            SUM(CASE WHEN cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] = 'implemented' THEN 1 ELSE 0 END) AS ImplementedCount,
-            SUM(CASE WHEN cmf_request in ('cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] = 'implemented' THEN 1 ELSE 0 END) AS ImplementedDup,
+            SUM(CASE WHEN cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] IN ('implemented', 'future') THEN 1 ELSE 0 END) AS ImplementedCount,
+            SUM(CASE WHEN cmf_request in ('cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] IN ('implemented', 'future') THEN 1 ELSE 0 END) AS ImplementedDup,
             STUFF((
                 SELECT ', ' + [component_group]
                 FROM " + selectedPlatform + @"
-                WHERE cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] = 'implemented' 
+                WHERE cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] IN ('implemented', 'future') 
                 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '') AS ImplementedComponents
         FROM " + selectedPlatform;
 
             // Fetch summary data
             System.Data.DataTable summaryTable = new System.Data.DataTable();
-            using (SqlCommand cmd = new SqlCommand(summaryQuery, conn))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(summaryQuery, conn))
             {
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 if (!string.IsNullOrEmpty(filtervalue) && filtervalue != "AllDrivers")
@@ -10567,7 +11843,7 @@ firstPatternCaseStatements +
                 }
             }
 
-            using (SqlCommand cmd = new SqlCommand(full_query, conn))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(full_query, conn))
             {
                 System.Data.DataTable dt = new System.Data.DataTable();
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
@@ -11438,7 +12714,7 @@ firstPatternCaseStatements +
     }
 
     // Resolves display names for owner aliases using a session-scoped cache; only hits AD for uncached aliases.
-    private Dictionary<string, string> ResolveOwnerDisplayNamesWithCache(DataTable dt, string[] ownerColumns)
+    private Dictionary<string, string> ResolveOwnerDisplayNamesWithCache(DataTable dt, string[] ownerColumns, bool requireDirectoryLookup = false)
     {
         var cache = Session["OwnerDisplayCache"] as Dictionary<string, string>
                     ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -11450,10 +12726,12 @@ firstPatternCaseStatements +
             {
                 if (!dt.Columns.Contains(col) || r[col] == DBNull.Value) continue;
                 string raw = r[col].ToString().Trim();
+                if (requireDirectoryLookup && (raw.IndexOf(',') >= 0 || raw.IndexOf(';') >= 0 || raw.Any(char.IsWhiteSpace))) continue;
                 if (raw.Contains("\\")) raw = raw.Substring(raw.LastIndexOf('\\') + 1);
                 if (raw.Contains("@")) raw = raw.Split('@')[0];
                 raw = raw.Trim();
-                if (!string.IsNullOrEmpty(raw) && !cache.ContainsKey(raw))
+                if (!string.IsNullOrEmpty(raw) && (!cache.ContainsKey(raw) ||
+                    (requireDirectoryLookup && string.Equals(cache[raw], raw, StringComparison.OrdinalIgnoreCase))))
                     needed.Add(raw);
             }
         }
@@ -11463,7 +12741,7 @@ firstPatternCaseStatements +
             ScriptManager sm = ScriptManager.GetCurrent(this);
             bool isAsyncPostback = sm != null && sm.IsInAsyncPostBack;
 
-            if (isAsyncPostback)
+            if (isAsyncPostback && !requireDirectoryLookup)
             {
                 foreach (string alias in needed)
                 {
@@ -11482,12 +12760,26 @@ firstPatternCaseStatements +
 
             foreach (string alias in needed)
             {
-                UserPrincipal up = null;
-                if (ctxGar != null) up = UserPrincipal.FindByIdentity(ctxGar, IdentityType.SamAccountName, alias);
-                if (up == null && ctxAmr != null) up = UserPrincipal.FindByIdentity(ctxAmr, IdentityType.SamAccountName, alias);
-                if (up == null && ctxCcr != null) up = UserPrincipal.FindByIdentity(ctxCcr, IdentityType.SamAccountName, alias);
-                if (up == null && ctxGer != null) up = UserPrincipal.FindByIdentity(ctxGer, IdentityType.SamAccountName, alias);
-                cache[alias] = (up != null && !string.IsNullOrWhiteSpace(up.DisplayName)) ? up.DisplayName.Trim() : alias;
+                string displayName = null;
+                foreach (PrincipalContext context in new[] { ctxGar, ctxAmr, ctxCcr, ctxGer })
+                {
+                    if (context == null) continue;
+                    try
+                    {
+                        using (UserPrincipal principal = UserPrincipal.FindByIdentity(context, IdentityType.SamAccountName, alias))
+                        {
+                            if (principal != null && !string.IsNullOrWhiteSpace(principal.DisplayName))
+                            {
+                                displayName = principal.DisplayName;
+                                break;
+                            }
+                        }
+                    }
+                    catch (PrincipalException) { }
+                    catch (UnauthorizedAccessException) { }
+                    catch (System.Runtime.InteropServices.COMException) { }
+                }
+                cache[alias] = displayName ?? alias;
             }
 
             if (ctxGar != null) ctxGar.Dispose();
@@ -11503,8 +12795,9 @@ firstPatternCaseStatements +
 
     private void BindGridView_cmf_pending()
     {
-        string platformSelection = ResolveIssuePendingPlatformSelection(selectedPlatform);
-        bool isOverallSelection = IsOverallDashboardPlatform(platformSelection);
+        List<string> pendingPlatforms = GetPendingPlatformSelections();
+        string platformSelection = pendingPlatforms[0];
+        bool isOverallSelection = pendingPlatforms.Count > 1;
         string basePlatform = isOverallSelection ? string.Empty : platformSelection.Replace("_ALL_COMPONENTS_TABLE", "");
         string designTable = basePlatform + "_CMF_ASK";
         string allComponentsTable = basePlatform + "_ALL_COMPONENTS_TABLE";
@@ -11513,11 +12806,21 @@ firstPatternCaseStatements +
         using (SqlConnection con = new SqlConnection(connectionString))
         {
             con.Open();
+            string pendingIdstMappingSql = string.Join(" UNION ALL ", pendingPlatforms.Select(platform =>
+            {
+                string mappingTable = platform.IndexOf("NVL", StringComparison.OrdinalIgnoreCase) >= 0 ? "idst_mapping_table_NVL"
+                    : platform.IndexOf("PTL", StringComparison.OrdinalIgnoreCase) >= 0 ? "idst_mapping_table_PTL"
+                    : platform.IndexOf("WCL", StringComparison.OrdinalIgnoreCase) >= 0 ? "idst_mapping_table_WCL"
+                    : "idst_mapping_table";
+                return "SELECT '" + platform + "' AS source_platform, component, idst_display_name FROM [dbo].[" + mappingTable + "]";
+            }));
             string main_query;
             if (isOverallSelection)
             {
-                string pendingCteSql = BuildPendingAskCteSql(con, platformSelection);
-                string issueCteSql = BuildIssueDataCteSql(platformSelection);
+                string pendingCteSql = string.Join(" UNION ALL ", pendingPlatforms
+                    .Select(platform => BuildPendingAskCteSql(con, platform))
+                    .Where(sql => !string.IsNullOrWhiteSpace(sql)));
+                string issueCteSql = string.Join(" UNION ALL ", pendingPlatforms.Select(BuildIssueDataCteSql));
                 if (string.IsNullOrWhiteSpace(pendingCteSql) || string.IsNullOrWhiteSpace(issueCteSql))
                 {
                     GridView_cmf_pending.DataSource = new DataTable();
@@ -11536,21 +12839,33 @@ firstPatternCaseStatements +
             )
             SELECT 
                 d.cp_id, 
+                d.source_platform,
                 d.title, 
                 d.component, 
                 d.component_group,
                 d.reproducibility,
                 a.repro_on_rvp, 
+                a.days_active AS days_open,
                 d.customer_owner,
                 a.idst, 
+                ISNULL(m.idst_display_name, a.idst) AS idst_display_name,
                 d.customer_detail, 
                 d.date_cmf_ask, 
                 d.cmf_request, 
-                d.impact 
+                d.impact,
+                CASE WHEN d.cmf_request = 'cmf_incomplete' THEN ISNULL(NULLIF(d.why_cmf_change, ''), 'NA') ELSE 'NA' END AS why_cmf_change,
+                CASE
+                    WHEN d.cmf_request = 'cmf_ask' THEN 'iDST'
+                    WHEN d.cmf_request = 'cmf_incomplete' THEN 'CE'
+                    WHEN d.cmf_request = 'cmf_ok' AND ISNULL(a.sysdebug, '') NOT LIKE '%customer_must_fix%' THEN 'CMF CHAIR'
+                    ELSE 'NA'
+                END AS pending_reason
             FROM pending_source AS d
             LEFT JOIN issue_source AS a
                 ON d.cp_id = a.cp_id
                AND d.source_platform = a.source_platform
+            LEFT JOIN (" + pendingIdstMappingSql + @") AS m
+                ON m.component = a.component_group AND m.source_platform = d.source_platform
             WHERE d.status NOT IN ('complete', 'rejected')
             ORDER BY TRY_CONVERT(datetime, d.date_cmf_ask) DESC, d.cp_id DESC";
             }
@@ -11560,51 +12875,58 @@ firstPatternCaseStatements +
                 main_query = @"
             SELECT 
                 d.cp_id, 
+                '" + platformSelection + @"' AS source_platform,
                 d.title, 
                 d.component, 
                 d.component_group,
                 d.reproducibility,
                 a.repro_on_rvp, 
+                a.days_active AS days_open,
                 d.customer_owner,
                 a.idst, 
+                ISNULL(m.idst_display_name, a.idst) AS idst_display_name,
                 d.customer_detail, 
                 d.date_cmf_ask, 
                 d.cmf_request, 
-                d.impact 
+                d.impact,
+                CASE WHEN d.cmf_request = 'cmf_incomplete' THEN ISNULL(NULLIF(d.why_cmf_change, ''), 'NA') ELSE 'NA' END AS why_cmf_change,
+                CASE
+                    WHEN d.cmf_request = 'cmf_ask' THEN 'iDST'
+                    WHEN d.cmf_request = 'cmf_incomplete' THEN 'CE'
+                    WHEN d.cmf_request = 'cmf_ok' AND ISNULL(a.sysdebug, '') NOT LIKE '%customer_must_fix%' THEN 'CMF CHAIR'
+                    ELSE 'NA'
+                END AS pending_reason
             FROM " + designTable + @" AS d
             JOIN " + allComponentsTable + @" AS a ON d.cp_id = a.cp_id
+            LEFT JOIN (" + pendingIdstMappingSql + @") AS m ON m.component = a.component_group
             WHERE d.status NOT IN ('complete', 'rejected')
             ORDER BY d.date_cmf_ask DESC";
             }
 
-            using (SqlCommand cmd = new SqlCommand(main_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(main_query, con))
             {
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
                 {
                     System.Data.DataTable dt = new System.Data.DataTable();
                     sda.Fill(dt);
 
-                    var ownerMap = ResolveOwnerDisplayNamesWithCache(dt, new[] { "customer_owner" });
+                    var ownerMap = ResolveOwnerDisplayNamesWithCache(dt, new[] { "customer_owner" }, true);
 
                     // Process data rows to replace customer_owner with display names
                     foreach (DataRow row in dt.Rows)
                     {
-                        string raw = (row["customer_owner"] == DBNull.Value) ? string.Empty : row["customer_owner"].ToString().Trim();
-                        if (string.IsNullOrEmpty(raw))
-                        {
-                            row["customer_owner"] = "N/A";
-                        }
-                        else
+                        string originalOwner = Convert.ToString(row["customer_owner"]);
+                        string raw = originalOwner.Trim();
+                        if (!string.IsNullOrEmpty(raw) && raw.IndexOf(',') < 0 && raw.IndexOf(';') < 0 && !raw.Any(char.IsWhiteSpace))
                         {
                             if (raw.Contains("\\")) raw = raw.Substring(raw.LastIndexOf('\\') + 1);
                             if (raw.Contains("@")) raw = raw.Split('@')[0];
                             raw = raw.Trim();
 
                             string actualName;
-                            if (ownerMap.TryGetValue(raw, out actualName))
+                            if (ownerMap.TryGetValue(raw, out actualName) &&
+                                !string.Equals(actualName, raw, StringComparison.OrdinalIgnoreCase))
                                 row["customer_owner"] = actualName;
-                            else
-                                row["customer_owner"] = raw;
                         }
                     }
 
@@ -11621,18 +12943,222 @@ firstPatternCaseStatements +
         }
     }
 
+    private string ResolveSummaryQuickLinkPlatform()
+    {
+        string summaryPlatform = this.selectedPlatform;
+
+        if (string.IsNullOrWhiteSpace(summaryPlatform))
+        {
+            summaryPlatform = ResolveDashboardPlatformSelection();
+        }
+
+        if (IsOverallDashboardPlatform(summaryPlatform))
+        {
+            return OverallDashboardPlatformTable;
+        }
+
+        if (!string.IsNullOrWhiteSpace(summaryPlatform) && AllowedPlatformTables.Contains(summaryPlatform))
+        {
+            return summaryPlatform;
+        }
+
+        string sessionPlatform = Session["selectedPlatform"] as string;
+        if (!string.IsNullOrWhiteSpace(sessionPlatform) && AllowedPlatformTables.Contains(sessionPlatform))
+        {
+            return sessionPlatform;
+        }
+
+        return DefaultPlatformTable;
+    }
+
     private void BindGridView_design_summary(string filtervalue = null)
     {
         string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
-        string basePlatform = selectedPlatform.Replace("_ALL_COMPONENTS_TABLE", "");
+        string summaryPlatform = ResolveSummaryQuickLinkPlatform();
+        bool isOverallSummary = IsOverallDashboardPlatform(summaryPlatform);
+
+        if (isOverallSummary)
+        {
+            string overallSourceSql = "(" + BuildSummaryIssueComponentSourceSql(summaryPlatform) + ") AS src";
+            string overallDesignMetadataSql = BuildSummaryDesignMetadataSourceSql(summaryPlatform);
+            string overallDesignMetadataSourceSql = "(" + overallDesignMetadataSql + ") AS dm";
+            string overallQuery = @"
+WITH base AS (
+    SELECT
+        CASE WHEN src.customer_detail IS NULL OR LTRIM(RTRIM(src.customer_detail)) = '' THEN 'unassigned' ELSE LTRIM(RTRIM(src.customer_detail)) END AS Design,
+        ISNULL(NULLIF(LTRIM(RTRIM(dm.sw_image_freeze)), ''), 'N/A') AS sw_image_freeze,
+        LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) AS status_norm,
+        LOWER(LTRIM(RTRIM(ISNULL(src.cmf_request, '')))) AS cmf_request_norm,
+        LOWER(LTRIM(RTRIM(ISNULL(src.sysdebug, '')))) AS sysdebug_norm,
+        LOWER(LTRIM(RTRIM(ISNULL(src.closed_reason, '')))) AS closed_reason_norm,
+        TRY_CAST(src.date_cmf_ask AS DATE) AS ask_date,
+        TRY_CAST(src.implemented_date AS DATE) AS implemented_date
+    FROM " + overallSourceSql + @"
+    LEFT JOIN " + overallDesignMetadataSourceSql + @" ON LTRIM(RTRIM(ISNULL(src.customer_detail, ''))) = dm.customer_detail
+        AND src.source_platform = dm.source_platform
+)
+SELECT
+    Design,
+    ISNULL(MAX(CASE WHEN sw_image_freeze = 'N/A' THEN NULL ELSE sw_image_freeze END), 'N/A') AS SWImageFreeze,
+    SUM(CASE WHEN cmf_request_norm IN ('cmf_ask', 'cmf_incomplete') AND status_norm NOT IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS Issues_in_CMF_ASK,
+    SUM(CASE WHEN cmf_request_norm = 'cmf_reject' THEN 1 ELSE 0 END) AS Total_CMF_REJECT,
+    SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END) AS Total_CMF_Approved,
+    ISNULL(AVG(CAST(CASE WHEN ask_date IS NOT NULL AND implemented_date IS NOT NULL AND implemented_date >= ask_date THEN DATEDIFF(DAY, ask_date, implemented_date) END AS DECIMAL(10, 2))), 0) AS crit_tpt,
+    CAST(0 AS DECIMAL(10, 2)) AS disp_tpt,
+    ISNULL(AVG(CAST(CASE WHEN ask_date IS NOT NULL AND implemented_date IS NOT NULL AND implemented_date >= ask_date THEN DATEDIFF(DAY, ask_date, implemented_date) END AS DECIMAL(10, 2))), 0) AS resolve_tpt,
+    CASE
+        WHEN SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END) = 0 THEN 'N/A'
+        ELSE
+            CAST(ROUND(
+                100.0 * SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected', 'implemented', 'future') THEN 1 ELSE 0 END)
+                / NULLIF(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END), 0),
+                1
+            ) AS VARCHAR(20))
+            + '% ('
+            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected', 'implemented', 'future') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + '/'
+            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + ')'
+    END AS CMFOpenPercentage,
+    CASE
+        WHEN SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) = 0 THEN 'N/A'
+        ELSE
+            CAST(ROUND(
+                100.0 * SUM(CASE
+                    WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                         AND sysdebug_norm LIKE '%customer_must_fix%'
+                         AND status_norm IN ('complete', 'rejected')
+                         AND closed_reason_norm NOT LIKE '%internal%'
+                         AND closed_reason_norm IN ('below_zbb', 'cannot_reproduce', 'customer_disengaged', 'customer_enquiry_resolved', 'expected_behavior', 'feature_not_por', 'feature_por_not_ready', 'filed_by_mistake', 'inactive', 'known_errata', 'not_a_defect', 'poor_sighting_quality', 'proj_cancelled', 'test/test_env')
+                    THEN 1 ELSE 0 END)
+                / NULLIF(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END), 0),
+                1
+            ) AS VARCHAR(20))
+            + '% ('
+            + CAST(SUM(CASE
+                WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                     AND sysdebug_norm LIKE '%customer_must_fix%'
+                     AND status_norm IN ('complete', 'rejected')
+                     AND closed_reason_norm NOT LIKE '%internal%'
+                     AND closed_reason_norm IN ('below_zbb', 'cannot_reproduce', 'customer_disengaged', 'customer_enquiry_resolved', 'expected_behavior', 'feature_not_por', 'feature_por_not_ready', 'filed_by_mistake', 'inactive', 'known_errata', 'not_a_defect', 'poor_sighting_quality', 'proj_cancelled', 'test/test_env')
+                THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + '/'
+            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + ')'
+    END AS Noise,
+    CASE
+        WHEN SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) = 0 THEN 'N/A'
+        ELSE
+            CAST(ROUND(
+                100.0 * SUM(CASE
+                    WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                         AND sysdebug_norm LIKE '%customer_must_fix%'
+                         AND status_norm IN ('complete', 'rejected')
+                         AND (
+                             closed_reason_norm LIKE '%internal%'
+                             OR closed_reason_norm IN ('same_source_fix', 'unknown_fix', 'workaround', 'backout', 'bug_fix', 'documentation', 'duplicate', 'fw', 'high_risk', 'hw', 'intel_silicon_bug', 'internal_doc_bug', 'internal_fw_bug', 'internal_hw_bug', 'internal_mmanufacturing', 'internal_si_bug', 'internal_sw_bug', 'product_changed', 'promoted', 'pushed_to_other_database', 'rcr_created', 'regression_reverted', 'requirements_updated', 'transferred', 'user_verified', 'wont_fix', 'zbb')
+                         )
+                    THEN 1 ELSE 0 END)
+                / NULLIF(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END), 0),
+                1
+            ) AS VARCHAR(20))
+            + '% ('
+            + CAST(SUM(CASE
+                WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                     AND sysdebug_norm LIKE '%customer_must_fix%'
+                     AND status_norm IN ('complete', 'rejected')
+                     AND (
+                         closed_reason_norm LIKE '%internal%'
+                         OR closed_reason_norm IN ('same_source_fix', 'unknown_fix', 'workaround', 'backout', 'bug_fix', 'documentation', 'duplicate', 'fw', 'high_risk', 'hw', 'intel_silicon_bug', 'internal_doc_bug', 'internal_fw_bug', 'internal_hw_bug', 'internal_mmanufacturing', 'internal_si_bug', 'internal_sw_bug', 'product_changed', 'promoted', 'pushed_to_other_database', 'rcr_created', 'regression_reverted', 'requirements_updated', 'transferred', 'user_verified', 'wont_fix', 'zbb')
+                     )
+                THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + '/'
+            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + ')'
+    END AS IntelIssuePercentage,
+    CASE
+        WHEN SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) = 0 THEN 'N/A'
+        ELSE
+            CAST(ROUND(
+                100.0 * SUM(CASE
+                    WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                         AND sysdebug_norm LIKE '%customer_must_fix%'
+                         AND status_norm IN ('complete', 'rejected')
+                         AND closed_reason_norm IN ('3rd_party', '3rd_party_hw_bug', '3rd_party_sw_bug', 'application_bug', 'os_issue')
+                    THEN 1 ELSE 0 END)
+                / NULLIF(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END), 0),
+                1
+            ) AS VARCHAR(20))
+            + '% ('
+            + CAST(SUM(CASE
+                WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                     AND sysdebug_norm LIKE '%customer_must_fix%'
+                     AND status_norm IN ('complete', 'rejected')
+                     AND closed_reason_norm IN ('3rd_party', '3rd_party_hw_bug', '3rd_party_sw_bug', 'application_bug', 'os_issue')
+                THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + '/'
+            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + ')'
+    END AS ThirdPartyPercentage,
+    CASE
+        WHEN SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) = 0 THEN 'N/A'
+        ELSE
+            CAST(ROUND(
+                100.0 * SUM(CASE
+                    WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                         AND sysdebug_norm LIKE '%customer_must_fix%'
+                         AND status_norm IN ('complete', 'rejected')
+                         AND closed_reason_norm IN ('await_user_verify', 'board_issue', 'config_issue', 'customer_bios_issue', 'customer_hw_issue', 'customer_sw_issue', 'inquiry_closed', 'platform_out_of_spec', 'test_bug')
+                    THEN 1 ELSE 0 END)
+                / NULLIF(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END), 0),
+                1
+            ) AS VARCHAR(20))
+            + '% ('
+            + CAST(SUM(CASE
+                WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                     AND sysdebug_norm LIKE '%customer_must_fix%'
+                     AND status_norm IN ('complete', 'rejected')
+                     AND closed_reason_norm IN ('await_user_verify', 'board_issue', 'config_issue', 'customer_bios_issue', 'customer_hw_issue', 'customer_sw_issue', 'inquiry_closed', 'platform_out_of_spec', 'test_bug')
+                THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + '/'
+            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + ')'
+    END AS CustomerIssuePercentage
+FROM base
+GROUP BY Design
+ORDER BY Total_CMF_Approved DESC";
+
+            using (SqlConnection con = new SqlConnection(connectionString))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(overallQuery, con))
+            using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
+            {
+                System.Data.DataTable dt = new System.Data.DataTable();
+                sda.Fill(dt);
+                NormalizeDashboardMissingValues(dt);
+
+                GridView_design_summary.DataSource = dt;
+                GridView_design_summary.DataBind();
+
+                GridView_design_indicator_modal.DataSource = dt;
+                GridView_design_indicator_modal.DataBind();
+            }
+
+            return;
+        }
+
+        string selectedPlatform = FilterDashboardTableSource(summaryPlatform) + " AS dated_summary";
+        string basePlatform = summaryPlatform.Replace("_ALL_COMPONENTS_TABLE", "");
         string designTable = basePlatform + "_DESIGN_TABLE";
+        string swImageFreezeSelect = "B.sw_image_freeze AS SWImageFreeze,";
+        string designFromClause = FilterDashboardTableSource(summaryPlatform) + " A INNER JOIN " + designTable + " B ON A.customer_detail = B.customer_detail";
+        string designGroupByClause = "A.customer_detail, B.sw_image_freeze";
 
         string main_query = @"SELECT
                                 CASE 
                                     WHEN A.customer_detail IS NULL OR A.customer_detail = '' THEN 'unassigned'
                                     ELSE A.customer_detail
                                 END AS Design,  
-                                B.sw_image_freeze AS SWImageFreeze, 
+                                " + swImageFreezeSelect + @" 
                                  
                                 (SELECT COUNT(cp_id)
                                  FROM " + selectedPlatform + @"
@@ -11652,7 +13178,7 @@ firstPatternCaseStatements +
                                       ELSE CAST(ROUND(
                                           (SELECT CAST(COUNT(cp_id) AS FLOAT)
                                            FROM " + selectedPlatform + @"
-                                           WHERE status NOT IN('complete', 'rejected') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_detail = A.customer_detail)
+                                           WHERE status NOT IN('complete', 'rejected', 'implemented', 'future') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_detail = A.customer_detail)
                                           /
                                           (SELECT CAST(COUNT(cp_id) AS FLOAT)
                                            FROM " + selectedPlatform + @"
@@ -11660,7 +13186,7 @@ firstPatternCaseStatements +
                                           * 100.0, 1) AS VARCHAR) + '%' +' (' +
                                           CAST((SELECT COUNT(cp_id)
                                                 FROM " + selectedPlatform + @"
-                                                WHERE status NOT IN('complete', 'rejected') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_detail = A.customer_detail) AS VARCHAR) +'/' +
+                                                WHERE status NOT IN('complete', 'rejected', 'implemented', 'future') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_detail = A.customer_detail) AS VARCHAR) +'/' +
                                           CAST((SELECT COUNT(cp_id)
                                                 FROM " + selectedPlatform + @"
                                                 WHERE cmf_request IN('cmf_ok', 'cmf_duplicate') AND customer_detail = A.customer_detail AND sysdebug LIKE('%customer_must_fix%')) AS VARCHAR) +')'
@@ -11821,18 +13347,16 @@ firstPatternCaseStatements +
                                         AND customer_detail = A.customer_detail) AS VARCHAR) + ')'
                         END) AS CustomerIssuePercentage
                             FROM
-                                " + selectedPlatform + @" A
-                            INNER JOIN
-                                " + designTable + @" B ON A.customer_detail = B.customer_detail
+                                " + designFromClause + @"
                             GROUP BY
-                                A.customer_detail, B.sw_image_freeze
+                                " + designGroupByClause + @"
                             ORDER BY
                                 Total_CMF_Approved desc";
 
         using (SqlConnection con = new SqlConnection(connectionString))
         {
 
-            using (SqlCommand cmd = new SqlCommand(main_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(main_query, con))
 
             {
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
@@ -11840,9 +13364,13 @@ firstPatternCaseStatements +
 
                     System.Data.DataTable dt = new System.Data.DataTable();
                     sda.Fill(dt);
+                    NormalizeDashboardMissingValues(dt);
 
                     GridView_design_summary.DataSource = dt;
                     GridView_design_summary.DataBind();
+
+                    GridView_design_indicator_modal.DataSource = dt;
+                    GridView_design_indicator_modal.DataBind();
                 }
             }
 
@@ -12062,7 +13590,17 @@ firstPatternCaseStatements +
 
             string designTable = string.Empty;
             bool includeDesignTable = false;
-            if (!isOverallSelection)
+            if (isOverallSelection)
+            {
+                string metadataSql = BuildSummaryDesignMetadataSourceSql(dashboardPlatform, con);
+                if (!string.IsNullOrWhiteSpace(metadataSql))
+                {
+                    designTable = "(SELECT customer_detail, NULLIF(sw_image_freeze, 'N/A') AS sw_image_freeze, source_platform FROM ("
+                        + metadataSql + ") AS design_metadata)";
+                    includeDesignTable = true;
+                }
+            }
+            else
             {
                 string resolvedPlatform = ResolvePlatformTable(dashboardPlatform);
                 string basePlatform = resolvedPlatform.Replace("_ALL_COMPONENTS_TABLE", string.Empty);
@@ -12086,7 +13624,8 @@ firstPatternCaseStatements +
             duplicateDetailsBuilder.Append("    FROM " + issueSourceSql + " AS dup_src\n");
             if (includeDesignTable)
             {
-                duplicateDetailsBuilder.Append("    LEFT JOIN " + designTable + " AS dup_design ON dup_design.customer_detail = dup_src.customer_detail\n");
+                duplicateDetailsBuilder.Append("    LEFT JOIN " + designTable + " AS dup_design ON dup_design.customer_detail = dup_src.customer_detail"
+                    + (isOverallSelection ? " AND dup_design.source_platform = dup_src.source_platform" : string.Empty) + "\n");
             }
 
             duplicateDetailsBuilder.Append("    WHERE LOWER(LTRIM(RTRIM(ISNULL(dup_src.cmf_request, '')))) = 'cmf_duplicate'\n");
@@ -12124,6 +13663,7 @@ SELECT
     ISNULL(NULLIF(LTRIM(RTRIM(issue_src.owners_name)), ''), 'N/A') AS PromotedOwner,
     ISNULL(NULLIF(LTRIM(RTRIM(issue_src.repro_on_rvp)), ''), 'N/A') AS RvpRepro,
     ISNULL(NULLIF(LTRIM(RTRIM(issue_src.status)), ''), ISNULL(NULLIF(LTRIM(RTRIM(issue_src.cmf_status)), ''), 'N/A')) AS Status,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.cmf_request)), ''), 'N/A') AS CmfRequest,
     ISNULL(NULLIF(LTRIM(RTRIM(issue_src.idst)), ''), 'N/A') AS Idst,
     ISNULL(NULLIF(LTRIM(RTRIM(issue_src.los)), ''), 'N/A') AS Los,
     ISNULL(NULLIF(LTRIM(RTRIM(issue_src.processor)), ''), 'N/A') AS Processor,
@@ -12135,7 +13675,8 @@ SELECT
             ELSE ISNULL(NULLIF(LTRIM(RTRIM(issue_src.fixed_in_version)), ''), 'N/A')
           END AS ClosedDetails
 FROM " + issueSourceSql + @" AS issue_src
-" + (includeDesignTable ? ("LEFT JOIN " + designTable + " AS design_src ON design_src.customer_detail = issue_src.customer_detail") : string.Empty) + @"
+" + (includeDesignTable ? ("LEFT JOIN " + designTable + " AS design_src ON design_src.customer_detail = issue_src.customer_detail"
+    + (isOverallSelection ? " AND design_src.source_platform = issue_src.source_platform" : string.Empty)) : string.Empty) + @"
 INNER JOIN (
     SELECT DISTINCT LTRIM(RTRIM(value)) AS cp_id
     FROM STRING_SPLIT(@cpIds, ',')
@@ -12146,7 +13687,7 @@ ORDER BY
     TRY_CAST(issue_src.cp_id AS BIGINT),
     CAST(issue_src.cp_id AS VARCHAR(64));";
 
-            using (SqlCommand cmd = new SqlCommand(sql, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(sql, con))
             using (SqlDataAdapter da = new SqlDataAdapter(cmd))
             {
                 cmd.Parameters.AddWithValue("@cpIds", cpIdsCsv);
@@ -12175,7 +13716,7 @@ ORDER BY
     {
         ScriptManager.RegisterStartupScript(this, GetType(),
             "ShowSummaryMetricIssuesModal",
-            "$('#detailsModalSummaryMetrics').modal('show');", true);
+            "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModalSummaryMetrics').modal('show');", true);
     }
 
     private static bool TryParsePendingAgeBucketRange(string bucketLabel, out int minDays, out int maxDays, out bool isGreaterThanRange)
@@ -12192,33 +13733,33 @@ ORDER BY
 
         normalized = normalized.Replace("days", string.Empty).Trim();
 
-        if (normalized.StartsWith("0-7", StringComparison.OrdinalIgnoreCase) || normalized.StartsWith("0 - 7", StringComparison.OrdinalIgnoreCase))
+        if (normalized.StartsWith("0-1", StringComparison.OrdinalIgnoreCase) || normalized.StartsWith("0 - 1", StringComparison.OrdinalIgnoreCase))
         {
             minDays = 0;
-            maxDays = 7;
+            maxDays = 1;
             return true;
         }
 
-        if (normalized.StartsWith("8-15", StringComparison.OrdinalIgnoreCase) || normalized.StartsWith("8 - 15", StringComparison.OrdinalIgnoreCase))
+        if (normalized.StartsWith("1-2", StringComparison.OrdinalIgnoreCase) || normalized.StartsWith("1 - 2", StringComparison.OrdinalIgnoreCase))
         {
-            minDays = 8;
-            maxDays = 15;
+            minDays = 2;
+            maxDays = 2;
             return true;
         }
 
-        if (normalized.StartsWith("16-30", StringComparison.OrdinalIgnoreCase) || normalized.StartsWith("16 - 30", StringComparison.OrdinalIgnoreCase))
+        if (normalized.StartsWith("2-4", StringComparison.OrdinalIgnoreCase) || normalized.StartsWith("2 - 4", StringComparison.OrdinalIgnoreCase))
         {
-            minDays = 16;
-            maxDays = 30;
+            minDays = 3;
+            maxDays = 4;
             return true;
         }
 
-        if (normalized.StartsWith("> 30", StringComparison.OrdinalIgnoreCase)
-            || normalized.StartsWith(">30", StringComparison.OrdinalIgnoreCase)
-            || normalized.StartsWith("over 30", StringComparison.OrdinalIgnoreCase)
-            || normalized.StartsWith("30+", StringComparison.OrdinalIgnoreCase))
+        if (normalized.StartsWith("> 4", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith(">4", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith("over 4", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith("4+", StringComparison.OrdinalIgnoreCase))
         {
-            minDays = 30;
+            minDays = 4;
             isGreaterThanRange = true;
             return true;
         }
@@ -12257,10 +13798,11 @@ SELECT DISTINCT CAST(pending_bucket_src.cp_id AS VARCHAR(64)) AS cp_id
 FROM " + pendingSourceSql + @"
 WHERE LOWER(LTRIM(RTRIM(ISNULL(pending_bucket_src.status, '')))) NOT IN ('complete', 'rejected')
   AND TRY_CAST(pending_bucket_src.date_cmf_ask AS DATE) IS NOT NULL
-  AND " + agePredicate + @"
+        AND " + GetDashboardDateFilter().BuildPendingPredicate("pending_bucket_src") + @"
+    AND " + agePredicate + @"
 ORDER BY cp_id";
 
-                    using (SqlCommand cmd = new SqlCommand(sql, con))
+                    using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(sql, con))
                     {
                         cmd.Parameters.AddWithValue("@minDays", minDays);
                         if (!isGreaterThanRange)
@@ -12323,40 +13865,87 @@ ORDER BY cp_id";
         DataTable dt = new DataTable();
         if (!string.IsNullOrWhiteSpace(cpIdsCsv))
         {
-            string issueSourceSql = BuildIssueDataSourceSql(ResolveDashboardPlatformSelection(), "issue_src");
-            string sql = @"
+            string dashboardPlatform = ResolveDashboardPlatformSelection();
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            {
+                con.Open();
+
+                string pendingSourceSql = BuildPendingAskSourceSql(con, dashboardPlatform, "pending_src");
+                string issueSourceSql = BuildIssueDataSourceSql(dashboardPlatform, "issue_src");
+
+                if (!string.IsNullOrWhiteSpace(pendingSourceSql))
+                {
+                    string sql = @"
 SELECT
-    CAST(issue_src.cp_id AS VARCHAR(64)) AS id,
-    issue_src.title,
-    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.customer_detail)), ''), 'N/A') AS customer_detail,
-    issue_src.component,
-    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.component_group)), ''), 'Unassigned') AS component_group,
+    CAST(pending_src.cp_id AS VARCHAR(64)) AS cp_id,
+    pending_src.title,
+    ISNULL(NULLIF(LTRIM(RTRIM(pending_src.customer_detail)), ''), 'N/A') AS customer_detail,
+    pending_src.component,
+    ISNULL(NULLIF(LTRIM(RTRIM(pending_src.component_group)), ''), 'Unassigned') AS component_group,
     ISNULL(NULLIF(LTRIM(RTRIM(issue_src.idst)), ''), 'Unassigned') AS idst,
-    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.customer_owner)), ''), 'N/A') AS customer_owner,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.owners_name)), ''), ISNULL(NULLIF(LTRIM(RTRIM(pending_src.customer_owner)), ''), 'N/A')) AS customer_owner,
     ISNULL(NULLIF(LTRIM(RTRIM(issue_src.repro_on_rvp)), ''), 'N/A') AS repro_on_rvp,
-    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.reproducibility)), ''), 'N/A') AS reproducibility,
-    ISNULL(CONVERT(VARCHAR(10), TRY_CONVERT(DATE, issue_src.date_cmf_ask), 120), 'N/A') AS date_cmf_ask,
-    issue_src.cmf_request,
-    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.impact)), ''), 'N/A') AS why_cmf_change,
-    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.cmf_status)), ''), ISNULL(NULLIF(LTRIM(RTRIM(issue_src.status)), ''), 'N/A')) AS pending_reason,
-    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.customer_affected)), ''), 'N/A') AS justification
-FROM " + issueSourceSql + @"
+    ISNULL(NULLIF(LTRIM(RTRIM(pending_src.reproducibility)), ''), 'N/A') AS reproducibility,
+    ISNULL(FORMAT(TRY_CONVERT(DATETIME, pending_src.date_cmf_ask), 'M/d/yyyy h:mm:ss tt'), 'N/A') AS date_cmf_ask,
+    pending_src.cmf_request,
+    CASE
+        WHEN pending_src.cmf_request = 'cmf_incomplete' THEN ISNULL(NULLIF(LTRIM(RTRIM(pending_src.why_cmf_change)), ''), 'NA')
+        ELSE 'NA'
+    END AS why_cmf_change,
+    CASE
+        WHEN pending_src.cmf_request = 'cmf_ask' THEN 'iDST'
+        WHEN pending_src.cmf_request = 'cmf_incomplete' THEN 'CE'
+        WHEN pending_src.cmf_request = 'cmf_ok' AND ISNULL(issue_src.sysdebug, '') NOT LIKE '%customer_must_fix%' THEN 'CMF CHAIR'
+        ELSE 'NA'
+    END AS pending_reason,
+    ISNULL(NULLIF(LTRIM(RTRIM(pending_src.impact)), ''), 'N/A') AS justification
+FROM " + pendingSourceSql + @"
+LEFT JOIN " + issueSourceSql + @" ON CAST(issue_src.cp_id AS VARCHAR(64)) = CAST(pending_src.cp_id AS VARCHAR(64))
 INNER JOIN (
     SELECT DISTINCT LTRIM(RTRIM(value)) AS cp_id
     FROM STRING_SPLIT(@cpIds, ',')
     WHERE LTRIM(RTRIM(value)) <> ''
-) ids ON CAST(issue_src.cp_id AS VARCHAR(64)) = ids.cp_id
-WHERE LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) NOT IN ('complete', 'rejected')
-ORDER BY LOWER(LTRIM(RTRIM(ISNULL(issue_src.title, '')))), TRY_CAST(issue_src.cp_id AS BIGINT), CAST(issue_src.cp_id AS VARCHAR(64));";
+) ids ON CAST(pending_src.cp_id AS VARCHAR(64)) = ids.cp_id
+WHERE LOWER(LTRIM(RTRIM(ISNULL(pending_src.status, '')))) NOT IN ('complete', 'rejected')
+ORDER BY TRY_CONVERT(DATETIME, pending_src.date_cmf_ask) DESC,
+         TRY_CAST(pending_src.cp_id AS BIGINT) DESC,
+         CAST(pending_src.cp_id AS VARCHAR(64)) DESC;";
 
-            using (SqlConnection con = new SqlConnection(ConnectionString))
-            using (SqlCommand cmd = new SqlCommand(sql, con))
-            using (SqlDataAdapter da = new SqlDataAdapter(cmd))
-            {
-                cmd.Parameters.AddWithValue("@cpIds", cpIdsCsv);
-                da.Fill(dt);
+                    using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(sql, con))
+                    using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                    {
+                        cmd.Parameters.AddWithValue("@cpIds", cpIdsCsv);
+                        da.Fill(dt);
+                    }
+                }
             }
         }
+
+            if (dt.Rows.Count > 0 && dt.Columns.Contains("customer_owner"))
+            {
+                var ownerMap = ResolveOwnerDisplayNamesWithCache(dt, new[] { "customer_owner" });
+                foreach (DataRow row in dt.Rows)
+                {
+                    string raw = row["customer_owner"] == DBNull.Value ? string.Empty : row["customer_owner"].ToString().Trim();
+                    if (string.IsNullOrEmpty(raw))
+                    {
+                        row["customer_owner"] = "N/A";
+                        continue;
+                    }
+
+                    if (raw.Contains("\\")) raw = raw.Substring(raw.LastIndexOf('\\') + 1);
+                    if (raw.Contains("@")) raw = raw.Split('@')[0];
+                    raw = raw.Trim();
+
+                    string actualName;
+                    if (ownerMap.TryGetValue(raw, out actualName))
+                        row["customer_owner"] = actualName;
+                    else
+                        row["customer_owner"] = raw;
+                }
+            }
+
+            NormalizeCmfIssuesGridSchema(dt);
 
         GridView_cmf_issues.DataSource = dt;
         GridView_cmf_issues.DataBind();
@@ -12369,11 +13958,14 @@ ORDER BY LOWER(LTRIM(RTRIM(ISNULL(issue_src.title, '')))), TRY_CAST(issue_src.cp
             btnExportDriverIssues1.Visible = true;
         }
 
-        string modalTitle = BuildIssueListModalTitle("by Count", "Milestone") + " - " + component + " - " + driver + " (" + issueType + ")";
+        bool includeAllMilestones = string.Equals(driver, AllMilestonesDriverToken, StringComparison.OrdinalIgnoreCase);
+        string driverLabel = includeAllMilestones ? "All Milestones" : driver;
+        string modalTitle = BuildIssueListModalTitle("by Count", "Milestone") + " - " + component + " - " + driverLabel + " (" + issueType + ")";
         lblDriverName1.Text = Server.HtmlEncode(modalTitle);
 
         string connectionString = ConnectionString;
         string issueSourceSql = BuildIssueDataSourceSql(selectedPlatform, "A");
+        string issueSourceSqlForEnrichment = BuildIssueDataSourceSql(selectedPlatform);
 
         string sql = "";
 
@@ -12474,7 +14066,7 @@ WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
     AND drivers = @Driver
     AND cmf_request = 'cmf_duplicate'
     AND sysdebug LIKE '%customer_must_fix%'
-    AND status IN ('implemented','verified')
+    AND status IN ('implemented','verified','future')
 ORDER BY cmf_request desc";
                         }
                         else
@@ -12487,7 +14079,7 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
         AND A.component_group = @Component
     AND A.cmf_request = 'cmf_duplicate'
     AND A.sysdebug LIKE '%customer_must_fix%'
-    AND A.status IN ('implemented','verified')
+    AND A.status IN ('implemented','verified','future')
 ORDER BY A.cmf_request desc";
                         }
                 }
@@ -12502,7 +14094,7 @@ WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
     AND drivers = @Driver
     AND cmf_request IN ('cmf_ok', 'cmf_duplicate')
     AND sysdebug LIKE '%customer_must_fix%'
-    AND status IN ('implemented','verified')
+    AND status IN ('implemented','verified','future')
 ORDER BY cmf_request desc";
                         }
                         else
@@ -12515,7 +14107,7 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
         AND A.component_group = @Component
     AND A.cmf_request IN ('cmf_ok', 'cmf_duplicate')
     AND A.sysdebug LIKE '%customer_must_fix%'
-    AND A.status IN ('implemented','verified')
+    AND A.status IN ('implemented','verified','future')
 ORDER BY A.cmf_request desc";
                         }
                 }
@@ -12530,7 +14122,7 @@ WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
   AND drivers = @Driver
   AND cmf_request = 'cmf_ok'
   AND sysdebug LIKE '%customer_must_fix%'
-  AND status IN ('implemented','verified')
+    AND status IN ('implemented','verified','future')
 ORDER BY cmf_request desc";
             }
             else
@@ -12543,13 +14135,18 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
     AND A.component_group = @Component
   AND A.cmf_request = 'cmf_ok'
   AND A.sysdebug LIKE '%customer_must_fix%'
-  AND A.status IN ('implemented','verified')
+    AND A.status IN ('implemented','verified','future')
 ORDER BY A.cmf_request desc";
             }
         }
 
+        if (includeAllMilestones)
+        {
+            sql = RemoveDriverFilterForAllMilestones(sql);
+        }
+
         using (SqlConnection con = new SqlConnection(connectionString))
-        using (SqlCommand cmd = new SqlCommand(sql, con))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(sql, con))
         {
             object driverParam = (driver != null) ? (object)driver.Trim() : (object)DBNull.Value;
             cmd.Parameters.Add("@Driver", SqlDbType.NVarChar, 256).Value = driverParam;
@@ -12564,6 +14161,8 @@ ORDER BY A.cmf_request desc";
             {
                 DataTable dt = new DataTable();
                 da.Fill(dt);
+                EnrichCmfIssuesGridData(dt, issueSourceSqlForEnrichment);
+                NormalizeCmfIssuesGridSchema(dt);
                 GridView_cmf_issues.DataSource = dt;
                 GridView_cmf_issues.DataBind();
             }
@@ -12575,11 +14174,198 @@ ORDER BY A.cmf_request desc";
             "$('#detailsModalDrivers1').modal('show');", true);
     }
 
+    private void EnrichCmfIssuesGridData(DataTable table, string issueSourceSql)
+    {
+        if (table == null || table.Rows.Count == 0 || string.IsNullOrWhiteSpace(issueSourceSql))
+        {
+            return;
+        }
+
+        if (!table.Columns.Contains("cp_id"))
+        {
+            return;
+        }
+
+        List<string> cpIds = new List<string>();
+        HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
+        {
+            string cpId = Convert.ToString(table.Rows[rowIndex]["cp_id"], CultureInfo.InvariantCulture);
+            if (string.IsNullOrWhiteSpace(cpId))
+            {
+                continue;
+            }
+
+            string normalized = cpId.Trim();
+            if (seen.Add(normalized))
+            {
+                cpIds.Add(normalized);
+            }
+        }
+
+        if (cpIds.Count == 0)
+        {
+            return;
+        }
+
+        DataTable detailTable = new DataTable();
+        string detailSql = @"
+SELECT
+    CAST(issue_src.cp_id AS VARCHAR(64)) AS cp_id,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.customer_detail)), ''), 'N/A') AS customer_detail,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.component_group)), ''), 'Unassigned') AS component_group,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.idst)), ''), 'Unassigned') AS idst,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.customer_owner)), ''), 'N/A') AS customer_owner,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.repro_on_rvp)), ''), 'N/A') AS repro_on_rvp,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.reproducibility)), ''), 'N/A') AS reproducibility,
+    ISNULL(CONVERT(VARCHAR(10), TRY_CONVERT(DATE, issue_src.date_cmf_ask), 120), 'N/A') AS date_cmf_ask,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.impact)), ''), 'N/A') AS why_cmf_change,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.cmf_status)), ''), ISNULL(NULLIF(LTRIM(RTRIM(issue_src.status)), ''), 'N/A')) AS pending_reason,
+    ISNULL(NULLIF(LTRIM(RTRIM(issue_src.customer_affected)), ''), 'N/A') AS justification
+FROM " + issueSourceSql + @" AS issue_src
+INNER JOIN (
+    SELECT DISTINCT LTRIM(RTRIM(value)) AS cp_id
+    FROM STRING_SPLIT(@cpIds, ',')
+    WHERE LTRIM(RTRIM(value)) <> ''
+) ids ON CAST(issue_src.cp_id AS VARCHAR(64)) = ids.cp_id";
+
+        using (SqlConnection con = new SqlConnection(ConnectionString))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(detailSql, con))
+        using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+        {
+            cmd.Parameters.AddWithValue("@cpIds", string.Join(",", cpIds.ToArray()));
+            da.Fill(detailTable);
+        }
+
+        Dictionary<string, DataRow> detailsByCpId = new Dictionary<string, DataRow>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < detailTable.Rows.Count; i++)
+        {
+            DataRow detailRow = detailTable.Rows[i];
+            string cpId = Convert.ToString(detailRow["cp_id"], CultureInfo.InvariantCulture);
+            if (string.IsNullOrWhiteSpace(cpId))
+            {
+                continue;
+            }
+
+            string normalized = cpId.Trim();
+            if (!detailsByCpId.ContainsKey(normalized))
+            {
+                detailsByCpId[normalized] = detailRow;
+            }
+        }
+
+        string[] enrichColumns = new string[]
+        {
+            "customer_detail",
+            "component_group",
+            "idst",
+            "customer_owner",
+            "repro_on_rvp",
+            "reproducibility",
+            "date_cmf_ask",
+            "why_cmf_change",
+            "pending_reason",
+            "justification"
+        };
+
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
+        {
+            DataRow row = table.Rows[rowIndex];
+            string cpId = Convert.ToString(row["cp_id"], CultureInfo.InvariantCulture);
+            if (string.IsNullOrWhiteSpace(cpId))
+            {
+                continue;
+            }
+
+            DataRow detailRow;
+            if (!detailsByCpId.TryGetValue(cpId.Trim(), out detailRow))
+            {
+                continue;
+            }
+
+            for (int colIndex = 0; colIndex < enrichColumns.Length; colIndex++)
+            {
+                string columnName = enrichColumns[colIndex];
+                if (!table.Columns.Contains(columnName))
+                {
+                    table.Columns.Add(columnName, typeof(string));
+                }
+
+                string enrichedValue = Convert.ToString(detailRow[columnName], CultureInfo.InvariantCulture);
+                string currentValue = Convert.ToString(row[columnName], CultureInfo.InvariantCulture);
+                if (string.IsNullOrWhiteSpace(currentValue) || string.Equals(currentValue, "N/A", StringComparison.OrdinalIgnoreCase))
+                {
+                    row[columnName] = string.IsNullOrWhiteSpace(enrichedValue) ? "N/A" : enrichedValue;
+                }
+            }
+        }
+    }
+
+    private static string RemoveDriverFilterForAllMilestones(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+        {
+            return sql;
+        }
+
+        return System.Text.RegularExpressions.Regex.Replace(
+            sql,
+            @"\s+AND\s+(?:A\.)?drivers\s*=\s*@Driver\s*",
+            Environment.NewLine,
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    }
+
+    private static void EnsureGridColumn(DataTable table, string columnName, string defaultValue)
+    {
+        if (table == null || string.IsNullOrWhiteSpace(columnName))
+        {
+            return;
+        }
+
+        if (!table.Columns.Contains(columnName))
+        {
+            table.Columns.Add(columnName, typeof(string));
+        }
+
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
+        {
+            DataRow row = table.Rows[rowIndex];
+            string current = Convert.ToString(row[columnName], CultureInfo.InvariantCulture);
+            if (string.IsNullOrWhiteSpace(current))
+            {
+                row[columnName] = defaultValue;
+            }
+        }
+    }
+
+    private static void NormalizeCmfIssuesGridSchema(DataTable table)
+    {
+        if (table == null)
+        {
+            return;
+        }
+
+        EnsureGridColumn(table, "cp_id", "N/A");
+        EnsureGridColumn(table, "title", "N/A");
+        EnsureGridColumn(table, "customer_detail", "N/A");
+        EnsureGridColumn(table, "component", "N/A");
+        EnsureGridColumn(table, "component_group", "N/A");
+        EnsureGridColumn(table, "idst", "N/A");
+        EnsureGridColumn(table, "customer_owner", "N/A");
+        EnsureGridColumn(table, "repro_on_rvp", "N/A");
+        EnsureGridColumn(table, "reproducibility", "N/A");
+        EnsureGridColumn(table, "date_cmf_ask", "N/A");
+        EnsureGridColumn(table, "cmf_request", "N/A");
+        EnsureGridColumn(table, "why_cmf_change", "N/A");
+        EnsureGridColumn(table, "pending_reason", "N/A");
+        EnsureGridColumn(table, "justification", "N/A");
+    }
+
     private void ShowCMFIssues()
     {
         ScriptManager.RegisterStartupScript(this, GetType(),
             "ShowCMFIssuesModal",
-            "$('#detailsModalDrivers1').modal('show');", true);
+            "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModalDrivers1').modal('show');", true);
     }
 
     private void ExportCMFIssues(string component, string driver, string issueType)
@@ -12790,7 +14576,7 @@ WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
     AND drivers = @Driver
     AND cmf_request = 'cmf_duplicate'
     AND sysdebug LIKE '%customer_must_fix%'
-    AND status IN ('implemented','verified')
+    AND status IN ('implemented','verified','future')
 ORDER BY cmf_request desc";
                         }
                         else
@@ -12803,7 +14589,7 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
         AND A.component_group = @Component
     AND A.cmf_request = 'cmf_duplicate'
     AND A.sysdebug LIKE '%customer_must_fix%'
-    AND A.status IN ('implemented','verified')
+    AND A.status IN ('implemented','verified','future')
 ORDER BY A.cmf_request desc";
                         }
                 }
@@ -12818,7 +14604,7 @@ WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
     AND drivers = @Driver
     AND cmf_request IN ('cmf_ok', 'cmf_duplicate')
     AND sysdebug LIKE '%customer_must_fix%'
-    AND status IN ('implemented','verified')
+    AND status IN ('implemented','verified','future')
 ORDER BY cmf_request desc";
                         }
                         else
@@ -12831,7 +14617,7 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
         AND A.component_group = @Component
     AND A.cmf_request IN ('cmf_ok', 'cmf_duplicate')
     AND A.sysdebug LIKE '%customer_must_fix%'
-    AND A.status IN ('implemented','verified')
+    AND A.status IN ('implemented','verified','future')
 ORDER BY A.cmf_request desc";
                         }
                 }
@@ -12846,7 +14632,7 @@ WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
   AND drivers = @Driver
   AND cmf_request = 'cmf_ok'
   AND sysdebug LIKE '%customer_must_fix%'
-  AND status IN ('implemented','verified')
+    AND status IN ('implemented','verified','future')
 ORDER BY cmf_request desc";
             }
             else
@@ -12859,13 +14645,13 @@ WHERE ISNULL(LTRIM(RTRIM(A.drivers)), '') <> ''
     AND A.component_group = @Component
   AND A.cmf_request = 'cmf_ok'
   AND A.sysdebug LIKE '%customer_must_fix%'
-  AND A.status IN ('implemented','verified')
+    AND A.status IN ('implemented','verified','future')
 ORDER BY A.cmf_request desc";
             }
         }
 
         using (SqlConnection con = new SqlConnection(connectionString))
-        using (SqlCommand cmd = new SqlCommand(sql, con))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(sql, con))
         {
             if (requiresDriverParam)
             {
@@ -12894,34 +14680,10 @@ ORDER BY A.cmf_request desc";
     }
     private void BindDriverIssues(string driver)
     {
-        lblDriverName.Text = Server.HtmlEncode(driver);
-
-        string connectionString = ConnectionString;
-        string issueSourceSql = BuildIssueDataSourceSql(selectedPlatform, "A");
-
-        string sql = @"
-SELECT cp_id, title, component
-    FROM " + issueSourceSql + @"
-WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
-  AND cmf_request IN ('cmf_ok')
-  AND sysdebug LIKE '%customer_must_fix%'
-  AND LTRIM(RTRIM(drivers)) = @Driver
-ORDER BY cp_id";
-
-        using (SqlConnection con = new SqlConnection(connectionString))
-        using (SqlCommand cmd = new SqlCommand(sql, con))
-        {
-            object driverParam = (driver != null) ? (object)driver.Trim() : (object)DBNull.Value;
-            cmd.Parameters.Add("@Driver", SqlDbType.NVarChar, 256).Value = driverParam;
-
-            using (SqlDataAdapter da = new SqlDataAdapter(cmd))
-            {
-                DataTable dt = new DataTable();
-                da.Fill(dt);
-                GridView_driver_issues.DataSource = dt;
-                GridView_driver_issues.DataBind();
-            }
-        }
+        bool allMilestones = string.Equals(driver, "__all_milestones__", StringComparison.Ordinal);
+        lblDriverName.Text = allMilestones ? "Total CMFs" : Server.HtmlEncode(driver);
+        GridView_driver_issues.DataSource = GetDriverIssuesData(driver);
+        GridView_driver_issues.DataBind();
 
         // Show modal
         ScriptManager.RegisterStartupScript(this, GetType(),
@@ -12934,13 +14696,14 @@ ORDER BY cp_id";
     {
         ScriptManager.RegisterStartupScript(this, GetType(),
             "ShowDriverIssuesModal",
-            "$('#detailsModalDrivers').modal('show');", true);
+            "if (typeof window.hoistDashboardModalsToRoot === 'function') { window.hoistDashboardModalsToRoot(); } $('#detailsModalDrivers').modal('show');", true);
     }
 
     private DataTable GetDriverIssuesData(string driver)
     {
         string connectionString = ConnectionString;
-        string issueSourceSql = BuildIssueDataSourceSql(selectedPlatform, "A");
+        bool allMilestones = string.Equals(driver, "__all_milestones__", StringComparison.Ordinal);
+        string issueSourceSql = BuildIssueDataSourceSql(allMilestones ? ResolveDashboardPlatformSelection() : selectedPlatform, "A");
 
         string sql = @"
 SELECT cp_id, title, component
@@ -12948,15 +14711,17 @@ SELECT cp_id, title, component
 WHERE ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
   AND cmf_request IN ('cmf_ok')
   AND sysdebug LIKE '%customer_must_fix%'
-  AND LTRIM(RTRIM(drivers)) = @Driver
+    AND (@AllMilestones = 1 OR LTRIM(RTRIM(drivers)) = @Driver)
+    AND " + (allMilestones ? GetDashboardDateFilter().BuildPredicate("A") : "1 = 1") + @"
 ORDER BY cp_id";
 
         using (SqlConnection con = new SqlConnection(connectionString))
-        using (SqlCommand cmd = new SqlCommand(sql, con))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(sql, con))
         using (SqlDataAdapter da = new SqlDataAdapter(cmd))
         {
             object driverParam = (driver != null) ? (object)driver.Trim() : (object)DBNull.Value;
             cmd.Parameters.Add("@Driver", SqlDbType.NVarChar, 256).Value = driverParam;
+            cmd.Parameters.Add("@AllMilestones", SqlDbType.Bit).Value = allMilestones;
 
             DataTable dt = new DataTable();
             da.Fill(dt);
@@ -13056,14 +14821,56 @@ ORDER BY cp_id";
             case "_trg2":
                 return "pending";
             case "_trg3":
-                return "closed";
+                return "reject";
             case "_trg4":
                 return "open";
             case "_trg5":
+                return "noise";
             case "_trg6":
+                return "intel";
             case "_trg7":
+                return "thirdparty";
             case "_trg8":
+                return "customer";
+            default:
                 return "total";
+        }
+    }
+
+    private static string NormalizeOemSummaryMetricKey(string metricKey)
+    {
+        string normalized = (metricKey ?? string.Empty).Trim().ToLowerInvariant();
+        switch (normalized)
+        {
+            case "total":
+            case "total cmfs":
+            case "total_cmfs":
+                return "total";
+            case "pending":
+                return "pending";
+            case "reject":
+            case "rejected":
+                return "reject";
+            case "open":
+                return "open";
+            case "implemented":
+                return "implemented";
+            case "closed":
+                return "closed";
+            case "noise":
+                return "noise";
+            case "intel":
+            case "intelissue":
+            case "intel_issue":
+                return "intel";
+            case "thirdparty":
+            case "3rdparty":
+            case "3rd_party":
+                return "thirdparty";
+            case "customer":
+            case "customerissue":
+            case "customer_issue":
+                return "customer";
             default:
                 return "total";
         }
@@ -13133,13 +14940,9 @@ ORDER BY cp_id";
         ParseOemSummaryModalArgument(oem, out parsedOem, out parsedMetric);
         bool includeAllOems = string.Equals(parsedOem, OverallOemAllToken, StringComparison.OrdinalIgnoreCase);
 
-        string dashboardPlatform = ResolveDashboardPlatformSelection();
-        string issueSourceSql = BuildIssueDataSourceSql(dashboardPlatform, "issue_src");
-        string normalizedMetric = NormalizeSummaryMetricKey(parsedMetric);
-        if (string.IsNullOrWhiteSpace(normalizedMetric))
-        {
-            normalizedMetric = "total";
-        }
+        // Keep drilldown source aligned with the Overall OEM table aggregation source.
+        string issueSourceSql = BuildIssueDataSourceSql(OverallDashboardPlatformTable, "issue_src");
+        string normalizedMetric = NormalizeOemSummaryMetricKey(parsedMetric);
 
         StringBuilder whereClause = new StringBuilder();
         whereClause.Append("WHERE ");
@@ -13149,22 +14952,48 @@ ORDER BY cp_id";
             whereClause.Append("LOWER(LTRIM(RTRIM(ISNULL(issue_src.cmf_request, '')))) IN ('cmf_ask', 'cmf_incomplete') ");
             whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) NOT IN ('complete', 'rejected') ");
         }
+        else if (string.Equals(normalizedMetric, "reject", StringComparison.OrdinalIgnoreCase))
+        {
+            whereClause.Append("LOWER(LTRIM(RTRIM(ISNULL(issue_src.cmf_request, '')))) = 'cmf_reject' ");
+        }
         else
         {
             whereClause.Append("LOWER(LTRIM(RTRIM(ISNULL(issue_src.sysdebug, '')))) LIKE '%customer_must_fix%' ");
-            whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.cmf_request, '')))) = 'cmf_ok' ");
+            whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.cmf_request, '')))) IN ('cmf_ok', 'cmf_duplicate') ");
 
             if (string.Equals(normalizedMetric, "open", StringComparison.OrdinalIgnoreCase))
             {
-                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) NOT IN ('complete', 'rejected', 'implemented') ");
+                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) NOT IN ('complete', 'rejected', 'implemented', 'future') ");
             }
             else if (string.Equals(normalizedMetric, "implemented", StringComparison.OrdinalIgnoreCase))
             {
-                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) = 'implemented' ");
+                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) IN ('implemented', 'future') ");
             }
             else if (string.Equals(normalizedMetric, "closed", StringComparison.OrdinalIgnoreCase))
             {
                 whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) IN ('complete', 'rejected') ");
+            }
+            else if (string.Equals(normalizedMetric, "noise", StringComparison.OrdinalIgnoreCase))
+            {
+                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) IN ('complete', 'rejected') ");
+                whereClause.Append("AND (LOWER(LTRIM(RTRIM(ISNULL(issue_src.closed_reason, '')))) NOT LIKE '%internal%' ");
+                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.closed_reason, '')))) IN ('below_zbb', 'cannot_reproduce', 'customer_disengaged', 'customer_enquiry_resolved', 'expected_behavior', 'feature_not_por', 'feature_por_not_ready', 'filed_by_mistake', 'inactive', 'known_errata', 'not_a_defect', 'poor_sighting_quality', 'proj_cancelled', 'test/test_env')) ");
+            }
+            else if (string.Equals(normalizedMetric, "intel", StringComparison.OrdinalIgnoreCase))
+            {
+                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) IN ('complete', 'rejected') ");
+                whereClause.Append("AND (LOWER(LTRIM(RTRIM(ISNULL(issue_src.closed_reason, '')))) LIKE '%internal%' ");
+                whereClause.Append("OR LOWER(LTRIM(RTRIM(ISNULL(issue_src.closed_reason, '')))) IN ('same_source_fix', 'unknown_fix', 'workaround', 'backout', 'bug_fix', 'documentation', 'duplicate', 'fw', 'high_risk', 'hw', 'intel_silicon_bug', 'internal_doc_bug', 'internal_fw_bug', 'internal_hw_bug', 'internal_mmanufacturing', 'internal_si_bug', 'internal_sw_bug', 'product_changed', 'promoted', 'pushed_to_other_database', 'rcr_created', 'regression_reverted', 'requirements_updated', 'transferred', 'user_verified', 'wont_fix', 'zbb')) ");
+            }
+            else if (string.Equals(normalizedMetric, "thirdparty", StringComparison.OrdinalIgnoreCase))
+            {
+                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) IN ('complete', 'rejected') ");
+                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.closed_reason, '')))) IN ('3rd_party', '3rd_party_hw_bug', '3rd_party_sw_bug', 'application_bug', 'os_issue') ");
+            }
+            else if (string.Equals(normalizedMetric, "customer", StringComparison.OrdinalIgnoreCase))
+            {
+                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.status, '')))) IN ('complete', 'rejected') ");
+                whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.closed_reason, '')))) IN ('await_user_verify', 'board_issue', 'config_issue', 'customer_bios_issue', 'customer_hw_issue', 'customer_sw_issue', 'inquiry_closed', 'platform_out_of_spec', 'test_bug') ");
             }
         }
 
@@ -13191,7 +15020,7 @@ FROM ");
         sql.Append(@"
 AND (
     (@oem = 'Unassigned' AND ISNULL(LTRIM(RTRIM(issue_src.customer_company)), '') = '')
-     OR LTRIM(RTRIM(ISNULL(issue_src.customer_company, ''))) = @oem
+    OR LOWER(LTRIM(RTRIM(ISNULL(issue_src.customer_company, '')))) = LOWER(@oem)
 )");
     }
 
@@ -13202,7 +15031,7 @@ ORDER BY
 
         DataTable dt = new DataTable();
         using (SqlConnection con = new SqlConnection(ConnectionString))
-        using (SqlCommand cmd = new SqlCommand(sql.ToString(), con))
+        using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(sql.ToString(), con))
         using (SqlDataAdapter da = new SqlDataAdapter(cmd))
         {
             if (!includeAllOems)
@@ -13483,9 +15312,9 @@ ORDER BY
             int colIndexIntelIssue = -1;
             int colIndex3rdParty = -1;
             int colIndexCustomerIssue = -1;
-            int colIndexDispTPT = 6;
-            int colIndexResolveTPT = 7;
-            int colIndexTotalTPT = 5;
+            int colIndexDispTPT = -1;
+            int colIndexResolveTPT = -1;
+            int colIndexTotalTPT = -1;
 
             for (int i = 0; i < grid.HeaderRow.Cells.Count; i++)
             {
@@ -13524,6 +15353,12 @@ ORDER BY
                     colIndexCustomerIssue = i;
                 }
             }
+
+            colIndexDispTPT = FindColumnIndexByHeaderContains(grid, "disposition tpt");
+            colIndexResolveTPT = FindColumnIndexByHeaderContains(grid, "resolution tpt");
+            colIndexTotalTPT = FindColumnIndexByHeaderContains(grid, "overall tpt");
+
+            bool isOverallSummary = IsOverallDashboardPlatform(ResolveSummaryQuickLinkPlatform());
 
             // Modify the columns for red highlighted sections
             if (colIndexApproved != -1)
@@ -13576,6 +15411,7 @@ ORDER BY
                 object desVal = DataBinder.Eval(e.Row.DataItem, "Design");
 
                 string val = rawVal != null ? rawVal.ToString() : "";
+                val = FormatPercentRatioOneDecimal(val);
                 string design = desVal != null ? desVal.ToString() : "";
 
                 // Extract numerator from the ratio string
@@ -13594,6 +15430,7 @@ ORDER BY
                 object desVal = DataBinder.Eval(e.Row.DataItem, "Design");
 
                 string val = rawVal != null ? rawVal.ToString() : "";
+                val = FormatPercentRatioOneDecimal(val);
                 string design = desVal != null ? desVal.ToString() : "";
 
                 // Extract numerator from the ratio string
@@ -13612,6 +15449,7 @@ ORDER BY
                 object desVal = DataBinder.Eval(e.Row.DataItem, "Design");
 
                 string val = rawVal != null ? rawVal.ToString() : "";
+                val = FormatPercentRatioOneDecimal(val);
                 string design = desVal != null ? desVal.ToString() : "";
 
                 // Extract numerator from the ratio string
@@ -13630,6 +15468,7 @@ ORDER BY
                 object desVal = DataBinder.Eval(e.Row.DataItem, "Design");
 
                 string val = rawVal != null ? rawVal.ToString() : "";
+                val = FormatPercentRatioOneDecimal(val);
                 string design = desVal != null ? desVal.ToString() : "";
 
                 // Extract numerator from the ratio string
@@ -13648,6 +15487,7 @@ ORDER BY
                 object desVal = DataBinder.Eval(e.Row.DataItem, "Design");
 
                 string val = rawVal != null ? rawVal.ToString() : "";
+                val = FormatPercentRatioOneDecimal(val);
                 string design = desVal != null ? desVal.ToString() : "";
 
                 // Extract numerator from the ratio string
@@ -13659,51 +15499,10 @@ ORDER BY
                 e.Row.Cells[colIndexCustomerIssue].Text = val.Replace("(" + numerator, "(" + link);
             }
 
-            // Apply conditional styling for CMF Disposition TPT and CMF Resolution TPT
-            if (colIndexDispTPT != -1)
-            {
-                int dispTPT = 0;
-                int.TryParse(e.Row.Cells[colIndexDispTPT].Text, out dispTPT);
-
-                if (dispTPT > 2)
-                {
-                    e.Row.Cells[colIndexDispTPT].ForeColor = System.Drawing.Color.Red;
-                }
-                else
-                {
-                    e.Row.Cells[colIndexDispTPT].ForeColor = System.Drawing.Color.Green;
-                }
-            }
-
-            if (colIndexResolveTPT != -1)
-            {
-                int resolveTPT = 0;
-                int.TryParse(e.Row.Cells[colIndexResolveTPT].Text, out resolveTPT);
-
-                if (resolveTPT > 18)
-                {
-                    e.Row.Cells[colIndexResolveTPT].ForeColor = System.Drawing.Color.Red;
-                }
-                else
-                {
-                    e.Row.Cells[colIndexResolveTPT].ForeColor = System.Drawing.Color.Green;
-                }
-            }
-
-            if (colIndexTotalTPT != -1)
-            {
-                int totalTPT = 0;
-                int.TryParse(e.Row.Cells[colIndexTotalTPT].Text, out totalTPT);
-
-                if (totalTPT > 21)
-                {
-                    e.Row.Cells[colIndexTotalTPT].ForeColor = System.Drawing.Color.Red;
-                }
-                else
-                {
-                    e.Row.Cells[colIndexTotalTPT].ForeColor = System.Drawing.Color.Green;
-                }
-            }
+            ApplyTptCellStyle(e.Row, colIndexDispTPT, 2m, isOverallSummary);
+            ApplyTptCellStyle(e.Row, colIndexResolveTPT, 18m, isOverallSummary);
+            ApplyTptCellStyle(e.Row, colIndexTotalTPT, 21m, isOverallSummary);
+            NormalizeGridRowMissingValues(e.Row);
         }
     }
 
@@ -13734,12 +15533,354 @@ ORDER BY
         return numerator;
     }
 
+    private static int FindColumnIndexByHeaderContains(GridView grid, string fragment)
+    {
+        if (grid == null || grid.HeaderRow == null || string.IsNullOrWhiteSpace(fragment))
+        {
+            return -1;
+        }
+
+        string target = fragment.Trim().ToLowerInvariant();
+        for (int i = 0; i < grid.HeaderRow.Cells.Count; i++)
+        {
+            string header = HttpUtility.HtmlDecode(grid.HeaderRow.Cells[i].Text ?? string.Empty)
+                .Trim()
+                .ToLowerInvariant();
+
+            if (header.Contains(target))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private static bool TryParseGridCellDecimal(TableCell cell, out decimal value)
+    {
+        value = 0m;
+        if (cell == null)
+        {
+            return false;
+        }
+
+        string raw = HttpUtility.HtmlDecode(cell.Text ?? string.Empty)
+            .Replace("\u00A0", " ")
+            .Replace(",", string.Empty)
+            .Trim();
+
+        if (string.IsNullOrWhiteSpace(raw) || string.Equals(raw, "N/A", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return decimal.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out value)
+            || decimal.TryParse(raw, NumberStyles.Any, CultureInfo.CurrentCulture, out value);
+    }
+
+    private static void ApplyTptCellStyle(GridViewRow row, int columnIndex, decimal threshold, bool normalizeDisplayForOverall)
+    {
+        if (row == null || columnIndex < 0 || columnIndex >= row.Cells.Count)
+        {
+            return;
+        }
+
+        TableCell cell = row.Cells[columnIndex];
+        decimal numericValue;
+        if (!TryParseGridCellDecimal(cell, out numericValue))
+        {
+            return;
+        }
+
+        if (normalizeDisplayForOverall)
+        {
+            cell.Text = Math.Round(numericValue, 0, MidpointRounding.AwayFromZero).ToString("0", CultureInfo.InvariantCulture);
+        }
+
+        cell.ForeColor = numericValue > threshold ? System.Drawing.Color.Red : System.Drawing.Color.Green;
+    }
+
+    private static string FormatPercentRatioOneDecimal(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        string trimmed = value.Trim();
+        if (string.Equals(trimmed, "N/A", StringComparison.OrdinalIgnoreCase))
+        {
+            return trimmed;
+        }
+
+        int percentIndex = trimmed.IndexOf('%');
+        if (percentIndex <= 0)
+        {
+            return value;
+        }
+
+        string numericPart = trimmed.Substring(0, percentIndex).Trim();
+        decimal percentage;
+        if (!(decimal.TryParse(numericPart, NumberStyles.Any, CultureInfo.InvariantCulture, out percentage)
+            || decimal.TryParse(numericPart, NumberStyles.Any, CultureInfo.CurrentCulture, out percentage)))
+        {
+            return value;
+        }
+
+        string suffix = trimmed.Substring(percentIndex + 1).TrimStart();
+        string formattedPercent = percentage.ToString("0.0", CultureInfo.InvariantCulture) + "%";
+        return string.IsNullOrEmpty(suffix) ? formattedPercent : (formattedPercent + " " + suffix);
+    }
+
+    private static bool IsMissingValueToken(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return true;
+        }
+
+        string normalized = value.Trim();
+        return string.Equals(normalized, "N/A", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalized, "NA", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsDashboardPercentColumn(string columnName)
+    {
+        if (string.IsNullOrWhiteSpace(columnName))
+        {
+            return false;
+        }
+
+        return string.Equals(columnName, "CMFOpenPercentage", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(columnName, "Noise", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(columnName, "IntelIssuePercentage", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(columnName, "ThirdPartyPercentage", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(columnName, "CustomerIssuePercentage", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void NormalizeDashboardMissingValues(DataTable table)
+    {
+        if (table == null)
+        {
+            return;
+        }
+
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
+        {
+            DataRow row = table.Rows[rowIndex];
+            for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++)
+            {
+                DataColumn column = table.Columns[columnIndex];
+                object rawValue = row[column];
+                if (rawValue == null || rawValue == DBNull.Value)
+                {
+                    continue;
+                }
+
+                string text = Convert.ToString(rawValue, CultureInfo.InvariantCulture);
+                if (!IsMissingValueToken(text))
+                {
+                    continue;
+                }
+
+                row[column] = IsDashboardPercentColumn(column.ColumnName) ? "0.0% (0/0)" : "-";
+            }
+        }
+    }
+
+    private static void NormalizeGridRowMissingValues(GridViewRow row)
+    {
+        if (row == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < row.Cells.Count; i++)
+        {
+            TableCell cell = row.Cells[i];
+            string text = HttpUtility.HtmlDecode(cell.Text ?? string.Empty)
+                .Replace("\u00A0", " ")
+                .Trim();
+
+            if (IsMissingValueToken(text))
+            {
+                cell.Text = "-";
+            }
+        }
+    }
+
 
     private void BindGridView_component_summary(string filtervalue = null)
     {
         string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
-        string basePlatform = selectedPlatform.Replace("_ALL_COMPONENTS_TABLE", "");
-        string designTable = basePlatform + "_COMPONENT_GROUP_TABLE";
+        string summaryPlatform = ResolveSummaryQuickLinkPlatform();
+        bool isOverallSummary = IsOverallDashboardPlatform(summaryPlatform);
+
+        if (isOverallSummary)
+        {
+            string overallSourceSql = "(" + BuildSummaryIssueComponentSourceSql(summaryPlatform) + ") AS src";
+            string overallQuery = @"
+WITH base AS (
+    SELECT
+        CASE WHEN src.component_group IS NULL OR LTRIM(RTRIM(src.component_group)) = '' THEN 'unassigned' ELSE LTRIM(RTRIM(src.component_group)) END AS Component,
+        LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) AS status_norm,
+        LOWER(LTRIM(RTRIM(ISNULL(src.cmf_request, '')))) AS cmf_request_norm,
+        LOWER(LTRIM(RTRIM(ISNULL(src.sysdebug, '')))) AS sysdebug_norm,
+        LOWER(LTRIM(RTRIM(ISNULL(src.closed_reason, '')))) AS closed_reason_norm,
+        TRY_CAST(src.date_cmf_ask AS DATE) AS ask_date,
+        TRY_CAST(src.implemented_date AS DATE) AS implemented_date
+    FROM " + overallSourceSql + @"
+)
+SELECT
+    Component,
+    SUM(CASE WHEN cmf_request_norm IN ('cmf_ask', 'cmf_incomplete') AND status_norm NOT IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS Issues_in_CMF_ASK,
+    SUM(CASE WHEN cmf_request_norm = 'cmf_reject' THEN 1 ELSE 0 END) AS Total_CMF_REJECT,
+    ISNULL(AVG(CAST(CASE WHEN ask_date IS NOT NULL AND implemented_date IS NOT NULL AND implemented_date >= ask_date THEN DATEDIFF(DAY, ask_date, implemented_date) END AS DECIMAL(10, 2))), 0) AS crit_tpt,
+    CAST(0 AS DECIMAL(10, 2)) AS disp_tpt,
+    ISNULL(AVG(CAST(CASE WHEN ask_date IS NOT NULL AND implemented_date IS NOT NULL AND implemented_date >= ask_date THEN DATEDIFF(DAY, ask_date, implemented_date) END AS DECIMAL(10, 2))), 0) AS resolve_tpt,
+    CASE
+        WHEN SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END) = 0 THEN 'N/A'
+        ELSE
+            CAST(ROUND(
+                100.0 * SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected', 'implemented', 'future') THEN 1 ELSE 0 END)
+                / NULLIF(SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END), 0),
+                1
+            ) AS VARCHAR(20))
+            + '% ('
+            + CAST(SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected', 'implemented', 'future') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + '/'
+            + CAST(SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + ')'
+    END AS CMFOpenPercentage,
+    SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END) AS Total_CMF_Approved,
+    CASE
+        WHEN SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) = 0 THEN 'N/A'
+        ELSE
+            CAST(ROUND(
+                100.0 * SUM(CASE
+                    WHEN cmf_request_norm = 'cmf_ok'
+                         AND sysdebug_norm LIKE '%customer_must_fix%'
+                         AND status_norm IN ('complete', 'rejected')
+                         AND closed_reason_norm NOT LIKE '%internal%'
+                         AND closed_reason_norm IN ('below_zbb', 'cannot_reproduce', 'customer_disengaged', 'customer_enquiry_resolved', 'expected_behavior', 'feature_not_por', 'feature_por_not_ready', 'filed_by_mistake', 'inactive', 'known_errata', 'not_a_defect', 'poor_sighting_quality', 'proj_cancelled', 'test/test_env')
+                    THEN 1 ELSE 0 END)
+                / NULLIF(SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END), 0),
+                1
+            ) AS VARCHAR(20))
+            + '% ('
+            + CAST(SUM(CASE
+                WHEN cmf_request_norm = 'cmf_ok'
+                     AND sysdebug_norm LIKE '%customer_must_fix%'
+                     AND status_norm IN ('complete', 'rejected')
+                     AND closed_reason_norm NOT LIKE '%internal%'
+                     AND closed_reason_norm IN ('below_zbb', 'cannot_reproduce', 'customer_disengaged', 'customer_enquiry_resolved', 'expected_behavior', 'feature_not_por', 'feature_por_not_ready', 'filed_by_mistake', 'inactive', 'known_errata', 'not_a_defect', 'poor_sighting_quality', 'proj_cancelled', 'test/test_env')
+                THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + '/'
+            + CAST(SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + ')'
+    END AS Noise,
+    CASE
+        WHEN SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) = 0 THEN 'N/A'
+        ELSE
+            CAST(ROUND(
+                100.0 * SUM(CASE
+                    WHEN cmf_request_norm = 'cmf_ok'
+                         AND sysdebug_norm LIKE '%customer_must_fix%'
+                         AND status_norm IN ('complete', 'rejected')
+                         AND (
+                             closed_reason_norm LIKE '%internal%'
+                             OR closed_reason_norm IN ('same_source_fix', 'unknown_fix', 'workaround', 'backout', 'bug_fix', 'documentation', 'duplicate', 'fw', 'high_risk', 'hw', 'intel_silicon_bug', 'internal_doc_bug', 'internal_fw_bug', 'internal_hw_bug', 'internal_mmanufacturing', 'internal_si_bug', 'internal_sw_bug', 'product_changed', 'promoted', 'pushed_to_other_database', 'rcr_created', 'regression_reverted', 'requirements_updated', 'transferred', 'user_verified', 'wont_fix', 'zbb')
+                         )
+                    THEN 1 ELSE 0 END)
+                / NULLIF(SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END), 0),
+                1
+            ) AS VARCHAR(20))
+            + '% ('
+            + CAST(SUM(CASE
+                WHEN cmf_request_norm = 'cmf_ok'
+                     AND sysdebug_norm LIKE '%customer_must_fix%'
+                     AND status_norm IN ('complete', 'rejected')
+                     AND (
+                         closed_reason_norm LIKE '%internal%'
+                         OR closed_reason_norm IN ('same_source_fix', 'unknown_fix', 'workaround', 'backout', 'bug_fix', 'documentation', 'duplicate', 'fw', 'high_risk', 'hw', 'intel_silicon_bug', 'internal_doc_bug', 'internal_fw_bug', 'internal_hw_bug', 'internal_mmanufacturing', 'internal_si_bug', 'internal_sw_bug', 'product_changed', 'promoted', 'pushed_to_other_database', 'rcr_created', 'regression_reverted', 'requirements_updated', 'transferred', 'user_verified', 'wont_fix', 'zbb')
+                     )
+                THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + '/'
+            + CAST(SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + ')'
+    END AS IntelIssuePercentage,
+    CASE
+        WHEN SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) = 0 THEN 'N/A'
+        ELSE
+            CAST(ROUND(
+                100.0 * SUM(CASE
+                    WHEN cmf_request_norm = 'cmf_ok'
+                         AND sysdebug_norm LIKE '%customer_must_fix%'
+                         AND status_norm IN ('complete', 'rejected')
+                         AND closed_reason_norm IN ('3rd_party', '3rd_party_hw_bug', '3rd_party_sw_bug', 'application_bug', 'os_issue')
+                    THEN 1 ELSE 0 END)
+                / NULLIF(SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END), 0),
+                1
+            ) AS VARCHAR(20))
+            + '% ('
+            + CAST(SUM(CASE
+                WHEN cmf_request_norm = 'cmf_ok'
+                     AND sysdebug_norm LIKE '%customer_must_fix%'
+                     AND status_norm IN ('complete', 'rejected')
+                     AND closed_reason_norm IN ('3rd_party', '3rd_party_hw_bug', '3rd_party_sw_bug', 'application_bug', 'os_issue')
+                THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + '/'
+            + CAST(SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + ')'
+    END AS ThirdPartyPercentage,
+    CASE
+        WHEN SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) = 0 THEN 'N/A'
+        ELSE
+            CAST(ROUND(
+                100.0 * SUM(CASE
+                    WHEN cmf_request_norm = 'cmf_ok'
+                         AND sysdebug_norm LIKE '%customer_must_fix%'
+                         AND status_norm IN ('complete', 'rejected')
+                         AND closed_reason_norm IN ('await_user_verify', 'board_issue', 'config_issue', 'customer_bios_issue', 'customer_hw_issue', 'customer_sw_issue', 'inquiry_closed', 'platform_out_of_spec', 'test_bug')
+                    THEN 1 ELSE 0 END)
+                / NULLIF(SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END), 0),
+                1
+            ) AS VARCHAR(20))
+            + '% ('
+            + CAST(SUM(CASE
+                WHEN cmf_request_norm = 'cmf_ok'
+                     AND sysdebug_norm LIKE '%customer_must_fix%'
+                     AND status_norm IN ('complete', 'rejected')
+                     AND closed_reason_norm IN ('await_user_verify', 'board_issue', 'config_issue', 'customer_bios_issue', 'customer_hw_issue', 'customer_sw_issue', 'inquiry_closed', 'platform_out_of_spec', 'test_bug')
+                THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + '/'
+            + CAST(SUM(CASE WHEN cmf_request_norm = 'cmf_ok' AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + ')'
+    END AS CustomerIssuePercentage
+FROM base
+GROUP BY Component
+ORDER BY Total_CMF_Approved DESC";
+
+            using (SqlConnection con = new SqlConnection(connectionString))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(overallQuery, con))
+            using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
+            {
+                System.Data.DataTable dt = new System.Data.DataTable();
+                sda.Fill(dt);
+                NormalizeDashboardMissingValues(dt);
+
+                GridView_component_summary.DataSource = dt;
+                GridView_component_summary.DataBind();
+
+                GridView_ingredient_indicator_modal.DataSource = dt;
+                GridView_ingredient_indicator_modal.DataBind();
+            }
+
+            return;
+        }
+
+        string selectedPlatform = FilterDashboardTableSource(summaryPlatform) + " AS dated_summary";
+        string componentFromClause = FilterDashboardTableSource(summaryPlatform) + " A";
 
 
 
@@ -13767,7 +15908,7 @@ ORDER BY
                                   ELSE CAST(ROUND(
                                       (SELECT CAST(COUNT(cp_id) AS FLOAT)
                                        FROM " + selectedPlatform + @"
-                                       WHERE status NOT IN('complete', 'rejected') AND cmf_request IN('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND component_group = A.component_group)
+                                       WHERE status NOT IN('complete', 'rejected', 'implemented', 'future') AND cmf_request IN('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND component_group = A.component_group)
                                       /
                                       (SELECT CAST(COUNT(cp_id) AS FLOAT)
                                        FROM " + selectedPlatform + @"
@@ -13775,7 +15916,7 @@ ORDER BY
                                       * 100.0, 1) AS VARCHAR)+ '%' +' (' +
                                       CAST((SELECT COUNT(cp_id)
                                             FROM " + selectedPlatform + @"
-                                            WHERE status NOT IN('complete', 'rejected') AND cmf_request IN('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND component_group = A.component_group) AS VARCHAR) +'/' +
+                                            WHERE status NOT IN('complete', 'rejected', 'implemented', 'future') AND cmf_request IN('cmf_ok') AND sysdebug LIKE('%customer_must_fix%') AND component_group = A.component_group) AS VARCHAR) +'/' +
                                       CAST((SELECT COUNT(cp_id)
                                             FROM " + selectedPlatform + @"
                                             WHERE cmf_request IN ('cmf_ok') AND component_group = A.component_group AND sysdebug LIKE('%customer_must_fix%')) AS VARCHAR) +')'
@@ -13934,7 +16075,7 @@ ORDER BY
                                         AND component_group = A.component_group) AS VARCHAR) + ')'
                         END) AS CustomerIssuePercentage
                         FROM
-                            " + selectedPlatform + @" A 
+                            " + componentFromClause + @" 
                         WHERE cmf_request Not IN ('cmf_duplicate')
                         GROUP BY
                             A.component_group
@@ -13943,7 +16084,7 @@ ORDER BY
         using (SqlConnection con = new SqlConnection(connectionString))
         {
 
-            using (SqlCommand cmd = new SqlCommand(main_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(main_query, con))
 
             {
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
@@ -13951,9 +16092,13 @@ ORDER BY
 
                     System.Data.DataTable dt = new System.Data.DataTable();
                     sda.Fill(dt);
+                    NormalizeDashboardMissingValues(dt);
 
                     GridView_component_summary.DataSource = dt;
                     GridView_component_summary.DataBind();
+
+                    GridView_ingredient_indicator_modal.DataSource = dt;
+                    GridView_ingredient_indicator_modal.DataBind();
                 }
             }
 
@@ -13966,7 +16111,174 @@ ORDER BY
     private void BindGridView_oem_summary(string filtervalue = null)
     {
         string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
-        string basePlatform = selectedPlatform.Replace("_ALL_COMPONENTS_TABLE", "");
+        string summaryPlatform = ResolveSummaryQuickLinkPlatform();
+        bool isOverallSummary = IsOverallDashboardPlatform(summaryPlatform);
+
+        if (isOverallSummary)
+        {
+            string overallSourceSql = "(" + BuildSummaryIssueComponentSourceSql(summaryPlatform) + ") AS src";
+            string overallQuery = @"
+WITH base AS (
+    SELECT
+        CASE WHEN src.customer_company IS NULL OR LTRIM(RTRIM(src.customer_company)) = '' THEN 'unassigned' ELSE LTRIM(RTRIM(src.customer_company)) END AS OEM,
+        LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) AS status_norm,
+        LOWER(LTRIM(RTRIM(ISNULL(src.cmf_request, '')))) AS cmf_request_norm,
+        LOWER(LTRIM(RTRIM(ISNULL(src.sysdebug, '')))) AS sysdebug_norm,
+        LOWER(LTRIM(RTRIM(ISNULL(src.closed_reason, '')))) AS closed_reason_norm,
+        TRY_CAST(src.date_cmf_ask AS DATE) AS ask_date,
+        TRY_CAST(src.implemented_date AS DATE) AS implemented_date
+    FROM " + overallSourceSql + @"
+)
+SELECT
+    OEM,
+    SUM(CASE WHEN cmf_request_norm IN ('cmf_ask', 'cmf_incomplete') AND status_norm NOT IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS Issues_in_CMF_ASK,
+    SUM(CASE WHEN cmf_request_norm = 'cmf_reject' THEN 1 ELSE 0 END) AS Total_CMF_REJECT,
+    SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END) AS Total_CMF_Approved,
+    ISNULL(AVG(CAST(CASE WHEN ask_date IS NOT NULL AND implemented_date IS NOT NULL AND implemented_date >= ask_date THEN DATEDIFF(DAY, ask_date, implemented_date) END AS DECIMAL(10, 2))), 0) AS crit_tpt,
+    CAST(0 AS DECIMAL(10, 2)) AS disp_tpt,
+    ISNULL(AVG(CAST(CASE WHEN ask_date IS NOT NULL AND implemented_date IS NOT NULL AND implemented_date >= ask_date THEN DATEDIFF(DAY, ask_date, implemented_date) END AS DECIMAL(10, 2))), 0) AS resolve_tpt,
+    CASE
+        WHEN SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END) = 0 THEN 'N/A'
+        ELSE
+            CAST(ROUND(
+                100.0 * SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected', 'implemented', 'future') THEN 1 ELSE 0 END)
+                / NULLIF(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END), 0),
+                1
+            ) AS VARCHAR(20))
+            + '% ('
+            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm NOT IN ('complete', 'rejected', 'implemented', 'future') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + '/'
+            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + ')'
+    END AS CMFOpenPercentage,
+    CASE
+        WHEN SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) = 0 THEN 'N/A'
+        ELSE
+            CAST(ROUND(
+                100.0 * SUM(CASE
+                    WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                         AND sysdebug_norm LIKE '%customer_must_fix%'
+                         AND status_norm IN ('complete', 'rejected')
+                         AND closed_reason_norm NOT LIKE '%internal%'
+                         AND closed_reason_norm IN ('below_zbb', 'cannot_reproduce', 'customer_disengaged', 'customer_enquiry_resolved', 'expected_behavior', 'feature_not_por', 'feature_por_not_ready', 'filed_by_mistake', 'inactive', 'known_errata', 'not_a_defect', 'poor_sighting_quality', 'proj_cancelled', 'test/test_env')
+                    THEN 1 ELSE 0 END)
+                / NULLIF(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END), 0),
+                1
+            ) AS VARCHAR(20))
+            + '% ('
+            + CAST(SUM(CASE
+                WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                     AND sysdebug_norm LIKE '%customer_must_fix%'
+                     AND status_norm IN ('complete', 'rejected')
+                     AND closed_reason_norm NOT LIKE '%internal%'
+                     AND closed_reason_norm IN ('below_zbb', 'cannot_reproduce', 'customer_disengaged', 'customer_enquiry_resolved', 'expected_behavior', 'feature_not_por', 'feature_por_not_ready', 'filed_by_mistake', 'inactive', 'known_errata', 'not_a_defect', 'poor_sighting_quality', 'proj_cancelled', 'test/test_env')
+                THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + '/'
+            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + ')'
+    END AS Noise,
+    CASE
+        WHEN SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) = 0 THEN 'N/A'
+        ELSE
+            CAST(ROUND(
+                100.0 * SUM(CASE
+                    WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                         AND sysdebug_norm LIKE '%customer_must_fix%'
+                         AND status_norm IN ('complete', 'rejected')
+                         AND (
+                             closed_reason_norm LIKE '%internal%'
+                             OR closed_reason_norm IN ('same_source_fix', 'unknown_fix', 'workaround', 'backout', 'bug_fix', 'documentation', 'duplicate', 'fw', 'high_risk', 'hw', 'intel_silicon_bug', 'internal_doc_bug', 'internal_fw_bug', 'internal_hw_bug', 'internal_mmanufacturing', 'internal_si_bug', 'internal_sw_bug', 'product_changed', 'promoted', 'pushed_to_other_database', 'rcr_created', 'regression_reverted', 'requirements_updated', 'transferred', 'user_verified', 'wont_fix', 'zbb')
+                         )
+                    THEN 1 ELSE 0 END)
+                / NULLIF(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END), 0),
+                1
+            ) AS VARCHAR(20))
+            + '% ('
+            + CAST(SUM(CASE
+                WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                     AND sysdebug_norm LIKE '%customer_must_fix%'
+                     AND status_norm IN ('complete', 'rejected')
+                     AND (
+                         closed_reason_norm LIKE '%internal%'
+                         OR closed_reason_norm IN ('same_source_fix', 'unknown_fix', 'workaround', 'backout', 'bug_fix', 'documentation', 'duplicate', 'fw', 'high_risk', 'hw', 'intel_silicon_bug', 'internal_doc_bug', 'internal_fw_bug', 'internal_hw_bug', 'internal_mmanufacturing', 'internal_si_bug', 'internal_sw_bug', 'product_changed', 'promoted', 'pushed_to_other_database', 'rcr_created', 'regression_reverted', 'requirements_updated', 'transferred', 'user_verified', 'wont_fix', 'zbb')
+                     )
+                THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + '/'
+            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + ')'
+    END AS IntelIssuePercentage,
+    CASE
+        WHEN SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) = 0 THEN 'N/A'
+        ELSE
+            CAST(ROUND(
+                100.0 * SUM(CASE
+                    WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                         AND sysdebug_norm LIKE '%customer_must_fix%'
+                         AND status_norm IN ('complete', 'rejected')
+                         AND closed_reason_norm IN ('3rd_party', '3rd_party_hw_bug', '3rd_party_sw_bug', 'application_bug', 'os_issue')
+                    THEN 1 ELSE 0 END)
+                / NULLIF(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END), 0),
+                1
+            ) AS VARCHAR(20))
+            + '% ('
+            + CAST(SUM(CASE
+                WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                     AND sysdebug_norm LIKE '%customer_must_fix%'
+                     AND status_norm IN ('complete', 'rejected')
+                     AND closed_reason_norm IN ('3rd_party', '3rd_party_hw_bug', '3rd_party_sw_bug', 'application_bug', 'os_issue')
+                THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + '/'
+            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + ')'
+    END AS ThirdPartyPercentage,
+    CASE
+        WHEN SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) = 0 THEN 'N/A'
+        ELSE
+            CAST(ROUND(
+                100.0 * SUM(CASE
+                    WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                         AND sysdebug_norm LIKE '%customer_must_fix%'
+                         AND status_norm IN ('complete', 'rejected')
+                         AND closed_reason_norm IN ('await_user_verify', 'board_issue', 'config_issue', 'customer_bios_issue', 'customer_hw_issue', 'customer_sw_issue', 'inquiry_closed', 'platform_out_of_spec', 'test_bug')
+                    THEN 1 ELSE 0 END)
+                / NULLIF(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END), 0),
+                1
+            ) AS VARCHAR(20))
+            + '% ('
+            + CAST(SUM(CASE
+                WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate')
+                     AND sysdebug_norm LIKE '%customer_must_fix%'
+                     AND status_norm IN ('complete', 'rejected')
+                     AND closed_reason_norm IN ('await_user_verify', 'board_issue', 'config_issue', 'customer_bios_issue', 'customer_hw_issue', 'customer_sw_issue', 'inquiry_closed', 'platform_out_of_spec', 'test_bug')
+                THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + '/'
+            + CAST(SUM(CASE WHEN cmf_request_norm IN ('cmf_ok', 'cmf_duplicate') AND sysdebug_norm LIKE '%customer_must_fix%' AND status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS VARCHAR(20))
+            + ')'
+    END AS CustomerIssuePercentage
+FROM base
+GROUP BY OEM
+ORDER BY Total_CMF_Approved DESC";
+
+            using (SqlConnection con = new SqlConnection(connectionString))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(overallQuery, con))
+            using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
+            {
+                System.Data.DataTable dt = new System.Data.DataTable();
+                sda.Fill(dt);
+                NormalizeDashboardMissingValues(dt);
+
+                GridView_oem_summary.DataSource = dt;
+                GridView_oem_summary.DataBind();
+
+                GridView_oem_indicator_modal.DataSource = dt;
+                GridView_oem_indicator_modal.DataBind();
+            }
+
+            return;
+        }
+
+        string selectedPlatform = FilterDashboardTableSource(summaryPlatform) + " AS dated_summary";
+        string oemFromClause = FilterDashboardTableSource(summaryPlatform) + " A";
 
         string main_query = @"SELECT
                             CASE 
@@ -13992,7 +16304,7 @@ ORDER BY
                                   ELSE CAST(ROUND(
                                       (SELECT CAST(COUNT(cp_id) AS FLOAT)
                                        FROM " + selectedPlatform + @"
-                                       WHERE status NOT IN('complete', 'rejected') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_company = A.customer_company)
+                                       WHERE status NOT IN('complete', 'rejected', 'implemented', 'future') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_company = A.customer_company)
                                       /
                                       (SELECT CAST(COUNT(cp_id) AS FLOAT)
                                        FROM " + selectedPlatform + @"
@@ -14000,7 +16312,7 @@ ORDER BY
                                       * 100.0, 1) AS VARCHAR) + '%' +' (' +
                                       CAST((SELECT COUNT(cp_id)
                                             FROM " + selectedPlatform + @"
-                                            WHERE status NOT IN('complete', 'rejected') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_company = A.customer_company) AS VARCHAR) +'/' +
+                                            WHERE status NOT IN('complete', 'rejected', 'implemented', 'future') AND cmf_request IN('cmf_ok', 'cmf_duplicate') AND sysdebug LIKE('%customer_must_fix%') AND customer_company = A.customer_company) AS VARCHAR) +'/' +
                                       CAST((SELECT COUNT(cp_id)
                                             FROM " + selectedPlatform + @"
                                             WHERE cmf_request IN('cmf_ok', 'cmf_duplicate') AND customer_company = A.customer_company AND sysdebug LIKE('%customer_must_fix%')) AS VARCHAR) +')'
@@ -14161,7 +16473,7 @@ ORDER BY
                                     AND customer_company = A.customer_company) AS VARCHAR) + ')'
                     END) AS CustomerIssuePercentage
                         FROM
-                            " + selectedPlatform + @" A
+                            " + oemFromClause + @"
                         GROUP BY
                             A.customer_company
                         ORDER BY
@@ -14169,15 +16481,19 @@ ORDER BY
 
         using (SqlConnection con = new SqlConnection(connectionString))
         {
-            using (SqlCommand cmd = new SqlCommand(main_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(main_query, con))
             {
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
                 {
                     System.Data.DataTable dt = new System.Data.DataTable();
                     sda.Fill(dt);
+                    NormalizeDashboardMissingValues(dt);
 
                     GridView_oem_summary.DataSource = dt;
                     GridView_oem_summary.DataBind();
+
+                    GridView_oem_indicator_modal.DataSource = dt;
+                    GridView_oem_indicator_modal.DataBind();
                 }
             }
         }
@@ -14273,9 +16589,9 @@ ORDER BY
             int colIndexIntelIssue = -1;
             int colIndex3rdParty = -1;
             int colIndexCustomerIssue = -1;
-            int colIndexDispTPT = 5;
-            int colIndexResolveTPT = 7;
-            int colIndexTotalTPT = 6;
+            int colIndexDispTPT = -1;
+            int colIndexResolveTPT = -1;
+            int colIndexTotalTPT = -1;
 
             for (int i = 0; i < grid.HeaderRow.Cells.Count; i++)
             {
@@ -14314,6 +16630,12 @@ ORDER BY
                     colIndexCustomerIssue = i;
                 }
             }
+
+            colIndexDispTPT = FindColumnIndexByHeaderContains(grid, "disposition tpt");
+            colIndexResolveTPT = FindColumnIndexByHeaderContains(grid, "resolution tpt");
+            colIndexTotalTPT = FindColumnIndexByHeaderContains(grid, "overall tpt");
+
+            bool isOverallSummary = IsOverallDashboardPlatform(ResolveSummaryQuickLinkPlatform());
 
             // Modify the columns for red highlighted sections
             if (colIndexApproved != -1)
@@ -14366,6 +16688,7 @@ ORDER BY
                 object desVal = DataBinder.Eval(e.Row.DataItem, "Component");
 
                 string val = rawVal != null ? rawVal.ToString() : "";
+                val = FormatPercentRatioOneDecimal(val);
                 string ingred = desVal != null ? desVal.ToString() : "";
 
                 // Extract numerator from the ratio string
@@ -14384,6 +16707,7 @@ ORDER BY
                 object desVal = DataBinder.Eval(e.Row.DataItem, "Component");
 
                 string val = rawVal != null ? rawVal.ToString() : "";
+                val = FormatPercentRatioOneDecimal(val);
                 string ingred = desVal != null ? desVal.ToString() : "";
 
                 // Extract numerator from the ratio string
@@ -14402,6 +16726,7 @@ ORDER BY
                 object desVal = DataBinder.Eval(e.Row.DataItem, "Component");
 
                 string val = rawVal != null ? rawVal.ToString() : "";
+                val = FormatPercentRatioOneDecimal(val);
                 string ingred = desVal != null ? desVal.ToString() : "";
 
                 // Extract numerator from the ratio string
@@ -14420,6 +16745,7 @@ ORDER BY
                 object desVal = DataBinder.Eval(e.Row.DataItem, "Component");
 
                 string val = rawVal != null ? rawVal.ToString() : "";
+                val = FormatPercentRatioOneDecimal(val);
                 string ingred = desVal != null ? desVal.ToString() : "";
 
                 // Extract numerator from the ratio string
@@ -14438,6 +16764,7 @@ ORDER BY
                 object desVal = DataBinder.Eval(e.Row.DataItem, "Component");
 
                 string val = rawVal != null ? rawVal.ToString() : "";
+                val = FormatPercentRatioOneDecimal(val);
                 string ingred = desVal != null ? desVal.ToString() : "";
 
                 // Extract numerator from the ratio string
@@ -14449,50 +16776,10 @@ ORDER BY
                 e.Row.Cells[colIndexCustomerIssue].Text = val.Replace("(" + numerator, "(" + link);
             }
 
-            if (colIndexDispTPT != -1)
-            {
-                int dispTPT = 0;
-                int.TryParse(e.Row.Cells[colIndexDispTPT].Text, out dispTPT);
-
-                if (dispTPT > 2)
-                {
-                    e.Row.Cells[colIndexDispTPT].ForeColor = System.Drawing.Color.Red;
-                }
-                else
-                {
-                    e.Row.Cells[colIndexDispTPT].ForeColor = System.Drawing.Color.Green;
-                }
-            }
-
-            if (colIndexResolveTPT != -1)
-            {
-                int resolveTPT = 0;
-                int.TryParse(e.Row.Cells[colIndexResolveTPT].Text, out resolveTPT);
-
-                if (resolveTPT > 18)
-                {
-                    e.Row.Cells[colIndexResolveTPT].ForeColor = System.Drawing.Color.Red;
-                }
-                else
-                {
-                    e.Row.Cells[colIndexResolveTPT].ForeColor = System.Drawing.Color.Green;
-                }
-            }
-
-            if (colIndexTotalTPT != -1)
-            {
-                int totalTPT = 0;
-                int.TryParse(e.Row.Cells[colIndexTotalTPT].Text, out totalTPT);
-
-                if (totalTPT > 21)
-                {
-                    e.Row.Cells[colIndexTotalTPT].ForeColor = System.Drawing.Color.Red;
-                }
-                else
-                {
-                    e.Row.Cells[colIndexTotalTPT].ForeColor = System.Drawing.Color.Green;
-                }
-            }
+            ApplyTptCellStyle(e.Row, colIndexDispTPT, 2m, isOverallSummary);
+            ApplyTptCellStyle(e.Row, colIndexResolveTPT, 18m, isOverallSummary);
+            ApplyTptCellStyle(e.Row, colIndexTotalTPT, 21m, isOverallSummary);
+            NormalizeGridRowMissingValues(e.Row);
         }
 
 
@@ -14515,9 +16802,9 @@ ORDER BY
             int colIndexIntelIssue = -1;
             int colIndex3rdParty = -1;
             int colIndexCustomerIssue = -1;
-            int colIndexDispTPT = 4; // Adjusted for OEM Summary (no SWImageFreeze column)
-            int colIndexResolveTPT = 6; // Adjusted for OEM Summary
-            int colIndexTotalTPT = 5;   // Adjusted for OEM Summary
+            int colIndexDispTPT = -1;
+            int colIndexResolveTPT = -1;
+            int colIndexTotalTPT = -1;
 
             for (int i = 0; i < grid.HeaderRow.Cells.Count; i++)
             {
@@ -14556,6 +16843,12 @@ ORDER BY
                     colIndexCustomerIssue = i;
                 }
             }
+
+            colIndexDispTPT = FindColumnIndexByHeaderContains(grid, "disposition tpt");
+            colIndexResolveTPT = FindColumnIndexByHeaderContains(grid, "resolution tpt");
+            colIndexTotalTPT = FindColumnIndexByHeaderContains(grid, "overall tpt");
+
+            bool isOverallSummary = IsOverallDashboardPlatform(ResolveSummaryQuickLinkPlatform());
 
             // Modify the columns for red highlighted sections
             if (colIndexApproved != -1)
@@ -14608,6 +16901,7 @@ ORDER BY
                 object oemVal = DataBinder.Eval(e.Row.DataItem, "OEM"); // Changed from Component to OEM
 
                 string val = rawVal != null ? rawVal.ToString() : "";
+                val = FormatPercentRatioOneDecimal(val);
                 string oem = oemVal != null ? oemVal.ToString() : "";
 
                 // Extract numerator from the ratio string
@@ -14626,6 +16920,7 @@ ORDER BY
                 object oemVal = DataBinder.Eval(e.Row.DataItem, "OEM"); // Changed from Component to OEM
 
                 string val = rawVal != null ? rawVal.ToString() : "";
+                val = FormatPercentRatioOneDecimal(val);
                 string oem = oemVal != null ? oemVal.ToString() : "";
 
                 // Extract numerator from the ratio string
@@ -14644,6 +16939,7 @@ ORDER BY
                 object oemVal = DataBinder.Eval(e.Row.DataItem, "OEM"); // Changed from Component to OEM
 
                 string val = rawVal != null ? rawVal.ToString() : "";
+                val = FormatPercentRatioOneDecimal(val);
                 string oem = oemVal != null ? oemVal.ToString() : "";
 
                 // Extract numerator from the ratio string
@@ -14662,6 +16958,7 @@ ORDER BY
                 object oemVal = DataBinder.Eval(e.Row.DataItem, "OEM"); // Changed from Component to OEM
 
                 string val = rawVal != null ? rawVal.ToString() : "";
+                val = FormatPercentRatioOneDecimal(val);
                 string oem = oemVal != null ? oemVal.ToString() : "";
 
                 // Extract numerator from the ratio string
@@ -14680,6 +16977,7 @@ ORDER BY
                 object oemVal = DataBinder.Eval(e.Row.DataItem, "OEM"); // Changed from Component to OEM
 
                 string val = rawVal != null ? rawVal.ToString() : "";
+                val = FormatPercentRatioOneDecimal(val);
                 string oem = oemVal != null ? oemVal.ToString() : "";
 
                 // Extract numerator from the ratio string
@@ -14691,51 +16989,10 @@ ORDER BY
                 e.Row.Cells[colIndexCustomerIssue].Text = val.Replace("(" + numerator, "(" + link);
             }
 
-            // TPT color coding
-            if (colIndexDispTPT != -1)
-            {
-                int dispTPT = 0;
-                int.TryParse(e.Row.Cells[colIndexDispTPT].Text, out dispTPT);
-
-                if (dispTPT > 2)
-                {
-                    e.Row.Cells[colIndexDispTPT].ForeColor = System.Drawing.Color.Red;
-                }
-                else
-                {
-                    e.Row.Cells[colIndexDispTPT].ForeColor = System.Drawing.Color.Green;
-                }
-            }
-
-            if (colIndexResolveTPT != -1)
-            {
-                int resolveTPT = 0;
-                int.TryParse(e.Row.Cells[colIndexResolveTPT].Text, out resolveTPT);
-
-                if (resolveTPT > 18)
-                {
-                    e.Row.Cells[colIndexResolveTPT].ForeColor = System.Drawing.Color.Red;
-                }
-                else
-                {
-                    e.Row.Cells[colIndexResolveTPT].ForeColor = System.Drawing.Color.Green;
-                }
-            }
-
-            if (colIndexTotalTPT != -1)
-            {
-                int totalTPT = 0;
-                int.TryParse(e.Row.Cells[colIndexTotalTPT].Text, out totalTPT);
-
-                if (totalTPT > 21)
-                {
-                    e.Row.Cells[colIndexTotalTPT].ForeColor = System.Drawing.Color.Red;
-                }
-                else
-                {
-                    e.Row.Cells[colIndexTotalTPT].ForeColor = System.Drawing.Color.Green;
-                }
-            }
+            ApplyTptCellStyle(e.Row, colIndexDispTPT, 2m, isOverallSummary);
+            ApplyTptCellStyle(e.Row, colIndexResolveTPT, 18m, isOverallSummary);
+            ApplyTptCellStyle(e.Row, colIndexTotalTPT, 21m, isOverallSummary);
+            NormalizeGridRowMissingValues(e.Row);
         }
     }
 
@@ -14936,6 +17193,11 @@ ORDER BY
             return;
         }
 
+        if (e.Row.RowType == DataControlRowType.DataRow && e.Row.RowIndex != overall_request_details.EditIndex)
+        {
+            FillEmptyIssueListCells(e.Row);
+        }
+
         if (e.Row.RowType == DataControlRowType.DataRow && e.Row.RowIndex == overall_request_details.EditIndex)
         {
 
@@ -14974,8 +17236,7 @@ ORDER BY
                 for (int cellIndex = 0; cellIndex < e.Row.Cells.Count; cellIndex++)
                 {
                     TableCell candidate = e.Row.Cells[cellIndex];
-                    if (!string.IsNullOrEmpty(candidate.CssClass)
-                        && candidate.CssClass.IndexOf("field-progress", StringComparison.OrdinalIgnoreCase) >= 0)
+                    if (GetIssueFieldClass(overall_request_details.Columns[cellIndex].ItemStyle.CssClass) == "field-progress")
                     {
                         progressCell = candidate;
                         break;
@@ -15000,24 +17261,51 @@ ORDER BY
                     try
                     {
                         // Set the background color and text color based on the cell value
-                        progressCell.BackColor = System.Drawing.Color.FromName(cellValue);
-                        // Show a pure color swatch (no visible text) as requested.
-                        progressCell.ForeColor = progressCell.BackColor;
+                        System.Drawing.Color background = System.Drawing.ColorTranslator.FromHtml(cellValue);
+                        progressCell.BackColor = background;
+                        progressCell.ForeColor = GetIssueProgressTextColor(background);
+                        progressCell.Attributes["style"] = "background-color:" + System.Drawing.ColorTranslator.ToHtml(background)
+                            + " !important;color:" + System.Drawing.ColorTranslator.ToHtml(progressCell.ForeColor) + " !important;";
                         progressCell.ToolTip = cellValue;
-                        progressCell.Text = "&nbsp;";
                     }
-                    catch (Exception ex)
+                    catch (ArgumentException)
                     {
-                        // Handle invalid color names (e.g., if the cell contains a non-color value)
-                        // Optionally log the exception or use default colors
-                        progressCell.BackColor = System.Drawing.Color.Gray;  // Default background color
-                        progressCell.ForeColor = System.Drawing.Color.Gray;
-                        progressCell.Text = "&nbsp;";
+                        System.Diagnostics.Trace.TraceWarning("Invalid Issue List progress color: {0}", cellValue);
+                        progressCell.ToolTip = "Progress color is unavailable.";
                     }
                 }
             }
 
+        }
+    }
 
+    private static System.Drawing.Color GetIssueProgressTextColor(System.Drawing.Color background)
+    {
+        double[] channels = { background.R / 255.0, background.G / 255.0, background.B / 255.0 };
+        for (int i = 0; i < channels.Length; i++)
+            channels[i] = channels[i] <= 0.04045 ? channels[i] / 12.92 : Math.Pow((channels[i] + 0.055) / 1.055, 2.4);
+        double luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+        return luminance > 0.179 ? System.Drawing.Color.Black : System.Drawing.Color.White;
+    }
+
+    private static void FillEmptyIssueListCells(GridViewRow row)
+    {
+        foreach (TableCell cell in row.Cells)
+        {
+            if (!cell.Visible || cell.CssClass.Split(' ').Contains("field-actions")) continue;
+
+            using (StringWriter buffer = new StringWriter())
+            using (HtmlTextWriter writer = new HtmlTextWriter(buffer))
+            {
+                cell.RenderControl(writer);
+                string text = HttpUtility.HtmlDecode(
+                    System.Text.RegularExpressions.Regex.Replace(buffer.ToString(), "<[^>]*>", string.Empty));
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    cell.Controls.Clear();
+                    cell.Text = "unknown";
+                }
+            }
         }
     }
 
@@ -15341,7 +17629,7 @@ ORDER BY
 
             using (SqlConnection con = new SqlConnection(connectionString))
             {
-                using (SqlCommand cmd = new SqlCommand(alldriver_query, con))
+                using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(alldriver_query, con))
                 {
                     con.Open();
                     using (SqlDataReader reader = cmd.ExecuteReader())
@@ -15678,7 +17966,7 @@ ORDER BY
                 headerTitle.InnerText = WorkWeek + " | CMF Live Dashboard - All";
                 master_query += " WHERE status not in ('complete', 'rejected') Order by drivers";
             }
-            using (SqlCommand cmd = new SqlCommand(master_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(master_query, con))
             {
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
                 {
@@ -15723,7 +18011,7 @@ ORDER BY
                 main_query += "  WHERE drivers = @FilterValue ";
             }
 
-            using (SqlCommand cmd = new SqlCommand(main_query, con))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(main_query, con))
             {
                 using (SqlDataAdapter sda = new SqlDataAdapter(cmd))
                 {
@@ -15802,11 +18090,11 @@ ORDER BY
                 SUM(CASE WHEN cmf_request = 'cmf_ok' AND sysdebug Like ('%customer_must_fix%') THEN 1 ELSE 0 END) AS TotalCount,
                 SUM(CASE WHEN [cmf_request] = 'cmf_duplicate' AND sysdebug Like ('%customer_must_fix%') THEN 1 ELSE 0 END) AS Duplicates,
                 SUM(CASE WHEN cmf_request = 'cmf_ok' AND sysdebug Like ('%customer_must_fix%') AND ([status] = 'complete' OR [status] = 'rejected') THEN 1 ELSE 0 END) AS ClosedCount,
-                SUM(CASE WHEN cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] = 'implemented' THEN 1 ELSE 0 END) AS ImplementedCount,
+                SUM(CASE WHEN cmf_request in ('cmf_ok','cmf_duplicate') AND sysdebug Like ('%customer_must_fix%') AND [status] IN ('implemented', 'future') THEN 1 ELSE 0 END) AS ImplementedCount,
                 STUFF((
                     SELECT ', ' + [component_group]
                     FROM " + selectedPlatform + @"
-                    WHERE cmf_request = 'cmf_ok' AND sysdebug Like ('%customer_must_fix%') AND [status] = 'implemented' 
+                    WHERE cmf_request = 'cmf_ok' AND sysdebug Like ('%customer_must_fix%') AND [status] IN ('implemented', 'future') 
                     FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '') AS ImplementedComponents
             FROM " + selectedPlatform;
 
@@ -15815,7 +18103,7 @@ ORDER BY
 
             // Fetch summary data
             System.Data.DataTable summaryTable = new System.Data.DataTable();
-            using (SqlCommand cmd = new SqlCommand(summaryQuery, conn))
+            using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(summaryQuery, conn))
             {
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 if (!string.IsNullOrEmpty(filtervalue) && filtervalue != "AllDrivers")
@@ -16513,21 +18801,9 @@ ORDER BY
             return;
         }
 
-        // Don't show shared filter panel if welcome page is visible
-        if (homeWelcomePanel != null && homeWelcomePanel.Visible)
-        {
-            sharedFilterPanel.Visible = false;
-            return;
-        }
-
-        // Show shared filter panel only when Issue List or CMF Pending List is active
-        string activeTab = GetActiveFocusedTab();
-        sharedFilterPanel.Visible = (activeTab == "issue" || activeTab == "pending");
-        
-        if (sharedFilterPanel.Visible)
-        {
-            PopulateSharedFilterDropdowns();
-        }
+        // Always keep sharedFilterPanel rendered so client-side docking can place controls in Issue List and CMF Pending List
+        sharedFilterPanel.Visible = true;
+        PopulateSharedFilterDropdowns();
     }
 
     /// <summary>
@@ -16542,41 +18818,62 @@ ORDER BY
                 availablePlatforms.Select(option => option.TableName),
                 StringComparer.OrdinalIgnoreCase);
 
+            bool pendingActive = string.Equals(GetActiveFocusedTab(), "pending", StringComparison.OrdinalIgnoreCase);
+            ddlSharedPlatform.SelectionMode = pendingActive ? ListSelectionMode.Multiple : ListSelectionMode.Single;
             ddlSharedPlatform.Items.Clear();
+            ddlSharedPlatform.Items.Add(new ListItem("Select All", OverallDashboardPlatformTable));
             if (availablePlatforms.Count > 0)
             {
-                ddlSharedPlatform.Items.Add(new ListItem("Overall", OverallDashboardPlatformTable));
                 foreach (CmfPlatformDefinition option in availablePlatforms)
                 {
                     ddlSharedPlatform.Items.Add(new ListItem(option.Label, option.TableName));
                 }
             }
 
-            // Restore previously selected platform from session or current platform
-            string currentPlatform = Session[IssuePendingPlatformSessionKey] as string
-                ?? selectedPlatform
-                ?? (Session["selectedPlatform"] as string);
-
-            string selectedValue;
-            if (IsOverallDashboardPlatform(currentPlatform) && availablePlatforms.Count > 0)
+            if (pendingActive)
             {
-                selectedValue = OverallDashboardPlatformTable;
+                HashSet<string> pendingSelections = new HashSet<string>(GetPendingPlatformSelections(), StringComparer.OrdinalIgnoreCase);
+                ddlSharedPlatform.ClearSelection();
+                bool allSelected = availablePlatforms.All(p => pendingSelections.Contains(p.TableName));
+                foreach (ListItem option in ddlSharedPlatform.Items)
+                {
+                    if (string.Equals(option.Value, OverallDashboardPlatformTable, StringComparison.OrdinalIgnoreCase))
+                    {
+                        option.Selected = allSelected;
+                    }
+                    else
+                    {
+                        option.Selected = pendingSelections.Contains(option.Value);
+                    }
+                }
+                if (ddlSharedPlatform.SelectedIndex < 0 && ddlSharedPlatform.Items.Count > 0)
+                {
+                    ddlSharedPlatform.Items[0].Selected = true;
+                }
+                return;
+            }
+
+            string currentSelection = GetIssuePendingPlatform();
+            ddlSharedPlatform.ClearSelection();
+            if (IsOverallDashboardPlatform(currentSelection))
+            {
+                ListItem allItem = ddlSharedPlatform.Items.FindByValue(OverallDashboardPlatformTable);
+                if (allItem != null) allItem.Selected = true;
             }
             else
             {
-                selectedValue = ResolveFirstAvailablePlatform(
-                    new[] { currentPlatform, Session["selectedPlatform"] as string, selectedPlatform, DefaultPlatformTable },
+                string selectedValue = ResolveFirstAvailablePlatform(
+                    new[] { currentSelection, DefaultIssuePendingPlatformTable },
                     availableSet,
                     availablePlatforms);
-            }
 
-            if (!string.IsNullOrWhiteSpace(selectedValue))
-            {
-                ddlSharedPlatform.ClearSelection();
-                ListItem item = ddlSharedPlatform.Items.FindByValue(selectedValue);
-                if (item != null)
+                if (!string.IsNullOrWhiteSpace(selectedValue))
                 {
-                    item.Selected = true;
+                    ListItem item = ddlSharedPlatform.Items.FindByValue(selectedValue);
+                    if (item != null)
+                    {
+                        item.Selected = true;
+                    }
                 }
             }
         }
@@ -16593,7 +18890,34 @@ ORDER BY
     {
         try
         {
-            string selectedPlatformTable = ResolveIssuePendingPlatformSelection(ddlSharedPlatform.SelectedValue);
+            if (string.Equals(GetActiveFocusedTab(), "pending", StringComparison.OrdinalIgnoreCase))
+            {
+                HashSet<string> available = new HashSet<string>(
+                    GetAvailableIndividualPlatforms().Select(option => option.TableName), StringComparer.OrdinalIgnoreCase);
+                string[] rawSelections = Request.Form.GetValues(ddlSharedPlatform.UniqueID) ?? new string[0];
+                string[] selections;
+                if (rawSelections.Any(s => string.Equals(s, OverallDashboardPlatformTable, StringComparison.OrdinalIgnoreCase)))
+                {
+                    selections = available.ToArray();
+                }
+                else
+                {
+                    selections = rawSelections
+                        .Where(available.Contains)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToArray();
+                }
+                Session[PendingPlatformsSessionKey] = selections.Length > 0
+                    ? selections : new[] { DefaultIssuePendingPlatformTable };
+                EnsurePendingTabVisibleForPostback();
+                RebindFocusedTabData(false);
+                PopulateSharedFilterDropdowns();
+                return;
+            }
+
+            string postedPlatform = Request.Form[ddlSharedPlatform.UniqueID];
+            string selectedPlatformTable = ResolveIssuePendingPlatformSelection(
+                string.IsNullOrWhiteSpace(postedPlatform) ? ddlSharedPlatform.SelectedValue : postedPlatform);
 
             if (!string.IsNullOrEmpty(selectedPlatformTable))
             {
@@ -16790,7 +19114,14 @@ ORDER BY
     {
         try
         {
-            string currentPlatform = GetIssuePendingPlatform();
+            List<string> platforms = GetPendingPlatformSelections();
+            if (platforms.Count > 1)
+            {
+                lnkPlatformDashboardPending.Visible = false;
+                lnkPlatformDashboard.Visible = false;
+                return;
+            }
+            string currentPlatform = platforms[0];
             
             if (string.IsNullOrEmpty(currentPlatform))
             {

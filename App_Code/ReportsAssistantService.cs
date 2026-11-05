@@ -28,9 +28,9 @@ public static class ReportsAssistantService
     private const string ReportsContextSessionKey = "ReportsAssistantContextByPlatform";
     private const string AllCmfDataContextKey = "ALL_CMF_DATA";
     private const int MaxHsdRowsForReports = 40;
-    private static readonly Dictionary<string, string> PlatformPromptMap = CmfPlatformCatalog.GetPromptAliasToTableMap();
-    private static readonly Dictionary<string, string[]> PlatformGroupAliasMap = CmfPlatformCatalog.GetGroupAliasToTablesMap();
-    private static readonly HashSet<string> AllowedPlatformTables = CmfPlatformCatalog.GetAllowedPlatformTables();
+    private static Dictionary<string, string> PlatformPromptMap { get { return CmfPlatformCatalog.GetPromptAliasToTableMap(); } }
+    private static Dictionary<string, string[]> PlatformGroupAliasMap { get { return CmfPlatformCatalog.GetGroupAliasToTablesMap(); } }
+    private static HashSet<string> AllowedPlatformTables { get { return CmfPlatformCatalog.GetAllowedPlatformTables(); } }
 
     public static ReportsAssistantResponse ProcessPrompt(string prompt, string platform)
     {
@@ -1107,7 +1107,7 @@ public static class ReportsAssistantService
                 fixedVersionExpr
             }) + " FROM " + platformTable + whereClause;
 
-            using (SqlCommand command = new SqlCommand(sql, connection))
+            using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
             using (SqlDataAdapter adapter = new SqlDataAdapter(command))
             {
                 adapter.Fill(table);
@@ -1126,7 +1126,7 @@ public static class ReportsAssistantService
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_NAME = @tableName";
 
-        using (SqlCommand command = new SqlCommand(sql, connection))
+        using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
         {
             command.Parameters.AddWithValue("@tableName", platformTable);
             using (SqlDataReader reader = command.ExecuteReader())

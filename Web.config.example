@@ -31,6 +31,7 @@
     <add key="HSD:McpAuthorization" value="" />
     <add key="HSD:ArticleApiBaseUrl" value="https://hsdes-api.intel.com/rest/article" />
     <add key="HSD:TimeoutSeconds" value="20" />
+    <add key="CMF:AssistantHsdRefreshSeconds" value="60" />
     <add key="HSD:UseDefaultCredentials" value="true" />
     <add key="HSD:Proxy" value="" />
   </appSettings>
@@ -40,7 +41,13 @@
   </connectionStrings>
 
   <system.web>
-    <compilation debug="true" targetFramework="4.8" />
+    <compilation debug="true" targetFramework="4.8">
+      <assemblies>
+        <add assembly="System.Web.Extensions, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31BF3856AD364E35" />
+        <add assembly="WindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31BF3856AD364E35" />
+        <add assembly="System.DirectoryServices.AccountManagement, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+      </assemblies>
+    </compilation>
     <httpRuntime targetFramework="4.8" maxRequestLength="102400" executionTimeout="3600" />
     <pages validateRequest="false" />
   </system.web>

@@ -25,12 +25,14 @@ App_Data/hsd-debug-*.txt
 App_Data/hsd-raw-response-*.json
 App_Data/article_*.json
 *.log
+cmf-historical-evaluation-2026-10-30.md
 
 # Generated report/data outputs
 Content/generated-reports/
 App_Data/reports-assistant/issues_*.csv
 App_Data/reports-assistant/template_*.md
 App_Data/reports-assistant/templates/*_manual-template.md
+App_Data/cmf-assistant-cache/
 
 # Python caches
 __pycache__/

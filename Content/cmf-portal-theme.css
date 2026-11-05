@@ -1,0 +1,2604 @@
+@font-face {
+    font-family: "IBM Plex Sans";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("fonts/ibm-plex-sans-latin-wght-normal.woff2") format("woff2");
+}
+
+:root {
+    --portal-font-ui: Cambria, Georgia, serif;
+    --portal-font-body: var(--portal-font-ui);
+    --portal-font-display: var(--portal-font-ui);
+    --portal-font-card: var(--portal-font-ui);
+    --portal-primary: #0073ed;
+    --portal-primary-dark: #005fc7;
+    --portal-bg: #f7f8fb;
+    --portal-surface: #ffffff;
+    --portal-surface-soft: #f9fafd;
+    --portal-ink: #24354e;
+    --portal-muted: #64738c;
+    --cmf-primary: #0073ed;
+    --cmf-primary-dark: #005fc7;
+    --cmf-primary-soft: #edf5ff;
+    --cmf-bg: #f7f8fb;
+    --cmf-border: #e4e9f1;
+    --cmf-text: #24354e;
+    --cmf-text-secondary: #64738c;
+    --cmf-radius-sm: 4px;
+    --cmf-radius-md: 6px;
+    --cmf-radius-lg: 8px;
+}
+
+html body {
+    margin: 0;
+    background: var(--portal-bg) !important;
+    color: var(--portal-ink);
+    font-family: var(--portal-font-ui) !important;
+    font-size: 12px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+body input, body select, body textarea, body button,
+body .portal-main-workspace, body .portal-main-workspace h1,
+body .portal-main-workspace h2, body .portal-main-workspace h3,
+body .portal-main-workspace h4, body .portal-main-workspace label,
+body .portal-main-workspace [class*="title"],
+body .portal-main-workspace [class*="value"],
+body .portal-main-workspace [class*="label"] {
+    font-family: var(--portal-font-ui) !important;
+    letter-spacing: 0 !important;
+}
+
+html body :is(form, #portalLayoutShell, .portal-app-header, .ai-summary-drawer, .modal) :not(i):not(.fa):not(.fas):not(.far):not(.fab):not(.fa-solid):not(.fa-regular):not(.fa-brands),
+html body #pendingTabShell #cmfPendingExternalLinks .issue-external-links a,
+html body #issueTabShell #issueExternalLinks .issue-external-links a {
+    font-family: var(--portal-font-ui) !important;
+}
+
+html body select,
+html body #ddlSharedPlatform,
+html body #issueTabShell select.header-dropdown,
+html body #issueTabShell select.issue-page-size-select,
+html body #pendingTabShell select.cmf-pending-filter-select,
+html body .portal-app-header select.header-mode-dropdown {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    border: 1px solid #d5dfeb !important;
+    border-radius: 8px !important;
+    padding: 5px 28px 5px 10px !important;
+    background-color: #fff !important;
+    background-image: linear-gradient(45deg, transparent 50%, #64738c 50%), linear-gradient(135deg, #64738c 50%, transparent 50%) !important;
+    background-position: calc(100% - 14px) 50%, calc(100% - 10px) 50% !important;
+    background-size: 4px 4px !important;
+    background-repeat: no-repeat !important;
+    color: #3d506d !important;
+    font-family: var(--portal-font-ui) !important;
+    font-weight: 400 !important;
+    cursor: pointer;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.portal-filter-dropdown {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+}
+
+html body select.portal-filter-native {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden !important;
+    clip-path: inset(50%);
+}
+
+html body .portal-filter-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    height: 36px;
+    padding: 6px 10px;
+    border: 1px solid #d5dfeb;
+    border-radius: 6px;
+    background: #fff;
+    color: #3d506d;
+    font: 11px/1.35 var(--portal-font-ui);
+    text-align: left;
+    cursor: pointer;
+}
+
+html body .portal-filter-trigger:hover,
+html body .portal-filter-trigger[aria-expanded="true"] {
+    border-color: #80b9ef;
+    background: #f5f9fd;
+}
+
+.portal-filter-trigger-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.portal-filter-trigger > i {
+    flex-shrink: 0;
+    font-size: 10px;
+    color: #64738c;
+}
+
+.portal-filter-menu {
+    position: fixed;
+    z-index: 10050;
+    box-sizing: border-box;
+    padding: 12px 0 6px;
+    border: 1px solid #e1e6ec;
+    border-radius: 8px;
+    background: #fff;
+    color: #374760;
+    box-shadow: 0 8px 24px rgba(28, 44, 64, .16);
+    font: 12px/1.45 var(--portal-font-ui);
+}
+
+.portal-filter-menu-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 12px 8px;
+    padding: 10px 12px;
+    border: 1px solid #dce3eb;
+    border-radius: 4px;
+    color: #728092;
+}
+
+html body .portal-filter-menu-search input {
+    width: 100%;
+    min-width: 0;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    outline: none;
+    background: transparent;
+    color: #374760;
+    font: inherit;
+    box-shadow: none;
+}
+
+.portal-filter-menu-search:focus-within {
+    border-color: #0073ed;
+    outline: 1px solid #0073ed;
+}
+
+.portal-filter-menu-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px 6px;
+    font-weight: 600;
+}
+
+html body .portal-filter-menu-summary button {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #64738c;
+    cursor: pointer;
+}
+
+.portal-filter-menu-options {
+    max-height: 256px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+html body .portal-filter-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    min-height: 36px;
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
+    color: #374760;
+    font: inherit;
+    text-align: left;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+
+html body .portal-filter-option:hover,
+html body .portal-filter-option[aria-selected="true"],
+html body .portal-filter-menu-summary button:hover {
+    background: #f0f6fc;
+}
+
+.portal-filter-option-check {
+    display: grid;
+    place-items: center;
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+    border: 1px solid #bec9d6;
+    border-radius: 2px;
+    color: #0073ed;
+    font-size: 10px;
+}
+
+.portal-filter-menu-empty {
+    padding: 12px 14px;
+    color: #64738c;
+}
+
+html body .portal-filter-trigger:focus-visible,
+html body .portal-filter-option:focus-visible,
+html body .portal-filter-menu-summary button:focus-visible {
+    outline: 2px solid #0073ed;
+    outline-offset: -2px;
+}
+
+html body .portal-filter-trigger:disabled,
+html body .portal-filter-option:disabled {
+    opacity: .55;
+    cursor: default;
+}
+
+html body select:hover:not(:disabled) {
+    border-color: #80b9ef !important;
+}
+
+html body select:focus-visible {
+    border-color: #0073ed !important;
+    box-shadow: 0 0 0 3px rgba(0, 115, 237, .12) !important;
+}
+
+html body select:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+html body #issueTabShell #overall_request_details .field-los select {
+    padding: 4px 14px 4px 2px !important;
+    background-position: calc(100% - 9px) 50%, calc(100% - 5px) 50% !important;
+}
+
+body .portal-app-header {
+    position: relative !important;
+    top: auto !important;
+    display: flex !important;
+    flex-wrap: nowrap;
+    align-items: center !important;
+    gap: 16px !important;
+    height: 64px !important;
+    min-height: 64px !important;
+    padding: 0 20px !important;
+    background: linear-gradient(105deg, #193249 0%, #244767 100%) !important;
+    border-bottom: 1px solid #2d4b65 !important;
+    box-shadow: 0 1px 3px rgba(20, 38, 59, .08) !important;
+    color: #fff !important;
+}
+
+.portal-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    flex: 0 0 auto;
+    color: #fff !important;
+    font-size: 18px;
+    font-weight: 600;
+    text-decoration: none !important;
+    white-space: nowrap;
+}
+
+.portal-brand-logo {
+    height: 22px;
+    width: auto;
+    display: block;
+    filter: brightness(0) invert(1);
+    object-fit: contain;
+}
+
+.portal-brand-mark {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px 2px 0;
+    border-right: 1px solid #6b8195;
+    line-height: 1;
+}
+
+.portal-work-week {
+    color: #d2dfed;
+    font-size: 12px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+body .portal-app-header .header-title {
+    display: none !important;
+}
+
+body .portal-app-header .global-search-shell {
+    flex: 0 1 440px;
+    position: absolute !important;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) !important;
+    width: 440px;
+    min-width: 160px;
+    max-width: calc(100% - 860px);
+    margin: 0 !important;
+}
+
+body #globalPortalSearch {
+    height: 36px;
+    background: #fcfdff;
+    border: 1px solid #d8e1ed;
+    border-radius: 4px;
+    padding-right: 38px;
+    font-weight: 400;
+    box-shadow: none;
+}
+
+body .global-search-shortcut {
+    display: none;
+}
+
+body .global-search-clear {
+    right: 8px;
+    z-index: 2;
+}
+
+body .portal-app-header .header-user-mode {
+    position: static !important;
+    display: flex;
+    order: 2;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto !important;
+    color: #dce5f0 !important;
+}
+
+body .portal-app-header .portal-header-updated {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #dce5f0;
+    font-size: 12px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+body .portal-app-header .dashboard-header-tools {
+    order: 1;
+    margin-left: auto;
+    min-width: 0;
+    max-width: 100%;
+}
+
+body .portal-app-header .dashboard-header-tools .dash-user-mode,
+body .portal-app-header .dashboard-header-tools .dash-user-mode label,
+body .portal-app-header .dashboard-header-tools .ccip-dash-updated {
+    color: #dce5f0 !important;
+    white-space: nowrap;
+}
+
+body .portal-app-header .dashboard-header-tools .ccip-dash-updated {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    gap: 4px;
+}
+
+body .header-user-mode label {
+    margin: 0;
+    font-size: 11px;
+}
+
+body #homeWelcomePanel .dashboard-platform-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+    max-width: none !important;
+    box-sizing: border-box;
+}
+
+body #homeWelcomePanel .dashboard-platform-toolbar > .dashboard-date-filter {
+    flex: 0 0 auto;
+    margin-left: auto;
+    max-width: 100%;
+}
+
+body #homeWelcomePanel .dashboard-platform-toolbar .dashboard-date-filter select,
+body #homeWelcomePanel .dashboard-platform-toolbar .dashboard-date-filter input {
+    height: calc(28px / var(--dashboard-toolbar-scale, 1));
+    font-size: calc(12px / var(--dashboard-toolbar-scale, 1));
+}
+
+body #homeWelcomePanel .dashboard-platform-toolbar > .platform-chip-rail {
+    flex: 1 1 560px !important;
+    align-self: center !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin-bottom: 0 !important;
+}
+
+body #homeWelcomePanel .dashboard-platform-toolbar > .platform-chip-rail > .platform-chip[data-platform="CMF_OVERALL_ALL_COMPONENTS_TABLE"] {
+    margin-left: auto;
+}
+
+body .portal-app-header .header-mode-dropdown {
+    height: 34px !important;
+    min-width: 145px !important;
+    background: #294a66 !important;
+    border: 1px solid #526e87 !important;
+    border-radius: 4px !important;
+    color: #fff !important;
+    font-size: 12px !important;
+}
+
+body .container-scroller,
+body .page-body-wrapper {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body .container-scroller {
+    overflow: visible !important;
+}
+
+body:not(.modal-open) {
+    overflow: visible !important;
+}
+
+body #portalLayoutShell {
+    display: grid !important;
+    grid-template-columns: 168px minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-items: stretch !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: calc(100vh - 64px) !important;
+}
+
+body #mainMenuSidebar {
+    position: sticky !important;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    flex: 0 0 168px !important;
+    width: 168px !important;
+    min-width: 168px !important;
+    max-width: 168px !important;
+    align-self: flex-start !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
+    top: 0 !important;
+    padding: 12px 0 !important;
+    background: #192f43 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+body #mainMenuSidebar .portal-section-header {
+    padding: 0 10px 8px;
+    border: 0;
+}
+
+body #mainMenuSidebar .portal-nav-active-title {
+    display: none !important;
+}
+
+body #mainMenuSidebar .portal-nav-link {
+    display: flex !important;
+    align-items: center;
+    gap: 10px !important;
+    min-height: 44px !important;
+    margin: 0 0 3px !important;
+    padding: 10px 12px !important;
+    border: 0 !important;
+    border-left: 3px solid transparent !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #b9c8d8 !important;
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+body #mainMenuSidebar .portal-nav-link i {
+    flex: 0 0 18px;
+    width: 18px;
+    text-align: center;
+    color: inherit !important;
+    font-size: 15px !important;
+}
+
+body #mainMenuSidebar .portal-nav-link span {
+    white-space: normal;
+}
+
+body #mainMenuSidebar .portal-nav-link:hover {
+    background: #263f58 !important;
+    color: #fff !important;
+}
+
+body #mainMenuSidebar .portal-nav-link.is-active {
+    background: #264c71 !important;
+    border-left-color: #009bff !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+}
+
+body #mainMenuSidebar .portal-nav-link::before {
+    display: none !important;
+}
+
+body #mainMenuSidebar.is-collapsed {
+    flex-basis: 54px !important;
+    width: 54px !important;
+    min-width: 54px !important;
+    max-width: 54px !important;
+}
+
+body #mainMenuSidebar.is-collapsed .portal-nav-link {
+    justify-content: center;
+    padding: 10px 5px !important;
+}
+
+body #mainMenuSidebar .portal-collapse-btn {
+    background: transparent !important;
+    border: 1px solid #587087 !important;
+    border-radius: 4px !important;
+    color: #d8e3ee !important;
+}
+
+body #portalLayoutShell > .portal-main-workspace {
+    overflow-x: auto !important;
+    grid-column: 2;
+    grid-row: 1;
+    flex: 1 1 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 18px !important;
+    background: var(--portal-bg) !important;
+}
+
+body #portalLayoutShell > .gridview-container-wrapper {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+    max-width: 100%;
+}
+
+body #portalLayoutShell.main-menu-collapsed {
+    grid-template-columns: 54px minmax(0, 1fr) !important;
+}
+
+body #mainDataWrapper.content-wrapper,
+body .ccip-dashboard-host,
+body .ccip-dashboard,
+body .reports-workspace {
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+body #mainDataWrapper > .modal-body,
+body #mainDataWrapper .table-container {
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+body .issue-page-title,
+body #pendingTabShell .cmf-pending-page-title,
+body .ccip-dash-greeting,
+body .portal-tab-title,
+body .pane-heading {
+    font-size: 22px !important;
+    font-weight: 600 !important;
+    color: #1b2d47 !important;
+    line-height: 1.3 !important;
+    letter-spacing: 0 !important;
+}
+
+body .issue-page-desc,
+body #pendingTabShell .cmf-pending-page-desc,
+body .ccip-dash-sub {
+    margin-top: 4px !important;
+    color: #63738c !important;
+    font-size: 12px !important;
+    line-height: 1.5;
+}
+
+body .issue-page-hd,
+body #pendingTabShell .cmf-pending-page-hd,
+body .ccip-dash-top,
+body .portal-tab-hero {
+    padding: 0 0 14px !important;
+    margin-bottom: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+body .issue-kpi,
+body .template-kpi-card,
+body .ccip-summary-fact,
+body .overall-card,
+body .ccip-card,
+body .portal-surface-card {
+    border: 1px solid #e4e9f1 !important;
+    border-radius: 6px !important;
+    background: #fff !important;
+    box-shadow: 0 1px 3px rgba(23, 43, 68, .025) !important;
+}
+
+body .issue-kpi {
+    padding: 12px 14px !important;
+}
+
+body .issue-kpi-label {
+    color: #5b6c86 !important;
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    text-transform: none !important;
+}
+
+body .issue-kpi-value {
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    color: #203650 !important;
+}
+
+body #sharedFilterPanel.overview-platform-actions,
+body #pendingTabShell .pending-tab-main .cmf-pending-filter-card,
+body .issue-top-filter-panel {
+    padding: 10px 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body #issueTopFilterBody {
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+body .issue-top-filter-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    overflow: visible !important;
+}
+
+body .issue-top-filter-item {
+    min-width: 0 !important;
+}
+
+body .issue-top-filter-item > span {
+    color: #536985 !important;
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    text-transform: none !important;
+}
+
+body .header-dropdown,
+body #ddlSharedPlatform,
+body .cmf-pending-filter-select,
+body .cmf-pending-searchbox input {
+    max-width: 100%;
+    min-width: 0 !important;
+    height: 34px !important;
+    border: 1px solid #dce3ee !important;
+    border-radius: 4px !important;
+    background-color: #fff !important;
+    color: #3d506d !important;
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    box-shadow: none !important;
+}
+
+body .issue-external-links a,
+body .ccip-link-btn {
+    color: #0069d0 !important;
+    font-size: 12px !important;
+}
+
+body #pendingTabShell #cmfPendingExternalLinks a {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 34px;
+    padding: 7px 10px !important;
+    border: 1px solid #dce3ee !important;
+    border-radius: 4px;
+    background: #fff !important;
+    color: #476384 !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+}
+
+body #pendingTabShell #cmfPendingExternalLinks a::after {
+    content: "\f35d";
+    font-family: "Font Awesome 6 Free";
+    font-size: 10px;
+    font-weight: 900;
+    color: #607d99;
+}
+
+body #pendingTabShell #cmfPendingExternalLinks a:hover {
+    background: #edf5ff !important;
+    border-color: #80b9ef !important;
+    color: #005bb8 !important;
+}
+
+body #btnPendingViewExport {
+    text-decoration: none !important;
+}
+
+body .issue-page-hd-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+body #issueExternalLinks .issue-external-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+body #issuePlatformSlot .overview-platform-filter,
+body #cmfPendingPlatformSlot .overview-platform-filter {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
+    min-width: 0;
+}
+
+body #issuePlatformSlot label,
+body #cmfPendingPlatformSlot label,
+body .portal-filter-field {
+    margin: 0;
+    min-width: 0;
+    color: #536985;
+    font-size: 11px;
+    font-weight: 400;
+}
+
+body .portal-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+body #pendingTabShell .pending-tab-main .cmf-pending-filter-card {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(240px, 1.8fr) repeat(2, minmax(0, 1fr)) auto !important;
+    align-items: end;
+}
+
+body #pendingTabShell .cmf-pending-searchbox {
+    display: none !important;
+}
+
+body #pendingTabShell .cmf-pending-filter-btn {
+    box-sizing: border-box;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 6px 12px !important;
+    align-self: end;
+}
+
+body #pendingTabShell .pending-stale-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    padding: 3px 6px;
+    border: 1px solid #e6c46a;
+    border-left: 3px solid #b77900;
+    border-radius: 4px;
+    background: #fff8df;
+    color: #775400;
+    font-size: 10px;
+    line-height: 1.4;
+    white-space: normal;
+}
+
+body .portal-date-filter {
+    border: 0;
+    padding: 0;
+}
+
+body .portal-date-filter legend {
+    float: none;
+    width: auto;
+    margin: 0 0 4px;
+    font-size: 11px;
+    color: #536985;
+}
+
+body .portal-date-filter > div {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+body .portal-date-filter input {
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+    height: 34px;
+    padding: 3px;
+    border: 1px solid #d5dfeb;
+    border-radius: 4px;
+    color: #304760;
+    background: #fff;
+    font-size: 11px;
+}
+
+body .portal-table-footer {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 12px 0;
+    color: #536985;
+    font-size: 12px;
+}
+
+body .portal-table-footer label,
+body .portal-table-footer nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+body #cmfPendingPageStatus {
+    margin-left: auto;
+}
+
+body .portal-table-footer select,
+body .portal-table-footer button {
+    height: 30px;
+    min-width: 30px;
+    border: 1px solid #d5dfeb;
+    border-radius: 4px;
+    color: #0069d0;
+    background: #fff;
+}
+
+body .portal-table-footer button:disabled {
+    opacity: .4;
+    cursor: default;
+}
+
+body .portal-table-empty:not([hidden]) {
+    padding: 32px 12px;
+    background: #fff;
+    text-align: center;
+    color: #60728a;
+}
+
+body .modern-button,
+body .filter-btn-primary,
+body .ccip-btn-primary,
+body .cmf-pending-action-btn.primary {
+    background: var(--portal-primary) !important;
+    color: #fff !important;
+    border: 1px solid var(--portal-primary) !important;
+    border-radius: 4px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 2px rgba(0, 96, 200, .10) !important;
+}
+
+body .issue-grid-scroll,
+body #pendingTabShell .cmf-pending-grid-wrap {
+    border: 1px solid #e1e7f0 !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    box-shadow: none !important;
+}
+
+#pendingTabShell .pending-cell-content,
+#issueTabShell .pending-cell-content {
+    position: relative;
+    min-width: 0;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-customer-label,
+body #issueTabShell #overall_request_details .pending-customer-label {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0 auto 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #e5e7eb;
+    color: #000;
+    font-weight: 400;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-stale-badge {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0 auto 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #e5e7eb;
+    color: #000;
+    font-weight: 400;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+#pendingTabShell .pending-cell-text,
+#issueTabShell .pending-cell-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    max-height: 5.8em;
+    overflow: hidden;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+#pendingTabShell .pending-cell-text.is-truncated,
+#issueTabShell .pending-cell-text.is-truncated {
+    cursor: help;
+}
+
+#pendingTabShell .pending-cell-text:focus-visible,
+#issueTabShell .pending-cell-text:focus-visible {
+    outline: 2px solid var(--portal-primary);
+    outline-offset: 2px;
+}
+
+body .pending-cell-tooltip {
+    position: fixed;
+    z-index: 11000;
+    width: max-content;
+    max-width: min(460px, calc(100vw - 16px));
+    max-height: min(360px, calc(100vh - 32px));
+    overflow: auto;
+    padding: 12px 14px;
+    border: 1px solid #cddbea;
+    border-radius: 4px;
+    background: #fff;
+    color: #20344d;
+    box-shadow: 0 4px 16px rgba(20, 45, 70, .16);
+    font: 12px/1.5 var(--portal-font-ui);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+body .ai-summary-drawer:not(.show) {
+    visibility: hidden !important;
+    box-shadow: none !important;
+}
+
+body .portal-main-workspace .table-primary {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-family: var(--portal-font-ui) !important;
+}
+
+body .portal-main-workspace .table-primary th,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th {
+    background: #edf1f7 !important;
+    color: #31445e !important;
+    border-color: #e1e7f0 !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20 !important;
+    box-shadow: inset 0 -1px 0 #d0d7de !important;
+}
+
+body #pendingTabShell .cmf-pending-grid-wrap #GridView_cmf_pending {
+    overflow: visible !important;
+}
+
+body .portal-main-workspace .table-primary td,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td {
+    color: #374760 !important;
+    border-color: #e8ecf3 !important;
+    font-size: 11px !important;
+    line-height: 1.45 !important;
+}
+
+body #pendingTabShell .cmf-pending-page-title {
+    font-weight: 700 !important;
+    color: #1b2d47 !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th {
+    font-weight: 700 !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td :is(a, span:not(.pending-ai-rec-icon), button, div, strong, small) {
+    font-size: 12px !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: none !important;
+    table-layout: auto !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td {
+    width: auto !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td :is(a, span, button, div, strong, small) {
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-id-actions,
+body #pendingTabShell #GridView_cmf_pending .pending-ai-rec-btn {
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-cell-text {
+    display: block !important;
+    -webkit-line-clamp: unset !important;
+    line-clamp: unset !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+    text-overflow: clip !important;
+    overflow-wrap: normal !important;
+    cursor: default !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-reason,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-days-open {
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    text-align: center !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-column-hidden {
+    display: none !important;
+}
+
+body #pendingTabShell #pendingColumnPicker {
+    width: min(640px, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    margin: auto;
+    padding: 0;
+    border: 1px solid #d0d5df;
+    border-radius: 8px;
+    background: #fff;
+    color: #242733;
+    box-shadow: 0 12px 40px rgba(28, 44, 64, .24);
+    overflow: auto;
+}
+
+body #pendingTabShell #pendingColumnPicker::backdrop { background: rgba(0, 0, 0, .48); }
+body #pendingTabShell #pendingColumnPicker :is(.issue-column-dialog-header, .issue-column-dialog-footer) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+}
+body #pendingTabShell #pendingColumnPicker .issue-column-dialog-header { justify-content: space-between; border-bottom: 1px solid #d5d8e1; }
+body #pendingTabShell #pendingColumnTitle { margin: 0; font-size: 18px; font-weight: 400; }
+body #pendingTabShell #pendingColumnPicker button {
+    min-height: 32px;
+    padding: 5px 12px;
+    border: 1px solid #476384;
+    border-radius: 4px;
+    background: #fff;
+    color: #31445e;
+    cursor: pointer;
+}
+body #pendingTabShell #pendingColumnPicker button:hover:not(:disabled) { background: #edf5fd; }
+body #pendingTabShell #pendingColumnPicker :is(button, select):focus-visible { outline: 2px solid #0073ed; outline-offset: 2px; }
+body #pendingTabShell #pendingColumnPicker button:disabled { opacity: .4; cursor: default; }
+body #pendingTabShell #pendingColumnPicker .issue-column-close { padding: 0; border: 0; min-width: 28px; font-size: 22px; }
+body #pendingTabShell #pendingColumnPicker .issue-column-dialog-body { padding: 14px 16px 0; }
+body #pendingTabShell #pendingColumnPicker .issue-column-lists { display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr) 28px; gap: 8px; }
+body #pendingTabShell #pendingColumnPicker .issue-column-list { min-width: 0; }
+body #pendingTabShell #pendingColumnPicker label { display: block; margin-bottom: 4px; }
+body #pendingTabShell #pendingColumnPicker select {
+    display: block !important;
+    width: 100% !important;
+    height: clamp(160px, 40vh, 300px) !important;
+    padding: 4px !important;
+    border: 1px solid #9399ab !important;
+    border-radius: 3px !important;
+    background: #fff !important;
+    color: #242733 !important;
+    appearance: auto !important;
+    overflow: auto;
+}
+body #pendingTabShell #pendingColumnPicker .issue-column-controls { display: flex; flex-direction: column; justify-content: center; gap: 6px; padding-top: 24px; }
+body #pendingTabShell #pendingColumnPicker .issue-column-controls button { width: 28px; padding: 0; }
+body #pendingTabShell #pendingColumnPicker .issue-column-dialog-footer { justify-content: flex-end; flex-wrap: wrap; }
+body #pendingTabShell #pendingColumnPicker .issue-column-reset { margin-right: auto; }
+body #pendingTabShell #pendingColumnPicker .issue-column-apply { background: #31445e; color: #fff; }
+body #pendingTabShell :is(#pendingColumnMessage, #pendingColumnStatus) { color: #a12622; font-size: 12px; }
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-ai-recommendation .pending-ai-rec-cell {
+    display: block !important;
+    width: 100% !important;
+}
+
+body #issueTabShell #overall_request_details .field-days_open span,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-days-open .pending-cell-text {
+    display: inline !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: inherit !important;
+    font-weight: 400 !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-field-request.pending-request-stale {
+    color: #b42318 !important;
+    font-weight: 700 !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-stale-badge {
+    color: #b42318 !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn.pending-ai-rec-ready .pending-ai-rec-label {
+    color: #9a6500 !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-ai-recommendation .pending-ai-rec-btn {
+    flex-direction: column !important;
+    gap: 4px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    padding: 4px 2px !important;
+    white-space: normal !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-ai-recommendation .pending-ai-rec-label {
+    display: block !important;
+    min-width: 0;
+    max-width: 100%;
+    font-size: 10px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+@media (max-width: 700px) {
+    body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th,
+    body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns td {
+        padding-left: 1px !important;
+        padding-right: 1px !important;
+    }
+
+    body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-field-ai-recommendation .pending-ai-rec-btn {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-id-actions > a,
+body #issueTabShell #overall_request_details .issue-id-link {
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    font-variant-numeric: tabular-nums;
+}
+
+body #issueTabShell .issue-page-title {
+    font-weight: 700 !important;
+    color: #1b2d47 !important;
+}
+
+body #issueTabShell .issue-top-filter-item > span {
+    color: #536985 !important;
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    text-transform: none !important;
+}
+
+body #issueTabShell .header-dropdown {
+    height: 34px !important;
+    border: 1px solid #dce3ee !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    color: #3d506d !important;
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    box-shadow: none !important;
+}
+
+body #issueTabShell .filter-btn-secondary {
+    min-height: 34px !important;
+    border: 1px solid #dce3ee !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    color: #476384 !important;
+    box-shadow: none !important;
+}
+
+body #issueTabShell #overall_request_details {
+    margin-top: 0 !important;
+    border-collapse: collapse !important;
+    border-radius: 0 !important;
+    font-family: var(--portal-font-ui) !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+body #issueTabShell #overall_request_details th {
+    border: 1px solid #e1e7f0 !important;
+    background: #edf1f7 !important;
+    color: #31445e !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20 !important;
+    box-shadow: inset 0 -1px 0 #d0d7de !important;
+}
+
+body #issueTabShell #overall_request_details th::before,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns th::before {
+    content: "" !important;
+    position: absolute !important;
+    bottom: 100% !important;
+    left: -1px !important;
+    right: -1px !important;
+    height: 40px !important;
+    background: #ffffff !important;
+    pointer-events: none !important;
+}
+
+body #issueTabShell #overall_request_details th,
+body #issueTabShell #overall_request_details th .filter-header-text {
+    text-align: center !important;
+    font-weight: 700 !important;
+}
+
+body #issueTabShell #overall_request_details th .filter-header-container {
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+}
+
+body #issueTabShell #overall_request_details th .filter-container {
+    display: block !important;
+    width: 100% !important;
+    margin-top: 3px !important;
+}
+
+body #issueTabShell #overall_request_details th select.header-dropdown {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 24px !important;
+    min-height: 24px !important;
+    font-size: 10px !important;
+    padding: 2px 16px 2px 4px !important;
+    border-radius: 4px !important;
+    border: 1px solid #d5dfeb !important;
+    background-color: #fff !important;
+}
+
+body #issueTabShell #overall_request_details th .filter-header-text {
+    align-self: center !important;
+    width: 100%;
+}
+
+body #issueTabShell #overall_request_details td {
+    border: 1px solid #e8ecf3 !important;
+    background: #fff !important;
+    color: #374760 !important;
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    line-height: 1.45 !important;
+}
+
+body #issueTabShell #overall_request_details tr {
+    --issue-row-background: #fff;
+    background: var(--issue-row-background) !important;
+    transform: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+body #issueTabShell #overall_request_details tr:nth-child(even) {
+    --issue-row-background: #fafbfe;
+}
+
+body #issueTabShell #overall_request_details tr:nth-child(even) > td,
+body #issueTabShell #overall_request_details tr:hover > td {
+    background: var(--issue-row-background) !important;
+}
+
+body #issueTabShell #overall_request_details tr:hover > td {
+    color: #374760 !important;
+    border-color: #e8ecf3 !important;
+    transform: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn:hover,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn:active,
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn:focus {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: #0069d0 !important;
+    box-shadow: none !important;
+}
+
+#pendingTabShell .pending-request-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+#pendingTabShell .pending-request-date > .pending-cell-text {
+    display: block;
+    max-width: 100%;
+    white-space: nowrap;
+    word-break: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body .portal-main-workspace .table-primary tr:nth-child(even) > td {
+    background-color: #fafbfe !important;
+}
+
+body .portal-main-workspace .table-primary tr:hover > td {
+    background-color: #f0f6ff !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns tr:nth-child(even) > td {
+    background-color: #fafbfe !important;
+}
+
+body #pendingTabShell #GridView_cmf_pending.cmf-pending-columns tr:hover > td {
+    background-color: #f0f6ff !important;
+}
+
+body .portal-main-workspace .table-primary td a:not(.pending-ai-rec-btn) {
+    color: #0073ed;
+    text-decoration: none;
+}
+
+body #pendingTabShell #GridView_cmf_pending .pending-rvp-status {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent !important;
+    color: inherit !important;
+    font-size: inherit;
+    font-weight: 400;
+}
+
+body .issue-pager-controls {
+    margin-top: 0 !important;
+    padding: 12px 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #536985;
+}
+
+body #issueTabShell .issue-page-hd {
+    display: block !important;
+}
+
+body #issueTabShell .issue-page-hd-top {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    flex-wrap: nowrap !important;
+}
+
+body #issueTabShell .issue-page-hd-top > div:first-child {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+}
+
+body #issueTabShell .issue-page-hd-top .cmf-pending-actions {
+    flex: 0 0 auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+}
+
+body #issueTabShell .issue-page-title {
+    margin: 0 !important;
+}
+
+body #issueTabShell .issue-page-desc {
+    margin: 4px 0 0 !important;
+    text-align: left !important;
+}
+
+body #issueTabShell #issueExternalLinks {
+    margin-left: 0;
+}
+
+body #issueExternalLinks .issue-external-links {
+    gap: 8px !important;
+    justify-content: flex-end;
+}
+
+body #issueExternalLinks a {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 7px;
+    min-height: 34px;
+    padding: 7px 10px !important;
+    border: 1px solid #dce3ee !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    color: #476384 !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+}
+
+body #issueExternalLinks a::after {
+    content: "\f35d";
+    font-family: "Font Awesome 6 Free";
+    font-size: 10px;
+    font-weight: 900;
+    color: #607d99;
+}
+
+body #issueExternalLinks a:hover {
+    background: #edf5ff !important;
+    border-color: #80b9ef !important;
+    color: #005bb8 !important;
+}
+
+body #issueTabShell .issue-kpi-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    margin: 0 0 12px !important;
+}
+
+body #issueTabShell .issue-kpi {
+    --issue-kpi-color: #536985;
+    --issue-kpi-tint: #edf1f7;
+    display: grid !important;
+    grid-template-columns: 38px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-content: center;
+    column-gap: 12px;
+    row-gap: 1px;
+    min-height: 72px !important;
+    padding: 10px 12px !important;
+    border: 1px solid #e4e9f1 !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+}
+
+body #issueTabShell .issue-kpi::before {
+    display: none !important;
+}
+
+body #issueTabShell .issue-kpi:nth-child(2) {
+    --issue-kpi-color: #0073ed;
+    --issue-kpi-tint: #e5f1ff;
+}
+
+body #issueTabShell .issue-kpi:nth-child(3) {
+    --issue-kpi-color: #208454;
+    --issue-kpi-tint: #e0f4e9;
+}
+
+body #issueTabShell .issue-kpi:nth-child(4) {
+    --issue-kpi-color: #157b86;
+    --issue-kpi-tint: #e0f2f3;
+}
+
+body #issueTabShell .issue-kpi-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--issue-kpi-tint);
+    color: var(--issue-kpi-color);
+    font-size: 19px;
+}
+
+body #issueTabShell .issue-kpi-label {
+    grid-column: 2;
+    margin: 0 !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+}
+
+body #issueTabShell .issue-kpi-value {
+    grid-column: 2;
+    margin: 0 !important;
+    color: var(--issue-kpi-color) !important;
+    font-size: 20px !important;
+    line-height: 1.2 !important;
+}
+
+body #issueTabShell .issue-top-filter-panel {
+    display: block !important;
+    margin: 0 0 12px !important;
+    padding: 0 !important;
+}
+
+body #issueTabShell #issueTopFilterBody,
+body #issueTabShell #issueTopFilterBody.is-collapsed {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    align-items: end !important;
+    gap: 8px !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+body #issueTabShell .issue-top-filter-grid {
+    display: contents !important;
+}
+
+body #issueTabShell .issue-top-filter-item {
+    display: flex !important;
+    flex-direction: column;
+    gap: 4px;
+    width: 100% !important;
+}
+
+body #issueTabShell .issue-top-filter-item > span {
+    white-space: normal !important;
+    line-height: 1.4;
+}
+
+body #issueTabShell .issue-top-filter-buttons {
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body #issueTabShell #btnClearFilters {
+    height: 34px !important;
+    padding: 0 12px !important;
+}
+
+body #issueTabShell .issue-user-toolbar {
+    display: flex !important;
+    justify-content: flex-end !important;
+    position: relative;
+    z-index: 105;
+    min-height: 0 !important;
+    margin: 0 0 8px !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+}
+
+body #issueTabShell .issue-grid-scroll {
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    position: relative !important;
+}
+
+body #issueTabShell .issue-grid-toolbar,
+body #issueTabShell #issue-grid-inner {
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+body #issueTabShell #issue-grid-inner {
+    width: 100% !important;
+    scrollbar-gutter: auto !important;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    max-width: 100% !important;
+}
+
+body #issueTabShell #overall_request_details .impact-text {
+    color: #374760 !important;
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    line-height: 1.45 !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary {
+    table-layout: auto !important;
+    width: max-content !important;
+    min-width: 100% !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th,
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td {
+    width: var(--issue-column-width, auto) !important;
+    min-width: var(--issue-column-width, 96px) !important;
+    max-width: var(--issue-column-width, 180px) !important;
+    padding: 7px 4px !important;
+    vertical-align: middle !important;
+    text-align: center !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-actions {
+    --issue-column-width: 46px;
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+    padding: 6px 2px !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.field-actions {
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 40 !important;
+    background: #edf1f7 !important;
+    border-right: 1px solid #cbd5e1 !important;
+    font-size: 10px !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.field-actions {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 25 !important;
+    background-color: #ffffff !important;
+    border-right: 1px solid #cbd5e1 !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary tr:nth-child(even) td.field-actions {
+    background-color: #fafbfe !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary tr:hover td.field-actions {
+    background-color: #f0f4f9 !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-actions::after {
+    content: "" !important;
+    position: absolute !important;
+    top: -1px !important;
+    bottom: -1px !important;
+    right: 0 !important;
+    width: 2px !important;
+    background: #cbd5e1 !important;
+    box-shadow: 2px 0 5px rgba(15, 23, 42, 0.08) !important;
+    pointer-events: none !important;
+}
+
+body #issueTabShell #overall_request_details .issue-actions-cell {
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    width: 100% !important;
+}
+
+body #issueTabShell #overall_request_details .issue-action-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 22px !important;
+    min-width: 22px !important;
+    height: 22px !important;
+    padding: 0 !important;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    background: #f8fafc;
+    color: #375472;
+    cursor: pointer;
+    text-decoration: none !important;
+    font-size: 11px !important;
+    line-height: 1 !important;
+    transition: background .12s, color .12s, border-color .12s;
+}
+
+body #issueTabShell #overall_request_details .issue-action-btn.action-debug:hover {
+    background: #eef6ff !important;
+    color: #0071c5 !important;
+    border-color: #7cb5ec !important;
+}
+
+body #issueTabShell #overall_request_details .issue-action-btn.action-details:hover {
+    background: #f0fdf4 !important;
+    color: #15803d !important;
+    border-color: #86efac !important;
+}
+
+body #issueTabShell #overall_request_details .issue-action-btn.action-edit:hover {
+    background: #fffbeb !important;
+    color: #b45309 !important;
+    border-color: #fde68a !important;
+}
+
+body #issueTabShell #overall_request_details .issue-action-btn.action-save {
+    background: #ecfdf3 !important;
+    color: #15803d !important;
+    border-color: #86efac !important;
+}
+
+body #issueTabShell #overall_request_details .issue-action-btn.action-cancel {
+    background: #fff1f2 !important;
+    color: #be123c !important;
+    border-color: #fecdd3 !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-sno {
+    --issue-column-width: 52px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-milestone {
+    --issue-column-width: 96px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-progress {
+    --issue-column-width: 88px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-sightingid {
+    --issue-column-width: 95px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-promotedid {
+    --issue-column-width: 95px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-customer_detail {
+    --issue-column-width: 120px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-duplicatedetails {
+    --issue-column-width: 120px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-customer_company {
+    --issue-column-width: 85px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-component {
+    --issue-column-width: 130px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-component_group {
+    --issue-column-width: 95px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-owner {
+    --issue-column-width: 110px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-promoted_owner {
+    --issue-column-width: 110px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td):is(.field-rvp_repro, .field-imagefreeze) {
+    --issue-column-width: 75px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-status {
+    --issue-column-width: 140px;
+    width: 140px !important;
+    min-width: 140px !important;
+    max-width: 140px !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-idst {
+    --issue-column-width: 85px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-processor {
+    --issue-column-width: 80px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-impact_processor {
+    --issue-column-width: 120px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-days_open {
+    --issue-column-width: 72px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-closed_reason {
+    --issue-column-width: 130px;
+}
+
+body #issueTabShell #overall_request_details .issue-sno-index {
+    font-size: 10px !important;
+}
+
+body #issueTabShell #overall_request_details .issue-sno-cell {
+    min-width: 0 !important;
+    max-width: 100%;
+}
+
+body #issueTabShell #overall_request_details .issue-inline-edit-btn,
+body #issueTabShell #overall_request_details .issue-inline-edit-action {
+    width: 24px !important;
+    min-width: 24px !important;
+    height: 24px !important;
+    padding: 0 !important;
+}
+
+body #issueTabShell #overall_request_details .issue-inline-edit-actions {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.field-los,
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.field-los {
+    --issue-column-width: 88px;
+    width: 88px !important;
+    min-width: 88px !important;
+    max-width: 88px !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-title {
+    --issue-column-width: 260px;
+    width: 260px !important;
+    min-width: 260px !important;
+    max-width: 260px !important;
+}
+
+body #issueTabShell #overall_request_details :is(.field-title, .field-status) :is(.pending-cell-text, .status-one-line) {
+    display: block !important;
+    white-space: pre-wrap !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    -webkit-line-clamp: unset !important;
+    line-clamp: unset !important;
+    text-overflow: clip !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.field-progress {
+    font-weight: 600 !important;
+}
+
+body #issueTabShell .issue-user-actions {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+body #issueTabShell .issue-column-dialog {
+    --issue-columns-accent: #5850b8;
+    width: min(640px, calc(100vw - 24px));
+    max-width: none;
+    max-height: calc(100vh - 24px);
+    margin: auto;
+    padding: 0;
+    border: 1px solid #d0d5df;
+    border-radius: 8px;
+    background: #fff;
+    color: #242733;
+    box-shadow: 0 12px 40px rgba(28, 44, 64, .24);
+    overflow: auto;
+}
+
+body #issueTabShell .issue-column-dialog::backdrop {
+    background: rgba(0, 0, 0, .48);
+}
+
+body #issueTabShell .issue-column-dialog-header,
+body #issueTabShell .issue-column-dialog-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+}
+
+body #issueTabShell .issue-column-dialog-header {
+    justify-content: space-between;
+    border-bottom: 1px solid #d5d8e1;
+}
+
+body #issueTabShell #issueColumnTitle {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+body #issueTabShell .issue-column-dialog button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 5px 12px;
+    border: 1px solid var(--issue-columns-accent);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--issue-columns-accent);
+    font-size: 14px;
+    line-height: 1.25;
+    cursor: pointer;
+}
+
+body #issueTabShell .issue-column-dialog button:hover:not(:disabled) {
+    background: #f0effb;
+}
+
+body #issueTabShell .issue-column-dialog button:focus-visible,
+body #issueTabShell .issue-column-dialog select:focus-visible {
+    outline: 2px solid var(--issue-columns-accent);
+    outline-offset: 2px;
+}
+
+body #issueTabShell .issue-column-dialog button:disabled {
+    opacity: .4;
+    cursor: default;
+}
+
+body #issueTabShell .issue-column-dialog .issue-column-close {
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0;
+    border: 0;
+    color: #333;
+    font-size: 22px;
+}
+
+body #issueTabShell .issue-column-dialog-body {
+    padding: 14px 16px 0;
+}
+
+body #issueTabShell .issue-column-lists {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr) 32px;
+    gap: 14px;
+}
+
+body #issueTabShell .issue-column-list {
+    min-width: 0;
+}
+
+body #issueTabShell .issue-column-list label {
+    display: block;
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+body #issueTabShell .issue-column-list select {
+    display: block !important;
+    width: 100% !important;
+    height: clamp(160px, 40vh, 300px) !important;
+    padding: 4px !important;
+    border: 1px solid #9399ab !important;
+    border-radius: 3px !important;
+    background: #fff !important;
+    color: #242733 !important;
+    font-size: 14px !important;
+    line-height: 1.4;
+    appearance: auto !important;
+    overflow: auto;
+}
+
+body #issueTabShell .issue-column-controls {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    padding-top: 24px;
+}
+
+body #issueTabShell .issue-column-controls button {
+    width: 32px;
+    padding: 0;
+}
+
+body #issueTabShell #issueColumnHelp {
+    margin: 10px 0 0;
+    color: #64738c;
+    font-size: 12px;
+}
+
+body #issueTabShell #issueColumnMessage,
+body #issueTabShell #issueColumnStatus {
+    color: #a12622;
+    font-size: 12px;
+}
+
+body #issueTabShell .issue-column-dialog-footer {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    padding-top: 18px;
+}
+
+body #issueTabShell .issue-column-reset {
+    margin-right: auto;
+}
+
+body #issueTabShell .issue-column-dialog .issue-column-apply {
+    min-width: 70px;
+    background: var(--issue-columns-accent);
+    color: #fff;
+    font-weight: 600;
+}
+
+body #issueTabShell .issue-column-dialog .issue-column-apply:hover:not(:disabled) {
+    background: #49419f;
+}
+
+@media (max-width: 560px) {
+    body #issueTabShell .issue-column-lists {
+        gap: 8px;
+        grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr) 28px;
+    }
+
+    body #issueTabShell .issue-column-controls button {
+        width: 28px;
+    }
+
+    body #issueTabShell .issue-column-list select,
+    body #issueTabShell .issue-column-dialog button {
+        font-size: 12px !important;
+    }
+}
+
+body #issueTabShell #issueColumnStatus:empty {
+    display: none;
+}
+
+body #issueTabShell #issueColumnMessage:empty {
+    margin: 0;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.hidden,
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.hidden {
+    display: none !important;
+}
+
+body #issueTabShell #overall_request_details .empty-data-container {
+    padding: 24px 12px !important;
+    text-align: center;
+    color: #63738c;
+}
+
+body #issueTabShell #overall_request_details .issue-cell-stack,
+body #issueTabShell #overall_request_details .issue-cell-stack > span {
+    display: block;
+    line-height: 1.45;
+}
+
+body #issueTabShell #overall_request_details .issue-meta-row-primary {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+body #issueTabShell #overall_request_details .issue-id-link {
+    max-width: 100% !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+}
+
+body #issueTabShell #overall_request_details .issue-details-ai-btn {
+    flex: 0 0 24px;
+    width: 24px !important;
+    height: 24px !important;
+    padding: 2px !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body #issueTabShell #overall_request_details .status-cell-wrap,
+body #issueTabShell #overall_request_details .status-row,
+body #issueTabShell #overall_request_details .status-label-group {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+body #issueTabShell #overall_request_details td :is(.pending-cell-content, .pending-cell-text, .issue-cell-stack, .status-one-line) {
+    text-align: center !important;
+}
+
+body #issueTabShell #overall_request_details .issue-cell-stack .pending-customer-label {
+    display: block;
+    width: fit-content;
+}
+
+body #issueTabShell #overall_request_details :is(.field-sightingid, .field-status) .issue-details-ai-btn {
+    display: none !important;
+}
+
+body #issueTabShell #overall_request_details td.field-title {
+    vertical-align: middle !important;
+    text-align: center !important;
+}
+
+body #issueTabShell #overall_request_details .issue-title-text {
+    display: block;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    text-align: center;
+    width: 100%;
+}
+
+body #issueTabShell #overall_request_details .issue-title-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    min-width: 30px;
+    min-height: 30px;
+    padding: 5px 8px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #375472;
+    text-decoration: none !important;
+    cursor: pointer;
+}
+
+body #issueTabShell #overall_request_details .issue-action-label {
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+body #issueTabShell #overall_request_details .issue-title-action:is(:hover, :focus) {
+    gap: 6px;
+    background: #edf5fd;
+    color: #005fc7;
+}
+
+body #issueTabShell #overall_request_details .issue-title-action:is(:hover, :focus) .issue-action-label {
+    max-width: 150px;
+    opacity: 1;
+}
+
+@media (hover: none) {
+    body #issueTabShell #overall_request_details .issue-title-action {
+        gap: 6px;
+    }
+
+    body #issueTabShell #overall_request_details .issue-action-label {
+        max-width: 150px;
+        opacity: 1;
+    }
+}
+
+body #issueTabShell #overall_request_details .status-pill {
+    max-width: 100%;
+    padding: 3px 5px !important;
+    margin: 0 !important;
+    font-size: 9px !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+}
+
+body #issueTabShell #overall_request_details .status-one-line {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    font-size: 11px !important;
+    line-height: 1.45 !important;
+}
+
+body #issueTabShell #overall_request_details .milestone-text-only,
+body #issueTabShell #overall_request_details .days-open-pill {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    white-space: normal !important;
+    font-size: 11px !important;
+    line-height: 1.45 !important;
+}
+
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td),
+body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td) * {
+    font-size: 12px !important;
+}
+
+body #issueTabShell .issue-pager-controls {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    width: 100% !important;
+}
+
+body #issueTabShell .issue-page-size-control {
+    margin: 0 !important;
+    color: #536985 !important;
+    font-size: 12px !important;
+    font-weight: 400 !important;
+}
+
+body #issueTabShell .issue-page-status {
+    margin: 0 0 0 auto !important;
+    padding: 0 !important;
+    color: #63738c !important;
+    font-size: 11px !important;
+    white-space: nowrap;
+}
+
+body #issueTabShell .issue-page-nav {
+    display: flex !important;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px !important;
+    margin: 0 !important;
+}
+
+body #issueTabShell .issue-page-nav a,
+body #issueTabShell .issue-page-size-select {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px !important;
+    height: 30px !important;
+    padding: 4px 8px !important;
+    border: 1px solid #d5dfeb !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    color: #536985 !important;
+    font-size: 11px !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+}
+
+body #issueTabShell .issue-page-nav .issue-pager-current {
+    border-color: #80b9ef !important;
+    background: #edf5ff !important;
+    color: #0069d0 !important;
+}
+
+@media (max-width: 900px) {
+    body #issueTabShell #issueTopFilterBody,
+    body #issueTabShell #issueTopFilterBody.is-collapsed {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    body #issueTabShell .issue-page-hd-top {
+        align-items: flex-start !important;
+    }
+
+    body #issueTabShell #issueExternalLinks {
+        margin-left: 0;
+    }
+
+    body #issueTabShell .issue-kpi-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+@media (max-width: 600px) {
+    body #issueTabShell #issueTopFilterBody,
+    body #issueTabShell #issueTopFilterBody.is-collapsed {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body #issueTabShell .issue-kpi {
+        grid-template-columns: 28px minmax(0, 1fr);
+        column-gap: 8px;
+        padding: 9px !important;
+    }
+
+    body #issueTabShell .issue-kpi-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 15px;
+    }
+
+    body #issueTabShell .issue-page-nav {
+        flex: 1 1 100%;
+    }
+}
+
+body input:focus-visible, body select:focus-visible,
+body textarea:focus-visible, body button:focus-visible,
+body a:focus-visible {
+    outline: 2px solid #0071e3 !important;
+    outline-offset: 2px;
+}
+
+@media (min-width: 1500px) {
+    body .issue-top-filter-grid {
+        grid-template-columns: repeat(9, minmax(0, 1fr)) !important;
+    }
+}
+
+@media (max-width: 1200px) {
+    body #pendingTabShell .pending-tab-main .cmf-pending-filter-card {
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    }
+
+    body .portal-date-filter {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 900px) {
+    body #portalLayoutShell {
+        grid-template-columns: 54px minmax(0, 1fr) !important;
+    }
+
+    body .portal-app-header {
+        gap: 10px !important;
+        height: auto !important;
+        min-height: 64px !important;
+        flex-wrap: wrap;
+        padding: 10px 12px !important;
+    }
+
+    body .portal-work-week,
+    body .header-user-mode label {
+        display: none;
+    }
+
+    body .portal-app-header .header-user-mode {
+        margin-left: auto !important;
+    }
+
+    body .portal-app-header .dashboard-header-tools {
+        order: 4;
+        flex: 1 1 100%;
+        margin-left: 0;
+        justify-content: flex-end;
+    }
+
+    body .portal-app-header .global-search-shell {
+        order: 3;
+        flex: 1 1 100%;
+        position: relative !important;
+        top: auto;
+        left: auto;
+        transform: none !important;
+        width: 100%;
+        max-width: none;
+    }
+
+    body #mainMenuSidebar {
+        flex-basis: 54px !important;
+        width: 54px !important;
+        min-width: 54px !important;
+        max-width: 54px !important;
+        padding: 8px 0 !important;
+    }
+
+    body #mainMenuSidebar .portal-nav-link {
+        justify-content: center;
+        padding: 12px 5px !important;
+    }
+
+    body #mainMenuSidebar .portal-nav-link span,
+    body #mainMenuSidebar .portal-section-header {
+        display: none !important;
+    }
+
+    body #portalLayoutShell > .portal-main-workspace {
+        padding: 12px !important;
+    }
+
+    body .issue-top-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    body #pendingTabShell .pending-tab-main .cmf-pending-filter-card {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    body #pendingTabShell .cmf-pending-page-hd {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    body #pendingTabShell .cmf-pending-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        max-width: 100%;
+    }
+
+    body #pendingTabShell .cmf-pending-actions a,
+    body #pendingTabShell .cmf-pending-actions button {
+        white-space: normal !important;
+    }
+}
+
+@media (max-width: 480px) {
+    body .portal-brand {
+        gap: 8px;
+        font-size: 15px;
+    }
+
+    body .portal-brand-logo {
+        height: 18px;
+    }
+
+    body .portal-app-header .header-mode-dropdown {
+        min-width: 125px !important;
+        max-width: 140px;
+        font-size: 11px !important;
+    }
+
+    body .issue-kpi-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+/* AI Debug Summary & Actionable Suggestions Modern Styling */
+.debug-summary-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.debug-findings-list {
+    margin: 0;
+    padding-left: 18px;
+    color: #1a202c;
+    line-height: 1.55;
+    font-size: 13px;
+}
+
+.debug-findings-list li {
+    margin-bottom: 8px;
+}
+
+.debug-suggestions-card {
+    background: linear-gradient(135deg, rgba(238, 246, 255, 0.95) 0%, rgba(240, 253, 250, 0.95) 100%);
+    border: 1px solid #bfdbfe;
+    border-left: 4px solid #0284c7;
+    border-radius: 8px;
+    padding: 12px 14px;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.08);
+}
+
+.debug-suggestions-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.debug-suggestions-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #0369a1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.debug-suggestions-badge i {
+    color: #f59e0b;
+    font-size: 13px;
+}
+
+.debug-suggestions-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.debug-suggestion-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #0f172a;
+}
+
+.debug-suggestion-bullet {
+    color: #0284c7;
+    font-size: 13px;
+    font-weight: bold;
+    flex-shrink: 0;
+    line-height: 1.4;
+}
+
+.debug-suggestion-text {
+    flex: 1;
+}

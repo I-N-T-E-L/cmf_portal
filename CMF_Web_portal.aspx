@@ -10,8 +10,8 @@
 
     <!-- Stylesheets -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" type="text/css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" />
-    <link rel="stylesheet" href="Content/cmf-portal.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" />
+    <link rel="stylesheet" href="Content/cmf-portal.css?v=20261103-sticky-headers">
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
@@ -29,7 +29,69 @@
     <!-- HTML sanitization library -->
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 
+    <script type="text/javascript">
+        (function () {
+            try {
+                if (window.sessionStorage && window.sessionStorage.getItem('cmfPopupTableFlow') === '1') {
+                    document.documentElement.classList.add('cmf-popup-flow-mask');
+                }
+            } catch (error) {
+                // Ignore storage availability issues.
+            }
+        })();
+    </script>
+
     <style>
+        @keyframes cmfPopupFlowSpin {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        html.cmf-popup-flow-mask body > form {
+            visibility: visible !important;
+        }
+
+        .cmf-popup-flow-frozen-layer {
+            position: fixed;
+            inset: 0;
+            display: none;
+            overflow: hidden;
+            background: #edf3f8;
+            z-index: 1037;
+        }
+
+        .cmf-popup-flow-frozen-layer.active {
+            display: block;
+        }
+
+        .cmf-popup-flow-frozen-layer .cmf-popup-flow-frozen-content {
+            pointer-events: none;
+            min-height: 100%;
+        }
+
+        html.cmf-popup-flow-mask body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: rgba(243, 246, 250, 0.20);
+            z-index: 1038;
+        }
+
+        html.cmf-popup-flow-mask body::after {
+            content: "";
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: 3px solid rgba(32, 60, 88, 0.18);
+            border-top-color: rgba(32, 60, 88, 0.86);
+            transform: translate(-50%, -50%);
+            animation: cmfPopupFlowSpin 0.75s linear infinite;
+            z-index: 1039;
+        }
+
         :root {
             --portal-bg: #edf3f8;
             --portal-surface: #ffffff;
@@ -42,9 +104,10 @@
             --portal-border: #cdd9e5;
             --portal-shadow: 0 18px 42px rgba(17, 43, 70, 0.12);
             --portal-radius: 18px;
-            --portal-font-body: "Plus Jakarta Sans", "Segoe UI", "Trebuchet MS", sans-serif;
-            --portal-font-display: "Outfit", "Manrope", "Segoe UI", sans-serif;
-            --portal-font-card: "Manrope", "Plus Jakarta Sans", "Segoe UI", sans-serif;
+            --portal-font-ui: Cambria, Georgia, serif;
+            --portal-font-body: var(--portal-font-ui);
+            --portal-font-display: var(--portal-font-ui);
+            --portal-font-card: var(--portal-font-ui);
         }
 
         body {
@@ -136,6 +199,13 @@
         }
         .issue-details-grid-full {
             grid-column: 1 / -1;
+        }
+        .ai-sk-block {
+            background: #f8fbfe;
+            border: 1px solid #e2edf8;
+            border-radius: 8px;
+            padding: 8px 12px;
+            box-shadow: 0 1px 3px rgba(15, 94, 168, 0.04);
         }
         .idg-label {
             font-size: 11px;
@@ -1347,21 +1417,6 @@
                     overflow-wrap: anywhere;
                 }
 
-                .status-confidence-pill {
-                    display: inline-flex;
-                    align-items: center;
-                    min-height: 22px;
-                    padding: 4px 8px;
-                    border-radius: 999px;
-                    font-size: 10px;
-                    font-weight: 800;
-                    color: #5b21b6;
-                    background: #f4efff;
-                    border: 1px solid #dfd2ff;
-                    white-space: normal;
-                    overflow-wrap: anywhere;
-                }
-
                 .ai-summary-btn-inline {
                     height: 22px;
                     min-width: 26px;
@@ -1618,7 +1673,8 @@
     display: table-cell !important;
     visibility: visible !important;
     opacity: 1 !important;
-    position: relative !important;
+    position: sticky !important;
+    top: 0 !important;
     z-index: 102 !important;
     text-align: left !important;
     font-weight: 800 !important;
@@ -1672,7 +1728,9 @@
 }
 
 #overall_request_details th .filter-container {
-    display: none !important;
+    display: block !important;
+    width: 100% !important;
+    margin-top: 3px !important;
 }
 
 .empty-data-container .filter-container {
@@ -2260,6 +2318,128 @@
     vertical-align: middle;
 }
 
+.cmf-sighting-chat-panel {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 12px;
+    border: 1px solid #d7e7fb;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.cmf-sighting-chat-title {
+    color: #16385f;
+    font-size: 12px;
+    font-weight: 950;
+}
+
+.cmf-sighting-chat-messages {
+    display: grid;
+    gap: 8px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.cmf-sighting-chat-msg {
+    max-width: 92%;
+    padding: 9px 11px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #24364a;
+    background: #f1f6fd;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.cmf-sighting-chat-msg.user {
+    justify-self: end;
+    color: #ffffff;
+    background: #1769aa;
+}
+
+.cmf-sighting-chat-answer {
+    white-space: normal;
+}
+
+.cmf-sighting-chat-answer ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.cmf-sighting-chat-answer li + li {
+    margin-top: 6px;
+}
+
+.cmf-sighting-chat-input-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: end;
+    width: 100%;
+    margin: 0 auto;
+    padding: 5px 8px;
+    border: 1px solid #c9daee;
+    border-radius: 8px;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+.cmf-sighting-chat-input-row:focus-within {
+    border-color: #1769aa;
+}
+
+.cmf-sighting-chat-edit {
+    display: block;
+    width: 28px;
+    height: 28px;
+    margin-top: 5px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.cmf-sighting-chat-edit:hover,
+.cmf-sighting-chat-edit:focus-visible {
+    background: rgba(255, 255, 255, .2);
+}
+
+.cmf-sighting-chat-input-row textarea {
+    min-height: 28px;
+    max-height: 90px;
+    resize: vertical;
+    min-width: 0;
+    border: 0;
+    border-radius: 4px;
+    padding: 4px;
+    background: transparent;
+    color: #102a43;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.cmf-sighting-chat-send {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border: 0;
+    border-radius: 8px;
+    background: #0f6db3;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.cmf-sighting-chat-send:disabled {
+    cursor: not-allowed;
+    background: #9bb8d3;
+}
+
 .cmf-assistant-context {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -2346,6 +2526,44 @@
     color: #1f2937;
     font-size: 11px;
     line-height: 1;
+}
+
+#cmfAssistantRecTag.is-loading {
+    position: relative;
+    overflow: hidden;
+    background: #e4edf7;
+    color: transparent;
+    text-shadow: none;
+}
+
+#cmfAssistantRecTag.is-loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .85), transparent);
+    animation: cmfTagShimmer 1.4s linear infinite;
+}
+
+@keyframes cmfTagShimmer {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #cmfAssistantRecTag.is-loading::after { animation: none; }
+}
+
+.pending-stale-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 6px;
+    border: 1px solid #f0ce79;
+    border-radius: 4px;
+    background: #fff5d6;
+    color: #805300;
+    font-size: 10px;
+    font-weight: 700;
 }
 
 .cmf-assistant-heading-id {
@@ -2583,19 +2801,20 @@
     position: fixed;
     top: 0;
     right: 0;
-    width: 560px;
+    width: min(980px, 50vw);
     max-width: 94vw;
     height: 100%;
     background:
-        radial-gradient(circle at top right, rgba(124, 58, 237, 0.12), transparent 34%),
-        linear-gradient(180deg, #ffffff 0%, #f6f9fd 100%);
+        radial-gradient(circle at 12% 0%, rgba(40, 118, 240, 0.14), transparent 28%),
+        linear-gradient(180deg, #ffffff 0%, #f4f9ff 100%);
+    background-color: #f7fbff;
     box-shadow: -18px 0 42px rgba(8, 25, 49, 0.24);
     transform: translateX(100%);
     transition: transform 0.28s ease;
     z-index: 1061;
-    overflow: hidden;
-    padding: 24px;
-    border-left: 1px solid rgba(205, 217, 229, 0.9);
+    overflow-y: auto;
+    padding: 18px 20px 20px;
+    border-left: 1px solid rgba(172, 199, 231, 0.92);
     display: flex;
     flex-direction: column;
 }
@@ -2605,35 +2824,34 @@
 }
 
 .ai-summary-chat {
-    border-top: 1px solid rgba(205,217,229,0.8);
-    background: #fff;
-    padding: 12px 24px;
-    margin: 0 -24px -24px -24px;
+    border-top: 1px solid #d8e7f5;
+    background: transparent;
+    padding: 10px 0 0 0;
+    margin: 8px 0 0 0;
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
 }
 .ai-chat-messages {
-    /* make the chat area take most of the drawer height to feel like a chatbot */
     flex: 1 1 auto;
-    min-height: calc(100vh - 330px);
+    min-height: calc(100vh - 310px);
     max-height: none;
     overflow-y: auto;
-    padding: 8px;
+    padding: 4px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-bottom: 24px;
+    margin-bottom: 12px;
 }
-.ai-chat-message { display:flex; flex-direction:column; margin-bottom:12px; font-size:14px; line-height:1.5; }
-.ai-chat-message.ai-chat-assistant .ai-chat-message-body { background:#f1f5f9; color:#1a202c; padding:14px 16px; border-radius:12px; max-width:96%; border-left: 4px solid #005A9E; box-shadow: 0 4px 6px rgba(0,0,0,0.05); align-self: flex-start; }
+.ai-chat-message { display:flex; flex-direction:column; margin-bottom:10px; font-size:13px; line-height:1.5; }
+.ai-chat-message.ai-chat-assistant .ai-chat-message-body { background:#ffffff; color:#1a202c; padding:14px 16px; border-radius:12px; max-width:98%; border: 1px solid #d8e7f5; border-left: 4px solid #0f5ea8; box-shadow: 0 4px 12px rgba(15, 94, 168, 0.06); align-self: flex-start; }
 .ai-chat-message.ai-chat-user { align-self:flex-end; max-width: 90%; }
-.ai-chat-message.ai-chat-user .ai-chat-message-body { background:#005A9E; color:#fff; padding:12px 14px; border-radius:12px; max-width:100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-.ai-chat-input { display:flex; gap:10px; align-items:flex-end; margin-top:10px; }
-.ai-chat-input-box { flex:1; min-height:45px; max-height:140px; padding:10px 14px; border-radius:12px; border:1px solid #cbd5e0; resize:vertical; font-size: 14px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); transition: border-color 0.2s; }
-.ai-chat-input-box:focus { border-color: #005A9E; outline: none; }
-.ai-chat-send { background:transparent; border:none; padding:10px 10px; border-radius:50%; cursor:pointer; min-height: 45px; transition: transform 0.1s ease, color 0.2s; color: #0071c5; display: flex; align-items: center; justify-content: center; }
+.ai-chat-message.ai-chat-user .ai-chat-message-body { background:#0f5ea8; color:#fff; padding:10px 14px; border-radius:12px; max-width:100%; box-shadow: 0 4px 10px rgba(15, 94, 168, 0.18); }
+.ai-chat-input { display:flex; gap:8px; align-items:flex-end; margin-top:8px; padding: 8px 10px; border: 1px solid #d7e7fb; border-radius: 8px; background: #ffffff; box-shadow: 0 2px 6px rgba(15, 94, 168, 0.04); }
+.ai-chat-input-box { flex:1; min-height:40px; max-height:120px; padding:8px 12px; border-radius:6px; border:1px solid #cbd5e0; resize:vertical; font-size: 13px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); transition: border-color 0.2s; }
+.ai-chat-input-box:focus { border-color: #0f5ea8; outline: none; }
+.ai-chat-send { background:transparent; border:none; padding:8px; border-radius:50%; cursor:pointer; min-height: 40px; transition: transform 0.1s ease, color 0.2s; color: #0071c5; display: flex; align-items: center; justify-content: center; }
 .ai-chat-send:active { transform: scale(0.95); }
 .ai-chat-send:hover { color: #005A9E; background: rgba(0, 113, 197, 0.1); }
 .ai-chat-send:disabled { color: #a0aec0; cursor: not-allowed; background: transparent; box-shadow: none; }
@@ -2651,13 +2869,23 @@
 }
 
 .ai-summary-drawer-title {
-    margin: 0 0 12px 0;
-    padding-right: 28px;
-    font-size: 22px;
-    color: #1b2a3a;
+    margin: 0 0 10px 0;
+    padding-right: 36px;
+    font-size: 16px;
+    color: #09204a;
+    font-weight: 700;
+    line-height: 1.3;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 10px;
+    flex-wrap: wrap;
+}
+
+.ai-summary-title-badges {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     flex-wrap: wrap;
 }
 
@@ -2665,23 +2893,42 @@
     display: inline-flex;
     align-items: center;
     min-height: 24px;
-    padding: 3px 9px;
+    padding: 4px 10px;
     border-radius: 999px;
-    background: #eef6ff;
-    border: 1px solid #c8def6;
-    color: #0f5ea8;
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 850;
+    border: 1px solid #c8def6;
+    background: #eef6ff;
+    color: #0f5ea8;
+}
+
+.ai-summary-confidence-inline.confidence-high {
+    background: #ecfdf3;
+    border-color: #bbf7d0;
+    color: #15803d;
+}
+
+.ai-summary-confidence-inline.confidence-medium {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #b45309;
+}
+
+.ai-summary-confidence-inline.confidence-low {
+    background: #fff1f2;
+    border-color: #fecdd3;
+    color: #be123c;
 }
 
 .ai-summary-meta-row {
     margin-bottom: 10px;
     color: #23364b;
-    font-size: 13px;
-    padding: 9px 11px;
-    border: 1px solid #e2ebf4;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.72);
+    font-size: 12px;
+    padding: 8px 12px;
+    border: 1px solid #d8e7f5;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 6px 16px rgba(30, 84, 144, 0.05);
 }
 
 .ai-summary-meta-combined {
@@ -2964,6 +3211,82 @@ body {
     flex-wrap: wrap;
 }
 
+#homeWelcomePanel .ccip-dash-top > :first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#homeWelcomePanel > .ccip-dash-top {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin-bottom: 14px;
+}
+
+.dashboard-greeting-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+}
+
+.dashboard-date-filter {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: auto;
+    min-width: 0;
+}
+
+#homeWelcomePanel .dashboard-date-filter select,
+#homeWelcomePanel .dashboard-date-filter input {
+    height: 28px;
+    font-size: 12px;
+    padding: 3px 6px;
+    max-width: 100%;
+}
+
+.dashboard-date-custom {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.dashboard-date-error {
+    display: block;
+    color: #b42318;
+    font-size: 12px;
+}
+
+.ccip-dash-top-tools {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    margin-left: auto;
+    flex: 0 0 auto;
+}
+
+.ccip-dash-top-tools .dash-user-mode {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #475467;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.ccip-dash-top-tools .dash-user-mode label {
+    margin: 0;
+    color: #475467;
+    font-size: 12px;
+    font-weight: 700;
+}
+
 .ccip-dash-greeting {
     margin: 0;
     font-size: 34px;
@@ -3089,26 +3412,33 @@ body {
 }
 
 .ccip-specific-top-layout {
-    width: 1840px;
-    min-width: 1840px;
-    max-width: 1840px;
+    --ccip-outer-match-gap: 8.37px;
+    --ccip-outer-match-main-width: 985px;
+    --ccip-outer-match-side-width: var(--cmf-summary-side-card-width);
+    --ccip-outer-match-combined-width: calc(var(--ccip-outer-match-side-width) + var(--ccip-outer-match-gap) + var(--ccip-outer-match-main-width));
+    --ccip-outer-match-ai-width: 700px;
+    width: calc(var(--ccip-outer-match-combined-width) + var(--ccip-outer-match-gap) + var(--ccip-outer-match-ai-width));
+    min-width: calc(var(--ccip-outer-match-combined-width) + var(--ccip-outer-match-gap) + var(--ccip-outer-match-ai-width));
+    max-width: calc(var(--ccip-outer-match-combined-width) + var(--ccip-outer-match-gap) + var(--ccip-outer-match-ai-width));
     display: grid;
-    grid-template-columns: 1262px 568px;
+    grid-template-columns: var(--ccip-outer-match-combined-width) var(--ccip-outer-match-ai-width);
     grid-template-rows: auto auto;
-    gap: 10px;
+    gap: var(--ccip-outer-match-gap);
     align-items: start;
 }
 
 #homeLegacyTopLayout #homeLegacySummarySection {
     grid-column: 1;
     grid-row: 1;
-    width: 1130px;
-    min-width: 1130px;
-    max-width: 1130px;
+    width: var(--ccip-outer-match-combined-width);
+    min-width: var(--ccip-outer-match-combined-width);
+    max-width: var(--ccip-outer-match-combined-width);
     display: flex !important;
     flex-direction: row;
-    gap: 10px;
+    gap: var(--ccip-outer-match-gap);
     align-items: stretch;
+    position: relative;
+    overflow: visible;
 }
 
 #homeLegacyTopLayout #homeLegacySummarySection .overall-summary-side-card {
@@ -3116,9 +3446,16 @@ body {
     width: var(--cmf-summary-side-card-width) !important;
     min-width: var(--cmf-summary-side-card-width) !important;
     max-width: var(--cmf-summary-side-card-width) !important;
-    min-height: 162px;
+    min-height: 503.85px;
+    height: 503.85px;
+    max-height: 503.85px;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 2;
 }
 
 #homeLegacyTopLayout #homeLegacySummarySection .overall-summary-side-card .overall-card-head {
@@ -3129,7 +3466,7 @@ body {
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     color: #667085;
     font-size: 12px;
@@ -3137,9 +3474,11 @@ body {
 }
 
 #homeLegacyTopLayout #homeLegacySummarySection .overall-summary-card {
-    flex: 1 1 auto;
-    width: auto !important;
-    min-width: 0;
+    flex: 0 0 var(--ccip-outer-match-main-width);
+    width: var(--ccip-outer-match-main-width) !important;
+    min-width: var(--ccip-outer-match-main-width);
+    max-width: var(--ccip-outer-match-main-width);
+    margin-left: calc(var(--ccip-outer-match-side-width) + var(--ccip-outer-match-gap));
 }
 
 #homeLegacyTopLayout #homeSpecificSummaryFactsDashboard.overall-summary-facts,
@@ -3156,18 +3495,23 @@ body {
 #homeLegacyTopLayout #homeLegacyOverview {
     grid-column: 1;
     grid-row: 2;
+    width: var(--ccip-outer-match-combined-width);
+    min-width: var(--ccip-outer-match-combined-width);
+    max-width: var(--ccip-outer-match-combined-width);
     display: block;
 }
 
 #homeLegacyTopLayout #homeLegacyOverview .ccip-dashboard-left {
     display: grid;
-    grid-template-columns: 660px var(--ccip-component-slot-width, 437.62px);
+    grid-template-columns: 660px var(--ccip-component-slot-width, 293.33px);
     grid-template-rows: 312px;
     gap: 10px;
     align-items: start;
-    width: 1130px;
-    min-width: 1130px;
-    max-width: 1130px;
+    width: 985px;
+    min-width: 985px;
+    max-width: 985px;
+    margin-left: calc(var(--ccip-outer-match-side-width) + var(--ccip-outer-match-gap));
+    margin-right: 0;
     border: 1px solid #e4e9f2;
     border-radius: 10px;
     background: #ffffff;
@@ -3192,9 +3536,9 @@ body {
 #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot {
     grid-column: 2;
     grid-row: 1;
-    width: var(--ccip-component-slot-width, 437.62px);
-    min-width: var(--ccip-component-slot-width, 437.62px);
-    max-width: var(--ccip-component-slot-width, 437.62px);
+    width: var(--ccip-component-slot-width, 293.33px);
+    min-width: var(--ccip-component-slot-width, 293.33px);
+    max-width: var(--ccip-component-slot-width, 293.33px);
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -3267,15 +3611,28 @@ body {
     padding: 10px;
 }
 
+/* Keep row-3 inner section/table font metrics aligned with safe baseline. */
+#homeLegacyTablesGrid .ccip-summary-canvas,
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-card,
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-live-table,
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-live-table th,
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-live-table td {
+    font-family: var(--portal-font-body) !important;
+}
+
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-card {
+    padding: 14px !important;
+}
+
 #homeLegacyTablesGrid {
-    width: 1840px;
-    min-width: 1840px;
-    max-width: 1840px;
+    width: 1836.72px;
+    min-width: 1836.72px;
+    max-width: 1836.72px;
 }
 
 /* Match platform-specific row-2 to row-3 spacing with overall tab rhythm. */
 #homeWelcomePanel .ccip-dashboard > #homeLegacyTablesGrid {
-    margin-top: -4px;
+    margin-top: -1.65px;
 }
 
 #homeLegacyTablesGrid .ccip-col.ccip-col-center {
@@ -3365,6 +3722,12 @@ body {
     width: 100%;
     min-width: 100%;
     max-width: 100%;
+    margin-bottom: 8px;
+}
+
+#homeLegacyTablesGrid .ccip-pending-summary-card .pending-summary-threshold-legend {
+    flex-shrink: 0;
+    min-height: 15px;
 }
 
 #homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-live-table {
@@ -3419,8 +3782,8 @@ body {
 }
 
 #homeLegacyAiHealthCard {
-    --ccip-ai-left-extend: 132px;
-    --ccip-ai-fixed-height: 506px;
+    --ccip-ai-left-extend: 0px;
+    --ccip-ai-fixed-height: 503.85px;
     grid-column: 2;
     grid-row: 1 / span 2;
     margin-left: calc(-1 * var(--ccip-ai-left-extend));
@@ -3733,6 +4096,37 @@ body {
     background: #aeb8c5;
 }
 
+/* Keep component summary scroll geometry stable to avoid sticky-header jitter on scroll. */
+#homeComponentSummaryTable.ccip-live-table-wrap {
+    scrollbar-gutter: stable;
+    scrollbar-width: thin !important;
+    scrollbar-color: #cbd3dd transparent !important;
+}
+
+#homeComponentSummaryTable.ccip-live-table-wrap:hover {
+    scrollbar-width: thin !important;
+    scrollbar-color: #cbd3dd transparent !important;
+}
+
+#homeComponentSummaryTable.ccip-live-table-wrap::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+#homeComponentSummaryTable.ccip-live-table-wrap:hover::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+#homeComponentSummaryTable.ccip-live-table-wrap::-webkit-scrollbar-thumb {
+    background: #cbd3dd;
+    border-radius: 999px;
+}
+
+#homeComponentSummaryTable.ccip-live-table-wrap::-webkit-scrollbar-thumb:hover {
+    background: #aeb8c5;
+}
+
 #homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card #homeDesignSummaryTable.ccip-hover-width-lock {
     overflow-x: hidden;
 }
@@ -3759,7 +4153,7 @@ body {
     white-space: nowrap;
 }
 
-.ccip-live-table.ccip-component-summary-table tr > *:first-child {
+.ccip-live-table.ccip-component-summary-table tr > *:first-child:not(.ccip-component-sub-header) {
     width: 92px;
     min-width: 92px;
     max-width: 92px;
@@ -3963,17 +4357,25 @@ body {
 }
 
 .ccip-live-table.ccip-component-summary-table .ccip-component-sub-header {
-    top: 36px;
-    z-index: 2;
+    position: sticky;
+    top: var(--ccip-component-group-header-height, 45.69px);
+    z-index: 3;
     box-sizing: border-box;
-    height: 50px;
-    min-height: 50px;
+    height: 21px;
+    min-height: 21px;
+    max-height: 21px;
+    line-height: 21px;
+    padding-top: 0;
+    padding-bottom: 0;
+    vertical-align: middle;
 }
 
 .ccip-live-table.ccip-component-summary-table tbody td:first-child {
     position: sticky;
     left: 0;
     z-index: 1;
+    inset-inline-start: 0;
+    transform: translateX(0);
     border-left: 1px solid #e4e7ec !important;
     border-right: 2px solid #1f2937 !important;
 }
@@ -4113,11 +4515,23 @@ body {
 #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table .ccip-component-sub-header,
 #homeCmfSummaryPanel .ccip-live-table .ccip-component-sub-header {
     border-top: 0;
+    box-sizing: border-box;
+    height: 21px;
+    min-height: 21px;
+    max-height: 21px;
+    padding-top: 0;
+    padding-bottom: 0;
+    line-height: 21px;
+    vertical-align: middle;
 }
 
 #homeLegacyTablesGrid .ccip-live-table.ccip-component-summary-table tbody td:first-child,
 #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-component-summary-table tbody td:first-child,
 #homeCmfSummaryPanel .ccip-live-table.ccip-component-summary-table tbody td:first-child {
+    position: sticky;
+    left: 0 !important;
+    inset-inline-start: 0 !important;
+    transform: translateX(0);
     border-left: 0 !important;
     border-right: 1px solid #d9dde5 !important;
 }
@@ -4478,7 +4892,7 @@ body {
     display: grid;
     grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr);
     grid-template-rows: auto auto auto;
-    gap: 10px;
+    gap: 8.37px;
     align-items: stretch;
 }
 
@@ -4508,15 +4922,6 @@ body {
     align-items: stretch;
     grid-column: 1;
     grid-row: 1;
-}
-
-#homeOverallLayoutV2 .overall-row-summary {
-    grid-template-columns: 1fr !important;
-}
-
-#homeLegacySummarySection.overall-row-summary,
-#homeCmfSummaryPanel .overall-row-summary {
-    grid-template-columns: 1fr !important;
 }
 
 /* Overall tab: remove outer section/card chrome around CMF Summary cards. */
@@ -4725,6 +5130,46 @@ body {
     align-self: end;
 }
 
+.cmf-summary-value-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.cmf-summary-value-stack > .ccip-summary-fact-note {
+    align-self: center;
+}
+
+.cmf-weekly-trend {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 14px;
+    max-width: 100%;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0;
+    white-space: nowrap;
+}
+
+.cmf-weekly-trend.trend-good { color: #067647; }
+.cmf-weekly-trend.trend-bad { color: #b42318; }
+.cmf-weekly-trend.trend-neutral { color: #2563eb; }
+.cmf-weekly-trend.trend-unavailable { color: #667085; }
+
+.cmf-weekly-trend-bar {
+    display: inline-block;
+    width: 12px;
+    height: 3px;
+    background: currentColor;
+}
+
 .overall-summary-side-facts {
     display: flex;
     flex-wrap: nowrap;
@@ -4733,6 +5178,49 @@ body {
     width: 100%;
     overflow: hidden;
     margin-top: 12px;
+}
+
+.overall-quick-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 115px;
+    min-width: 115px;
+    max-width: 115px;
+}
+
+.overall-quick-link-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 115px !important;
+    min-width: 115px !important;
+    max-width: 115px !important;
+    text-align: center;
+    text-decoration: none;
+    padding: 8px 8px;
+}
+
+/* Quick links use outlined white style instead of primary blue button skin */
+body .overall-quick-links .overall-quick-link-btn,
+body .overall-quick-links .overall-quick-link-btn:link,
+body .overall-quick-links .overall-quick-link-btn:visited {
+    background: #ffffff !important;
+    color: #667085 !important;
+    border: 1px solid #d0d7e2 !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
+}
+
+body .overall-quick-links .overall-quick-link-btn:hover,
+body .overall-quick-links .overall-quick-link-btn:focus,
+body .overall-quick-links .overall-quick-link-btn:active {
+    background: #f8fafc !important;
+    color: #4b5563 !important;
+    border-color: #bcc7d6 !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
+    transform: none !important;
 }
 
 .overall-summary-side-facts .overall-summary-fact {
@@ -4852,6 +5340,60 @@ body {
     font-size: 11px;
     font-weight: 700;
     padding: 0 8px;
+}
+
+.overall-trend-card .overall-card-head,
+.overall-trend-card .overall-trend-range {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.overall-trend-card .overall-trend-title {
+    display: flex;
+    align-items: center;
+    flex: 1 1 400px;
+    min-width: 0;
+    gap: 0.21em;
+}
+
+#homeOverallTrendView.overall-trend-title-select,
+#homeSpecificTrendView.overall-trend-title-select {
+    width: 390px;
+    max-width: calc(100% - 22px);
+    min-width: 0;
+    height: 28px;
+    padding: 0 4px 0 0;
+    border: 0 !important;
+    border-radius: 4px;
+    background: transparent !important;
+    color: #1e3a60 !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    letter-spacing: 0;
+    appearance: auto !important;
+    cursor: pointer;
+}
+
+.overall-trend-card .overall-trend-title > i {
+    color: inherit !important;
+}
+
+#homeOverallTrendView.overall-trend-title-select,
+#homeSpecificTrendView.overall-trend-title-select {
+    width: auto;
+    padding: 0 18px 0 0 !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background-image: linear-gradient(45deg, transparent 50%, #1e3a60 50%), linear-gradient(135deg, #1e3a60 50%, transparent 50%) !important;
+    background-position: calc(100% - 6px) 50%, calc(100% - 2px) 50% !important;
+    background-size: 4px 4px !important;
+    background-repeat: no-repeat !important;
+}
+
+#homeOverallTrendView.overall-trend-title-select:focus-visible,
+#homeSpecificTrendView.overall-trend-title-select:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
 }
 
 .overall-ai-blank {
@@ -5022,24 +5564,25 @@ body {
 }
 
 .overall-oem-trend {
-    display: inline-grid;
-    grid-template-columns: 12px auto;
+    display: inline-flex;
     align-items: center;
-    column-gap: 6px;
+    column-gap: 0.5em;
     justify-content: center;
-    min-width: 64px;
+    white-space: nowrap;
 }
 
 .overall-oem-trend-arrow {
-    width: 14px;
     text-align: center;
     line-height: 1;
     font-size: 16px;
     font-weight: 900;
 }
 
+.overall-oem-trend-arrow:empty {
+    display: none;
+}
+
 .overall-oem-trend-value {
-    min-width: 44px;
     text-align: center;
     font-variant-numeric: tabular-nums;
 }
@@ -5059,8 +5602,8 @@ body {
 .overall-risk-pill.medium { background: #fef3c7; color: #b54708; }
 .overall-risk-pill.low { background: #dcfce7; color: #067647; }
 
-.overall-trend-up { color: #067647; font-weight: 800; }
-.overall-trend-down { color: #b42318; font-weight: 800; }
+.overall-trend-up { color: #b42318; font-weight: 800; }
+.overall-trend-down { color: #067647; font-weight: 800; }
 .overall-trend-flat { color: #475467; font-weight: 800; }
 
 .overall-trend-chart {
@@ -5506,10 +6049,19 @@ body {
     appearance: none;
 }
 
-#homeComponentSummaryTable .component-summary-legend .component-summary-legend-input,
-#homeComponentSummaryTable .component-summary-legend .component-summary-legend-input.component-summary-legend-value,
-#homeOverallHeatmap .component-summary-legend .component-summary-legend-input,
+.overall-pending-legend .component-summary-legend-input.component-summary-legend-value,
 #homeOverallHeatmap .component-summary-legend .component-summary-legend-input.component-summary-legend-value {
+    flex: 0 0 22px;
+    width: 22px;
+    min-width: 22px;
+    max-width: 22px;
+    height: 15px;
+    padding: 0 3px;
+    border-radius: var(--cmf-radius-sm, 4px) !important;
+}
+
+#homeComponentSummaryTable .component-summary-legend .component-summary-legend-input,
+#homeComponentSummaryTable .component-summary-legend .component-summary-legend-input.component-summary-legend-value {
     border: 1px solid #d0d5dd !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -5550,7 +6102,7 @@ body {
 .overall-pending-body {
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto minmax(0, 1fr);
     gap: 8px;
     min-height: 0;
     height: 100%;
@@ -5560,26 +6112,36 @@ body {
 
 .overall-pending-top {
     display: grid;
-    grid-template-columns: minmax(96px, 40%) minmax(0, 1fr);
+    grid-template-columns: 1fr;
     align-items: start;
-    gap: 6px;
+    gap: 8px;
     min-width: 0;
     max-width: 100%;
 }
 
 .overall-pending-bottom {
     display: grid;
-    gap: 4px;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 8px;
     min-width: 0;
+    min-height: 0;
 }
 
 .overall-pending-pie {
     width: 100%;
-    max-width: 132px;
-    height: auto;
-    aspect-ratio: 1 / 1;
+    max-width: 100%;
+    height: 72px;
+    min-height: 72px;
+    aspect-ratio: auto;
     min-width: 0;
-    justify-self: center;
+    justify-self: stretch;
+}
+
+.overall-pending-total {
+    font-size: 11px;
+    font-weight: 800;
+    color: #344054;
+    text-align: left;
 }
 
 #homeMilestoneSummaryTable.ccip-milestone-pie-wrap {
@@ -5591,12 +6153,27 @@ body {
     flex-direction: column;
 }
 
+#homeLegacyTopLayout #homeLegacyOverview .ccip-inline-summary-card #homeMilestoneSummaryTable.ccip-live-table-wrap.ccip-milestone-pie-wrap {
+    overflow: hidden !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none;
+}
+
+#homeLegacyTopLayout #homeLegacyOverview .ccip-inline-summary-card #homeMilestoneSummaryTable.ccip-live-table-wrap.ccip-milestone-pie-wrap::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+}
+
 .milestone-pie-layout {
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr);
     gap: 8px;
     min-height: 0;
     height: 100%;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     box-sizing: border-box;
     padding-bottom: 0;
 }
@@ -5615,6 +6192,13 @@ body {
     min-height: 72px;
     min-width: 0;
     justify-self: stretch;
+    overflow: hidden;
+}
+
+.milestone-pie-canvas > div,
+.milestone-pie-canvas canvas {
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 .milestone-pie-breakdown {
@@ -5643,13 +6227,28 @@ body {
     border-radius: 10px;
     background: #f8fbff;
     padding: 8px;
-    height: 132px;
-    max-height: 132px;
+    height: auto;
+    max-height: none;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     align-content: start;
     min-width: 0;
     max-width: 100%;
+}
+
+.overall-pending-legend {
+    margin-top: 0;
+    padding-right: 0;
+}
+
+.overall-pending-legend .component-summary-legend-row {
+    gap: 4px;
+}
+
+.overall-pending-legend .component-summary-legend-label {
+    font-size: 10px;
+    font-weight: 700;
 }
 
 .overall-age-buckets {
@@ -5670,6 +6269,7 @@ body {
     justify-content: space-between;
     gap: 6px;
     width: 100%;
+    min-width: 0;
     font-size: 11px;
     color: #344054;
 }
@@ -5706,20 +6306,21 @@ body {
     gap: 5px;
     white-space: nowrap;
     justify-content: flex-end;
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+    min-width: 0;
 }
 
 .overall-age-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 86px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 104px minmax(0, 1fr);
     align-items: center;
-    gap: 10px;
+    gap: 9px;
 }
 
 .overall-age-label {
     display: inline-grid;
-    grid-template-columns: 38px auto;
-    column-gap: 2px;
+    grid-template-columns: max-content max-content;
+    column-gap: 4px;
     align-items: center;
     min-width: 0;
     white-space: nowrap;
@@ -5743,7 +6344,8 @@ body {
     background: #e3ebf7;
     overflow: hidden;
     box-shadow: inset 0 0 0 1px #d7e2f2;
-    justify-self: center;
+    justify-self: end;
+    margin-left: 4px;
 }
 
 .overall-age-bar-fill {
@@ -5817,6 +6419,31 @@ body {
     font-weight: 700;
 }
 
+.overall-break-over-two-days {
+    color: #dc2626;
+    font-weight: 800;
+}
+
+.overall-break-over-two-days-link {
+    color: #dc2626;
+    text-decoration: none;
+}
+
+.overall-break-over-two-days-link .overall-break-over-two-days-count {
+    color: #1e40af;
+}
+
+.overall-break-over-two-days-link:hover,
+.overall-break-over-two-days-link:focus {
+    color: #dc2626;
+    text-decoration: underline;
+}
+
+.overall-break-over-two-days-link:hover .overall-break-over-two-days-count,
+.overall-break-over-two-days-link:focus .overall-break-over-two-days-count {
+    color: #1e40af;
+}
+
 .overall-age-title {
     margin-top: 0;
     margin-bottom: 4px;
@@ -5873,7 +6500,7 @@ body {
     min-height: 180px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6.25px;
 }
 
 .ccip-space-card.space-performance {
@@ -5931,7 +6558,7 @@ body {
 
 .ccip-perf-note {
     margin-top: 4px;
-    color: #7b8798;
+    margin-top: -3.76px;
     font-size: 10px;
     font-weight: 700;
 }
@@ -6153,7 +6780,8 @@ body {
     .overall-pending-pie {
         width: 100%;
         max-width: none;
-        height: 170px;
+        height: 92px;
+        min-height: 92px;
         aspect-ratio: auto;
         justify-self: stretch;
     }
@@ -6204,7 +6832,7 @@ form,
     display: grid;
     grid-template-columns: var(--cmf-summary-side-card-width) var(--cmf-summary-main-width) 700px;
     grid-template-rows: auto auto auto;
-    gap: 10px;
+    gap: 8.37px;
 }
 
 .overall-row {
@@ -6230,6 +6858,11 @@ form,
 }
 
 #homeOverallLayoutV2 .overall-row-summary {
+    grid-template-columns: 1fr !important;
+}
+
+#homeLegacySummarySection.overall-row-summary,
+#homeCmfSummaryPanel .overall-row-summary {
     grid-template-columns: 1fr !important;
 }
 
@@ -6359,6 +6992,7 @@ form,
 .overall-layout-v2 > .overall-row-third {
     grid-column: 1 / -1 !important;
     grid-row: 3 !important;
+    margin-top: 0;
 }
 
 .overall-trend-card { order: 1; }
@@ -6374,6 +7008,7 @@ form,
     flex: 0 0 auto;
 }
 
+
 .overall-heatmap-card .overall-heatmap-wrap {
     flex: 1 1 auto;
     min-height: 0;
@@ -6388,10 +7023,12 @@ form,
     min-width: 0;
     box-sizing: border-box;
     overflow: hidden;
+    padding: 14px !important;
 }
 
 .overall-pending-card .overall-card-head {
     flex: 0 0 auto;
+    margin-bottom: 10px;
 }
 
 .overall-pending-card .overall-pending-body {
@@ -6450,6 +7087,16 @@ form,
     max-height: 312px;
 }
 
+.overall-trend-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.overall-trend-card .overall-card-head {
+    flex: 0 0 auto;
+}
+
 .overall-tpt-card {
     width: 390px;
     min-width: 390px;
@@ -6458,7 +7105,9 @@ form,
 }
 
 .overall-trend-chart {
-    height: 249px;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
 }
 
 /* Match platform-specific issue trend card geometry to overall trend card. */
@@ -6653,16 +7302,19 @@ form,
     max-width: none !important;
 }
 
-.issue-grid-inner #overall_request_details {
+.issue-grid-inner #overall_request_details,
+.cmf-pending-grid-wrap #GridView_cmf_pending {
     border-radius: 12px !important;
-    overflow: hidden !important;
+    overflow: visible !important;
 }
 
 .issue-grid-inner #overall_request_details th,
 .cmf-pending-grid-wrap #GridView_cmf_pending th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20 !important;
+    background: #edf1f7 !important;
+    box-shadow: inset 0 -1px 0 #d0d7de !important;
 }
 
 .issue-grid-inner #overall_request_details td,
@@ -6830,20 +7482,6 @@ form,
     z-index: 1050;
 }
 
-#btnExportDesignDetailsModal0 {
-    position: absolute;
-    top: 10px;
-    right: 50px;
-    z-index: 1050;
-    background-color: #138a3d !important;
-    color: #ffffff !important;
-    border: none !important;
-}
-
-#btnExportDesignDetailsModal0:hover {
-    background-color: #0e6f31 !important;
-}
-
 /* Unified popup export button layout + style */
 .modal-title-container {
     display: flex;
@@ -6859,12 +7497,7 @@ form,
     min-width: 0;
 }
 
-#detailsModal .modal-header .export-btn,
-#detailsModal0 .modal-header .export-btn,
-#detailsModal2 .modal-header .export-btn,
-#detailsModal3 .modal-header .export-btn,
-#detailsModalDrivers .modal-header .export-btn,
-#detailsModalDrivers1 .modal-header .export-btn {
+.modal .modal-header .export-btn {
     position: static !important;
     top: auto !important;
     right: auto !important;
@@ -6877,22 +7510,12 @@ form,
     box-shadow: 0 2px 8px rgba(22, 163, 74, 0.26) !important;
 }
 
-#detailsModal .modal-header .export-btn:hover,
-#detailsModal0 .modal-header .export-btn:hover,
-#detailsModal2 .modal-header .export-btn:hover,
-#detailsModal3 .modal-header .export-btn:hover,
-#detailsModalDrivers .modal-header .export-btn:hover,
-#detailsModalDrivers1 .modal-header .export-btn:hover {
+.modal .modal-header .export-btn:hover {
     background: #15803d !important;
     border-color: #15803d !important;
 }
 
-#detailsModal .modal-header .export-btn:focus,
-#detailsModal0 .modal-header .export-btn:focus,
-#detailsModal2 .modal-header .export-btn:focus,
-#detailsModal3 .modal-header .export-btn:focus,
-#detailsModalDrivers .modal-header .export-btn:focus,
-#detailsModalDrivers1 .modal-header .export-btn:focus {
+.modal .modal-header .export-btn:focus {
     outline: none !important;
     box-shadow: 0 0 0 2px rgba(187, 247, 208, 0.95), 0 0 0 4px rgba(22, 163, 74, 0.35) !important;
 }
@@ -7438,12 +8061,22 @@ td:nth-child(odd), th:nth-child(odd) {
 .custom-modal-dialog {
   max-width: 85%; /* Set the width of the modal to 85% of the page */
   width: 85%; /* You can adjust this value to get the desired width */
+    margin-top: var(--overall-quick-modal-top, 1.75rem) !important;
 }
 
 /* Optional: Adjust modal body height if content overflows */
 .custom-modal-body {
   max-height: 80vh; /* Set max-height of the modal body */
   overflow-y: auto; /* Enable scrolling if the content is too long */
+}
+
+/* Darken the page behind table modals (no blur), matching issue-count popup behavior. */
+.modal-backdrop {
+    background-color: rgba(15, 23, 42, 0.5) !important;
+}
+
+.modal-backdrop.show {
+    opacity: 1 !important;
 }
 
 /* Custom GridView scale */
@@ -7461,158 +8094,290 @@ td:nth-child(odd), th:nth-child(odd) {
 
 /* Design Summary details popup: fit dialog to table width and center table */
 #detailsModal0 .modal-dialog.custom-modal-dialog {
-    width: max-content;
-    max-width: calc(100vw - 40px);
+    width: var(--overall-quick-modal-width, min(1760px, calc(100vw - 24px)));
+    max-width: var(--overall-quick-modal-max-width, calc(100vw - 24px));
     margin-left: auto;
     margin-right: auto;
 }
 
 #detailsModal0 .modal-content {
-    width: max-content;
+    width: 100%;
     max-width: 100%;
 }
 
 #detailsModal0 .modal-body.custom-modal-body {
-    overflow-x: auto;
+    max-width: 100%;
+    overflow-x: hidden;
     overflow-y: auto;
 }
 
 #detailsModal0 .gridview-container {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    display: block;
     width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+#detailsModal0 .gridview-container > div {
+    width: 100%;
+    min-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
 }
 
 #detailsModal0 .custom-gridview {
     transform: none;
     transform-origin: top center;
-    width: max-content;
-    min-width: 0;
-    margin: 0 auto;
+    width: 100% !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    table-layout: auto !important;
+    margin: 0;
 }
 
 /* OEM details popup: fit dialog to table width and center table */
 #detailsModal3 .modal-dialog.custom-modal-dialog {
-    width: max-content;
-    max-width: calc(100vw - 40px);
+    width: var(--overall-quick-modal-width, min(1760px, calc(100vw - 24px)));
+    max-width: var(--overall-quick-modal-max-width, calc(100vw - 24px));
     margin-left: auto;
     margin-right: auto;
 }
 
 #detailsModal3 .modal-content {
-    width: max-content;
+    width: 100%;
     max-width: 100%;
 }
 
 #detailsModal3 .modal-body.custom-modal-body {
-    overflow-x: auto;
+    max-width: 100%;
+    overflow-x: hidden;
     overflow-y: auto;
 }
 
 #detailsModal3 .gridview-container {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    display: block;
     width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
 }
 
 #detailsModal3 .gridview-container > div {
-    width: max-content;
-    margin-left: auto;
-    margin-right: auto;
+    width: 100%;
+    min-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
 }
 
 #detailsModal3 .custom-gridview {
     transform: none;
     transform-origin: top center;
-    width: max-content;
-    min-width: 0;
-    margin: 0 auto;
+    width: 100% !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    table-layout: auto !important;
+    margin: 0;
+}
+
+/* Quick-link drilldown issue-list popups: fit dialog to table width and center table */
+#detailsModal .modal-dialog.custom-modal-dialog,
+#detailsModal2 .modal-dialog.custom-modal-dialog {
+    width: var(--overall-quick-modal-width, min(1760px, calc(100vw - 24px)));
+    max-width: var(--overall-quick-modal-max-width, calc(100vw - 24px));
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#detailsModal .modal-content,
+#detailsModal2 .modal-content {
+    width: 100%;
+    max-width: 100%;
+}
+
+#detailsModal .modal-body.custom-modal-body,
+#detailsModal2 .modal-body.custom-modal-body {
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+#detailsModal .gridview-container,
+#detailsModal2 .gridview-container {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+#detailsModal .gridview-container > div,
+#detailsModal2 .gridview-container > div {
+    width: 100%;
+    min-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+#detailsModal .custom-gridview,
+#detailsModal2 .custom-gridview {
+    transform: none;
+    transform-origin: top center;
+    width: 100% !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    table-layout: auto !important;
+    margin: 0;
+}
+
+/* Quick-link summary popups: fit window to table width and center content */
+#detailsModalDesignIndicator .modal-dialog.custom-modal-dialog,
+#detailsModalIngredientIndicator .modal-dialog.custom-modal-dialog,
+#detailsModalOemIndicator .modal-dialog.custom-modal-dialog {
+    width: var(--overall-quick-modal-width, min(1760px, calc(100vw - 24px)));
+    max-width: var(--overall-quick-modal-max-width, calc(100vw - 24px));
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#detailsModalDesignIndicator .modal-content,
+#detailsModalIngredientIndicator .modal-content,
+#detailsModalOemIndicator .modal-content {
+    width: 100%;
+    max-width: 100%;
+}
+
+#detailsModalDesignIndicator .modal-body.custom-modal-body,
+#detailsModalIngredientIndicator .modal-body.custom-modal-body,
+#detailsModalOemIndicator .modal-body.custom-modal-body {
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+#detailsModalDesignIndicator .gridview-container,
+#detailsModalIngredientIndicator .gridview-container,
+#detailsModalOemIndicator .gridview-container {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+#detailsModalDesignIndicator .gridview-container > div,
+#detailsModalIngredientIndicator .gridview-container > div,
+#detailsModalOemIndicator .gridview-container > div {
+    width: 100%;
+    min-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+#detailsModalDesignIndicator .custom-gridview,
+#detailsModalIngredientIndicator .custom-gridview,
+#detailsModalOemIndicator .custom-gridview {
+    transform: none;
+    transform-origin: top center;
+    width: 100% !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    table-layout: auto !important;
+    margin: 0;
 }
 
 /* Milestone issue popups: fit dialog to table width and center table */
 #detailsModalDrivers .modal-dialog.custom-modal-dialog,
 #detailsModalDrivers1 .modal-dialog.custom-modal-dialog {
-    width: max-content;
-    max-width: calc(100vw - 40px);
+    width: var(--overall-quick-modal-width, min(1760px, calc(100vw - 24px)));
+    max-width: var(--overall-quick-modal-max-width, calc(100vw - 24px));
     margin-left: auto;
     margin-right: auto;
 }
 
 #detailsModalDrivers .modal-content,
 #detailsModalDrivers1 .modal-content {
-    width: max-content;
+    width: 100%;
     max-width: 100%;
 }
 
 #detailsModalDrivers .modal-body.custom-modal-body,
 #detailsModalDrivers1 .modal-body.custom-modal-body {
-    overflow-x: auto;
+    max-width: 100%;
+    overflow-x: hidden;
     overflow-y: auto;
 }
 
 #detailsModalDrivers .gridview-container,
 #detailsModalDrivers1 .gridview-container {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    display: block;
     width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
 }
 
 #detailsModalDrivers .gridview-container > div,
 #detailsModalDrivers1 .gridview-container > div {
-    width: max-content;
-    margin-left: auto;
-    margin-right: auto;
+    width: 100%;
+    min-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
 }
 
 #detailsModalDrivers .custom-gridview,
 #detailsModalDrivers1 .custom-gridview {
     transform: none;
     transform-origin: top center;
-    width: max-content;
-    min-width: 0;
-    margin: 0 auto;
+    width: 100% !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    table-layout: auto !important;
+    margin: 0;
 }
 
 /* Summary metric issue popup (Total/Open/Closed/Implemented): fit dialog to table width */
 #detailsModalSummaryMetrics .modal-dialog.custom-modal-dialog {
-    width: max-content;
-    max-width: calc(100vw - 40px);
+    width: var(--overall-quick-modal-width, min(1760px, calc(100vw - 24px)));
+    max-width: var(--overall-quick-modal-max-width, calc(100vw - 24px));
     margin-left: auto;
     margin-right: auto;
 }
 
 #detailsModalSummaryMetrics .modal-content {
-    width: max-content;
+    width: 100%;
     max-width: 100%;
 }
 
 #detailsModalSummaryMetrics .modal-body.custom-modal-body {
-    overflow-x: auto;
+    max-width: 100%;
+    overflow-x: hidden;
     overflow-y: auto;
 }
 
 #detailsModalSummaryMetrics .gridview-container {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    display: block;
     width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
 }
 
 #detailsModalSummaryMetrics .gridview-container > div {
-    width: max-content;
-    margin-left: auto;
-    margin-right: auto;
+    width: 100%;
+    min-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
 }
 
 #detailsModalSummaryMetrics .custom-gridview {
     transform: none;
     transform-origin: top center;
-    width: max-content;
-    min-width: 0;
-    margin: 0 auto;
+    width: 100% !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    table-layout: auto !important;
+    margin: 0;
 }
 
 /* Keep clickable numeric fields centered in summary metric detail table. */
@@ -7620,14 +8385,83 @@ td:nth-child(odd), th:nth-child(odd) {
 #detailsModalSummaryMetrics #GridView_summaryMetricIssues td:nth-child(3),
 #detailsModalSummaryMetrics #GridView_summaryMetricIssues th:nth-child(4),
 #detailsModalSummaryMetrics #GridView_summaryMetricIssues td:nth-child(4),
-#detailsModalSummaryMetrics #GridView_summaryMetricIssues th:nth-child(20),
-#detailsModalSummaryMetrics #GridView_summaryMetricIssues td:nth-child(20) {
+#detailsModalSummaryMetrics #GridView_summaryMetricIssues th:nth-child(21),
+#detailsModalSummaryMetrics #GridView_summaryMetricIssues td:nth-child(21) {
     text-align: center;
 }
 
 #detailsModalSummaryMetrics #GridView_summaryMetricIssues td:nth-child(3) a {
     display: inline-block;
     text-align: center;
+}
+
+/* Popup tables must always fit available width with no horizontal scrolling. */
+#detailsModal0 .gridview-container,
+#detailsModal3 .gridview-container,
+#detailsModal .gridview-container,
+#detailsModal2 .gridview-container,
+#detailsModalDesignIndicator .gridview-container,
+#detailsModalIngredientIndicator .gridview-container,
+#detailsModalOemIndicator .gridview-container,
+#detailsModalDrivers .gridview-container,
+#detailsModalDrivers1 .gridview-container,
+#detailsModalSummaryMetrics .gridview-container {
+    overflow-x: hidden !important;
+}
+
+#detailsModal0 .gridview-container > div,
+#detailsModal3 .gridview-container > div,
+#detailsModal .gridview-container > div,
+#detailsModal2 .gridview-container > div,
+#detailsModalDesignIndicator .gridview-container > div,
+#detailsModalIngredientIndicator .gridview-container > div,
+#detailsModalOemIndicator .gridview-container > div,
+#detailsModalDrivers .gridview-container > div,
+#detailsModalDrivers1 .gridview-container > div,
+#detailsModalSummaryMetrics .gridview-container > div {
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+#detailsModal0 .custom-gridview,
+#detailsModal3 .custom-gridview,
+#detailsModal .custom-gridview,
+#detailsModal2 .custom-gridview,
+#detailsModalDesignIndicator .custom-gridview,
+#detailsModalIngredientIndicator .custom-gridview,
+#detailsModalOemIndicator .custom-gridview,
+#detailsModalDrivers .custom-gridview,
+#detailsModalDrivers1 .custom-gridview,
+#detailsModalSummaryMetrics .custom-gridview {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+}
+
+#detailsModal0 .custom-gridview th,
+#detailsModal0 .custom-gridview td,
+#detailsModal3 .custom-gridview th,
+#detailsModal3 .custom-gridview td,
+#detailsModal .custom-gridview th,
+#detailsModal .custom-gridview td,
+#detailsModal2 .custom-gridview th,
+#detailsModal2 .custom-gridview td,
+#detailsModalDesignIndicator .custom-gridview th,
+#detailsModalDesignIndicator .custom-gridview td,
+#detailsModalIngredientIndicator .custom-gridview th,
+#detailsModalIngredientIndicator .custom-gridview td,
+#detailsModalOemIndicator .custom-gridview th,
+#detailsModalOemIndicator .custom-gridview td,
+#detailsModalDrivers .custom-gridview th,
+#detailsModalDrivers .custom-gridview td,
+#detailsModalDrivers1 .custom-gridview th,
+#detailsModalDrivers1 .custom-gridview td,
+#detailsModalSummaryMetrics .custom-gridview th,
+#detailsModalSummaryMetrics .custom-gridview td {
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .summary-issues-popup-backdrop {
@@ -7647,7 +8481,7 @@ td:nth-child(odd), th:nth-child(odd) {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: min(980px, calc(100vw - 44px));
+    width: min(800px, calc(100vw - 44px));
     max-height: calc(100vh - 64px);
     border-radius: 12px;
     border: 1px solid #d0d9e8;
@@ -7953,33 +8787,33 @@ td:nth-child(odd), th:nth-child(odd) {
     }
 
     /* Responsive design */
-    #<%= overall_request_details.ClientID %> .field-sno.hidden,
-    #<%= overall_request_details.ClientID %> .field-progress.hidden,
-    #<%= overall_request_details.ClientID %> .field-sightingid.hidden,
-    #<%= overall_request_details.ClientID %> .field-issue_details.hidden,
-    #<%= overall_request_details.ClientID %> .field-promotedid.hidden,
-    #<%= overall_request_details.ClientID %> .field-title.hidden,
-    #<%= overall_request_details.ClientID %> .field-component.hidden,
-    #<%= overall_request_details.ClientID %> .field-owner.hidden,
-    #<%= overall_request_details.ClientID %> .field-promoted_owner.hidden,
-    #<%= overall_request_details.ClientID %> .field-rvp_repro.hidden,
-    #<%= overall_request_details.ClientID %> .field-processor.hidden,
-    #<%= overall_request_details.ClientID %> .field-status.hidden,
-    #<%= overall_request_details.ClientID %> .field-idst.hidden,
-    #<%= overall_request_details.ClientID %> .field-los.hidden,
-    #<%= overall_request_details.ClientID %> .field-customer_company.hidden,
-    #<%= overall_request_details.ClientID %> .field-customer_detail.hidden,
-    #<%= overall_request_details.ClientID %> .field-imagefreeze.hidden,
-    #<%= overall_request_details.ClientID %> .field-component_group.hidden,
-    #<%= overall_request_details.ClientID %> .field-duplicatedetails.hidden,
-    #<%= overall_request_details.ClientID %> .field-impact.hidden,
-    #<%= overall_request_details.ClientID %> .field-impact_processor.hidden,
-    #<%= overall_request_details.ClientID %> .field-milestone.hidden,
-    #<%= overall_request_details.ClientID %> .field-days_open.hidden,
-    #<%= overall_request_details.ClientID %> .field-cmf_request.hidden,
-    #<%= overall_request_details.ClientID %> .field-cmf_status.hidden,
-    #<%= overall_request_details.ClientID %> .field-closed_reason.hidden,
-    #<%= overall_request_details.ClientID %> .field-edit_column.hidden {
+    #overall_request_details .field-sno.hidden,
+    #overall_request_details .field-progress.hidden,
+    #overall_request_details .field-sightingid.hidden,
+    #overall_request_details .field-issue_details.hidden,
+    #overall_request_details .field-promotedid.hidden,
+    #overall_request_details .field-title.hidden,
+    #overall_request_details .field-component.hidden,
+    #overall_request_details .field-owner.hidden,
+    #overall_request_details .field-promoted_owner.hidden,
+    #overall_request_details .field-rvp_repro.hidden,
+    #overall_request_details .field-processor.hidden,
+    #overall_request_details .field-status.hidden,
+    #overall_request_details .field-idst.hidden,
+    #overall_request_details .field-los.hidden,
+    #overall_request_details .field-customer_company.hidden,
+    #overall_request_details .field-customer_detail.hidden,
+    #overall_request_details .field-imagefreeze.hidden,
+    #overall_request_details .field-component_group.hidden,
+    #overall_request_details .field-duplicatedetails.hidden,
+    #overall_request_details .field-impact.hidden,
+    #overall_request_details .field-impact_processor.hidden,
+    #overall_request_details .field-milestone.hidden,
+    #overall_request_details .field-days_open.hidden,
+    #overall_request_details .field-cmf_request.hidden,
+    #overall_request_details .field-cmf_status.hidden,
+    #overall_request_details .field-closed_reason.hidden,
+    #overall_request_details .field-edit_column.hidden {
         display: none !important;
         visibility: hidden !important;
         width: 0 !important;
@@ -7991,32 +8825,32 @@ td:nth-child(odd), th:nth-child(odd) {
         border-width: 0 !important;
         overflow: hidden !important;
     }
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-sno.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-progress.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-sightingid.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-issue_details.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-promotedid.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-title.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-component.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-owner.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-promoted_owner.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-rvp_repro.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-processor.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-status.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-idst.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-los.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-customer_company.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-customer_detail.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-duplicatedetails.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-component_group.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-imagefreeze.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-impact.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-impact_processor.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-milestone.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-days_open.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-cmf_request.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-closed_reason.hidden,
-    #<%= overall_request_details.ClientID %> .empty-data-container .field-edit_column.hidden {
+    #overall_request_details .empty-data-container .field-sno.hidden,
+    #overall_request_details .empty-data-container .field-progress.hidden,
+    #overall_request_details .empty-data-container .field-sightingid.hidden,
+    #overall_request_details .empty-data-container .field-issue_details.hidden,
+    #overall_request_details .empty-data-container .field-promotedid.hidden,
+    #overall_request_details .empty-data-container .field-title.hidden,
+    #overall_request_details .empty-data-container .field-component.hidden,
+    #overall_request_details .empty-data-container .field-owner.hidden,
+    #overall_request_details .empty-data-container .field-promoted_owner.hidden,
+    #overall_request_details .empty-data-container .field-rvp_repro.hidden,
+    #overall_request_details .empty-data-container .field-processor.hidden,
+    #overall_request_details .empty-data-container .field-status.hidden,
+    #overall_request_details .empty-data-container .field-idst.hidden,
+    #overall_request_details .empty-data-container .field-los.hidden,
+    #overall_request_details .empty-data-container .field-customer_company.hidden,
+    #overall_request_details .empty-data-container .field-customer_detail.hidden,
+    #overall_request_details .empty-data-container .field-duplicatedetails.hidden,
+    #overall_request_details .empty-data-container .field-component_group.hidden,
+    #overall_request_details .empty-data-container .field-imagefreeze.hidden,
+    #overall_request_details .empty-data-container .field-impact.hidden,
+    #overall_request_details .empty-data-container .field-impact_processor.hidden,
+    #overall_request_details .empty-data-container .field-milestone.hidden,
+    #overall_request_details .empty-data-container .field-days_open.hidden,
+    #overall_request_details .empty-data-container .field-cmf_request.hidden,
+    #overall_request_details .empty-data-container .field-closed_reason.hidden,
+    #overall_request_details .empty-data-container .field-edit_column.hidden {
         display: none !important;
         visibility: hidden !important;
         width: 0 !important;
@@ -8028,11 +8862,11 @@ td:nth-child(odd), th:nth-child(odd) {
         border-width: 0 !important;
         overflow: hidden !important;
     }
-    #<%= overall_request_details.ClientID %> {
+    #overall_request_details {
         table-layout: auto !important;
     }
 
-    #<%= overall_request_details.ClientID %> table {
+    #overall_request_details table {
         table-layout: auto !important;
         width: 100% !important;
     }
@@ -8608,7 +9442,7 @@ td:nth-child(odd), th:nth-child(odd) {
         border-spacing: 0 !important;
         border: 1px solid #e8edf5 !important;
         border-radius: 10px !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         background: #ffffff !important;
         box-shadow: 0 10px 24px rgba(28, 48, 78, 0.05) !important;
     }
@@ -9792,7 +10626,7 @@ td:nth-child(odd), th:nth-child(odd) {
         border-spacing: 0 !important;
         border: 1px solid #e8edf5 !important;
         border-radius: 10px !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         background: #ffffff !important;
         box-shadow: 0 10px 24px rgba(28, 48, 78, 0.05) !important;
     }
@@ -10103,7 +10937,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
     .cmf-assistant-rec-top {
         display: grid;
-        grid-template-columns: minmax(132px, 0.32fr) minmax(0, 1fr);
+        grid-template-columns: minmax(112px, 0.24fr) minmax(0, 1fr);
         gap: 8px;
         align-items: stretch;
     }
@@ -10111,20 +10945,21 @@ td:nth-child(odd), th:nth-child(odd) {
     .cmf-assistant-overall-score {
         border: 1px solid #d8e2ee;
         border-radius: 8px;
-        padding: 10px 8px;
+        padding: 8px;
         background: linear-gradient(180deg, #f8fbff, #ffffff);
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 7px;
-        min-height: 112px;
+        gap: 6px;
+        min-height: 96px;
+        align-self: start;
         overflow: hidden;
     }
 
     .cmf-assistant-score-ring {
-        width: 72px;
-        height: 72px;
+        width: 64px;
+        height: 64px;
         border-radius: 50%;
         display: grid;
         place-items: center;
@@ -10138,14 +10973,16 @@ td:nth-child(odd), th:nth-child(odd) {
     }
 
     .cmf-assistant-score-ring-value {
-        width: 54px;
-        height: 54px;
+        width: 52px;
+        height: 52px;
         border-radius: 50%;
         background: #fff;
-        display: grid;
-        place-items: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
         color: #12385f;
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 950;
         line-height: 1;
     }
@@ -10262,6 +11099,18 @@ td:nth-child(odd), th:nth-child(odd) {
         color: #40566e;
         font-size: 11px;
         line-height: 1.35;
+    }
+
+    .cmf-assistant-reasoning-copy p {
+        margin: 0 0 10px;
+        color: #304761;
+        font-size: 12px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+    }
+
+    .cmf-assistant-reasoning-copy p:last-child {
+        margin-bottom: 0;
     }
 
     .cmf-assistant-reasoning-copy ul {
@@ -10537,8 +11386,8 @@ td:nth-child(odd), th:nth-child(odd) {
         border: 2px solid #d8e7f5;
         border-radius: 14px;
         background: #ffffff;
-        min-height: 116px;
-        padding: 10px 11px;
+        min-height: 0;
+        padding: 8px 10px;
         min-width: 0;
     }
 
@@ -11256,6 +12105,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
         .cmf-sqa-category-grid {
             grid-template-columns: 1fr;
+            grid-auto-rows: 1fr;
         }
     }
 
@@ -11580,7 +12430,7 @@ td:nth-child(odd), th:nth-child(odd) {
     .issue-grid-inner #overall_request_details {
         table-layout: fixed !important;
         width: 100% !important;
-        min-width: 1620px !important;
+        min-width: 1320px !important;
         max-width: none !important;
         display: table !important;
         overflow: visible !important;
@@ -11619,18 +12469,18 @@ td:nth-child(odd), th:nth-child(odd) {
     .issue-grid-inner .table-primary {
         table-layout: fixed !important;
         width: 100% !important;
-        min-width: 1560px !important;
+        min-width: 1320px !important;
         max-width: none !important;
         display: table !important;
     }
 
-    .issue-grid-inner #<%= overall_request_details.ClientID %>,
+    .issue-grid-inner #overall_request_details,
     .issue-grid-inner > table,
     .issue-grid-inner > .table-primary,
     .issue-grid-inner .table-primary {
         table-layout: fixed !important;
         width: 100% !important;
-        min-width: 1560px !important;
+        min-width: 1320px !important;
         max-width: none !important;
         display: table !important;
     }
@@ -11747,7 +12597,7 @@ td:nth-child(odd), th:nth-child(odd) {
     }
 
     .issue-grid-inner #overall_request_details {
-        min-width: 1668px !important;
+        min-width: 1320px !important;
         border-collapse: separate !important;
         border-spacing: 0 !important;
         border: 1px solid #e8edf5 !important;
@@ -11874,6 +12724,16 @@ td:nth-child(odd), th:nth-child(odd) {
 
     .gridview-container-wrapper {
         align-items: flex-start;
+    }
+
+    /* Collapse legacy wrapper when all child tables are not rendered.
+       This prevents a blank strip from adding extra page height. */
+    #portalLayoutShell > .gridview-container-wrapper:not(:has(table)) {
+        display: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
     }
 
     .gridview-container3 {
@@ -13673,6 +14533,204 @@ td:nth-child(odd), th:nth-child(odd) {
         }
     }
 
+    #pendingTabShell {
+        font-family: "Segoe UI", Tahoma, sans-serif !important;
+        color: #233044;
+    }
+
+    #pendingTabShell .cmf-pending-page-title,
+    #pendingTabShell .cmf-pending-page-desc,
+    #pendingTabShell input,
+    #pendingTabShell select,
+    #pendingTabShell button {
+        font-family: "Segoe UI", Tahoma, sans-serif !important;
+        letter-spacing: 0 !important;
+    }
+
+    #pendingTabShell .cmf-pending-page-title {
+        font-weight: 600 !important;
+        color: #182b45 !important;
+    }
+
+    #sharedFilterPanel.cmf-pending-controls-docked {
+        display: none !important;
+    }
+
+    #pendingTabShell #cmfPendingExternalLinks .issue-external-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    #pendingTabShell #cmfPendingExternalLinks a {
+        padding: 5px 8px !important;
+        border: 0 !important;
+        border-radius: 4px !important;
+        background: transparent !important;
+        color: #0068b5 !important;
+        font: 400 11px "Segoe UI", Tahoma, sans-serif !important;
+    }
+
+    #pendingTabShell .cmf-pending-actions {
+        flex-wrap: wrap !important;
+    }
+
+    #pendingTabShell .pending-tab-main .cmf-pending-filter-card {
+        grid-template-columns: repeat(5, minmax(0, 1fr)) auto !important;
+        gap: 8px !important;
+        padding: 10px !important;
+        box-shadow: none !important;
+        border-radius: 4px 4px 0 0 !important;
+    }
+
+    #pendingTabShell .cmf-pending-searchbox {
+        grid-column: 1 / -1;
+        grid-row: 1;
+    }
+
+    #pendingTabShell #cmfPendingPlatformSlot .overview-platform-filter {
+        min-width: 0 !important;
+        width: 100%;
+        gap: 4px;
+    }
+
+    #pendingTabShell #cmfPendingPlatformSlot label {
+        font: 400 11px "Segoe UI", Tahoma, sans-serif;
+        margin: 0;
+    }
+
+    #pendingTabShell #cmfPendingPlatformSlot select {
+        min-width: 0;
+        width: 100%;
+        height: 30px;
+        margin: 0;
+        padding: 3px 6px;
+        font-size: 11px;
+    }
+
+    #pendingTabShell .cmf-pending-filter-select,
+    #pendingTabShell .cmf-pending-filter-btn {
+        font-weight: 400 !important;
+    }
+
+    #pendingTabShell .cmf-pending-grid-wrap {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+    }
+
+    #pendingTabShell #GridView_cmf_pending.cmf-pending-columns {
+        width: 100% !important;
+        min-width: 0 !important;
+        table-layout: fixed !important;
+        font-family: "Segoe UI", Tahoma, sans-serif !important;
+        border-collapse: collapse !important;
+        border-radius: 4px !important;
+        box-shadow: none !important;
+    }
+
+    #GridView_cmf_pending.cmf-pending-columns th,
+    #GridView_cmf_pending.cmf-pending-columns td {
+        width: 7.142857% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        padding: 7px 4px !important;
+        text-align: left !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        word-break: normal !important;
+        border: 1px solid #e4eaf3 !important;
+        letter-spacing: 0 !important;
+    }
+
+    #GridView_cmf_pending.cmf-pending-columns th {
+        background: #edf2f8 !important;
+        font-size: 10px !important;
+        font-weight: 600 !important;
+    }
+
+    #GridView_cmf_pending.cmf-pending-columns td {
+        background: #fff !important;
+        font-size: 11px !important;
+        font-weight: 400 !important;
+        color: #344054 !important;
+        line-height: 1.4 !important;
+        vertical-align: middle !important;
+    }
+
+    #GridView_cmf_pending.cmf-pending-columns tr:nth-child(even) td {
+        background: #f8fafc !important;
+    }
+
+    #GridView_cmf_pending.cmf-pending-columns tr {
+        border: 1px solid #e4eaf3 !important;
+    }
+
+    #GridView_cmf_pending .pending-rvp-status {
+        display: inline-block;
+        max-width: 100%;
+        padding: 3px 6px;
+        border-radius: 12px;
+        background: #edf0f4;
+        color: #546174;
+        font-size: 11px;
+        line-height: 1.3;
+    }
+
+    #GridView_cmf_pending .pending-rvp-status[data-rvp="yes" i] {
+        background: #d9f2e4;
+        color: #16833b;
+    }
+
+    #GridView_cmf_pending .pending-rvp-status[data-rvp="no" i] {
+        background: #fbe2e4;
+        color: #cc353d;
+    }
+
+    #GridView_cmf_pending .pending-id-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    #GridView_cmf_pending .pending-ai-rec-cell {
+        width: auto !important;
+        justify-content: flex-start !important;
+    }
+
+    #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex: none !important;
+        width: 28px !important;
+        min-width: 28px !important;
+        max-width: 28px !important;
+        height: 28px !important;
+        min-height: 28px !important;
+        padding: 0 !important;
+        border: 1px solid #006fe6 !important;
+        border-radius: 4px !important;
+        background: #0075ee !important;
+        color: #fff !important;
+    }
+
+    #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-label,
+    #GridView_cmf_pending.cmf-pending-columns .pending-ai-rec-confidence {
+        display: none !important;
+    }
+
+    @media (max-width: 900px) {
+        #pendingTabShell #GridView_cmf_pending.cmf-pending-columns {
+            min-width: 980px !important;
+        }
+
+        #pendingTabShell .pending-tab-main .cmf-pending-filter-card {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+    }
+
     #GridView_cmf_pending {
         min-width: 1040px !important;
         border: 1px solid #e4eaf3 !important;
@@ -13766,7 +14824,7 @@ td:nth-child(odd), th:nth-child(odd) {
     .issue-grid-inner > table,
     .issue-grid-inner .table-primary {
         width: max-content !important;
-        min-width: 2200px !important;
+        min-width: 1320px !important;
         max-width: none !important;
     }
 
@@ -14042,6 +15100,465 @@ td:nth-child(odd), th:nth-child(odd) {
         }
     }
 
+    /* Compact workspace sizing: preserve content visibility and contain wide tables. */
+    html,
+    body,
+    form,
+    header,
+    .container-scroller,
+    .container-fluid.page-body-wrapper {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .portal-layout-shell,
+    .portal-main-workspace,
+    #mainDataWrapper.content-wrapper,
+    .table-container,
+    #issueTabShell,
+    #pendingTabShell {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .portal-layout-shell {
+        width: 100% !important;
+        gap: 10px !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: flex-start !important;
+    }
+
+    .portal-main-workspace {
+        flex: 0 0 calc(100vw - 196px) !important;
+        width: calc(100vw - 196px) !important;
+        max-width: calc(100vw - 196px) !important;
+        overflow: visible !important;
+    }
+
+    .portal-left-nav {
+        flex: 0 0 176px !important;
+        width: 176px !important;
+    }
+
+    .portal-left-nav.is-collapsed {
+        flex-basis: 58px !important;
+        width: 58px !important;
+    }
+
+    .portal-layout-shell.main-menu-collapsed .portal-main-workspace {
+        flex-basis: calc(100vw - 78px) !important;
+        width: calc(100vw - 78px) !important;
+        max-width: calc(100vw - 78px) !important;
+    }
+
+    .content-wrapper,
+    #mainDataWrapper.content-wrapper {
+        width: 100% !important;
+        min-width: 0 !important;
+        margin: 4px 0 8px !important;
+        padding: 8px !important;
+        border-radius: 10px !important;
+        overflow: visible !important;
+    }
+
+    .ccip-dashboard,
+    .home-dashboard-shell,
+    .portal-tab-shell,
+    .issue-tab-main,
+    #pendingTabShell .pending-tab-main {
+        gap: 10px !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .ccip-dash-top,
+    .portal-tab-hero,
+    .home-dashboard-panel,
+    .home-ai-card,
+    .portal-surface-card,
+    .overall-card,
+    .ccip-card,
+    .issue-page-hd,
+    #pendingTabShell .cmf-pending-page-hd,
+    .field-selector-panel {
+        padding: 10px 12px !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.045) !important;
+    }
+
+    .ccip-dash-greeting,
+    .portal-tab-title,
+    .issue-page-title,
+    .cmf-pending-page-title {
+        font-size: 20px !important;
+        line-height: 1.15 !important;
+        margin-bottom: 4px !important;
+    }
+
+    .ccip-dash-sub,
+    .portal-tab-desc,
+    .issue-page-desc,
+    .cmf-pending-page-desc {
+        font-size: 12px !important;
+        line-height: 1.35 !important;
+        margin: 2px 0 0 !important;
+    }
+
+    .platform-chip-rail {
+        gap: 6px !important;
+        margin-bottom: 8px !important;
+        overflow-x: auto !important;
+        max-width: 100% !important;
+        padding-bottom: 2px !important;
+    }
+
+    .platform-chip-rail.is-overall-selection,
+    .platform-chip-rail[data-chip-source="server"][aria-label="Dashboard platform switch"] {
+        flex: 0 0 auto !important;
+        align-self: flex-start !important;
+        width: var(--overall-quick-rail-width, var(--overall-quick-modal-width, min(1760px, calc(100vw - 24px)))) !important;
+        max-width: var(--overall-quick-rail-width, var(--overall-quick-modal-width, min(1760px, calc(100vw - 24px)))) !important;
+        min-width: 0 !important;
+    }
+
+    .platform-chip-rail button,
+    .platform-chip-rail .platform-chip {
+        min-height: 28px !important;
+        padding: 4px 9px !important;
+        font-size: 11px !important;
+    }
+
+    .overall-row,
+    .ccip-main-grid,
+    .ccip-dashboard-overview,
+    .ccip-summary-canvas,
+    .ccip-inline-side-stack,
+    .home-dashboard-grid,
+    .home-ai-panels,
+    .home-dashboard-metrics,
+    .issue-kpi-row,
+    #pendingTabShell .template-kpi-row {
+        gap: 10px !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    /* Keep legacy row-3 grid at its designed width; compact clamps cause column overlap. */
+    #homeLegacyTablesGrid.ccip-main-grid,
+    #homeLegacyTablesGrid .ccip-summary-canvas {
+        max-width: none !important;
+    }
+
+    /* Match safe styling for Overall + legacy dashboard cards and titles. */
+    #homeOverallLayoutV2 .overall-card,
+    #homeLegacyTopLayout .overall-card {
+        padding: 9px !important;
+        border: 1px solid #e4e9f2 !important;
+        border-radius: 10px !important;
+        background: #ffffff !important;
+        box-shadow: none !important;
+        font-family: var(--portal-font-body) !important;
+    }
+
+    #homeOverallLayoutV2 .overall-pending-card {
+        padding: 14px !important;
+    }
+
+    #homeOverallLayoutV2 .overall-pending-card .overall-card-head {
+        margin-bottom: 10px !important;
+    }
+
+    #homeOverallLayoutV2 .overall-card-title,
+    #homeLegacyTopLayout .overall-card-title,
+    #homeLegacyTopLayout #homeLegacyAiHealthCard .ccip-ai-health-head span {
+        font-family: var(--portal-font-display) !important;
+        letter-spacing: -0.01em !important;
+    }
+
+    /* Preserve safe card treatment for specific summary row-3 cards when legacy layout is active. */
+    #homeLegacyTablesGrid .ccip-card {
+        border: 1px solid #e5e7eb !important;
+        border-radius: 14px !important;
+        background: #ffffff !important;
+        box-shadow: none !important;
+        padding: 14px !important;
+        font-family: var(--portal-font-body) !important;
+    }
+
+    #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot {
+        border: 1px solid #d9dde5 !important;
+        border-radius: 10px !important;
+        background: transparent !important;
+        padding: 14px !important;
+        box-shadow: none !important;
+        font-family: var(--portal-font-body) !important;
+    }
+
+    #homeLegacyTablesGrid .ccip-card-mini-title,
+    #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-card-mini-title {
+        font-family: var(--portal-font-display) !important;
+        letter-spacing: -0.01em !important;
+    }
+
+    #homeLegacyTopLayout .ccip-trend-card-inline.overall-trend-card {
+        background: transparent !important;
+        border-color: #d9dde5 !important;
+    }
+
+    #homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card #homeDesignSummaryTable .ccip-live-table {
+        min-width: 678px !important;
+    }
+
+    #homeLegacyTablesGrid #homePendingSummaryTable .ccip-live-table,
+    #homeLegacyTablesGrid #homeComponentSummaryTable .ccip-live-table {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Re-apply tone palette for CMF Summary metric cards overridden by global compact card reset. */
+    #homeOverallLayoutV2 #homeOverallSummaryFacts .overall-summary-fact,
+    #homeLegacyTopLayout #homeSpecificSummaryFactsDashboard .overall-summary-fact,
+    #homeLegacyTopLayout #homeSpecificSummaryFactsCmf .overall-summary-fact {
+        border-radius: 8px !important;
+        font-family: var(--portal-font-body) !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-total:not(.overall-summary-fact-blank),
+    #homeLegacyTopLayout .overall-summary-fact.tone-total:not(.overall-summary-fact-blank) {
+        background: #eff6ff !important;
+        border: 1px solid #bfdbfe !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-total:not(.overall-summary-fact-blank) .ccip-summary-fact-value,
+    #homeLegacyTopLayout .overall-summary-fact.tone-total:not(.overall-summary-fact-blank) .ccip-summary-fact-value {
+        color: #1d4ed8 !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-closed:not(.overall-summary-fact-blank),
+    #homeLegacyTopLayout .overall-summary-fact.tone-closed:not(.overall-summary-fact-blank) {
+        background: #ecfdf3 !important;
+        border: 1px solid #abefc6 !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-closed:not(.overall-summary-fact-blank) .ccip-summary-fact-value,
+    #homeLegacyTopLayout .overall-summary-fact.tone-closed:not(.overall-summary-fact-blank) .ccip-summary-fact-value {
+        color: #067647 !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-implemented:not(.overall-summary-fact-blank),
+    #homeLegacyTopLayout .overall-summary-fact.tone-implemented:not(.overall-summary-fact-blank) {
+        background: #f0f9ff !important;
+        border: 1px solid #bae6fd !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-implemented:not(.overall-summary-fact-blank) .ccip-summary-fact-value,
+    #homeLegacyTopLayout .overall-summary-fact.tone-implemented:not(.overall-summary-fact-blank) .ccip-summary-fact-value {
+        color: #0369a1 !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-open:not(.overall-summary-fact-blank),
+    #homeLegacyTopLayout .overall-summary-fact.tone-open:not(.overall-summary-fact-blank) {
+        background: #fff4ed !important;
+        border: 1px solid #ffccba !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-open:not(.overall-summary-fact-blank) .ccip-summary-fact-value,
+    #homeLegacyTopLayout .overall-summary-fact.tone-open:not(.overall-summary-fact-blank) .ccip-summary-fact-value {
+        color: #c2410c !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-pending:not(.overall-summary-fact-blank),
+    #homeLegacyTopLayout .overall-summary-fact.tone-pending:not(.overall-summary-fact-blank) {
+        background: #fffbeb !important;
+        border: 1px solid #fde68a !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-total.ccip-summary-clickable:not(.overall-summary-fact-blank):hover,
+    #homeOverallLayoutV2 .overall-summary-fact.tone-closed.ccip-summary-clickable:not(.overall-summary-fact-blank):hover,
+    #homeOverallLayoutV2 .overall-summary-fact.tone-implemented.ccip-summary-clickable:not(.overall-summary-fact-blank):hover,
+    #homeOverallLayoutV2 .overall-summary-fact.tone-open.ccip-summary-clickable:not(.overall-summary-fact-blank):hover,
+    #homeOverallLayoutV2 .overall-summary-fact.tone-pending.ccip-summary-clickable:not(.overall-summary-fact-blank):hover,
+    #homeLegacyTopLayout .overall-summary-fact.tone-total.ccip-summary-clickable:not(.overall-summary-fact-blank):hover,
+    #homeLegacyTopLayout .overall-summary-fact.tone-closed.ccip-summary-clickable:not(.overall-summary-fact-blank):hover,
+    #homeLegacyTopLayout .overall-summary-fact.tone-implemented.ccip-summary-clickable:not(.overall-summary-fact-blank):hover,
+    #homeLegacyTopLayout .overall-summary-fact.tone-open.ccip-summary-clickable:not(.overall-summary-fact-blank):hover,
+    #homeLegacyTopLayout .overall-summary-fact.tone-pending.ccip-summary-clickable:not(.overall-summary-fact-blank):hover,
+    #homeOverallLayoutV2 .overall-summary-fact.tone-total.ccip-summary-clickable:not(.overall-summary-fact-blank):focus-visible,
+    #homeOverallLayoutV2 .overall-summary-fact.tone-closed.ccip-summary-clickable:not(.overall-summary-fact-blank):focus-visible,
+    #homeOverallLayoutV2 .overall-summary-fact.tone-implemented.ccip-summary-clickable:not(.overall-summary-fact-blank):focus-visible,
+    #homeOverallLayoutV2 .overall-summary-fact.tone-open.ccip-summary-clickable:not(.overall-summary-fact-blank):focus-visible,
+    #homeOverallLayoutV2 .overall-summary-fact.tone-pending.ccip-summary-clickable:not(.overall-summary-fact-blank):focus-visible,
+    #homeLegacyTopLayout .overall-summary-fact.tone-total.ccip-summary-clickable:not(.overall-summary-fact-blank):focus-visible,
+    #homeLegacyTopLayout .overall-summary-fact.tone-closed.ccip-summary-clickable:not(.overall-summary-fact-blank):focus-visible,
+    #homeLegacyTopLayout .overall-summary-fact.tone-implemented.ccip-summary-clickable:not(.overall-summary-fact-blank):focus-visible,
+    #homeLegacyTopLayout .overall-summary-fact.tone-open.ccip-summary-clickable:not(.overall-summary-fact-blank):focus-visible,
+    #homeLegacyTopLayout .overall-summary-fact.tone-pending.ccip-summary-clickable:not(.overall-summary-fact-blank):focus-visible {
+        border-color: #2563eb !important;
+    }
+
+    #homeOverallLayoutV2 .overall-summary-fact.tone-pending:not(.overall-summary-fact-blank) .ccip-summary-fact-value,
+    #homeLegacyTopLayout .overall-summary-fact.tone-pending:not(.overall-summary-fact-blank) .ccip-summary-fact-value {
+        color: #b45309 !important;
+    }
+
+    @media (max-width: 900px) {
+        .overall-layout-v2 {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: auto !important;
+        }
+
+        .overall-row-summary,
+        .overall-row-second,
+        .overall-row-third,
+        .overall-ai-span-card {
+            grid-column: auto !important;
+            grid-row: auto !important;
+        }
+
+        .overall-row-summary,
+        .overall-row-second,
+        .overall-row-third {
+            grid-template-columns: 1fr !important;
+        }
+    }
+
+    .issue-kpi {
+        min-height: 72px !important;
+        padding: 10px 12px !important;
+        border-radius: 8px !important;
+    }
+
+    .issue-kpi-value {
+        font-size: 22px !important;
+        line-height: 1 !important;
+    }
+
+    .issue-top-filter-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+        gap: 8px !important;
+    }
+
+    .issue-top-filter-item,
+    .cmf-pending-filter-card {
+        min-width: 0 !important;
+    }
+
+    .issue-grid-scroll,
+    .issue-grid-inner,
+    #pendingTabShell .cmf-pending-grid-wrap,
+    .cmf-pending-grid-wrap {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+        overflow-y: auto !important;
+        overscroll-behavior-x: contain;
+    }
+
+    .issue-grid-inner #overall_request_details,
+    .issue-grid-inner > table,
+    .issue-grid-inner .table-primary {
+        min-width: min(1320px, 100%) !important;
+        width: 100% !important;
+        table-layout: fixed !important;
+    }
+
+    #overall_request_details th,
+    #overall_request_details td,
+    #GridView_cmf_pending th,
+    #GridView_cmf_pending td {
+        padding: 7px 8px !important;
+        font-size: 10px !important;
+        line-height: 1.28 !important;
+    }
+
+    #overall_request_details th .header-dropdown,
+    .issue-top-filter-item .header-dropdown,
+    .cmf-pending-filter-select {
+        height: 30px !important;
+        padding: 3px 7px !important;
+        font-size: 10px !important;
+        border-radius: 6px !important;
+    }
+
+    #overall_request_details tbody td:nth-child(2),
+    #overall_request_details .field-issue_details {
+        min-width: 220px !important;
+        max-width: 280px !important;
+    }
+
+    #pendingTabShell .cmf-pending-filter-card {
+        grid-template-columns: minmax(170px, 1.4fr) repeat(4, minmax(105px, 0.65fr)) auto !important;
+        gap: 7px !important;
+        padding: 9px !important;
+    }
+
+    #pendingTabShell #GridView_cmf_pending {
+        min-width: min(920px, 100%) !important;
+        width: 100% !important;
+    }
+
+    #pendingTabShell .pending-ai-rec-btn,
+    .cmf-pending-action-btn,
+    .cmf-pending-filter-btn,
+    .issue-toolbar-btn,
+    .filter-btn {
+        min-height: 30px !important;
+        padding: 4px 9px !important;
+        font-size: 11px !important;
+        border-radius: 6px !important;
+    }
+
+    @media (max-width: 1180px) {
+        #pendingTabShell .cmf-pending-filter-card {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+
+        .issue-grid-inner #overall_request_details,
+        .issue-grid-inner > table,
+        .issue-grid-inner .table-primary {
+            min-width: 1180px !important;
+        }
+    }
+
+    @media (max-width: 760px) {
+        #pendingTabShell .cmf-pending-filter-card,
+        .issue-top-filter-grid,
+        .issue-kpi-row {
+            grid-template-columns: 1fr !important;
+        }
+
+        .ccip-dash-top,
+        .cmf-pending-page-hd-top,
+        .issue-page-hd-top {
+            flex-direction: column !important;
+            align-items: stretch !important;
+        }
+    }
+
+    /* Keep Home dashboard behavior uniform across browser zoom levels
+       when menu is collapsed: fixed visual scale with reachable overflow. */
+    .portal-layout-shell.main-menu-collapsed #homeWelcomePanel.ccip-dashboard-host {
+        height: auto !important;
+        min-height: calc(100vh - 112px) !important;
+        max-height: none !important;
+        overflow: visible !important;
+        overscroll-behavior: contain;
+    }
+
+    .portal-layout-shell.main-menu-collapsed #homeWelcomePanel .ccip-dashboard {
+        --ccip-fit-scale-1080: 0.90;
+        transform: scale(var(--ccip-fit-scale-1080));
+        transform-origin: top left;
+        width: calc(100% / var(--ccip-fit-scale-1080));
+        max-height: none;
+        overflow: visible;
+    }
+
     </style>
 
     <script type="text/javascript">
@@ -14058,6 +15575,11 @@ td:nth-child(odd), th:nth-child(odd) {
         window.CMF_PORTAL.ids.hiddenInlineDesignName = '<%= HiddenInlineDesignName.ClientID %>';
         window.CMF_PORTAL.ids.hiddenInlineSwImageFreeze = '<%= HiddenInlineSwImageFreeze.ClientID %>';
         window.CMF_PORTAL.ids.hiddenInlineSupportModel = '<%= HiddenInlineSupportModel.ClientID %>';
+        window.CMF_PORTAL.ids.hfPopupAsyncAction = '<%= hfPopupAsyncAction.ClientID %>';
+        window.CMF_PORTAL.ids.hfPopupAsyncArg1 = '<%= hfPopupAsyncArg1.ClientID %>';
+        window.CMF_PORTAL.ids.hfPopupAsyncArg2 = '<%= hfPopupAsyncArg2.ClientID %>';
+        window.CMF_PORTAL.ids.hfPopupAsyncArg3 = '<%= hfPopupAsyncArg3.ClientID %>';
+        window.CMF_PORTAL.ids.btnPopupAsyncDispatch = '<%= btnPopupAsyncDispatch.UniqueID %>';
         window.CMF_PORTAL.ids.ddlTables = '<%= ddlTables.ClientID %>';
         window.CMF_PORTAL.ids.ddlSharedPlatform = '<%= ddlSharedPlatform.ClientID %>';
         window.CMF_PORTAL.ids.hfQuickPlatform = '<%= hfQuickPlatform.ClientID %>';
@@ -14067,8 +15589,6 @@ td:nth-child(odd), th:nth-child(odd) {
         window.CMF_PORTAL.ids.btnShowGridView2 = '<%= btnShowGridView2.UniqueID %>';
         window.CMF_PORTAL.ids.btnExportToExcelDesignSummary = '<%= btnExportToExcel_des_summary.UniqueID %>';
         window.CMF_PORTAL.ids.overallRequestDetails = '<%= overall_request_details.ClientID %>';
-        window.CMF_PORTAL.ids.gridViewDesignSummaryModal0 = '<%= GridView_design_summary_modal0.ClientID %>';
-        window.CMF_PORTAL.ids.gridViewSummaryMetricIssues = '<%= GridView_summaryMetricIssues.ClientID %>';
         window.CMF_PORTAL.ids.gridViewDesignSummary = '<%= GridView_design_summary.ClientID %>';
         window.CMF_PORTAL.ids.gridViewComponentSummary = '<%= GridView_component_summary.ClientID %>';
         window.CMF_PORTAL.ids.gridViewCmfSummary = '<%= GridView_cmf_summary.ClientID %>';
@@ -14104,6 +15624,216 @@ td:nth-child(odd), th:nth-child(odd) {
         window.CMF_PORTAL.driversJson = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(DriversJson) %>');
         window.CMF_PORTAL.isInitialLoad = '<%= IsPostBack ? "false" : "true" %>' === 'true';
         window.CMF_PORTAL.activeFocusedTab = '<%= GetActiveFocusedTab() %>';
+
+        function showDesignIndicatorSummaryModal() {
+            if (typeof dispatchPopupAsyncFlow === 'function') {
+                return dispatchPopupAsyncFlow('ShowDesignIndicatorSummaryModal', '', '', '', 'ShowDesignIndicatorSummaryModal', '');
+            }
+            __doPostBack('ShowDesignIndicatorSummaryModal', '');
+            return false;
+        }
+
+        function showIngredientIndicatorSummaryModal() {
+            if (typeof dispatchPopupAsyncFlow === 'function') {
+                return dispatchPopupAsyncFlow('ShowIngredientIndicatorSummaryModal', '', '', '', 'ShowIngredientIndicatorSummaryModal', '');
+            }
+            __doPostBack('ShowIngredientIndicatorSummaryModal', '');
+            return false;
+        }
+
+        function showOemIndicatorSummaryModal() {
+            if (typeof dispatchPopupAsyncFlow === 'function') {
+                return dispatchPopupAsyncFlow('ShowOemIndicatorSummaryModal', '', '', '', 'ShowOemIndicatorSummaryModal', '');
+            }
+            __doPostBack('ShowOemIndicatorSummaryModal', '');
+            return false;
+        }
+
+        function getQuickLinkPopupModalIds() {
+            return [
+                'detailsModalDesignIndicator',
+                'detailsModalIngredientIndicator',
+                'detailsModalOemIndicator',
+                'detailsModal',
+                'detailsModal2',
+                'detailsModal0',
+                'detailsModal3',
+                'detailsModalDrivers',
+                'detailsModalDrivers1',
+                'detailsModalSummaryMetrics'
+            ];
+        }
+
+        function isQuickLinkPopupModalOpen() {
+            var ids = getQuickLinkPopupModalIds();
+            for (var i = 0; i < ids.length; i++) {
+                var modal = document.getElementById(ids[i]);
+                if (modal && modal.classList.contains('show')) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function resolveQuickLinkPopupLockGeometry() {
+            var candidates = [
+                {
+                    container: document.getElementById('homeOverallLayoutV2'),
+                    quickSelector: '.overall-summary-side-card.overall-summary-side-span',
+                    aiSelector: '.overall-ai-card.overall-ai-span-card, .overall-ai-card',
+                    summarySelector: '.overall-row.overall-row-summary'
+                },
+                {
+                    container: document.getElementById('homeLegacyTopLayout'),
+                    quickSelector: '#homeLegacySummarySection .overall-summary-side-card',
+                    aiSelector: '#homeLegacyAiHealthCard, .overall-ai-card.overall-ai-span-card, .overall-ai-card',
+                    summarySelector: '#homeLegacySummarySection'
+                }
+            ];
+
+            var quickRect = null;
+            var aiRect = null;
+            var activeContainer = null;
+            var summaryRect = null;
+
+            for (var index = 0; index < candidates.length; index++) {
+                var candidate = candidates[index];
+                var container = candidate.container;
+                if (!container) {
+                    continue;
+                }
+
+                var quickLinksCard = container.querySelector(candidate.quickSelector);
+                var aiInsightsCard = container.querySelector(candidate.aiSelector);
+                if (!quickLinksCard || !aiInsightsCard) {
+                    continue;
+                }
+
+                quickRect = quickLinksCard.getBoundingClientRect();
+                aiRect = aiInsightsCard.getBoundingClientRect();
+                var summarySection = container.querySelector(candidate.summarySelector || '');
+                summaryRect = summarySection ? summarySection.getBoundingClientRect() : null;
+                if (!quickRect || !aiRect) {
+                    continue;
+                }
+
+                if (quickRect.width <= 0 || aiRect.width <= 0 || aiRect.right <= quickRect.left) {
+                    continue;
+                }
+
+                activeContainer = container;
+                break;
+            }
+
+            if (!quickRect || !aiRect || !activeContainer) {
+                return null;
+            }
+
+            var viewportPadding = 12;
+            var left = Math.max(viewportPadding, quickRect.left);
+            var right = Math.min(window.innerWidth - viewportPadding, aiRect.right);
+            var width = right - left;
+            var top = summaryRect && summaryRect.top > 0 ? summaryRect.top : quickRect.top;
+
+            if (!isFinite(top) || top <= 0) {
+                top = viewportPadding;
+            }
+
+            top = Math.max(viewportPadding, top);
+
+            if (!isFinite(width) || width <= 320) {
+                return null;
+            }
+
+            return {
+                left: left,
+                width: width,
+                top: top,
+                scaleContainer: activeContainer
+            };
+        }
+
+        function applyQuickLinkPopupLockGeometry() {
+            var root = document.documentElement;
+            var geometry = resolveQuickLinkPopupLockGeometry();
+
+            if (!geometry) {
+                return false;
+            }
+
+            var railWidth = geometry.width;
+            var scaleContainer = geometry.scaleContainer;
+            if (scaleContainer && scaleContainer.offsetWidth > 0) {
+                var layoutRect = scaleContainer.getBoundingClientRect();
+                var scaleX = layoutRect && layoutRect.width > 0 ? (layoutRect.width / scaleContainer.offsetWidth) : 1;
+                if (isFinite(scaleX) && scaleX > 0) {
+                    railWidth = geometry.width / scaleX;
+                }
+            }
+
+            root.style.setProperty('--overall-quick-modal-left', 'auto');
+            root.style.setProperty('--overall-quick-modal-width', geometry.width.toFixed(2) + 'px');
+            root.style.setProperty('--overall-quick-modal-max-width', geometry.width.toFixed(2) + 'px');
+            root.style.setProperty('--overall-quick-modal-top', geometry.top.toFixed(2) + 'px');
+            root.style.setProperty('--overall-quick-rail-width', railWidth.toFixed(2) + 'px');
+            return true;
+        }
+
+        function syncQuickLinkPopupLockGeometry(force) {
+            if (!force && !isQuickLinkPopupModalOpen()) {
+                return;
+            }
+            applyQuickLinkPopupLockGeometry();
+        }
+
+        function initQuickLinkPopupLockGeometry() {
+            if (window.CMF_PORTAL.quickLinkPopupLockGeometryInitialized) {
+                return;
+            }
+            window.CMF_PORTAL.quickLinkPopupLockGeometryInitialized = true;
+
+            var handleModalShown = function (target) {
+                if (!target || !target.id) {
+                    return;
+                }
+
+                var ids = getQuickLinkPopupModalIds();
+                if (ids.indexOf(target.id) === -1) {
+                    return;
+                }
+
+                setTimeout(function () {
+                    syncQuickLinkPopupLockGeometry(true);
+                }, 0);
+            };
+
+            if (window.jQuery) {
+                window.jQuery(document)
+                    .off('shown.bs.modal.quickPopupLock')
+                    .on('shown.bs.modal.quickPopupLock', '.modal', function () {
+                        handleModalShown(this);
+                    });
+            } else {
+                document.addEventListener('shown.bs.modal', function (event) {
+                    handleModalShown(event && event.target ? event.target : null);
+                });
+            }
+
+            var resizeTimer = 0;
+            window.addEventListener('resize', function () {
+                if (!isQuickLinkPopupModalOpen()) {
+                    return;
+                }
+
+                if (resizeTimer) {
+                    clearTimeout(resizeTimer);
+                }
+
+                resizeTimer = window.setTimeout(function () {
+                    syncQuickLinkPopupLockGeometry(true);
+                }, 80);
+            });
+        }
 
         function isOverallDashboardSelected() {
             return String(window.CMF_PORTAL.currentDashboardPlatform || '') === String(window.CMF_PORTAL.overallPlatformTable || '');
@@ -14589,13 +16319,11 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             if (headingNode) {
+                var hsdLinkHtml = (issueId && issueId !== '-') ? '<a class="cmf-assistant-hsd-link" href="https://hsdes.intel.com/appstore/article/#/' + encodeURIComponent(issueId) + '" target="_blank" rel="noopener noreferrer" title="Open sighting ' + escapeHtml(issueId) + ' in HSD" aria-label="Open sighting in HSD"><i class="fas fa-external-link-alt" aria-hidden="true"></i></a>' : '';
                 if (isDetails) {
-                    // Inject sighting ID directly into the heading as requested, and reset original issueId node to not replicate it
-                    headingNode.innerHTML = 'Issue Details <span style="font-size: 14px; font-weight: 500; color: #5c7087; margin-left: 20px;">Sighting ID: ' + (issueId || 'N/A') + '</span>';
-                } else if (currentMode === 'AI Debug Summary') {
-                    headingNode.textContent = 'AI Debug Summary';
+                    headingNode.innerHTML = '<span class="cmf-assistant-title-icon" aria-hidden="true">✨</span>Issue Details <span style="font-size: 13px; font-weight: 600; color: #16385f; margin-left: 14px; display: inline-flex; align-items: center; gap: 6px;">Sighting ID: <strong style="color: #0f5ea8;">' + escapeHtml(issueId || 'N/A') + '</strong>' + hsdLinkHtml + '</span>';
                 } else {
-                    headingNode.textContent = currentMode;
+                    headingNode.innerHTML = '<span class="cmf-assistant-title-icon" aria-hidden="true">✨</span>AI Debug Summary';
                 }
             }
             if (badgesNode) badgesNode.style.display = isDetails ? 'none' : '';
@@ -14603,24 +16331,38 @@ td:nth-child(odd), th:nth-child(odd) {
             if (factsNode) factsNode.style.display = 'none';
             // Clear or format the meta string depending on mode
             issueIdNode.textContent = isDetails ? '' : (issueId || 'N/A');
+            var hsdLinkNode = document.getElementById('aiSummaryHsdLink');
+            if (hsdLinkNode) {
+                if (!isDetails && issueId && issueId !== '-') {
+                    hsdLinkNode.href = 'https://hsdes.intel.com/appstore/article/#/' + encodeURIComponent(issueId);
+                    hsdLinkNode.style.display = 'inline-flex';
+                    hsdLinkNode.setAttribute('aria-label', 'Open sighting ' + issueId + ' in HSD');
+                    hsdLinkNode.setAttribute('title', 'Open sighting ' + issueId + ' in HSD');
+                } else {
+                    hsdLinkNode.style.display = 'none';
+                }
+            }
 
             // Revert stylize override since it's now in the header itself
             issueIdNode.style.cssText = '';
             if (titleNode) titleNode.textContent = '';
             if (titleRow) titleRow.style.display = 'none';
             dateNode.textContent = submittedDate || 'N/A';
-            if (confidenceNode) confidenceNode.textContent = 'Confidence: --';
+            if (confidenceNode) {
+                confidenceNode.textContent = 'Confidence: --';
+                confidenceNode.className = 'ai-summary-confidence-inline';
+            }
             if (statusBadgeNode) {
                 statusBadgeNode.textContent = 'Status: --';
                 statusBadgeNode.className = 'ai-summary-status-value';
             }
             bodyNode.className = isDetails ? 'ai-summary-body issue-details-brief' : 'ai-summary-body markdown-content';
 
-            if (isDetails || currentMode === 'AI Summary') {
+            if (isDetails || currentMode === 'AI Summary' || currentMode === 'AI Debug Summary') {
                 bodyNode.innerHTML = `
                     <div class="ai-skeleton-loader">
                         <div style="font-size: 13px; font-weight: 600; color: #5c7087; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
-                            &#10024; Generating ` + (isDetails ? 'AI issue details' : 'Debug Summary') + `...
+                            &#10024; Generating ` + (isDetails ? 'AI issue details' : 'AI Debug Summary') + `...
                         </div>
                         <div class="ai-skeleton-line ai-skeleton-title" style="width: 50%;"></div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
@@ -14649,7 +16391,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 title: title || '',
                 submittedDate: submittedDate || '',
                 status: status || '',
-                sysdebug: sysdebug || '',
+                sysdebug: isDetails ? (sysdebug || '') : '',
                 platform: getIssuePendingPlatformValue(),
                 mode: currentMode
             };
@@ -14675,14 +16417,15 @@ td:nth-child(odd), th:nth-child(odd) {
             if (!actionsNode) actionsNode = document.getElementById('aiSummaryActions');
 
             bodyNode.className = 'ai-summary-body';
+            if (payload.mode !== 'AI issue details') bodyNode.style.display = '';
 
             // Only inject the banner if it's the chat/summary mode; details mode already injected a shimmer.
             if (payload.mode !== 'AI issue details' || bodyNode.innerHTML.indexOf('ai-skeleton-loader') === -1) {
-                if (payload.mode === 'AI issue details' || payload.mode === 'AI Summary') {
+                if (payload.mode === 'AI issue details' || payload.mode === 'AI Summary' || payload.mode === 'AI Debug Summary') {
                     bodyNode.innerHTML = `
                         <div class="ai-skeleton-loader">
                             <div style="font-size: 13px; font-weight: 600; color: #5c7087; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
-                                &#10024; Generating ` + (payload.mode === 'AI issue details' ? 'AI issue details' : 'Debug Summary') + `...
+                                &#10024; Generating ` + (payload.mode === 'AI issue details' ? 'AI issue details' : 'AI Debug Summary') + `...
                             </div>
                             <div class="ai-skeleton-line ai-skeleton-title" style="width: 50%;"></div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
@@ -14718,13 +16461,24 @@ td:nth-child(odd), th:nth-child(odd) {
                     return;
                 }
                 var summary = result.Summary || 'No summary content returned.';
-                var preparedSummary = prepareAiSummaryForDrawer(summary);
+                var isDebugSummary = payload.mode !== 'AI issue details';
+                var preparedSummary = isDebugSummary
+                    ? { body: summary, confidence: '', status: payload.status || 'N/A' }
+                    : prepareAiSummaryForDrawer(summary);
                 if (result.Confidence && !preparedSummary.confidence) {
                     preparedSummary.confidence = result.Confidence + '%';
                 }
                 var confidenceNode = document.getElementById('aiSummaryConfidence');
                 if (confidenceNode && preparedSummary.confidence) {
                     confidenceNode.textContent = 'Confidence: ' + preparedSummary.confidence;
+                    var num = parseInt(preparedSummary.confidence, 10);
+                    var confClass = 'ai-summary-confidence-inline';
+                    if (!isNaN(num)) {
+                        if (num >= 80) confClass += ' confidence-high';
+                        else if (num >= 50) confClass += ' confidence-medium';
+                        else confClass += ' confidence-low';
+                    }
+                    confidenceNode.className = confClass;
                 }
                 var statusBadgeNode = document.getElementById('aiSummaryStatusBadge');
                 if (statusBadgeNode) {
@@ -14732,16 +16486,10 @@ td:nth-child(odd), th:nth-child(odd) {
                     statusBadgeNode.textContent = 'Status: ' + summaryStatus;
                     statusBadgeNode.className = 'ai-summary-status-value ' + getAiStatusClass(summaryStatus);
                 }
-                updateIssueListConfidenceBadge(payload.issueId, preparedSummary.confidence);
                 // Build the assistant message that represents the summary (chat-first layout)
-                var assistantSummary = '';
-                if (payload.mode === 'AI issue details') {
-                    assistantSummary = prepareIssueDetailsForDrawer(summary);
-                } else if (preparedSummary.hasDecisionSections) {
-                    assistantSummary = preparedSummary.body;
-                } else {
-                    assistantSummary = '### Debug Summary\n\n' + preparedSummary.body + '\n\n### Next Steps\n' + (preparedSummary.followUp || '- No further action identified from available details.');
-                }
+                var assistantSummary = isDebugSummary
+                    ? preparedSummary.body
+                    : prepareIssueDetailsForDrawer(summary);
 
                 window._aiSummaryLastText = payload.mode === 'AI issue details' ? summary : assistantSummary;
 
@@ -14752,7 +16500,8 @@ td:nth-child(odd), th:nth-child(odd) {
 
                 // Chat-first UI: hide the standalone body and render the summary as the first assistant message
                 if (!window._aiChatStore) window._aiChatStore = {}; // issueId => [{role,text}, ...]
-                window._aiCurrentIssueId = (payload.issueId || '') + '_' + (payload.mode || 'AI Summary');
+                window._aiCurrentIssueId = (payload.issueId || '') + '_' + (payload.mode || 'AI Debug Summary')
+                    + (isDebugSummary ? '_debug-recent-v14' : '');
 
                 var chat = document.getElementById('aiSummaryChat');
                 var messages = document.getElementById('aiSummaryChatMessages');
@@ -14763,6 +16512,9 @@ td:nth-child(odd), th:nth-child(odd) {
 
                     // If we have stored conversation for this issue, render it; otherwise seed with summary
                     var hist = window._aiChatStore[window._aiCurrentIssueId];
+                    if (hist && hist.length && hist[0].role === 'assistant') {
+                        hist[0].text = assistantSummary;
+                    }
                     messages.innerHTML = '';
                     if (hist && hist.length) {
                         for (var i = 0; i < hist.length; i++) {
@@ -14792,21 +16544,82 @@ td:nth-child(odd), th:nth-child(odd) {
             });
         }
 
-        function updateIssueListConfidenceBadge(issueId, confidence) {
-            if (!issueId || !confidence) return;
-            var selector = '.status-confidence-pill[data-ai-confidence-issue="' + cssEscapeValue(issueId) + '"]';
-            var nodes = document.querySelectorAll(selector);
-            for (var i = 0; i < nodes.length; i++) {
-                nodes[i].textContent = 'Confidence: ' + confidence;
-                nodes[i].classList.remove('status-confidence-empty');
+        function formatDebugSummaryBullets(rawText) {
+            var text = String(rawText || '').trim();
+            if (!/^\s*[-*•]/m.test(text)) {
+                return renderMarkdown(escapeHtml(text).replace(/\n/g, '\n'));
             }
+
+            var lines = text.split('\n');
+            var findings = [];
+            var suggestions = [];
+
+            lines.forEach(function (rawLine) {
+                var line = rawLine.replace(/^\s*[-*•]\s*/, '').trim();
+                if (!line) return;
+                var isSuggestion = /^(?:\[(?:debug\s+)?suggestion\]|suggestion\s*:|recommended(?:\s+next\s+step)?\s*:|next\s+step\s*:)/i.test(line) ||
+                    (/^(?:complete|test|verify|run|check|isolate|proceed|try)\b/i.test(line) && (findings.length >= 2 || suggestions.length > 0));
+
+                if (isSuggestion) {
+                    var clean = line.replace(/^(?:\[(?:debug\s+)?suggestion\]|suggestion\s*:|recommended(?:\s+next\s+step)?\s*:|next\s+step\s*:)\s*/i, '').trim();
+                    suggestions.push(clean);
+                } else {
+                    findings.push(line);
+                }
+            });
+
+            if (suggestions.length === 0 && findings.length > 2) {
+                var last = findings[findings.length - 1];
+                if (/^(?:complete|test|verify|run|check|isolate|try|investigate|ensure)\b/i.test(last)) {
+                    suggestions.unshift(findings.pop());
+                }
+            }
+
+            var html = '<div class="debug-summary-wrapper">';
+            if (findings.length > 0) {
+                html += '<div class="debug-findings-block"><ul class="debug-findings-list">';
+                findings.forEach(function (f) {
+                    html += '<li>' + escapeHtml(f) + '</li>';
+                });
+                html += '</ul></div>';
+            }
+
+            if (suggestions.length > 0) {
+                html += '<div class="debug-suggestions-card">';
+                html += '<div class="debug-suggestions-header">';
+                html += '<span class="debug-suggestions-badge"><i class="fas fa-lightbulb" aria-hidden="true"></i> Actionable Debug Suggestions</span>';
+                html += '</div>';
+                html += '<div class="debug-suggestions-body">';
+                suggestions.forEach(function (s) {
+                    html += '<div class="debug-suggestion-item">';
+                    html += '<span class="debug-suggestion-bullet">➜</span>';
+                    html += '<div class="debug-suggestion-text">' + escapeHtml(s) + '</div>';
+                    html += '</div>';
+                });
+                html += '</div></div>';
+            }
+            html += '</div>';
+            return html;
         }
 
         function prepareIssueDetailsForDrawer(summary) {
             var text = String(summary || '').replace(/\r/g, '\n').replace(/\*\*/g, '');
-            var getField = function(label) {
+            var getField = function(label, fallbackRegex) {
                 var m = text.match(new RegExp('^(?:-\\s*)?' + label + '\\s*[:\\-]\\s*(.*)$', 'im'));
-                return m ? escapeHtml(m[1].trim()) : 'N/A';
+                if (m && m[1].trim() && m[1].trim() !== '-') {
+                    var val = m[1].trim();
+                    val = val.replace(/^(?:what is happening|problem(?:\s*\/\s*issue)?|current state|scenario(?:\s*\/\s*trigger)?|reproduction|affected platform(?:\s*\/\s*system)?|environment|current investigation|suspected root cause|workaround|evidence(?:\s*\/\s*logs)?)\s*[:\-]\s*/i, '');
+                    return escapeHtml(val.trim());
+                }
+                if (fallbackRegex) {
+                    var m2 = text.match(new RegExp('^(?:-\\s*)?' + fallbackRegex + '\\s*[:\\-]\\s*(.*)$', 'im'));
+                    if (m2 && m2[1].trim() && m2[1].trim() !== '-') {
+                        var val2 = m2[1].trim();
+                        val2 = val2.replace(/^(?:what is happening|where it shows up|who is affected|debug signal)\s*[:\-]\s*/i, '');
+                        return escapeHtml(val2.trim());
+                    }
+                }
+                return 'N/A';
             };
 
             var html = '<div class="issue-details-grid">';
@@ -14814,7 +16627,7 @@ td:nth-child(odd), th:nth-child(odd) {
             // Build badges based on values to colorize them semantically
             var colorBadge = function(val, type) {
                 var v = String(val).toLowerCase();
-                if (v === 'n/a' || v === 'none' || v === 'no' || v === 'unknown' || v === '' || v === 'tbd') return `<span class="ai-semantic-badge badge-neutral">${val}</span>`;
+                if (v === 'n/a' || v === 'none' || v === 'no' || v === 'unknown' || v === '' || v === 'tbd' || v === 'not documented') return `<span class="ai-semantic-badge badge-neutral">${val}</span>`;
                 if (v.includes('not actioned') || v.includes('no promoted ticket yet')) return `<span class="ai-semantic-badge badge-neutral">${val}</span>`;
                 if (v.includes('must fix') || v.includes('must_fix') || v.includes('blocker') || v.includes('critical')) return `<span class="ai-semantic-badge badge-red">${val}</span>`;
 
@@ -14830,18 +16643,18 @@ td:nth-child(odd), th:nth-child(odd) {
                 return val;
             };
 
-            html += `<div class="ai-sk-block"><div class="idg-label">Problem / Issue</div><div class="idg-val">${colorBadge(getField('(?:Problem|Issue).*?'), 'problem')}</div></div>`;
-            html += `<div class="ai-sk-block"><div class="idg-label">Current State</div><div class="idg-val">${colorBadge(getField('Current State'), 'state')}</div></div>`;
-            html += `<div class="ai-sk-block"><div class="idg-label">Scenario / Trigger</div><div class="idg-val">${getField('Scenario.*?')}</div></div>`;
-            html += `<div class="ai-sk-block"><div class="idg-label">Reproduction</div><div class="idg-val">${colorBadge(getField('Reproduction'), 'repro')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Problem / Issue</div><div class="idg-val">${colorBadge(getField('(?:Problem\\s*/\\s*Issue|Problem|Issue).*?', 'What is happening'), 'problem')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Current State</div><div class="idg-val">${colorBadge(getField('Current State', 'Status'), 'state')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Scenario / Trigger</div><div class="idg-val">${getField('(?:Scenario\\s*/\\s*Trigger|Scenario|Trigger).*?', 'Workload|Condition')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Reproduction</div><div class="idg-val">${colorBadge(getField('Reproduction', 'Repro.*'), 'repro')}</div></div>`;
 
-            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Affected Platform / System</div><div class="idg-val">${getField('Affected Platform.*?')}</div></div>`;
-            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Environment</div><div class="idg-val">${getField('Environment.*?')}</div></div>`;
-            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Current Investigation</div><div class="idg-val">${getField('Current Investigation')}</div></div>`;
+            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Affected Platform / System</div><div class="idg-val">${getField('(?:Affected Platform\\s*/\\s*System|Affected Platform|Platform).*?', 'Where it shows up|System')}</div></div>`;
+            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Environment</div><div class="idg-val">${getField('Environment.*?', 'OS|Build|BIOS|Driver')}</div></div>`;
+            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Current Investigation</div><div class="idg-val">${getField('Current Investigation', 'Who is affected|Investigation|Impact')}</div></div>`;
 
-            html += `<div class="ai-sk-block"><div class="idg-label">Suspected Root Cause</div><div class="idg-val">${getField('Suspected Root Cause')}</div></div>`;
-            html += `<div class="ai-sk-block"><div class="idg-label">Workaround</div><div class="idg-val">${colorBadge(getField('Workaround'), 'workaround')}</div></div>`;
-            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Evidence / Logs</div><div class="idg-val">${getField('Evidence.*?')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Suspected Root Cause</div><div class="idg-val">${getField('Suspected Root Cause', 'Root Cause')}</div></div>`;
+            html += `<div class="ai-sk-block"><div class="idg-label">Workaround</div><div class="idg-val">${colorBadge(getField('Workaround', 'Mitigation'), 'workaround')}</div></div>`;
+            html += `<div class="ai-sk-block issue-details-grid-full"><div class="idg-label">Evidence / Logs</div><div class="idg-val">${getField('(?:Evidence\\s*/\\s*Logs|Evidence|Logs).*?', 'Debug signal')}</div></div>`;
 
             html +=`</div>`; // end grid
 
@@ -14850,7 +16663,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var isPromoted = promotedId !== 'N/A' && promotedId.toLowerCase() !== 'missing' && promotedId.toLowerCase() !== 'none' && promotedId !== '';
 
             var owner = isPromoted ? getField('Owner') : 'No promoted ticket yet';
-            var fixedVer = isPromoted ? getField('(?:Fixed Version|Closure).*?') : 'No promoted ticket yet';
+            var fixedVer = isPromoted ? getField('(?:Fixed Version\\s*/\\s*Closure|Fixed Version|Closure).*?') : 'No promoted ticket yet';
             var lastAct = isPromoted ? getField('Latest Activity') : 'No promoted ticket yet';
             if (!isPromoted) promotedId = 'No promoted ticket yet';
 
@@ -14936,13 +16749,15 @@ td:nth-child(odd), th:nth-child(odd) {
             // Check if text already contains our injected structured HTML wrappers (e.g. from prepareIssueDetailsForDrawer)
             if (text.indexOf('class="issue-details-grid"') > -1) {
                 inner.innerHTML = text; // Inject raw HTML
+            } else if (window._aiSummaryLastPayload && (window._aiSummaryLastPayload.mode === 'AI Debug Summary' || window._aiSummaryLastPayload.mode === 'AI Summary')) {
+                inner.innerHTML = formatDebugSummaryBullets(text);
             } else {
                 inner.innerHTML = renderMarkdown(escapeHtml(text).replace(/\n/g, '\n'));
             }
 
             if (role === 'assistant' && window._aiSummaryLastPayload) {
                 var isAI_IssueDetails = window._aiSummaryLastPayload.mode === 'AI issue details';
-                var isAI_Summary = window._aiSummaryLastPayload.mode === 'AI Summary';
+                var isAI_Summary = window._aiSummaryLastPayload.mode === 'AI Summary' || window._aiSummaryLastPayload.mode === 'AI Debug Summary';
 
                 if (isAI_IssueDetails || isAI_Summary) {
                     var actionRibbon = document.createElement('div');
@@ -14960,9 +16775,10 @@ td:nth-child(odd), th:nth-child(odd) {
                              regenerateAiSummary();
                          }
                     };
-                    retryLink.textContent = '↻ Regenerate';
-                    retryLink.style.cssText = 'color: #0071c5; text-decoration: none; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.1s;';
+                    retryLink.textContent = '↻';
+                    retryLink.style.cssText = 'color: #0071c5; text-decoration: none; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; transition: color 0.1s;';
                     retryLink.title = 'Regenerate this response';
+                    retryLink.setAttribute('aria-label', 'Regenerate this response');
                     retryLink.onmouseover = function() { this.style.color = '#005A9E'; };
                     retryLink.onmouseout = function() { this.style.color = '#0071c5'; };
 
@@ -15138,7 +16954,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 .replace(/'/g, '&#39;');
         }
 
-        function openCmfPendingRecommendationModal(cpId, title, component, componentGroup, cmfRequest, impact, idst, reproOnRvp, reproducibility, customerDetail, customerOwner) {
+        function openCmfPendingRecommendationModal(cpId, title, component, componentGroup, cmfRequest, impact, idst, reproOnRvp, reproducibility, customerDetail, customerOwner, sourcePlatform) {
             var cpIdNode = document.getElementById('cmfRecCpId');
             var titleNode = document.getElementById('cmfRecTitle');
             var componentNode = document.getElementById('cmfRecComponent');
@@ -15160,6 +16976,9 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
+            stopCmfSightingChat();
+            window._cmfSightingChatPayload = null;
+
             var summaryDrawer = document.getElementById('aiSummaryDrawer');
             var summaryDrawerBg = document.getElementById('aiSummaryDrawerBg');
             if (summaryDrawer || summaryDrawerBg) {
@@ -15174,7 +16993,9 @@ td:nth-child(odd), th:nth-child(odd) {
             if (recommendationNode) recommendationNode.innerHTML = renderCmfRecommendationSkeleton();
             if (recTagNode) {
                 recTagNode.textContent = 'CMF_Tag';
-                recTagNode.className = 'cmf-assistant-rec-tag';
+                recTagNode.className = 'cmf-assistant-rec-tag is-loading';
+                recTagNode.setAttribute('aria-busy', 'true');
+                recTagNode.setAttribute('aria-label', 'Assessing CMF recommendation');
             }
 
             var recNode = document.getElementById('cmfRecRecommendation');
@@ -15199,7 +17020,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     sightingHsdLinkNode.style.display = 'none';
                 }
             }
-            if (platformNode) platformNode.textContent = getPlatformDisplayLabel(getIssuePendingPlatformValue());
+            if (platformNode) platformNode.textContent = getPlatformDisplayLabel(sourcePlatform || getIssuePendingPlatformValue());
             if (visibleComponentNode) visibleComponentNode.textContent = component || 'N/A';
 
             if (recNode) recNode.style.display = 'none';
@@ -15221,11 +17042,18 @@ td:nth-child(odd), th:nth-child(odd) {
                 reproducibility: reproducibility || '',
                 customerDetail: customerDetail || '',
                 customerOwner: customerOwner || '',
-                platform: getIssuePendingPlatformValue()
+                platform: sourcePlatform || getIssuePendingPlatformValue()
             };
+            window._cmfSightingChatPayload = { cpId: payload.cpId, title: payload.title, platform: payload.platform };
+            resetCmfSightingChat();
+            var sightingSession = window._cmfSightingChatPayload;
 
             if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentSkeleton();
 
+            // Sequential context-rich pipeline:
+            // 1. Get Problem Description
+            // 2. Pass Description to GetSightingImpactSummary
+            // 3. Pass Description and ImpactSummary to GetSightingQualityAssessment & GetCmfPendingRecommendation
             fetch('CMF_Web_portal.aspx/GetSightingDescription', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json; charset=utf-8' },
@@ -15233,82 +17061,110 @@ td:nth-child(odd), th:nth-child(odd) {
             })
             .then(function (response) { return response.json(); })
             .then(function (data) {
+                if (window._cmfSightingChatPayload !== sightingSession) return;
                 var result = data && data.d ? data.d : data;
-                if (!sightingDescriptionNode) return;
-                if (!result || result.Success !== true) {
-                    sightingDescriptionNode.innerHTML = '<span class="sighting-description-error">Description unavailable.</span>';
-                    return;
+                var descriptionText = (result && result.Success && result.Summary) ? result.Summary : '';
+                if (sightingDescriptionNode) {
+                    if (descriptionText) {
+                        sightingDescriptionNode.innerHTML = renderIssueDescriptionText(descriptionText);
+                    } else {
+                        sightingDescriptionNode.innerHTML = '<span class="sighting-description-error">Description unavailable.</span>';
+                    }
                 }
-                sightingDescriptionNode.innerHTML = renderIssueDescriptionText(result.Summary || 'No description available.');
+
+                // 2. Fetch Impact Summary enriched with Problem Description
+                return fetch('CMF_Web_portal.aspx/GetSightingImpactSummary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                    body: JSON.stringify({
+                        cpId: payload.cpId,
+                        title: payload.title,
+                        impact: payload.impact,
+                        platform: payload.platform,
+                        description: descriptionText
+                    })
+                })
+                .then(function (impactResponse) { return impactResponse.json(); })
+                .then(function (impactData) {
+                    if (window._cmfSightingChatPayload !== sightingSession) return;
+                    var impactResult = impactData && impactData.d ? impactData.d : impactData;
+                    var impactText = (impactResult && impactResult.Success && impactResult.Summary) ? impactResult.Summary : '';
+                    if (impactSummaryNode) {
+                        if (impactText) {
+                            impactSummaryNode.innerHTML = renderImpactSummaryText(impactText);
+                        } else {
+                            impactSummaryNode.innerHTML = '<span class="sighting-description-error">Impact summary unavailable.</span>';
+                        }
+                    }
+
+                    // 3. Fetch Quality Assessment
+                    fetch('CMF_Web_portal.aspx/GetSightingQualityAssessment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(function (qaResp) { return qaResp.json(); })
+                    .then(function (qaData) {
+                        if (window._cmfSightingChatPayload !== sightingSession) return;
+                        var qaResult = qaData && qaData.d ? qaData.d : qaData;
+                        if (!qaResult || qaResult.Success !== true) {
+                            if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentUnavailable();
+                            return;
+                        }
+                        if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessment(qaResult, payload);
+                    })
+                    .catch(function () {
+                        if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentUnavailable();
+                    });
+
+                    // 4. Fetch CMF Recommendation enriched with both Problem Description & Impact Summary
+                    var recPayload = {
+                        cpId: payload.cpId,
+                        title: payload.title,
+                        component: payload.component,
+                        cmfRequest: payload.cmfRequest,
+                        impact: payload.impact,
+                        idst: payload.idst,
+                        reproOnRvp: payload.reproOnRvp,
+                        reproducibility: payload.reproducibility,
+                        customerDetail: payload.customerDetail,
+                        customerOwner: payload.customerOwner,
+                        platform: payload.platform,
+                        description: descriptionText,
+                        impactSummary: impactText
+                    };
+
+                    return fetch('CMF_Web_portal.aspx/GetCmfPendingRecommendation', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                        body: JSON.stringify(recPayload)
+                    })
+                    .then(function (recResp) { return recResp.json(); })
+                    .then(function (recData) {
+                        if (window._cmfSightingChatPayload !== sightingSession) return;
+                        var recResult = recData && recData.d ? recData.d : recData;
+                        if (!recResult || recResult.Success !== true) {
+                            if (evidenceNode) evidenceNode.textContent = (recResult && recResult.Message) ? recResult.Message : 'Unable to generate CMF recommendation.';
+                            if (recommendationNode) recommendationNode.innerHTML = '<span class="sighting-description-error">CMF recommendation unavailable.</span>';
+                            updateCmfAssistantTag('Unavailable');
+                            return;
+                        }
+                        if (qualityNode) qualityNode.textContent = 'Sighting quality and CMF readiness';
+                        updatePendingRecommendationBadge(payload.cpId, recResult.Recommendation, recResult.OverallQualityScore);
+                        updateCmfAssistantTag(recResult.Recommendation);
+                        if (recommendationNode) recommendationNode.innerHTML = renderCmfAssistantRecommendation(recResult, payload);
+                        if (evidenceNode) evidenceNode.innerHTML = renderMergedCmfRecommendation(recResult, payload);
+                    });
+                });
             })
             .catch(function () {
-                if (sightingDescriptionNode) sightingDescriptionNode.innerHTML = '<span class="sighting-description-error">Description unavailable.</span>';
-            });
-
-            fetch('CMF_Web_portal.aspx/GetSightingImpactSummary', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                body: JSON.stringify({ cpId: payload.cpId, title: payload.title, impact: payload.impact, platform: payload.platform })
-            })
-            .then(function (response) { return response.json(); })
-            .then(function (data) {
-                var result = data && data.d ? data.d : data;
-                if (!impactSummaryNode) return;
-                if (!result || result.Success !== true) {
-                    impactSummaryNode.innerHTML = '<span class="sighting-description-error">Impact summary unavailable.</span>';
-                    return;
-                }
-                impactSummaryNode.innerHTML = renderImpactSummaryText(result.Summary || 'No impact summary available.');
-            })
-            .catch(function () {
-                if (impactSummaryNode) impactSummaryNode.innerHTML = '<span class="sighting-description-error">Impact summary unavailable.</span>';
-            });
-
-            fetch('CMF_Web_portal.aspx/GetSightingQualityAssessment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                body: JSON.stringify(payload)
-            })
-            .then(function (response) { return response.json(); })
-            .then(function (data) {
-                var result = data && data.d ? data.d : data;
-                if (!result || result.Success !== true) {
-                    if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentUnavailable();
-                    return;
-                }
-                if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessment(result, payload);
-            })
-            .catch(function () {
-                if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = renderSightingQualityAssessmentUnavailable();
-            });
-
-            if (evidenceNode) {
-                evidenceNode.innerHTML = '<div class="ai-skeleton-loader"><div style="font-size:13px;font-weight:600;color:#5c7087;">&#10024; Assessing sighting quality and CMF readiness...</div><div class="ai-skeleton-line ai-skeleton-title" style="width:55%;"></div><div class="ai-skeleton-line" style="width:95%;"></div><div class="ai-skeleton-line" style="width:88%;"></div></div>';
-            }
-
-            fetch('CMF_Web_portal.aspx/GetCmfPendingRecommendation', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                body: JSON.stringify(payload)
-            })
-            .then(function (response) { return response.json(); })
-            .then(function (data) {
-                var result = data && data.d ? data.d : data;
-                if (!result || result.Success !== true) {
-                    if (evidenceNode) evidenceNode.textContent = (result && result.Message) ? result.Message : 'Unable to generate CMF recommendation.';
-                    if (recommendationNode) recommendationNode.innerHTML = '<span class="sighting-description-error">CMF recommendation unavailable.</span>';
-                    return;
-                }
-                if (qualityNode) qualityNode.textContent = 'Sighting quality and CMF readiness';
-                updatePendingRecommendationBadge(payload.cpId, result.Recommendation, result.OverallQualityScore);
-                updateCmfAssistantTag(result.Recommendation);
-                if (recommendationNode) recommendationNode.innerHTML = renderCmfAssistantRecommendation(result, payload);
-                if (evidenceNode) evidenceNode.innerHTML = renderMergedCmfRecommendation(result, payload);
-            })
-            .catch(function () {
-                if (qualityAssessmentNode) qualityAssessmentNode.innerHTML = '<span class="sighting-description-error">Sighting quality assessment unavailable.</span>';
+                if (window._cmfSightingChatPayload !== sightingSession) return;
+                if (sightingDescriptionNode && !sightingDescriptionNode.innerHTML) sightingDescriptionNode.innerHTML = '<span class="sighting-description-error">Description unavailable.</span>';
+                if (impactSummaryNode && !impactSummaryNode.innerHTML) impactSummaryNode.innerHTML = '<span class="sighting-description-error">Impact summary unavailable.</span>';
+                if (qualityAssessmentNode && !qualityAssessmentNode.innerHTML) qualityAssessmentNode.innerHTML = '<span class="sighting-description-error">Sighting quality assessment unavailable.</span>';
                 if (recommendationNode) recommendationNode.innerHTML = '<span class="sighting-description-error">CMF recommendation unavailable.</span>';
                 if (evidenceNode) evidenceNode.textContent = 'Error while calling CMF recommendation service.';
+                updateCmfAssistantTag('Unavailable');
             });
 
         }
@@ -15469,6 +17325,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var reasoningSection = document.getElementById('cmfRecReasoningSection');
             var actionsNode = document.getElementById('cmfRecActions');
             var detailsBody = document.getElementById('cmfDecisionDetailsBody');
+            var chatPanel = document.getElementById('cmfSightingChatPanel');
             if (titleRow) titleRow.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
             if (sightingRow) sightingRow.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
             if (assistantSightingDetails) assistantSightingDetails.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
@@ -15479,6 +17336,7 @@ td:nth-child(odd), th:nth-child(odd) {
             if (reasoningSection) reasoningSection.classList.toggle('cmf-rec-hidden', isDetails);
             if (actionsNode) actionsNode.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
             if (detailsBody) detailsBody.classList.toggle('cmf-rec-hidden', !isDetails && !isInsights);
+            if (chatPanel) chatPanel.classList.toggle('cmf-rec-hidden', isDetails || isInsights);
             if (!isDetails && !isInsights && detailsBody) detailsBody.innerHTML = '';
             if (!isDetails && !isInsights) {
                 var headingNode = document.getElementById('cmfRecHeading');
@@ -15655,6 +17513,180 @@ td:nth-child(odd), th:nth-child(odd) {
 
             drawerBg.classList.remove('show');
             drawer.classList.remove('show');
+            stopCmfSightingChat();
+            window._cmfSightingChatPayload = null;
+        }
+
+        function resetCmfSightingChat() {
+            stopCmfSightingChat();
+            var messages = document.getElementById('cmfSightingChatMessages');
+            var input = document.getElementById('cmfSightingChatInput');
+            var send = document.getElementById('cmfSightingChatSend');
+            if (window._cmfSightingChatPayload) {
+                window._cmfSightingChatPayload.history = [];
+                window._cmfSightingChatPayload.turns = [];
+                window._cmfSightingChatPayload.busy = false;
+            }
+            if (send) send.disabled = false;
+            setCmfChatGenerating(false);
+            if (messages) messages.innerHTML = '<div class="cmf-sighting-chat-msg">Ask a follow-up question about this opened sighting. Answers are limited to the sighting context.</div>';
+            if (input) input.value = '';
+        }
+
+        function renderCmfSightingChatAnswer(text) {
+            var source = String(text || '').replace(/\r\n?/g, '\n').trim();
+            if (!source) return '';
+            var lines = source.split('\n').map(function (line) { return line.trim(); }).filter(Boolean);
+            var marker = /^(?:[-*\u2022]|\d+[.)])\s+/;
+            var points = [];
+            if (lines.some(function (line) { return marker.test(line); })) {
+                lines.forEach(function (line) {
+                    if (marker.test(line)) points.push(line.replace(marker, ''));
+                    else if (points.length) points[points.length - 1] += ' ' + line;
+                    else points.push(line);
+                });
+            } else {
+                var paragraph = lines.join(' ');
+                var segmenter = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('en', { granularity: 'sentence' }) : null;
+                var sentences = segmenter ? Array.from(segmenter.segment(paragraph), function (part) { return part.segment.trim(); }) : [paragraph];
+                sentences.forEach(function (sentence) {
+                    if (points.length && /(?:^|[\s"'])\d+\.$/.test(points[points.length - 1])) points[points.length - 1] += ' ' + sentence;
+                    else points.push(sentence);
+                });
+            }
+            return '<ul>' + points.filter(Boolean).map(function (point) {
+                return '<li>' + renderAssistantRichText(point) + '</li>';
+            }).join('') + '</ul>';
+        }
+
+        function appendCmfSightingChatMessage(role, text) {
+            var messages = document.getElementById('cmfSightingChatMessages');
+            if (!messages) return null;
+            var node = document.createElement('div');
+            node.className = 'cmf-sighting-chat-msg' + (role === 'user' ? ' user' : '');
+            node.textContent = text || '';
+            if (role === 'assistant') {
+                node.classList.add('cmf-sighting-chat-answer');
+                node.innerHTML = renderCmfSightingChatAnswer(text);
+            }
+            if (role === 'user') {
+                var edit = document.createElement('button');
+                edit.type = 'button';
+                edit.className = 'cmf-sighting-chat-edit';
+                edit.title = 'Edit prompt';
+                edit.setAttribute('aria-label', 'Edit prompt');
+                edit.innerHTML = '<i class="fas fa-pen" aria-hidden="true"></i>';
+                edit.onclick = function () { editCmfSightingPrompt(node._cmfTurn); };
+                node.appendChild(edit);
+            }
+            messages.appendChild(node);
+            messages.scrollTop = messages.scrollHeight;
+            return node;
+        }
+
+        function setCmfChatGenerating(generating) {
+            var send = document.getElementById('cmfSightingChatSend');
+            if (!send) return;
+            var label = generating ? 'Stop generating' : 'Send message';
+            send.title = label;
+            send.setAttribute('aria-label', label);
+            send.innerHTML = '<i class="fas fa-' + (generating ? 'stop' : 'paper-plane') + '" aria-hidden="true"></i>';
+        }
+
+        function stopCmfSightingChat() {
+            var payload = window._cmfSightingChatPayload;
+            if (!payload || !payload.request) return;
+            var request = payload.request;
+            payload.request = null;
+            payload.busy = false;
+            request.controller.abort();
+            if (request.thinking && request.thinking.parentNode) request.thinking.textContent = 'Response stopped.';
+            setCmfChatGenerating(false);
+        }
+
+        function editCmfSightingPrompt(turn) {
+            var payload = window._cmfSightingChatPayload;
+            if (!turn || turn.payload !== payload) return;
+            stopCmfSightingChat();
+            payload.history = turn.history.slice();
+            var turns = payload.turns || [];
+            payload.turns = turns.slice(0, turns.indexOf(turn));
+            var node = turn.node;
+            while (node) {
+                var next = node.nextSibling;
+                node.remove();
+                node = next;
+            }
+            var input = document.getElementById('cmfSightingChatInput');
+            if (input) {
+                input.value = turn.question;
+                input.focus();
+            }
+        }
+
+        function handleCmfSightingChatKeydown(event) {
+            if (event.key !== 'Enter' || event.shiftKey || event.isComposing || event.keyCode === 229) return;
+            event.preventDefault();
+            if (event.repeat || (window._cmfSightingChatPayload || {}).busy) return;
+            sendCmfSightingChatQuestion();
+        }
+
+        function sendCmfSightingChatQuestion() {
+            var payload = window._cmfSightingChatPayload || {};
+            var input = document.getElementById('cmfSightingChatInput');
+            var send = document.getElementById('cmfSightingChatSend');
+            var question = input ? String(input.value || '').trim() : '';
+            if (payload.busy) {
+                stopCmfSightingChat();
+                return;
+            }
+            if (!payload.cpId || !question) return;
+            payload.busy = true;
+            var history = (payload.history || []).slice(-12);
+
+            var userNode = appendCmfSightingChatMessage('user', question);
+            var turn = { payload: payload, question: question, history: history, node: userNode };
+            userNode._cmfTurn = turn;
+            if (!payload.turns) payload.turns = [];
+            payload.turns.push(turn);
+            if (input) input.value = '';
+            setCmfChatGenerating(true);
+            var thinking = appendCmfSightingChatMessage('assistant', 'Checking this sighting context...');
+            var request = { controller: new AbortController(), thinking: thinking };
+            payload.request = request;
+
+            fetch('CMF_Web_portal.aspx/AskCmfSightingQuestion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                signal: request.controller.signal,
+                body: JSON.stringify({ cpId: payload.cpId, title: payload.title || '', question: question, platform: payload.platform || getIssuePendingPlatformValue(), history: history })
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                if (window._cmfSightingChatPayload !== payload || payload.request !== request) return;
+                var result = data && data.d ? data.d : data;
+                if (thinking && thinking.parentNode) thinking.parentNode.removeChild(thinking);
+                if (!result || result.Success !== true) {
+                    appendCmfSightingChatMessage('assistant', (result && result.Message) ? result.Message : 'Unable to answer from this sighting context.');
+                    return;
+                }
+                var answer = result.Answer || 'The sighting context does not contain enough information to answer that.';
+                payload.history = history.concat([{ Role: 'user', Text: question }, { Role: 'assistant', Text: answer }]).slice(-12);
+                appendCmfSightingChatMessage('assistant', answer);
+            })
+            .catch(function (error) {
+                if (window._cmfSightingChatPayload !== payload || payload.request !== request || error.name === 'AbortError') return;
+                if (thinking && thinking.parentNode) thinking.parentNode.removeChild(thinking);
+                appendCmfSightingChatMessage('assistant', 'Error while answering this sighting question.');
+            })
+            .finally(function () {
+                if (window._cmfSightingChatPayload !== payload || payload.request !== request) return;
+                payload.request = null;
+                payload.busy = false;
+                setCmfChatGenerating(false);
+                if (send) send.disabled = false;
+                if (input) input.focus();
+            });
         }
 
         function showCmfPlaceholderAction(actionName) {
@@ -16037,6 +18069,14 @@ td:nth-child(odd), th:nth-child(odd) {
                 reopenButton.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
             }
 
+            if (sectionName === 'mainMenu') {
+                hidePendingCellTooltip();
+                requestAnimationFrame(function () {
+                    formatIssueLongCells();
+                    formatPendingLongCells();
+                });
+            }
+
             if (sectionName === 'mainMenu' && window.CMF_PORTAL && window.CMF_PORTAL.homeTrendChart) {
                 setTimeout(function () {
                     try { window.CMF_PORTAL.homeTrendChart.resize(); } catch (ignore) { }
@@ -16110,12 +18150,12 @@ td:nth-child(odd), th:nth-child(odd) {
             host.style.width = '100%';
             host.style.maxWidth = '100%';
 
-            // Enforce width at runtime in case later CSS rules collapse the table width.
-            table.style.width = 'max-content';
-            table.style.minWidth = '2200px';
+            // Keep the table readable while avoiding a page-sized horizontal canvas.
+            table.style.width = '100%';
+            table.style.minWidth = '1320px';
             table.style.maxWidth = 'none';
 
-            var targetWidth = Math.max(table.scrollWidth || 0, table.offsetWidth || 0, 2200);
+            var targetWidth = Math.max(table.scrollWidth || 0, table.offsetWidth || 0, 1320);
             if (proxyInner) {
                 proxyInner.style.width = targetWidth + 'px';
             }
@@ -16175,47 +18215,51 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function bindOverallTrendRangeSelector() {
-            var selector = document.getElementById('homeOverallTrendRange');
-            if (!selector || selector.dataset.boundChange === '1') {
-                return;
-            }
-
-            selector.addEventListener('change', function () {
-                if (!isOverallDashboardSelection()) {
+            ['homeOverallTrendRange', 'homeOverallTrendView'].forEach(function (selectorId) {
+                var selector = document.getElementById(selectorId);
+                if (!selector || selector.dataset.boundChange === '1') {
                     return;
                 }
 
-                var snapshot = window.CMF_PORTAL.homeDashboardSnapshot;
-                if (!snapshot) {
-                    return;
-                }
+                selector.addEventListener('change', function () {
+                    if (!isOverallDashboardSelection()) {
+                        return;
+                    }
 
-                renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'homeOverallTrendChartRef', getOverallTrendRangeWeeks());
+                    var snapshot = window.CMF_PORTAL.homeDashboardSnapshot;
+                    if (!snapshot) {
+                        return;
+                    }
+
+                    renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'homeOverallTrendChartRef', getOverallTrendRangeWeeks());
+                });
+
+                selector.dataset.boundChange = '1';
             });
-
-            selector.dataset.boundChange = '1';
         }
 
         function bindSpecificTrendRangeSelector() {
-            var selector = document.getElementById('homeSpecificTrendRange');
-            if (!selector || selector.dataset.boundChange === '1') {
-                return;
-            }
-
-            selector.addEventListener('change', function () {
-                if (isOverallDashboardSelection()) {
+            ['homeSpecificTrendRange', 'homeSpecificTrendView'].forEach(function (selectorId) {
+                var selector = document.getElementById(selectorId);
+                if (!selector || selector.dataset.boundChange === '1') {
                     return;
                 }
 
-                var snapshot = window.CMF_PORTAL.homeDashboardSnapshot;
-                if (!snapshot) {
-                    return;
-                }
+                selector.addEventListener('change', function () {
+                    if (isOverallDashboardSelection()) {
+                        return;
+                    }
 
-                renderHomeTrendChart(snapshot, 'homeTrendChart', 'homeTrendChartRef', getSpecificTrendRangeWeeks());
+                    var snapshot = window.CMF_PORTAL.homeDashboardSnapshot;
+                    if (!snapshot) {
+                        return;
+                    }
+
+                    renderHomeTrendChart(snapshot, 'homeTrendChart', 'homeTrendChartRef', getSpecificTrendRangeWeeks());
+                });
+
+                selector.dataset.boundChange = '1';
             });
-
-            selector.dataset.boundChange = '1';
         }
 
         function renderHomeTrendChart(snapshot, hostId, chartRefKey, rangeWeeks) {
@@ -16224,8 +18268,22 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
+            var viewSelector = document.getElementById(hostId === 'homeOverallTrendChart' ? 'homeOverallTrendView' : 'homeSpecificTrendView');
+            var chartType = viewSelector && viewSelector.value === 'bar' ? 'bar' : 'line';
+            var isClusteredBar = chartType === 'bar';
+            var isStackedLine = !isClusteredBar;
             var fullTrend = snapshot.Trend || [];
-            var selectedRangeWeeks = parseInt(rangeWeeks || 0, 10);
+            var dateModeSelector = document.getElementById('<%= ddlDashboardDateMode.ClientID %>');
+            var dashboardDateMode = dateModeSelector ? (dateModeSelector.value || 'all') : 'all';
+            var isDateFiltered = dashboardDateMode !== 'all';
+            var rangeSelector = document.getElementById(hostId === 'homeOverallTrendChart' ? 'homeOverallTrendRange' : 'homeSpecificTrendRange');
+            if (rangeSelector) {
+                rangeSelector.disabled = isDateFiltered;
+                if (rangeSelector.parentElement) {
+                    rangeSelector.parentElement.style.display = isDateFiltered ? 'none' : '';
+                }
+            }
+            var selectedRangeWeeks = isDateFiltered ? fullTrend.length : parseInt(rangeWeeks || 0, 10);
             if (isNaN(selectedRangeWeeks) || selectedRangeWeeks <= 0) {
                 selectedRangeWeeks = fullTrend.length;
             }
@@ -16234,6 +18292,26 @@ td:nth-child(odd), th:nth-child(odd) {
             if (fullTrend.length > selectedRangeWeeks) {
                 trend = fullTrend.slice(fullTrend.length - selectedRangeWeeks);
             }
+            if (isDateFiltered) {
+                var firstPopulatedWeek = 0;
+                while (firstPopulatedWeek < trend.length - 1) {
+                    var candidateWeek = trend[firstPopulatedWeek] || {};
+                    var firstValue = Number((isStackedLine ? candidateWeek.WeekEndOpenIssues : candidateWeek.NewIssues) || 0);
+                    var secondValue = Number((isStackedLine ? candidateWeek.WeekEndImplementedIssues : candidateWeek.ResolvedIssues) || 0);
+                    if (firstValue > 0 || secondValue > 0) {
+                        break;
+                    }
+                    firstPopulatedWeek++;
+                }
+                var firstPopulatedItem = trend[firstPopulatedWeek] || {};
+                if (isStackedLine && firstPopulatedWeek > 0
+                    && (Number(firstPopulatedItem.WeekEndOpenIssues || 0) > 0
+                        || Number(firstPopulatedItem.WeekEndImplementedIssues || 0) > 0)) {
+                    firstPopulatedWeek = Math.max(0, firstPopulatedWeek - 2);
+                }
+                trend = trend.slice(firstPopulatedWeek);
+            }
+            var barRangeWeeks = isDateFiltered ? trend.length : selectedRangeWeeks;
             var trendStartIndex = Math.max(0, fullTrend.length - trend.length);
             var visibleTrendPoints = [];
             for (var visibleIndex = 0; visibleIndex < trend.length; visibleIndex++) {
@@ -16241,8 +18319,8 @@ td:nth-child(odd), th:nth-child(odd) {
                 visibleTrendPoints.push({
                     weekLabel: String(visibleItem.WeekLabel || ''),
                     weekOffset: Math.max(0, (fullTrend.length - 1) - (trendStartIndex + visibleIndex)),
-                    openValue: Number(visibleItem.NewIssues || 0),
-                    closedValue: Number(visibleItem.ResolvedIssues || 0)
+                    openValue: Number((isStackedLine ? visibleItem.WeekEndOpenIssues : visibleItem.NewIssues) || 0),
+                    closedValue: Number((isStackedLine ? visibleItem.WeekEndImplementedIssues : visibleItem.ResolvedIssues) || 0)
                 });
             }
 
@@ -16264,6 +18342,8 @@ td:nth-child(odd), th:nth-child(odd) {
             var snapshotKey = [
                 window.CMF_PORTAL.currentPlatform || '',
                 hostId,
+                chartType,
+                dashboardDateMode,
                 selectedRangeWeeks,
                 fullTrend.length,
                 trend.length,
@@ -16276,57 +18356,113 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             if (!window.CMF_PORTAL[chartRefKey]) {
-                window.CMF_PORTAL[chartRefKey] = echarts.init(trendHost);
+                window.CMF_PORTAL[chartRefKey] = echarts.init(trendHost, { textStyle: { fontFamily: getComputedStyle(document.body).fontFamily } }, { renderer: 'svg' });
             }
 
-            window.CMF_PORTAL[chartRefKey].setOption({
+            var trendOptions = {
                 animation: false,
-                color: ['#ef4444', '#16a34a'],
-                tooltip: { trigger: 'axis' },
+                color: isStackedLine ? ['#800000', '#0369a1'] : [isClusteredBar ? '#0369a1' : '#ef4444', '#16a34a'],
+                tooltip: { trigger: 'axis', axisPointer: { type: isClusteredBar ? 'shadow' : 'line' } },
                 legend: {
                     top: 0,
-                    left: 0,
-                    icon: 'circle',
+                    right: 8,
+                    icon: isClusteredBar ? 'rect' : 'circle',
                     itemWidth: 8,
                     itemHeight: 8,
-                    textStyle: { color: '#475467', fontSize: 11 }
+                    textStyle: { color: '#24354e', fontSize: 11 }
                 },
-                grid: { left: 36, right: 14, top: 30, bottom: 26 },
+                grid: { left: 10, right: 24, top: isClusteredBar ? 40 : 30, bottom: 10, containLabel: true },
                 xAxis: {
                     type: 'category',
                     data: trend.map(function (item) { return item.WeekLabel; }),
-                    boundaryGap: false,
+                    boundaryGap: isClusteredBar,
                     axisLine: { lineStyle: { color: '#e4e7ec' } },
-                    axisLabel: { color: '#667085', fontSize: 11 }
+                    axisLabel: { color: '#24354e', fontSize: 11, margin: 8 }
                 },
                 yAxis: {
                     type: 'value',
                     axisLine: { show: false },
                     splitLine: { lineStyle: { color: '#eef2f7' } },
-                    axisLabel: { color: '#667085', fontSize: 11 }
+                    axisLabel: { color: '#24354e', fontSize: 11, margin: 8 }
                 },
                 series: [
                     {
                         name: 'Open',
-                        type: 'line',
-                        smooth: true,
-                        data: toTrendSeriesData(trend, function (item) { return item.NewIssues; }),
-                        lineStyle: { width: 3 },
-                        symbol: 'circle',
+                        type: chartType,
+                        stack: isStackedLine ? 'cmf-status' : undefined,
+                        smooth: !isClusteredBar,
+                        barMaxWidth: barRangeWeeks <= 6 ? 18 : (barRangeWeeks <= 12 ? 8 : 6),
+                        barGap: '20%',
+                        itemStyle: isClusteredBar ? { color: '#f0f9ff', borderColor: '#0369a1', borderWidth: 1 } : (isStackedLine ? { color: '#800000' } : undefined),
+                        data: toTrendSeriesData(trend, function (item) { return isStackedLine ? item.WeekEndOpenIssues : item.NewIssues; }),
+                        areaStyle: isStackedLine ? { color: 'rgba(128,0,0,0.12)' } : undefined,
+                        lineStyle: { width: isStackedLine ? 0 : 3 },
+                        emphasis: isStackedLine ? { lineStyle: { width: 0 } } : undefined,
+                        symbol: isStackedLine ? 'none' : 'circle',
                         symbolSize: 6
                     },
                     {
-                        name: 'Closed',
-                        type: 'line',
-                        smooth: true,
-                        data: toTrendSeriesData(trend, function (item) { return item.ResolvedIssues; }),
-                        lineStyle: { width: 3 },
+                        name: isStackedLine ? 'Implemented' : 'Closed',
+                        type: chartType,
+                        stack: isStackedLine ? 'cmf-status' : undefined,
+                        smooth: !isClusteredBar,
+                        barMaxWidth: barRangeWeeks <= 6 ? 18 : (barRangeWeeks <= 12 ? 8 : 6),
+                        itemStyle: isClusteredBar ? { color: '#dcfce7', borderColor: '#16a34a', borderWidth: 1 } : (isStackedLine ? { color: '#0369a1' } : undefined),
+                        data: toTrendSeriesData(trend, function (item) { return isStackedLine ? item.WeekEndImplementedIssues : item.ResolvedIssues; }),
+                        lineStyle: { width: 3, color: isStackedLine ? '#0369a1' : undefined },
                         symbol: 'circle',
+                        showAllSymbol: isStackedLine ? true : undefined,
                         symbolSize: 6,
-                        areaStyle: { color: 'rgba(22,163,74,0.12)' }
+                        areaStyle: isClusteredBar ? undefined : { color: isStackedLine ? 'rgba(3,105,161,0.12)' : 'rgba(22,163,74,0.12)' }
                     }
                 ]
-            }, true);
+            };
+            if (isClusteredBar) {
+                trendOptions.series.forEach(function (series) {
+                    series.label = {
+                        show: true,
+                        position: 'top',
+                        distance: 3,
+                        color: '#24354e',
+                        fontSize: 11,
+                        formatter: function (point) { return point.value > 0 ? String(point.value) : ''; }
+                    };
+                });
+            }
+            if (isStackedLine) {
+                var openSeries = trendOptions.series[0];
+                var implementedSeries = trendOptions.series[1];
+                ['itemStyle', 'areaStyle', 'lineStyle', 'emphasis', 'symbol', 'showAllSymbol'].forEach(function (property) {
+                    var openStyle = openSeries[property];
+                    openSeries[property] = implementedSeries[property];
+                    implementedSeries[property] = openStyle;
+                });
+                trendOptions.series.reverse();
+                trendOptions.tooltip.formatter = function (params) {
+                    var points = params || [];
+                    if (!points.length) return '';
+                    var orderedPoints = [];
+                    ['Open', 'Implemented'].forEach(function (name) {
+                        points.forEach(function (point) {
+                            if (point.seriesName === name) orderedPoints.push(point);
+                        });
+                    });
+                    var total = orderedPoints.reduce(function (sum, point) {
+                        return sum + Number(point.value || 0);
+                    }, 0);
+                    var weekLabel = points[0].axisValueLabel || points[0].axisValue || '';
+                    var html = '<div style="display:flex;justify-content:space-between;gap:20px;line-height:1"><span>' +
+                        escapeHtml(String(weekLabel)) + '</span><span style="font-weight:900">Total: ' + total + '</span></div>';
+                    orderedPoints.forEach(function (point) {
+                        html += '<div style="display:flex;justify-content:space-between;gap:20px;margin-top:10px;line-height:1"><span>' +
+                            (point.marker || '') + escapeHtml(point.seriesName) + '</span><span style="font-weight:900">' +
+                            Number(point.value || 0) + '</span></div>';
+                    });
+                    return html;
+                };
+                trendOptions.legend.data = ['Open', 'Implemented'];
+            }
+            window.CMF_PORTAL[chartRefKey].setOption(trendOptions, true);
 
             var trendChart = window.CMF_PORTAL[chartRefKey];
             if (trendChart) {
@@ -16376,7 +18512,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
                     var axisIndex = parseInt(trendChart.__cmfTrendLastAxisIndex, 10);
                     if (isNaN(axisIndex) || axisIndex < 0 || axisIndex >= visibleTrendPoints.length) {
-                        var xValue = trendChart.convertFromPixel({ xAxisIndex: 0 }, [offsetX, offsetY])[0];
+                        var xValue = trendChart.convertFromPixel({ xAxisIndex: 0 }, offsetX);
                         axisIndex = Math.round(Number(xValue));
                     }
 
@@ -16394,7 +18530,7 @@ td:nth-child(odd), th:nth-child(odd) {
                         return;
                     }
 
-                    openTrendWeekIssueLinksPopup('All', point.weekLabel, point.weekOffset);
+                    openTrendWeekIssueLinksPopup(isStackedLine ? 'Open and Implemented' : 'All', point.weekLabel, point.weekOffset);
                 };
 
                 trendChart.__cmfTrendZrClickHandler = trendZrClickHandler;
@@ -16405,6 +18541,23 @@ td:nth-child(odd), th:nth-child(odd) {
 
             window.CMF_PORTAL[cacheKey] = snapshotKey;
             window.CMF_PORTAL[chartRefKey].resize();
+        }
+
+        function syncDashboardPlatformToolbarWidth() {
+            var toolbar = document.querySelector('#homeWelcomePanel .dashboard-platform-toolbar');
+            var aiCard = isOverallDashboardSelection()
+                ? document.querySelector('#homeOverallLayoutV2 .overall-ai-card')
+                : document.getElementById('homeLegacyAiHealthCard');
+            if (!toolbar || !aiCard || !toolbar.offsetWidth || !aiCard.offsetWidth) return;
+            var toolbarRect = toolbar.getBoundingClientRect();
+            var scale = toolbarRect.width / parseFloat(getComputedStyle(toolbar).width);
+            if (!scale || !isFinite(scale)) return;
+            var width = (aiCard.getBoundingClientRect().right - toolbarRect.left) / scale;
+            if (width > 0) {
+                toolbar.style.setProperty('--dashboard-toolbar-scale', scale.toFixed(5));
+                var cssWidth = width.toFixed(2) + 'px';
+                if (toolbar.style.width !== cssWidth) toolbar.style.width = cssWidth;
+            }
         }
 
         function renderHomeDashboard() {
@@ -16435,6 +18588,8 @@ td:nth-child(odd), th:nth-child(odd) {
             if (legacySummary) legacySummary.style.display = isOverall ? 'none' : '';
             if (legacyAiHealth) legacyAiHealth.style.display = isOverall ? 'none' : '';
             if (legacyTables) legacyTables.style.display = isOverall ? 'none' : '';
+            syncDashboardPlatformToolbarWidth();
+            if (window.CmfDashboardInsights) window.CmfDashboardInsights.render(snapshot);
 
             if (isOverall) {
                 renderOverallCombinedSummaryFacts(snapshot);
@@ -16442,6 +18597,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 renderOverallHeatmap(snapshot);
                 renderOverallPendingSummary(snapshot);
                 renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'homeOverallTrendChartRef', getOverallTrendRangeWeeks());
+                syncQuickLinkPopupLockGeometry(true);
                 return;
             }
 
@@ -16452,8 +18608,10 @@ td:nth-child(odd), th:nth-child(odd) {
             renderDashboardLiveTable('homeMilestoneSummaryTable', snapshot.MilestoneSummary);
             renderDashboardLiveTable('homeComponentSummaryTable', snapshot.ComponentSummary);
             renderDashboardLiveTable('homePendingSummaryTable', snapshot.PendingSummary);
+            renderPlatformPendingSummaryThresholdLegends();
             renderDashboardLiveTable('homeDesignSummaryTable', snapshot.DesignSummary);
             renderHomeTrendChart(snapshot, 'homeTrendChart', 'homeTrendChartRef', getSpecificTrendRangeWeeks());
+            syncQuickLinkPopupLockGeometry(true);
         }
 
         function renderSpecificSummarySection(snapshot) {
@@ -16541,6 +18699,9 @@ td:nth-child(odd), th:nth-child(odd) {
                 var cells = [];
                 for (var c = 0; c < tableData.Columns.length; c++) {
                     var rawValue = tableData.Rows[r][c] == null ? '' : String(tableData.Rows[r][c]);
+                    if (rawValue.indexOf(':::OVER_TWO_DAYS:::') >= 0) {
+                        rawValue = rawValue.split(':::OVER_TWO_DAYS:::')[0];
+                    }
                     if (rawValue.indexOf(':::OPEN_HSDS:::') >= 0) {
                         rawValue = rawValue.split(':::OPEN_HSDS:::')[0];
                     }
@@ -16740,9 +18901,9 @@ td:nth-child(odd), th:nth-child(odd) {
                 lines.push('Calculated as count where status is complete or rejected.');
             } else if (label === 'implemented') {
                 lines.push('CMFs that are implemented in the current summary scope.');
-                lines.push('Calculated as count where status is implemented.');
+                lines.push('Calculated as count where status is implemented or future.');
             } else if (label === 'open') {
-                lines.push('CMFs that are not complete, rejected, or implemented.');
+                lines.push('CMFs that are not complete, rejected, implemented, or future.');
                 lines.push('Calculated directly from cmf_ok + cmf_duplicate rows in the summary scope.');
             } else if (label === 'pending') {
                 lines.push('CMFs still unresolved in the pending pipeline.');
@@ -16802,8 +18963,9 @@ td:nth-child(odd), th:nth-child(odd) {
             return 'Alphabetical';
         }
 
-        function syncSummaryIssuePopupControls(sourceType) {
+        function syncSummaryIssuePopupControls(sourceType, metricKey) {
             var normalizedSource = String(sourceType || 'summary').toLowerCase();
+            var isPendingSummary = normalizedSource === 'summary' && String(metricKey || '').trim().toLowerCase() === 'pending';
             var groupBySelect = document.getElementById('summaryIssuesGroupBy');
             var groupByLabel = document.querySelector('label[for="summaryIssuesGroupBy"]');
             var sortBySelect = document.getElementById('summaryIssuesSortBy');
@@ -16822,6 +18984,12 @@ td:nth-child(odd), th:nth-child(odd) {
             sortByLabel.style.display = showGrouping ? '' : 'none';
             trendStatusLabel.style.display = showTrendStatus ? '' : 'none';
             trendStatusChecks.style.display = showTrendStatus ? 'flex' : 'none';
+            var recordTypeLabel = document.getElementById('summaryIssuesRecordTypeLabel');
+            var recordTypeChecks = document.getElementById('summaryIssuesRecordTypeChecks');
+            if (recordTypeLabel && recordTypeChecks) {
+                recordTypeLabel.style.display = isPendingSummary ? 'none' : '';
+                recordTypeChecks.style.display = isPendingSummary ? 'none' : 'flex';
+            }
         }
 
         function syncSummaryTrendIssueStatusControls(showOpen, showClosed) {
@@ -16920,11 +19088,7 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function buildTrendIssueGroupByOptions(isOverallScope) {
-            var options = ['issue', 'ingredient', 'milestone', 'design', 'component', 'owner', 'idst'];
-            if (isOverallScope) {
-                options.splice(2, 0, 'platform');
-            }
-            return options;
+            return buildSummaryIssueGroupByOptions(isOverallScope);
         }
 
         function closeSummaryIssueLinksPopup() {
@@ -16947,8 +19111,24 @@ td:nth-child(odd), th:nth-child(odd) {
                 encodeURIComponent(String(groupName || 'Unassigned')) + '||' +
                 encodeURIComponent(String(idsCsv || ''));
 
+            if (typeof dispatchPopupAsyncFlow === 'function') {
+                return dispatchPopupAsyncFlow('ShowSummaryMetricIssues', payload, '', '', 'ShowSummaryMetricIssues', payload);
+            }
+
             __doPostBack('ShowSummaryMetricIssues', payload);
             return false;
+        }
+
+        function encodeForInlineJsDecodeArg(value) {
+            return encodeURIComponent(String(value == null ? '' : value)).replace(/'/g, '%27');
+        }
+
+        function formatSummaryIssueCountText(count) {
+            var numericCount = parseInt(count, 10);
+            if (isNaN(numericCount)) {
+                numericCount = 0;
+            }
+            return String(numericCount) + (numericCount === 1 ? ' issue' : ' issues');
         }
 
         function renderSummaryIssueLinks(result) {
@@ -16960,7 +19140,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
             var popupState = window.CMF_PORTAL.summaryIssuesPopupState || {};
             window.CMF_PORTAL.summaryIssuesPopupLastResult = result || null;
-            syncSummaryIssuePopupControls(popupState.sourceType || 'summary');
+            syncSummaryIssuePopupControls(popupState.sourceType || 'summary', popupState.metricKey);
             var syncedGroupBy = syncSummaryIssueGroupByOptions(
                 result && result.AvailableGroupBy ? result.AvailableGroupBy : null,
                 result && result.GroupBy ? result.GroupBy : popupState.groupBy
@@ -16976,15 +19156,10 @@ td:nth-child(odd), th:nth-child(odd) {
             if (isNaN(totalIssues)) {
                 totalIssues = 0;
             }
+            var totalIssuesText = formatSummaryIssueCountText(totalIssues);
 
-            var metaParts = [String(totalIssues) + ' issues'];
+            var metaParts = [totalIssuesText];
             var idstMetaLine = '';
-            if (popupState.sourceType === 'trend-week') {
-                var weekLabel = String(popupState.weekLabel || '').trim();
-                if (weekLabel) {
-                    metaParts.push(weekLabel);
-                }
-            }
 
             if (popupState.sourceType === 'overall-heatmap') {
                 var platformLabel = String(popupState.platformLabel || '').trim();
@@ -17059,9 +19234,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
             var html = '';
             var isPendingSummaryMetric = String(popupState.metricKey || '').toLowerCase() === 'pending';
-            var canOpenSummaryMetricDetails =
-                !isPendingSummaryMetric &&
-                String(popupState.sourceType || 'summary').toLowerCase() === 'summary';
+            var canOpenSummaryMetricDetails = !isPendingSummaryMetric;
             var metricLabelForDetails = String(popupState.metricLabel || popupState.metricKey || 'Summary Metric');
             var pendingMetricIds = [];
             var pendingMetricSeen = {};
@@ -17069,6 +19242,10 @@ td:nth-child(odd), th:nth-child(odd) {
             var summaryMetricSeen = {};
             for (var i = 0; i < sortedGroups.length; i++) {
                 var group = sortedGroups[i] || {};
+                var displayGroupName = String(group.GroupName || 'Unassigned');
+                if (popupState.groupBy === 'platform') {
+                    displayGroupName = displayGroupName.replace(/_COMPONENTS_TABLE$/i, '');
+                }
                 var ids = group.HsdIds || [];
                 var issueCount = 0;
                 var normalizedIds = [];
@@ -17104,36 +19281,36 @@ td:nth-child(odd), th:nth-child(odd) {
                     issueCount += 1;
                 }
 
-                var countText = String(issueCount) + ' issues';
+                var countText = formatSummaryIssueCountText(issueCount);
                 var countHtml = '<span class="summary-issues-group-count">' + escapeHtml(countText) + '</span>';
                 if (isPendingSummaryMetric && normalizedIds.length > 0) {
-                    var encodedGroupName = encodeURIComponent(String(group.GroupName || 'Pending Summary'));
-                    var encodedIds = encodeURIComponent(normalizedIds.join(','));
+                    var encodedGroupName = encodeForInlineJsDecodeArg(String(group.GroupName || 'Pending Summary'));
+                    var encodedIds = encodeForInlineJsDecodeArg(normalizedIds.join(','));
                     countHtml = '<span class="summary-issues-group-count"><a href="javascript:void(0);" class="summary-issues-group-count-link" onclick="return openPendingSummaryDetailsFromSummaryPopup(decodeURIComponent(\'' + encodedGroupName + '\'), decodeURIComponent(\'' + encodedIds + '\'))">' + escapeHtml(countText) + '</a></span>';
                 } else if (canOpenSummaryMetricDetails && normalizedIds.length > 0) {
-                    var encodedMetricLabel = encodeURIComponent(metricLabelForDetails);
-                    var encodedSummaryGroup = encodeURIComponent(String(group.GroupName || 'Unassigned'));
-                    var encodedSummaryIds = encodeURIComponent(normalizedIds.join(','));
+                    var encodedMetricLabel = encodeForInlineJsDecodeArg(metricLabelForDetails);
+                    var encodedSummaryGroup = encodeForInlineJsDecodeArg(String(group.GroupName || 'Unassigned'));
+                    var encodedSummaryIds = encodeForInlineJsDecodeArg(normalizedIds.join(','));
                     countHtml = '<span class="summary-issues-group-count"><a href="javascript:void(0);" class="summary-issues-group-count-link" onclick="return openSummaryMetricDetailsFromSummaryPopup(decodeURIComponent(\'' + encodedMetricLabel + '\'), decodeURIComponent(\'' + encodedSummaryGroup + '\'), decodeURIComponent(\'' + encodedSummaryIds + '\'))">' + escapeHtml(countText) + '</a></span>';
                 }
 
                 html += '<section class="summary-issues-group">';
-                html += '<div class="summary-issues-group-title"><span class="summary-issues-group-name">' + escapeHtml(group.GroupName || 'Unassigned') + '</span>' + countHtml + '</div>';
+                html += '<div class="summary-issues-group-title"><span class="summary-issues-group-name">' + escapeHtml(displayGroupName) + '</span>' + countHtml + '</div>';
                 html += '</section>';
             }
 
             body.innerHTML = html;
 
             if (isPendingSummaryMetric && pendingMetricIds.length > 0) {
-                var encodedMetaIds = encodeURIComponent(pendingMetricIds.join(','));
-                var metaLinkHtml = '<a href="javascript:void(0);" class="summary-issues-popup-meta-link" onclick="return openPendingSummaryDetailsFromSummaryPopup(\'Total Pending\', decodeURIComponent(\'' + encodedMetaIds + '\'))">' + escapeHtml(String(totalIssues) + ' issues') + '</a>';
+                var encodedMetaIds = encodeForInlineJsDecodeArg(pendingMetricIds.join(','));
+                var metaLinkHtml = '<a href="javascript:void(0);" class="summary-issues-popup-meta-link" onclick="return openPendingSummaryDetailsFromSummaryPopup(\'Total Pending\', decodeURIComponent(\'' + encodedMetaIds + '\'))">' + escapeHtml(totalIssuesText) + '</a>';
                 var metaExtraText = metaParts.length > 1 ? (' • ' + escapeHtml(metaParts.slice(1).join(' • '))) : '';
                 meta.innerHTML = metaLinkHtml + metaExtraText;
             } else if (canOpenSummaryMetricDetails && summaryMetricIds.length > 0) {
-                var encodedSummaryMetaMetric = encodeURIComponent(metricLabelForDetails);
-                var encodedSummaryMetaGroup = encodeURIComponent('All Groups');
-                var encodedSummaryMetaIds = encodeURIComponent(summaryMetricIds.join(','));
-                var summaryMetaLinkHtml = '<a href="javascript:void(0);" class="summary-issues-popup-meta-link" onclick="return openSummaryMetricDetailsFromSummaryPopup(decodeURIComponent(\'' + encodedSummaryMetaMetric + '\'), decodeURIComponent(\'' + encodedSummaryMetaGroup + '\'), decodeURIComponent(\'' + encodedSummaryMetaIds + '\'))">' + escapeHtml(String(totalIssues) + ' issues') + '</a>';
+                var encodedSummaryMetaMetric = encodeForInlineJsDecodeArg(metricLabelForDetails);
+                var encodedSummaryMetaGroup = encodeForInlineJsDecodeArg('All Groups');
+                var encodedSummaryMetaIds = encodeForInlineJsDecodeArg(summaryMetricIds.join(','));
+                var summaryMetaLinkHtml = '<a href="javascript:void(0);" class="summary-issues-popup-meta-link" onclick="return openSummaryMetricDetailsFromSummaryPopup(decodeURIComponent(\'' + encodedSummaryMetaMetric + '\'), decodeURIComponent(\'' + encodedSummaryMetaGroup + '\'), decodeURIComponent(\'' + encodedSummaryMetaIds + '\'))">' + escapeHtml(totalIssuesText) + '</a>';
                 var summaryMetaExtraText = metaParts.length > 1 ? (' • ' + escapeHtml(metaParts.slice(1).join(' • '))) : '';
                 meta.innerHTML = summaryMetaLinkHtml + summaryMetaExtraText;
             }
@@ -17160,6 +19337,8 @@ td:nth-child(odd), th:nth-child(odd) {
 
             body.innerHTML = '<div class="summary-issues-popup-empty">Loading issues...</div>';
 
+            var requestId = (window.CMF_PORTAL.summaryIssuesPopupRequestId || 0) + 1;
+            window.CMF_PORTAL.summaryIssuesPopupRequestId = requestId;
             var endpoint = 'CMF_Web_portal.aspx/GetSummaryCardIssueLinks';
             var payload = {
                 metricKey: metricKey,
@@ -17187,6 +19366,9 @@ td:nth-child(odd), th:nth-child(odd) {
                 };
             }
 
+            payload.includeUnique = popupState.includeUnique !== false;
+            payload.includeDuplicates = popupState.includeDuplicates !== false;
+
             fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json; charset=utf-8' },
@@ -17194,10 +19376,12 @@ td:nth-child(odd), th:nth-child(odd) {
             })
             .then(function (response) { return response.json(); })
             .then(function (data) {
+                if (window.CMF_PORTAL.summaryIssuesPopupRequestId !== requestId) return;
                 var result = data && data.d ? data.d : data;
                 renderSummaryIssueLinks(result);
             })
             .catch(function () {
+                if (window.CMF_PORTAL.summaryIssuesPopupRequestId !== requestId) return;
                 renderSummaryIssueLinks({ Success: false, Message: 'Unable to load issue links right now.' });
             });
         }
@@ -17214,6 +19398,21 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
+            // Keep the popup under body so fixed-position centering is viewport-based,
+            // even when dashboard containers apply transforms.
+            if (popup.parentElement !== document.body) {
+                document.body.appendChild(popup);
+            }
+            if (backdrop.parentElement !== document.body) {
+                document.body.appendChild(backdrop);
+            }
+
+            popup.style.top = '50%';
+            popup.style.left = '50%';
+            popup.style.right = '';
+            popup.style.bottom = '';
+            popup.style.transform = 'translate(-50%, -50%)';
+
             var sourceType = popupOptions && popupOptions.sourceType
                 ? String(popupOptions.sourceType || '').toLowerCase()
                 : 'summary';
@@ -17225,7 +19424,8 @@ td:nth-child(odd), th:nth-child(odd) {
             var initialGroupBy = syncSummaryIssueGroupByOptions(options, options.length > 0 ? options[0] : 'ingredient');
             var initialSortBy = syncSummaryIssueSortByOptions('alphabetical');
             var initialTrendStatus = syncSummaryTrendIssueStatusControls(true, true);
-            syncSummaryIssuePopupControls(sourceType);
+            document.getElementById('summaryIssuesClosedLabel').textContent = popupOptions && popupOptions.seriesName === 'Open and Implemented' ? 'Implemented' : 'Closed';
+            syncSummaryIssuePopupControls(sourceType, metricKey);
 
             window.CMF_PORTAL.summaryIssuesPopupState = {
                 metricKey: String(metricKey || ''),
@@ -17234,6 +19434,8 @@ td:nth-child(odd), th:nth-child(odd) {
                 sortBy: initialSortBy,
                 showOpen: initialTrendStatus.showOpen,
                 showClosed: initialTrendStatus.showClosed,
+                includeUnique: true,
+                includeDuplicates: sourceType !== 'trend-week' && sourceType !== 'overall-heatmap',
                 sourceType: sourceType,
                 ingredient: popupOptions && popupOptions.ingredient ? String(popupOptions.ingredient || '').trim() : '',
                 platformLabel: popupOptions && popupOptions.platformLabel ? String(popupOptions.platformLabel || '').trim() : '',
@@ -17242,6 +19444,20 @@ td:nth-child(odd), th:nth-child(odd) {
                 weekOffset: popupOptions && popupOptions.weekOffset != null ? parseInt(popupOptions.weekOffset, 10) : 0
             };
             window.CMF_PORTAL.summaryIssuesPopupLastResult = null;
+
+            [
+                { id: 'summaryIssuesIncludeUnique', key: 'includeUnique' },
+                { id: 'summaryIssuesIncludeDuplicates', key: 'includeDuplicates' }
+            ].forEach(function (toggle) {
+                var checkbox = document.getElementById(toggle.id);
+                checkbox.checked = window.CMF_PORTAL.summaryIssuesPopupState[toggle.key] !== false;
+                checkbox.onchange = function () {
+                    var state = window.CMF_PORTAL.summaryIssuesPopupState || {};
+                    state[toggle.key] = checkbox.checked;
+                    window.CMF_PORTAL.summaryIssuesPopupState = state;
+                    loadSummaryIssueLinks(state.metricKey, state.metricLabel, state.groupBy);
+                };
+            });
 
             groupBySelect.onchange = function () {
                 var state = window.CMF_PORTAL.summaryIssuesPopupState || {};
@@ -17327,6 +19543,21 @@ td:nth-child(odd), th:nth-child(odd) {
             });
         }
 
+        function renderSummaryWeeklyTrend(trend) {
+            var showTrends = <%= ShowSummaryTrends ? "true" : "false" %>;
+            if (!showTrends || !trend || trend.Display === '') return '';
+            var tone = /^(good|bad|neutral)$/.test(trend.Tone) ? trend.Tone : 'unavailable';
+            var direction = /^(up|down|flat)$/.test(trend.Direction) ? trend.Direction : 'unavailable';
+            var icon = direction === 'flat'
+                ? '<span class="cmf-weekly-trend-bar" aria-hidden="true"></span>'
+                : direction === 'up' || direction === 'down'
+                    ? '<i class="fa-solid fa-arrow-' + direction + '" aria-hidden="true"></i>' : '';
+            return '<span class="cmf-weekly-trend trend-' + tone + '" data-direction="' + direction +
+                '" role="img" title="' + escapeHtml(trend.Tooltip || '') + '" aria-label="' +
+                escapeHtml(trend.Tooltip || '') + '">' + icon + '<span>' +
+                escapeHtml(trend.Display || 'N/A') + '</span></span>';
+        }
+
         function renderOverallSummaryFacts(snapshot, hostId) {
             var host = document.getElementById(hostId || 'homeOverallSummaryFacts');
             if (!host) {
@@ -17366,9 +19597,13 @@ td:nth-child(odd), th:nth-child(odd) {
                     card.setAttribute('aria-label', (fact.Label || 'Summary metric') + '. ' + tooltip + '. Click to view issue counts grouped by selection.');
                 }
 
+                var valueHtml = '<div class="ccip-summary-fact-value">' + renderValueWithDaysSuffix(formattedFact.valueText, 'ccip-days-suffix') + '</div>';
+                if (formattedFact.noteText) {
+                    valueHtml = '<div class="cmf-summary-value-stack">' + valueHtml +
+                        '<div class="ccip-summary-fact-note">' + escapeHtml(formattedFact.noteText) + '</div></div>';
+                }
                 card.innerHTML = '<div class="ccip-summary-fact-label">' + escapeHtml(fact.Label || '-') + '</div>' +
-                    '<div class="ccip-summary-fact-value">' + renderValueWithDaysSuffix(formattedFact.valueText, 'ccip-days-suffix') + '</div>' +
-                    '<div class="ccip-summary-fact-note">' + escapeHtml(formattedFact.noteText) + '</div>';
+                    valueHtml + '<div class="ccip-summary-fact-note">' + renderSummaryWeeklyTrend(fact.WeeklyTrend) + '</div>';
 
                 if (metricKey) {
                     (function (boundMetricKey, boundLabel, boundCard) {
@@ -17645,7 +19880,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 '<th>Open Issues</th>' +
                 '<th>CMF Pending</th>' +
                 '<th>Average Resolution Time (Days)</th>' +
-                '<th>Trend<br><span style="display:block;font-size:9px;font-weight:700;letter-spacing:0.01em;opacity:0.95;">(vs Last Week)</span></th>' +
+                '<th>Trend<br><span style="display:block;font-size:9px;font-weight:700;letter-spacing:0.01em;opacity:0.95;">(7d vs Previous 7d)</span></th>' +
                 '</tr></thead><tbody>';
 
             function buildOverallOemMetricLinkHtml(oemName, metricKey, metricClass, value) {
@@ -17680,14 +19915,18 @@ td:nth-child(odd), th:nth-child(odd) {
                 var implemented = parseInt(row.Implemented || 0, 10);
                 var closed = parseInt(row.Closed || 0, 10);
                 var avgResolution = parseFloat(row.AvgResolutionDays || 0);
-                var trendPercent = parseInt(row.TrendPercent || 0, 10);
-                var trendSafe = isNaN(trendPercent) ? 0 : trendPercent;
+                var trendCount = parseInt(row.TrendCount || 0, 10);
+                var trendSafe = isNaN(trendCount) ? 0 : trendCount;
                 var trendClass = trendSafe > 0 ? 'overall-trend-up' : (trendSafe < 0 ? 'overall-trend-down' : 'overall-trend-flat');
                 var trendAbs = Math.abs(trendSafe);
                 var trendArrow = trendSafe > 0 ? '↑' : (trendSafe < 0 ? '↓' : '');
                 var trendValue = trendSafe > 0
-                    ? ('+' + trendAbs + '%')
-                    : (trendSafe < 0 ? ('-' + trendAbs + '%') : '0%');
+                    ? ('+' + trendAbs)
+                    : (trendSafe < 0 ? ('-' + trendAbs) : '0');
+                var recentRequests = parseInt(row.RecentRequestCount || 0, 10) || 0;
+                var previousRequests = parseInt(row.PreviousRequestCount || 0, 10) || 0;
+                var trendTooltip = 'CMF requests in last 7 days (including today): ' + recentRequests
+                    + '; previous 7 days: ' + previousRequests + '; change: ' + trendValue + '.';
 
                 var safeTotalIssues = isNaN(totalIssues) ? 0 : totalIssues;
                 var safeOpenIssues = isNaN(openIssues) ? 0 : openIssues;
@@ -17711,7 +19950,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     '<td>' + buildOverallOemMetricLinkHtml(oemName, 'open', 'overall-oem-metric-open', safeOpenIssues) + '</td>' +
                     '<td>' + buildOverallOemMetricLinkHtml(oemName, 'pending', 'overall-oem-metric-pending', safeCmfPending) + '</td>' +
                     '<td>' + escapeHtml(safeAvgResolution.toFixed(1)) + '</td>' +
-                        '<td><span class="overall-oem-trend ' + trendClass + '"><span class="overall-oem-trend-arrow">' + escapeHtml(trendArrow) + '</span><span class="overall-oem-trend-value">' + escapeHtml(trendValue) + '</span></span></td>' +
+                        '<td><span class="overall-oem-trend ' + trendClass + '" title="' + escapeHtml(trendTooltip) + '"><span class="overall-oem-trend-arrow">' + escapeHtml(trendArrow) + '</span><span class="overall-oem-trend-value">' + escapeHtml(trendValue) + '</span></span></td>' +
                     '</tr>';
             }
 
@@ -17889,19 +20128,25 @@ td:nth-child(odd), th:nth-child(odd) {
             var html = '';
             html += '<div class="overall-tpt-box" data-tpt-kind="disposition">' +
                 '<div class="overall-tpt-label">DISPOSITION TPT</div>' +
+                (dispositionFact && dispositionFact.WeeklyTrend ? '<div class="cmf-summary-value-stack">' : '') +
                 '<div class="overall-tpt-value ' + getLegacyTptValueToneClass('disposition', dispositionDays) + '">' + escapeHtml(String(dispositionDays)) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
+                (dispositionFact && dispositionFact.WeeklyTrend ? renderSummaryWeeklyTrend(dispositionFact.WeeklyTrend) + '</div>' : '') +
                 buildTptColorLegend('disposition') +
                 '</div>';
 
             html += '<div class="overall-tpt-box" data-tpt-kind="resolution">' +
                 '<div class="overall-tpt-label">RESOLUTION TPT</div>' +
+                (resolutionFact && resolutionFact.WeeklyTrend ? '<div class="cmf-summary-value-stack">' : '') +
                 '<div class="overall-tpt-value ' + getLegacyTptValueToneClass('resolution', resolutionDays) + '">' + escapeHtml(String(resolutionDays)) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
+                (resolutionFact && resolutionFact.WeeklyTrend ? renderSummaryWeeklyTrend(resolutionFact.WeeklyTrend) + '</div>' : '') +
                 buildTptColorLegend('resolution') +
                 '</div>';
 
             html += '<div class="overall-tpt-box" data-tpt-kind="overall">' +
                 '<div class="overall-tpt-label">OVERALL TPT</div>' +
+                (overallFact && overallFact.WeeklyTrend ? '<div class="cmf-summary-value-stack">' : '') +
                 '<div class="overall-tpt-value ' + getLegacyTptValueToneClass('overall', overallDays) + '">' + escapeHtml(String(overallDays)) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
+                (overallFact && overallFact.WeeklyTrend ? renderSummaryWeeklyTrend(overallFact.WeeklyTrend) + '</div>' : '') +
                 buildTptColorLegend('overall') +
                 '</div>';
 
@@ -17942,6 +20187,17 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
+            var platformColumns = platforms.map(function (platformLabel, platformIndex) {
+                var total = rows.reduce(function (sum, row) {
+                    var values = row && row.Values ? row.Values : [];
+                    var value = parseInt(values[platformIndex] || 0, 10);
+                    return sum + (isNaN(value) ? 0 : value);
+                }, 0);
+                return { index: platformIndex, label: String(platformLabel || ''), total: total };
+            }).sort(function (first, second) {
+                return second.total - first.total || first.label.localeCompare(second.label);
+            });
+
             var overallRiskThresholds = normalizeComponentRiskThresholds(
                 window.CMF_PORTAL && window.CMF_PORTAL.overallRiskThresholds
                     ? window.CMF_PORTAL.overallRiskThresholds
@@ -17956,7 +20212,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var html = '<div class="component-summary-heatmap-layout"><div class="component-summary-heatmap-scroll"><div class="overall-heatmap-board" style="grid-template-columns: 112px repeat(' + platforms.length + ', 46px);">';
             html += '<div class="overall-heatmap-corner">INGREDIENT</div>';
             for (var c = 0; c < platforms.length; c++) {
-                html += '<div class="overall-heatmap-platform">' + escapeHtml(platforms[c]) + '</div>';
+                html += '<div class="overall-heatmap-platform">' + escapeHtml(platforms[platformColumns[c].index]) + '</div>';
             }
 
             for (var r = 0; r < rows.length; r++) {
@@ -17967,10 +20223,11 @@ td:nth-child(odd), th:nth-child(odd) {
                 html += '<div class="overall-heatmap-ingredient">' + escapeHtml(ingredientLabel) + '</div>';
 
                 for (var col = 0; col < platforms.length; col++) {
-                    var platformLabel = String(platforms[col] || '');
-                    var value = parseInt(values[col] || 0, 10);
+                    var sourceIndex = platformColumns[col].index;
+                    var platformLabel = String(platforms[sourceIndex] || '');
+                    var value = parseInt(values[sourceIndex] || 0, 10);
                     var normalizedValue = isNaN(value) ? 0 : value;
-                    var statusTooltip = statusBreakdowns.length > col ? String(statusBreakdowns[col] || '') : '';
+                    var statusTooltip = statusBreakdowns.length > sourceIndex ? String(statusBreakdowns[sourceIndex] || '') : '';
                     var losCount = parseOverallHeatmapLosCount(statusTooltip);
                     var colorBasisValue = applyLosSubtraction ? (normalizedValue - losCount) : normalizedValue;
                     if (isNaN(colorBasisValue) || colorBasisValue < 0) {
@@ -18021,7 +20278,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 + '</div>'
                 + '<div class="component-summary-legend-row component-summary-legend-row-toggle">'
                     + '<label class="component-summary-legend-toggle">'
-                        + '<span>Subtract LOS</span>'
+                        + '<span>LOS</span>'
                         + '<input type="checkbox" class="component-summary-legend-toggle-input" data-threshold="overall-los-subtract-toggle"' + (applyLosSubtraction ? ' checked' : '') + '>'
                     + '</label>'
                 + '</div>'
@@ -18246,11 +20503,93 @@ td:nth-child(odd), th:nth-child(odd) {
             syncLegendInputMins();
         }
 
+        function resolvePendingSummaryAgeThresholdDays() {
+            var configured = window.CMF_PORTAL && window.CMF_PORTAL.pendingSummaryAgeThresholdDays;
+            var parsed = parseInt(configured, 10);
+            if (isNaN(parsed) || parsed < 0) {
+                return 2;
+            }
+
+            return parsed;
+        }
+
+        function renderPendingSummaryThresholdLegend(legendHost) {
+            if (!legendHost) {
+                return;
+            }
+
+            var pendingAgeThresholdDays = resolvePendingSummaryAgeThresholdDays();
+
+            legendHost.innerHTML =
+                '<div class="component-summary-legend-row">'
+                + '<span class="component-summary-legend-label overall-break-over-two-days">( )</span>'
+                + '<span class="component-summary-legend-label">&gt;</span>'
+                + '<input type="number" min="0" step="1" class="component-summary-legend-value component-summary-legend-input" data-threshold="pending-age-days" value="' + escapeHtml(String(pendingAgeThresholdDays)) + '">'
+                + '<span class="component-summary-legend-label">Days old</span>'
+                + '</div>';
+
+            var daysInput = legendHost.querySelector('[data-threshold="pending-age-days"]');
+            if (!daysInput) {
+                return;
+            }
+
+            function submitPendingThresholdFromInput() {
+                var nextValue = parseInt(daysInput.value, 10);
+                if (isNaN(nextValue) || nextValue < 0) {
+                    daysInput.classList.add('component-summary-legend-input-invalid');
+                    daysInput.value = String(pendingAgeThresholdDays);
+                    return;
+                }
+
+                daysInput.classList.remove('component-summary-legend-input-invalid');
+                if (nextValue === pendingAgeThresholdDays) {
+                    return;
+                }
+
+                if (window.CMF_PORTAL) {
+                    window.CMF_PORTAL.pendingSummaryAgeThresholdDays = nextValue;
+                }
+
+                if (typeof __doPostBack === 'function') {
+                    __doPostBack('SetPendingSummaryAgeThreshold', encodeURIComponent(String(nextValue)));
+                }
+            }
+
+            daysInput.addEventListener('input', function () {
+                daysInput.classList.remove('component-summary-legend-input-invalid');
+            });
+
+            daysInput.addEventListener('keydown', function (event) {
+                if (event && event.key === 'Enter') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    submitPendingThresholdFromInput();
+                    if (typeof daysInput.blur === 'function') {
+                        daysInput.blur();
+                    }
+                }
+            });
+
+            daysInput.addEventListener('change', submitPendingThresholdFromInput);
+        }
+
+        function renderPlatformPendingSummaryThresholdLegends() {
+            var legendHosts = document.querySelectorAll('.pending-summary-threshold-legend');
+            if (!legendHosts || !legendHosts.length) {
+                return;
+            }
+
+            for (var index = 0; index < legendHosts.length; index++) {
+                renderPendingSummaryThresholdLegend(legendHosts[index]);
+            }
+        }
+
         function renderOverallPendingSummary(snapshot) {
             var pieHost = document.getElementById('homeOverallPendingPie');
             var breakdownHost = document.getElementById('homeOverallPendingBreakdown');
-            var ageHost = document.getElementById('homeOverallPendingAgeBuckets');
-            if (!pieHost || !breakdownHost || !ageHost) {
+            var totalHost = document.getElementById('homeOverallPendingTotal');
+            var legendHost = document.getElementById('homeOverallPendingLegend');
+            if (!pieHost || !breakdownHost) {
                 return;
             }
 
@@ -18274,37 +20613,69 @@ td:nth-child(odd), th:nth-child(odd) {
 
             function parsePendingSummaryRowCell(rawValue) {
                 var valueText = String(rawValue == null ? '' : rawValue);
-                var count = parseMetricInt(valueText);
+                var count = 0;
+                var overTwoDaysCount = 0;
                 var idsCsv = '';
+                var overTwoDaysIdsCsv = '';
                 var delimiter = (typeof PENDING_SUMMARY_LINKS_DELIMITER === 'string' && PENDING_SUMMARY_LINKS_DELIMITER)
                     ? PENDING_SUMMARY_LINKS_DELIMITER
                     : ':::OPEN_HSDS:::';
+                var overTwoDaysDelimiter = (typeof PENDING_SUMMARY_OVER_TWO_DAYS_DELIMITER === 'string' && PENDING_SUMMARY_OVER_TWO_DAYS_DELIMITER)
+                    ? PENDING_SUMMARY_OVER_TWO_DAYS_DELIMITER
+                    : ':::OVER_TWO_DAYS:::';
+                var overTwoDaysIdsDelimiter = (typeof PENDING_SUMMARY_OVER_TWO_DAYS_IDS_DELIMITER === 'string' && PENDING_SUMMARY_OVER_TWO_DAYS_IDS_DELIMITER)
+                    ? PENDING_SUMMARY_OVER_TWO_DAYS_IDS_DELIMITER
+                    : ':::OVER_TWO_DAYS_IDS:::';
+                var countPayload = valueText;
 
                 if (valueText.indexOf(delimiter) >= 0) {
                     var parts = valueText.split(delimiter);
+                    countPayload = parts[0] || '0';
                     idsCsv = normalizePendingSummaryIdsCsv(parts.length > 1 ? parts[1] : '');
+                }
+
+                if (countPayload.indexOf(overTwoDaysIdsDelimiter) >= 0) {
+                    var overTwoDayIdParts = countPayload.split(overTwoDaysIdsDelimiter);
+                    countPayload = overTwoDayIdParts[0] || '0';
+                    overTwoDaysIdsCsv = normalizePendingSummaryIdsCsv(overTwoDayIdParts.length > 1 ? overTwoDayIdParts[1] : '');
+                }
+
+                if (countPayload.indexOf(overTwoDaysDelimiter) >= 0) {
+                    var overTwoParts = countPayload.split(overTwoDaysDelimiter);
+                    count = parseMetricInt(overTwoParts[0] || 0);
+                    overTwoDaysCount = parseMetricInt(overTwoParts.length > 1 ? overTwoParts[1] : 0);
+                } else {
+                    count = parseMetricInt(countPayload);
                 }
 
                 return {
                     count: count,
-                    idsCsv: idsCsv
+                    idsCsv: idsCsv,
+                    overTwoDaysCount: overTwoDaysCount,
+                    overTwoDaysIdsCsv: overTwoDaysIdsCsv
                 };
             }
 
-            function buildPendingSummaryBreakdownLinkHtml(ingredientName, idsCsv, text, cssClass) {
+            function buildPendingSummaryBreakdownLinkHtml(ingredientName, idsCsv, text, cssClass, parenthesized) {
                 var safeText = String(text == null ? '' : text);
+                var contentHtml = parenthesized
+                    ? '(<span class="overall-break-over-two-days-count">' + escapeHtml(safeText) + '</span>)'
+                    : escapeHtml(safeText);
                 var normalizedIdsCsv = normalizePendingSummaryIdsCsv(idsCsv);
                 if (!normalizedIdsCsv) {
-                    return escapeHtml(safeText);
+                    return contentHtml;
                 }
 
                 var encodedIngredient = encodeURIComponent(String(ingredientName == null ? '' : ingredientName));
                 var encodedIds = encodeURIComponent(normalizedIdsCsv);
-                return '<a href="javascript:void(0);" class="' + cssClass + '" onclick="return showPendingSummaryIssues(decodeURIComponent(\'' + encodedIngredient + '\'), decodeURIComponent(\'' + encodedIds + '\'));">' + escapeHtml(safeText) + '</a>';
+                return '<a href="javascript:void(0);" class="' + cssClass + '" onclick="return showPendingSummaryIssues(decodeURIComponent(\'' + encodedIngredient + '\'), decodeURIComponent(\'' + encodedIds + '\'));">' + contentHtml + '</a>';
             }
 
             function parseMetricInt(value) {
                 var raw = String(value == null ? '' : value);
+                if (raw.indexOf(':::OVER_TWO_DAYS:::') >= 0) {
+                    raw = raw.split(':::OVER_TWO_DAYS:::')[0];
+                }
                 if (raw.indexOf(':::OPEN_HSDS:::') >= 0) {
                     raw = raw.split(':::OPEN_HSDS:::')[0];
                 }
@@ -18312,6 +20683,9 @@ td:nth-child(odd), th:nth-child(odd) {
                 var parsed = parseInt(cleaned, 10);
                 return isNaN(parsed) ? 0 : parsed;
             }
+
+            var pendingAgeThresholdDays = resolvePendingSummaryAgeThresholdDays();
+            renderPendingSummaryThresholdLegend(legendHost);
 
             var pendingSummary = snapshot && snapshot.PendingSummary ? snapshot.PendingSummary : null;
             var rows = pendingSummary && pendingSummary.Rows ? pendingSummary.Rows : [];
@@ -18357,7 +20731,9 @@ td:nth-child(odd), th:nth-child(odd) {
                 breakdown.push({
                     name: label,
                     value: pendingCellData.count,
-                    idsCsv: pendingCellData.idsCsv
+                    idsCsv: pendingCellData.idsCsv,
+                    overTwoDaysCount: pendingCellData.overTwoDaysCount,
+                    overTwoDaysIdsCsv: pendingCellData.overTwoDaysIdsCsv
                 });
             }
 
@@ -18375,18 +20751,15 @@ td:nth-child(odd), th:nth-child(odd) {
                 }
             }
 
-            var bucketRows = snapshot && snapshot.PendingAgeBuckets ? snapshot.PendingAgeBuckets : [];
-            var bucketTotal = 0;
-            for (var bt = 0; bt < bucketRows.length; bt++) {
-                var bucketValue = parseMetricInt(bucketRows[bt] && bucketRows[bt].Value);
-                bucketTotal += bucketValue;
-            }
-            if (total <= 0 && bucketTotal > 0) {
-                total = bucketTotal;
-            }
-
             var pieColors = ['#2563eb', '#f59e0b', '#22c55e', '#ef4444', '#8b5cf6', '#0ea5e9', '#14b8a6', '#f97316'];
             var topBreakdown = breakdown;
+
+            if (totalHost) {
+                var totalValueHtml = pendingSummaryTotalIdsCsv
+                    ? buildPendingSummaryBreakdownLinkHtml('Total Pending', pendingSummaryTotalIdsCsv, String(total), 'overall-break-count-link')
+                    : escapeHtml(String(total));
+                totalHost.innerHTML = 'Total Pending: ' + totalValueHtml;
+            }
 
             if (!topBreakdown.length) {
                 breakdownHost.innerHTML = '<div class="ccip-empty-state">No pending ingredient data.</div>';
@@ -18394,43 +20767,34 @@ td:nth-child(odd), th:nth-child(odd) {
                 var breakdownHtml = '';
                 for (var k = 0; k < topBreakdown.length; k++) {
                     var item = topBreakdown[k];
-                    var pct = total > 0 ? (item.value * 100 / total) : 0;
                     var dot = pieColors[k % pieColors.length];
-                    var countHtml = buildPendingSummaryBreakdownLinkHtml(item.name, item.idsCsv, String(item.value), 'overall-break-count-link');
+                    var overTwoDaysValue = parseMetricInt(item.overTwoDaysCount || 0);
+                    var allOverTwoDays = overTwoDaysValue > 0 && overTwoDaysValue === item.value;
+                    var countHtml = buildPendingSummaryBreakdownLinkHtml(item.name, item.idsCsv, String(item.value), allOverTwoDays ? 'overall-break-count-link overall-break-over-two-days-link' : 'overall-break-count-link', allOverTwoDays);
+                    var canOpenOverTwoDaysPopup = overTwoDaysValue > 0
+                        && overTwoDaysValue < item.value
+                        && !!String(item.overTwoDaysIdsCsv || '').trim();
+                    var overTwoDaysHtml = overTwoDaysValue > 0 && !allOverTwoDays
+                        ? (canOpenOverTwoDaysPopup
+                            ? (function () {
+                                var encodedOverTwoIngredient = encodeURIComponent(item.name + ' (>' + String(pendingAgeThresholdDays) + ' days)');
+                                var encodedOverTwoIds = encodeURIComponent(normalizePendingSummaryIdsCsv(item.overTwoDaysIdsCsv));
+                                return '<a href="javascript:void(0);" class="overall-break-over-two-days overall-break-over-two-days-link" onclick="return showPendingSummaryIssues(decodeURIComponent(\'' + encodedOverTwoIngredient + '\'), decodeURIComponent(\'' + encodedOverTwoIds + '\'));">(<span class="overall-break-over-two-days-count">' + escapeHtml(String(overTwoDaysValue)) + '</span>)</a>';
+                            })()
+                            : '<span class="overall-break-over-two-days" title="Issues open more than ' + escapeHtml(String(pendingAgeThresholdDays)) + ' days">(' + escapeHtml(String(overTwoDaysValue)) + ')</span>')
+                        : '';
                     breakdownHtml += '<div class="overall-break-row">' +
                         '<span class="overall-break-left">' +
                             '<span class="overall-break-dot" style="background:' + dot + ';"></span>' +
                             '<span class="overall-break-name">' + escapeHtml(item.name) + '</span>' +
                         '</span>' +
                         '<span class="overall-break-metrics">' +
-                            '<strong class="overall-break-count">' + countHtml + '</strong>' +
-                            '<span class="overall-break-pct">(' + escapeHtml(pct.toFixed(1)) + '%)</span>' +
+                            '<strong class="overall-break-count' + (allOverTwoDays ? ' overall-break-over-two-days' : '') + '">' + countHtml + '</strong>' +
+                            overTwoDaysHtml +
                         '</span>' +
                         '</div>';
                 }
                 breakdownHost.innerHTML = breakdownHtml;
-            }
-
-            if (!bucketRows.length) {
-                ageHost.innerHTML = '<div class="ccip-empty-state">No pending age data.</div>';
-            } else {
-                var ageHtml = '';
-                for (var a = 0; a < bucketRows.length; a++) {
-                    var bucket = bucketRows[a] || {};
-                    var count = parseMetricInt(bucket.Value || 0);
-                    var safeCount = isNaN(count) ? 0 : count;
-                    var agePct = total > 0 ? ((isNaN(count) ? 0 : count) * 100 / total) : 0;
-                    var agePctClamped = Math.max(0, Math.min(100, agePct));
-                    var bucketLabel = String(bucket.Name || '-');
-                    var encodedBucketLabel = encodeURIComponent(bucketLabel);
-                    var countLinkHtml = '<a href="javascript:void(0);" class="ccip-pending-summary-count-link" onclick="return showPendingAgeBucketIssues(decodeURIComponent(\'' + encodedBucketLabel + '\'))">' + escapeHtml(String(safeCount)) + '</a>';
-                    ageHtml += '<div class="overall-age-row">' +
-                        '<span class="overall-age-label">' + renderOverallAgeBucketLabel(bucketLabel) + '</span>' +
-                        '<span class="overall-age-bar-track"><span class="overall-age-bar-fill" style="width:' + escapeHtml(agePctClamped.toFixed(1)) + '%;"></span></span>' +
-                        '<strong class="overall-age-metrics">' + countLinkHtml + ' (' + escapeHtml(agePct.toFixed(1)) + '%)</strong>' +
-                        '</div>';
-                }
-                ageHost.innerHTML = ageHtml;
             }
 
             if (!topBreakdown.length || total <= 0) {
@@ -18448,8 +20812,26 @@ td:nth-child(odd), th:nth-child(odd) {
 
             pieHost.innerHTML = '';
             if (!window.CMF_PORTAL.homeOverallPendingPieChart) {
-                window.CMF_PORTAL.homeOverallPendingPieChart = echarts.init(pieHost);
+                window.CMF_PORTAL.homeOverallPendingPieChart = echarts.init(pieHost, { textStyle: { fontFamily: getComputedStyle(document.body).fontFamily } });
             }
+
+            var stackedSeries = topBreakdown.map(function (item, index) {
+                var pctValue = total > 0 ? (item.value * 100 / total) : 0;
+                return {
+                    name: item.name,
+                    type: 'bar',
+                    stack: 'pending-total',
+                    cursor: 'pointer',
+                    data: [pctValue],
+                    barWidth: 24,
+                    itemStyle: {
+                        color: pieColors[index % pieColors.length],
+                        borderColor: '#ffffff',
+                        borderWidth: 1
+                    },
+                    emphasis: { focus: 'series' }
+                };
+            });
 
             window.CMF_PORTAL.homeOverallPendingPieChart.setOption({
                 animation: false,
@@ -18457,60 +20839,34 @@ td:nth-child(odd), th:nth-child(odd) {
                     trigger: 'item',
                     confine: false,
                     appendToBody: true,
-                    extraCssText: 'z-index: 9999;'
+                    extraCssText: 'z-index: 9999;',
+                    formatter: function (params) {
+                        var item = topBreakdown[params.seriesIndex] || {};
+                        var value = item.value || 0;
+                        var pct = total > 0 ? (value * 100 / total) : 0;
+                        return escapeHtml(String(item.name || '-')) + ': ' + escapeHtml(String(value)) + ' (' + escapeHtml(pct.toFixed(1)) + '%)';
+                    }
                 },
                 color: pieColors,
-                graphic: [
-                    {
-                        type: 'text',
-                        left: 'center',
-                        top: '36%',
-                        silent: !pendingSummaryTotalIdsCsv,
-                        cursor: pendingSummaryTotalIdsCsv ? 'pointer' : 'default',
-                        onclick: pendingSummaryTotalIdsCsv
-                            ? function () {
-                                showPendingSummaryIssues('Total Pending', pendingSummaryTotalIdsCsv);
-                            }
-                            : null,
-                        z: 10,
-                        style: {
-                            text: String(total),
-                            fill: '#1d4ed8',
-                            font: '900 14px Segoe UI',
-                            textAlign: 'center',
-                            textVerticalAlign: 'middle'
-                        }
-                    },
-                    {
-                        type: 'text',
-                        left: 'center',
-                        top: '52.5%',
-                        silent: true,
-                        z: 10,
-                        style: {
-                            text: 'Total\nPending',
-                            fill: '#64748b',
-                            font: '700 8px Segoe UI',
-                            lineHeight: 9,
-                            textAlign: 'center',
-                            textVerticalAlign: 'middle'
-                        }
-                    }
-                ],
-                series: [{
-                    type: 'pie',
-                    cursor: 'pointer',
-                    radius: ['52%', '84%'],
-                    center: ['50%', '50%'],
-                    itemStyle: {
-                        borderColor: '#ffffff',
-                        borderWidth: 1
-                    },
-                    label: { show: false },
-                    data: topBreakdown.map(function (item) {
-                        return { name: item.name, value: item.value, idsCsv: item.idsCsv || '' };
-                    })
-                }]
+                grid: {
+                    left: 0,
+                    right: 0,
+                    top: 8,
+                    bottom: 8,
+                    containLabel: false
+                },
+                xAxis: {
+                    type: 'value',
+                    min: 0,
+                    max: 100,
+                    show: false
+                },
+                yAxis: {
+                    type: 'category',
+                    data: ['Pending'],
+                    show: false
+                },
+                series: stackedSeries
             }, true);
 
             window.CMF_PORTAL.homeOverallPendingPieChart.off('click');
@@ -18519,45 +20875,27 @@ td:nth-child(odd), th:nth-child(odd) {
                     return;
                 }
 
-                var payload = params.data || {};
-                var idsCsv = normalizePendingSummaryIdsCsv(payload.idsCsv || '');
+                var seriesName = String(params.seriesName || '').trim();
+                var selected = null;
+                for (var i = 0; i < topBreakdown.length; i++) {
+                    if (String(topBreakdown[i].name || '').trim() === seriesName) {
+                        selected = topBreakdown[i];
+                        break;
+                    }
+                }
+
+                if (!selected) {
+                    return;
+                }
+
+                var idsCsv = normalizePendingSummaryIdsCsv(selected.idsCsv || '');
                 if (!idsCsv) {
                     return;
                 }
 
-                var ingredientName = String(payload.name || params.name || 'Pending Summary').trim();
+                var ingredientName = String(selected.name || params.seriesName || 'Pending Summary').trim();
                 showPendingSummaryIssues(ingredientName, idsCsv);
             });
-
-            if (window.CMF_PORTAL.homeOverallPendingPieCenterClickHandler) {
-                window.CMF_PORTAL.homeOverallPendingPieChart.getZr().off('click', window.CMF_PORTAL.homeOverallPendingPieCenterClickHandler);
-                window.CMF_PORTAL.homeOverallPendingPieCenterClickHandler = null;
-            }
-
-            if (pendingSummaryTotalIdsCsv) {
-                var centerClickHandler = function (event) {
-                    if (!event) {
-                        return;
-                    }
-
-                    var x = typeof event.offsetX === 'number' ? event.offsetX : 0;
-                    var y = typeof event.offsetY === 'number' ? event.offsetY : 0;
-                    var centerX = pieHost.clientWidth / 2;
-                    var centerY = pieHost.clientHeight / 2;
-                    var innerRadius = Math.min(pieHost.clientWidth, pieHost.clientHeight) * 0.52 / 2;
-                    var dx = x - centerX;
-                    var dy = y - centerY;
-                    var distance = Math.sqrt((dx * dx) + (dy * dy));
-
-                    // Clicks inside the donut hole correspond to the center total label area.
-                    if (distance <= innerRadius) {
-                        showPendingSummaryIssues('Total Pending', pendingSummaryTotalIdsCsv);
-                    }
-                };
-
-                window.CMF_PORTAL.homeOverallPendingPieChart.getZr().on('click', centerClickHandler);
-                window.CMF_PORTAL.homeOverallPendingPieCenterClickHandler = centerClickHandler;
-            }
 
             window.CMF_PORTAL.homeOverallPendingPieChart.resize();
         }
@@ -18837,7 +21175,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 + '</div>'
                 + '<div class="component-summary-legend-row component-summary-legend-row-toggle">'
                     + '<label class="component-summary-legend-toggle">'
-                        + '<span>Subtract LOS</span>'
+                        + '<span>LOS</span>'
                         + '<input type="checkbox" class="component-summary-legend-toggle-input" data-threshold="component-los-subtract-toggle"' + (applyLosSubtraction ? ' checked' : '') + '>'
                     + '</label>'
                 + '</div>'
@@ -19110,7 +21448,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
             host.innerHTML =
                 '<div class="milestone-pie-layout">' +
-                    '<div class="milestone-stacked-total">Total CMFs: ' + escapeHtml(String(total)) + '</div>' +
+                    '<div class="milestone-stacked-total">Total CMFs: ' + buildMilestoneBreakCountLinkHtml('__all_milestones__', total) + '</div>' +
                     '<div class="milestone-pie-canvas"></div>' +
                     '<div class="milestone-pie-breakdown">' + breakdownHtml + '</div>' +
                 '</div>';
@@ -19125,7 +21463,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
-            window.CMF_PORTAL.homeMilestoneSummaryPieChart = echarts.init(pieHost);
+            window.CMF_PORTAL.homeMilestoneSummaryPieChart = echarts.init(pieHost, { textStyle: { fontFamily: getComputedStyle(document.body).fontFamily } });
             var stackedSeries = breakdown.map(function (item, index) {
                 var pctValue = total > 0 ? (item.value * 100 / total) : 0;
                 return {
@@ -19224,6 +21562,7 @@ td:nth-child(odd), th:nth-child(odd) {
             firstCell.style.left = '0px';
             firstCell.style.zIndex = '8';
 
+            var groupHeaderHeight = 0;
             for (var i = 1; i < topCells.length; i++) {
                 var groupCell = topCells[i];
                 if (!groupCell.classList.contains('ccip-component-group-header')) {
@@ -19233,9 +21572,59 @@ td:nth-child(odd), th:nth-child(odd) {
                 // Keep vertical sticky behavior from base table header CSS.
                 // Do not pin group headers horizontally; they must slide with their two sub-columns.
                 groupCell.style.position = 'sticky';
+                groupCell.style.top = '0px';
                 groupCell.style.left = '';
-                groupCell.style.zIndex = '3';
+                groupCell.style.zIndex = '4';
                 groupCell.style.background = '#f2f4f7';
+
+                if (!groupHeaderHeight) {
+                    var measuredHeight = groupCell.getBoundingClientRect().height;
+                    if (measuredHeight && isFinite(measuredHeight) && measuredHeight > 0) {
+                        groupHeaderHeight = measuredHeight;
+                    }
+                }
+            }
+
+            if (!groupHeaderHeight) {
+                groupHeaderHeight = 45.69;
+            }
+
+            var topOffsetPx = groupHeaderHeight + 'px';
+            table.style.setProperty('--ccip-component-group-header-height', topOffsetPx);
+
+            var subCells = headerRows[1].querySelectorAll('th.ccip-component-sub-header');
+            for (var j = 0; j < subCells.length; j++) {
+                var subCell = subCells[j];
+                subCell.style.position = 'sticky';
+                subCell.style.top = topOffsetPx;
+                subCell.style.zIndex = '3';
+                subCell.style.background = '#f2f4f7';
+            }
+
+            if (!host._hasComponentSubHeaderStickySync) {
+                host._hasComponentSubHeaderStickySync = true;
+                host.addEventListener('scroll', function () {
+                    var currentTable = host.querySelector('table.ccip-component-summary-table');
+                    if (!currentTable) {
+                        return;
+                    }
+                    var currentGroupCell = currentTable.querySelector('thead tr:first-child th.ccip-component-group-header');
+                    if (!currentGroupCell) {
+                        return;
+                    }
+                    var liveHeight = currentGroupCell.getBoundingClientRect().height;
+                    if (!liveHeight || !isFinite(liveHeight) || liveHeight <= 0) {
+                        return;
+                    }
+                    var liveTopPx = liveHeight + 'px';
+                    if (currentTable.style.getPropertyValue('--ccip-component-group-header-height') !== liveTopPx) {
+                        currentTable.style.setProperty('--ccip-component-group-header-height', liveTopPx);
+                        var currentSubCells = currentTable.querySelectorAll('thead tr:nth-child(2) th.ccip-component-sub-header');
+                        for (var k = 0; k < currentSubCells.length; k++) {
+                            currentSubCells[k].style.top = liveTopPx;
+                        }
+                    }
+                }, { passive: true });
             }
         }
 
@@ -19465,6 +21854,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var columns = tableData && tableData.Columns ? tableData.Columns : [];
             var rows = tableData && tableData.Rows ? tableData.Rows : [];
             var isMilestoneSummaryHost = hostId === 'homeMilestoneSummaryTable';
+            var COMPONENT_SUMMARY_ALL_MILESTONES_DRIVER_TOKEN = '__ALL_MILESTONES__';
 
             function getComponentSummaryMilestoneFromColumn(columnLabel) {
                 var text = String(columnLabel == null ? '' : columnLabel);
@@ -19502,13 +21892,97 @@ td:nth-child(odd), th:nth-child(odd) {
                 return total > 0;
             }
 
+            function formatComponentOpenMetricDisplay(rawValue) {
+                var text = String(rawValue == null ? '' : rawValue).trim();
+                var match = text.match(/^(\d+)\((\d+)\)\+(\d+)\((\d+)\)$/);
+                if (!match) {
+                    return text;
+                }
+
+                function formatOpenToken(baseValue, losValue) {
+                    if (losValue === 0) {
+                        return String(baseValue);
+                    }
+                    return String(baseValue) + '(' + String(losValue) + ')';
+                }
+
+                var x = parseIntegerOrZero(match[1]);
+                var y = parseIntegerOrZero(match[2]);
+                var z = parseIntegerOrZero(match[3]);
+                var w = parseIntegerOrZero(match[4]);
+                var leftToken = formatOpenToken(x, y);
+                var rightToken = formatOpenToken(z, w);
+
+                // X(Y)+0(0) -> X(Y)
+                if (z === 0 && w === 0) {
+                    return leftToken;
+                }
+
+                // X(Y)+Z(0) -> X(Y)+Z
+                if (w === 0) {
+                    return leftToken + '+' + String(z);
+                }
+
+                // 0(X)+Z(Y) -> 0(X)+Z(Y)
+                if (x === 0) {
+                    return leftToken + '+' + rightToken;
+                }
+
+                // X(0)+Z(Y) -> X+Z(Y)
+                if (y === 0) {
+                    return String(x) + '+' + rightToken;
+                }
+
+                return leftToken + '+' + rightToken;
+            }
+
+            function formatComponentImplMetricDisplay(rawValue) {
+                var text = String(rawValue == null ? '' : rawValue).trim();
+                var match = text.match(/^(\d+)\+(\d+)$/);
+                if (!match) {
+                    return text;
+                }
+
+                var x = parseIntegerOrZero(match[1]);
+                var y = parseIntegerOrZero(match[2]);
+
+                // 0+0 -> 0
+                if (x === 0 && y === 0) {
+                    return '0';
+                }
+
+                // X+0 -> X
+                if (y === 0) {
+                    return String(x);
+                }
+
+                // 0+X -> 0+X (unchanged)
+                return String(x) + '+' + String(y);
+            }
+
+            function formatComponentMetricDisplay(issueType, rawValue) {
+                var safeIssueType = String(issueType == null ? '' : issueType).trim();
+                var text = String(rawValue == null ? '' : rawValue).trim();
+
+                if (safeIssueType === 'OpenCombined') {
+                    return formatComponentOpenMetricDisplay(text);
+                }
+
+                if (safeIssueType === 'ImplementedCombined') {
+                    return formatComponentImplMetricDisplay(text);
+                }
+
+                return text;
+            }
+
             function buildComponentSummaryMetricLinkHtml(componentName, milestoneName, issueType, value) {
                 var safeComponent = String(componentName == null ? '' : componentName).trim();
                 var safeMilestone = String(milestoneName == null ? '' : milestoneName).trim();
                 var safeIssueType = String(issueType == null ? '' : issueType).trim();
-                var valueText = String(value == null ? '' : value);
+                var rawValueText = String(value == null ? '' : value);
+                var valueText = formatComponentMetricDisplay(safeIssueType, rawValueText);
 
-                if (!safeComponent || !safeMilestone || !safeIssueType || !hasPositiveComponentMetricValue(valueText)) {
+                if (!safeComponent || !safeMilestone || !safeIssueType || !hasPositiveComponentMetricValue(rawValueText)) {
                     return escapeHtml(valueText);
                 }
 
@@ -19517,6 +21991,57 @@ td:nth-child(odd), th:nth-child(odd) {
                 var encodedIssueType = encodeURIComponent(safeIssueType);
 
                 return '<a href="javascript:void(0);" class="ccip-component-summary-link" onclick="return showCMFIssues(decodeURIComponent(\'' + encodedComponent + '\'), decodeURIComponent(\'' + encodedMilestone + '\'), decodeURIComponent(\'' + encodedIssueType + '\'));">' + escapeHtml(valueText) + '</a>';
+            }
+
+            function parseIntegerOrZero(value) {
+                var parsed = parseInt(value, 10);
+                return isNaN(parsed) ? 0 : parsed;
+            }
+
+            function parseComponentOpenMetricParts(rawValue) {
+                var text = String(rawValue == null ? '' : rawValue).trim();
+                var strictMatch = text.match(/^(\d+)\((\d+)\)\+(\d+)\((\d+)\)$/);
+                if (strictMatch) {
+                    return [
+                        parseIntegerOrZero(strictMatch[1]),
+                        parseIntegerOrZero(strictMatch[2]),
+                        parseIntegerOrZero(strictMatch[3]),
+                        parseIntegerOrZero(strictMatch[4])
+                    ];
+                }
+
+                var tokens = text.match(/\d+/g) || [];
+                return [
+                    parseIntegerOrZero(tokens[0]),
+                    parseIntegerOrZero(tokens[1]),
+                    parseIntegerOrZero(tokens[2]),
+                    parseIntegerOrZero(tokens[3])
+                ];
+            }
+
+            function parseComponentImplMetricParts(rawValue) {
+                var text = String(rawValue == null ? '' : rawValue).trim();
+                var strictMatch = text.match(/^(\d+)\+(\d+)$/);
+                if (strictMatch) {
+                    return [
+                        parseIntegerOrZero(strictMatch[1]),
+                        parseIntegerOrZero(strictMatch[2])
+                    ];
+                }
+
+                var tokens = text.match(/\d+/g) || [];
+                return [
+                    parseIntegerOrZero(tokens[0]),
+                    parseIntegerOrZero(tokens[1])
+                ];
+            }
+
+            function formatComponentOpenMetric(parts) {
+                return String(parts[0]) + '(' + String(parts[1]) + ')+' + String(parts[2]) + '(' + String(parts[3]) + ')';
+            }
+
+            function formatComponentImplMetric(parts) {
+                return String(parts[0]) + '+' + String(parts[1]);
             }
 
             if (isMilestoneSummaryHost) {
@@ -19535,6 +22060,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var isComponentSummary = hostId === 'homeComponentSummaryTable' && columns.length >= 3;
             var pendingValueColumnIndex = isPendingSummary ? Math.max(1, columns.length - 1) : -1;
             var pendingSummaryAggregateIdsCsv = '';
+            var pendingSummaryAggregateOverThresholdIdsCsv = '';
 
             if (isComponentSummary && window.CMF_PORTAL && window.CMF_PORTAL.componentSummaryViewMode === 'heatmap') {
                 renderComponentSummaryHeatmap(host, columns, rows, hasMilestoneColumns);
@@ -19544,6 +22070,8 @@ td:nth-child(odd), th:nth-child(odd) {
             if (isPendingSummary && pendingValueColumnIndex >= 0) {
                 var pendingIdSeen = {};
                 var pendingIdList = [];
+                var pendingOverThresholdIdSeen = {};
+                var pendingOverThresholdIdList = [];
 
                 for (var pendingRowIndex = 0; pendingRowIndex < rows.length; pendingRowIndex++) {
                     var pendingRow = rows[pendingRowIndex] || [];
@@ -19556,24 +22084,40 @@ td:nth-child(odd), th:nth-child(odd) {
                         ? String(pendingRow[pendingValueColumnIndex] == null ? '' : pendingRow[pendingValueColumnIndex])
                         : '';
 
-                    if (pendingRawValue.indexOf(PENDING_SUMMARY_LINKS_DELIMITER) < 0) {
-                        continue;
+                    var pendingCountPayload = pendingRawValue;
+
+                    if (pendingRawValue.indexOf(PENDING_SUMMARY_LINKS_DELIMITER) >= 0) {
+                        var pendingParts = pendingRawValue.split(PENDING_SUMMARY_LINKS_DELIMITER);
+                        pendingCountPayload = pendingParts[0] || '0';
+                        var pendingCsv = pendingParts.length > 1 ? String(pendingParts[1] || '') : '';
+                        var pendingIds = pendingCsv.split(',');
+                        for (var pendingIdIndex = 0; pendingIdIndex < pendingIds.length; pendingIdIndex++) {
+                            var pendingSafeId = String(pendingIds[pendingIdIndex] || '').replace(/[^0-9]/g, '').trim();
+                            if (!pendingSafeId || pendingIdSeen[pendingSafeId]) {
+                                continue;
+                            }
+                            pendingIdSeen[pendingSafeId] = true;
+                            pendingIdList.push(pendingSafeId);
+                        }
                     }
 
-                    var pendingParts = pendingRawValue.split(PENDING_SUMMARY_LINKS_DELIMITER);
-                    var pendingCsv = pendingParts.length > 1 ? String(pendingParts[1] || '') : '';
-                    var pendingIds = pendingCsv.split(',');
-                    for (var pendingIdIndex = 0; pendingIdIndex < pendingIds.length; pendingIdIndex++) {
-                        var pendingSafeId = String(pendingIds[pendingIdIndex] || '').replace(/[^0-9]/g, '').trim();
-                        if (!pendingSafeId || pendingIdSeen[pendingSafeId]) {
-                            continue;
+                    if (pendingCountPayload.indexOf(PENDING_SUMMARY_OVER_TWO_DAYS_IDS_DELIMITER) >= 0) {
+                        var pendingOverTwoDayParts = pendingCountPayload.split(PENDING_SUMMARY_OVER_TWO_DAYS_IDS_DELIMITER);
+                        var pendingOverTwoDaysCsv = pendingOverTwoDayParts.length > 1 ? String(pendingOverTwoDayParts[1] || '') : '';
+                        var pendingOverTwoDaysIds = pendingOverTwoDaysCsv.split(',');
+                        for (var pendingOverIndex = 0; pendingOverIndex < pendingOverTwoDaysIds.length; pendingOverIndex++) {
+                            var pendingOverSafeId = String(pendingOverTwoDaysIds[pendingOverIndex] || '').replace(/[^0-9]/g, '').trim();
+                            if (!pendingOverSafeId || pendingOverThresholdIdSeen[pendingOverSafeId]) {
+                                continue;
+                            }
+                            pendingOverThresholdIdSeen[pendingOverSafeId] = true;
+                            pendingOverThresholdIdList.push(pendingOverSafeId);
                         }
-                        pendingIdSeen[pendingSafeId] = true;
-                        pendingIdList.push(pendingSafeId);
                     }
                 }
 
                 pendingSummaryAggregateIdsCsv = pendingIdList.join(',');
+                pendingSummaryAggregateOverThresholdIdsCsv = pendingOverThresholdIdList.join(',');
             }
 
             if (isComponentSummary) {
@@ -19581,6 +22125,20 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             var renderColumns = columns.slice();
+            var renderRows = rows.slice();
+            var componentSummaryColumnMeta = null;
+
+            if (isComponentSummary) {
+                componentSummaryColumnMeta = [null];
+                for (var componentColumnIndex = 1; componentColumnIndex < columns.length; componentColumnIndex++) {
+                    componentSummaryColumnMeta.push({
+                        isTotal: false,
+                        issueType: (componentColumnIndex % 2 === 1) ? 'OpenCombined' : 'ImplementedCombined',
+                        milestoneName: getComponentSummaryMilestoneFromColumn(columns[componentColumnIndex])
+                    });
+                }
+            }
+
             var tableClasses = 'ccip-live-table'
                 + (isComponentSummary ? ' ccip-component-summary-table' : '')
                 + (isDesignSummary ? ' ccip-design-summary-table' : '')
@@ -19588,49 +22146,44 @@ td:nth-child(odd), th:nth-child(odd) {
             var html = '<table class="' + tableClasses + '">';
 
             if (isComponentSummary) {
-                var firstHeader = String(columns[0] || 'Component');
+                var firstHeader = String(renderColumns[0] || 'Component');
                 var firstColPx = 92;
-                var maxDataHeadingChars = 0;
+                var maxSecondRowHeadingChars = 0;
 
-                if (hasMilestoneColumns) {
-                    for (var h = 1; h < columns.length; h += 2) {
-                        var openMeta = String(columns[h] || '').split(':::');
-                        var implMeta = String(columns[h + 1] || '').split(':::');
-                        var milestoneName = String((openMeta.length > 1 ? openMeta[0] : openMeta[0]) || '');
-                        var openTitleLen = String(openMeta.length > 1 ? openMeta[1] : 'Open').length;
-                        var implTitleLen = String(implMeta.length > 1 ? implMeta[1] : 'Impl/Verified').length;
-                        maxDataHeadingChars = Math.max(
-                            maxDataHeadingChars,
-                            Math.ceil(milestoneName.length / 2),
-                            openTitleLen,
-                            implTitleLen,
-                            'Unique(LOS)+Duplicate(LOS)'.length,
-                            'Unique+Duplicate'.length
-                        );
+                for (var h = 1; h < renderColumns.length; h++) {
+                    var headingText = '';
+                    if (hasMilestoneColumns) {
+                        var headingMeta = String(renderColumns[h] || '').split(':::');
+                        headingText = String(headingMeta.length > 1 ? headingMeta[1] : headingMeta[0] || '');
+                    } else {
+                        headingText = String(renderColumns[h] || '');
                     }
-                } else {
-                    maxDataHeadingChars = Math.max(
-                        'Open'.length,
-                        'Impl/Verified'.length,
-                        'Unique(LOS)+Duplicate(LOS)'.length,
-                        'Unique+Duplicate'.length
-                    );
+
+                    headingText = headingText.trim();
+                    if (!headingText) {
+                        headingText = (h % 2 === 1) ? 'Open' : 'Impl/Verified';
+                    }
+
+                    maxSecondRowHeadingChars = Math.max(maxSecondRowHeadingChars, headingText.length);
                 }
 
-                var openColCh = Math.max(14, Math.min(21.6, Math.ceil(maxDataHeadingChars * 0.78) + 0.6));
-                var implColCh = openColCh;
+                if (maxSecondRowHeadingChars <= 0) {
+                    maxSecondRowHeadingChars = 'Impl/Verified'.length;
+                }
+
+                // Size all metric columns identically to fit the longest second-row heading.
+                var uniformDataColCh = Math.max(10.8, Math.min(13.2, Math.ceil(maxSecondRowHeadingChars * 0.86) + 0.2));
                 var componentDataWidthCh = 0;
-                for (var cw = 1; cw < columns.length; cw++) {
-                    componentDataWidthCh += (cw % 2 === 1) ? openColCh : implColCh;
+                for (var cw = 1; cw < renderColumns.length; cw++) {
+                    componentDataWidthCh += uniformDataColCh;
                 }
 
                 var componentTableDataCh = componentDataWidthCh.toFixed(1);
                 html = '<table class="' + tableClasses + '" style="width:calc(' + firstColPx + 'px + ' + componentTableDataCh + 'ch); min-width:calc(' + firstColPx + 'px + ' + componentTableDataCh + 'ch);">';
                 html += '<colgroup>';
                 html += '<col style="width:' + firstColPx + 'px; min-width:' + firstColPx + 'px; max-width:' + firstColPx + 'px;">';
-                for (var cg = 1; cg < columns.length; cg++) {
-                    var colWidthCh = (cg % 2 === 1) ? openColCh : implColCh;
-                    html += '<col style="width:' + colWidthCh + 'ch; min-width:' + colWidthCh + 'ch;">';
+                for (var cg = 1; cg < renderColumns.length; cg++) {
+                    html += '<col style="width:' + uniformDataColCh + 'ch; min-width:' + uniformDataColCh + 'ch;">';
                 }
                 html += '</colgroup>';
             } else if (isMilestoneSummary) {
@@ -19670,10 +22223,10 @@ td:nth-child(odd), th:nth-child(odd) {
                 html = '<table class="' + tableClasses + '" style="width:' + pendingTableWidth + '; min-width:' + pendingTableWidth + '; table-layout:auto;">';
                 html += '<colgroup>';
                 html += '<col style="width:' + pendingFirstColPx + 'px; min-width:' + pendingFirstColPx + 'px;">';
+                html += '<col style="width:' + pendingColWidthCh + 'ch; min-width:' + pendingColWidthCh + 'ch;">';
                 if (columns.length > 2) {
                     html += '<col style="width:' + pendingIdstColCh + 'ch; min-width:' + pendingIdstColCh + 'ch;">';
                 }
-                html += '<col style="width:' + pendingColWidthCh + 'ch; min-width:' + pendingColWidthCh + 'ch;">';
                 html += '</colgroup>';
             } else if (isDesignSummary) {
                 var designOtherColCount = Math.max(1, columns.length - 1);
@@ -19734,31 +22287,30 @@ td:nth-child(odd), th:nth-child(odd) {
 
             if (hasMilestoneColumns) {
                 html += '<tr>' +
-                    '<th rowspan="2">' + escapeHtml(columns[0] || 'Ingredient') + '</th>';
+                    '<th rowspan="2">' + escapeHtml(renderColumns[0] || 'Ingredient') + '</th>';
 
-                for (var m = 1; m < columns.length; m += 2) {
-                    var openMeta = String(columns[m] || '').split(':::');
+                for (var m = 1; m < renderColumns.length; m += 2) {
+                    var openMeta = String(renderColumns[m] || '').split(':::');
                     var milestoneName = (openMeta.length > 1 ? openMeta[0] : openMeta[0]) || ('Milestone ' + Math.floor((m + 1) / 2));
-                    html += '<th class="ccip-component-group-header" colspan="2">' + escapeHtml(milestoneName) + '</th>';
+                    html += '<th class="ccip-component-group-header" colspan="2">'
+                        + escapeHtml(milestoneName)
+                        + '<span class="ccip-header-format">Unique(LOS)+Duplicate(LOS)</span>'
+                        + '</th>';
                 }
 
                 html += '</tr><tr>';
-                for (var m2 = 1; m2 < columns.length; m2 += 2) {
-                    var openParts = String(columns[m2] || '').split(':::');
-                    var implParts = String(columns[m2 + 1] || '').split(':::');
+                for (var m2 = 1; m2 < renderColumns.length; m2 += 2) {
+                    var openParts = String(renderColumns[m2] || '').split(':::');
+                    var implParts = String(renderColumns[m2 + 1] || '').split(':::');
                     var openTitle = openParts.length > 1 ? openParts[1] : 'Open';
                     var implTitle = implParts.length > 1 ? implParts[1] : 'Impl/Verified';
-                    html += '<th class="ccip-component-sub-header">' +
-                        escapeHtml(openTitle) +
-                        '<span class="ccip-header-format">Unique(LOS)+Duplicate(LOS)</span></th>';
-                    html += '<th class="ccip-component-sub-header">' +
-                        escapeHtml(implTitle) +
-                        '<span class="ccip-header-format">Unique+Duplicate</span></th>';
+                    html += '<th class="ccip-component-sub-header">' + escapeHtml(openTitle) + '</th>';
+                    html += '<th class="ccip-component-sub-header">' + escapeHtml(implTitle) + '</th>';
                 }
                 html += '</tr>';
             } else if (isComponentSummary) {
                 html += '<tr>' +
-                    '<th>' + escapeHtml(columns[0] || 'Ingredient') + '</th>' +
+                    '<th>' + escapeHtml(renderColumns[0] || 'Ingredient') + '</th>' +
                     '<th>Open<span class="ccip-header-format">Unique(LOS)+Duplicate(LOS)</span></th>' +
                     '<th>Impl/Verified<span class="ccip-header-format">Unique+Duplicate</span></th>' +
                     '</tr>';
@@ -19769,6 +22321,12 @@ td:nth-child(odd), th:nth-child(odd) {
                 }
                 html += '<th class="ccip-design-edit-col">Edit</th>';
                 html += '</tr>';
+            } else if (isPendingSummary && renderColumns.length >= 3) {
+                html += '<tr>';
+                html += '<th>' + escapeHtml(renderColumns[0] || 'Ingredient') + '</th>';
+                html += '<th>' + escapeHtml(renderColumns[pendingValueColumnIndex] || 'CMF Pending') + '</th>';
+                html += '<th>' + escapeHtml(renderColumns[1] || 'iDST Name') + '</th>';
+                html += '</tr>';
             } else {
                 html += '<tr>';
                 for (var c = 0; c < columns.length; c++) {
@@ -19778,30 +22336,46 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             html += '</thead><tbody>';
-            if (rows.length === 0) {
-                html += '<tr><td colspan="' + columns.length + '">No matching CMF data for this platform.</td></tr>';
+            if (renderRows.length === 0) {
+                html += '<tr><td colspan="' + renderColumns.length + '">No matching CMF data for this platform.</td></tr>';
             } else {
-                for (var r = 0; r < rows.length; r++) {
-                    var row = rows[r] || [];
+                for (var r = 0; r < renderRows.length; r++) {
+                    var row = renderRows[r] || [];
                     var rowLabel = row.length > 0 ? String(row[0] || '') : '';
                     var isTotalRow = /^total/i.test(rowLabel);
                     var designName = isDesignSummary && row.length > 0 ? String(row[0] || '').trim() : '';
                     html += '<tr' + (isTotalRow ? ' class="ccip-live-total"' : '') + '>';
-                    for (var i = 0; i < columns.length; i++) {
-                        if (isPendingSummary && i === pendingValueColumnIndex) {
-                            var totalRowIds = isTotalRow ? pendingSummaryAggregateIdsCsv : '';
-                            html += '<td class="ccip-pending-summary-links-col">' + buildPendingSummaryCellHtml(row[i], isTotalRow, row[0], totalRowIds) + '</td>';
-                        } else if (isDesignSummary && i === 0) {
-                            html += '<td>' + renderDesignSummaryNameCell(row[i]) + '</td>';
-                        } else if (isDesignSummary && i >= 3) {
-                            html += '<td>' + buildDesignSummaryMetricLinkHtml(designName, renderColumns[i], row[i]) + '</td>';
-                        } else if (isComponentSummary && i > 0) {
-                            var issueType = (i % 2 === 1) ? 'OpenCombined' : 'ImplementedCombined';
-                            var milestoneName = getComponentSummaryMilestoneFromColumn(columns[i]);
-                            var componentName = String(rowLabel || '').trim();
-                            html += '<td>' + buildComponentSummaryMetricLinkHtml(componentName, milestoneName, issueType, row[i]) + '</td>';
-                        } else {
-                            html += '<td>' + escapeHtml(row[i] == null ? '' : row[i]) + '</td>';
+                    if (isPendingSummary && renderColumns.length >= 3) {
+                        var totalRowIds = isTotalRow ? pendingSummaryAggregateIdsCsv : '';
+                        var totalRowOverThresholdIds = isTotalRow ? pendingSummaryAggregateOverThresholdIdsCsv : '';
+                        html += '<td>' + escapeHtml(row[0] == null ? '' : row[0]) + '</td>';
+                        html += '<td class="ccip-pending-summary-links-col">' + buildPendingSummaryCellHtml(row[pendingValueColumnIndex], isTotalRow, row[0], totalRowIds, totalRowOverThresholdIds) + '</td>';
+                        html += '<td>' + escapeHtml(row[1] == null ? '' : row[1]) + '</td>';
+                    } else {
+                        for (var i = 0; i < renderColumns.length; i++) {
+                            if (isPendingSummary && i === pendingValueColumnIndex) {
+                                var pendingTotalRowIds = isTotalRow ? pendingSummaryAggregateIdsCsv : '';
+                                var pendingTotalRowOverThresholdIds = isTotalRow ? pendingSummaryAggregateOverThresholdIdsCsv : '';
+                                html += '<td class="ccip-pending-summary-links-col">' + buildPendingSummaryCellHtml(row[i], isTotalRow, row[0], pendingTotalRowIds, pendingTotalRowOverThresholdIds) + '</td>';
+                            } else if (isDesignSummary && i === 0) {
+                                html += '<td>' + renderDesignSummaryNameCell(row[i]) + '</td>';
+                            } else if (isDesignSummary && i >= 3) {
+                                html += '<td>' + buildDesignSummaryMetricLinkHtml(designName, renderColumns[i], row[i]) + '</td>';
+                            } else if (isComponentSummary && i > 0) {
+                                var componentName = String(rowLabel || '').trim();
+                                var columnMeta = componentSummaryColumnMeta && componentSummaryColumnMeta.length > i
+                                    ? componentSummaryColumnMeta[i]
+                                    : null;
+                                var issueType = (columnMeta && columnMeta.issueType)
+                                    ? columnMeta.issueType
+                                    : ((i % 2 === 1) ? 'OpenCombined' : 'ImplementedCombined');
+                                var milestoneName = (columnMeta && columnMeta.milestoneName)
+                                    ? columnMeta.milestoneName
+                                    : getComponentSummaryMilestoneFromColumn(renderColumns[i]);
+                                html += '<td>' + buildComponentSummaryMetricLinkHtml(componentName, milestoneName, issueType, row[i]) + '</td>';
+                            } else {
+                                html += '<td>' + escapeHtml(row[i] == null ? '' : row[i]) + '</td>';
+                            }
                         }
                     }
 
@@ -19835,6 +22409,8 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         var PENDING_SUMMARY_LINKS_DELIMITER = ':::OPEN_HSDS:::';
+        var PENDING_SUMMARY_OVER_TWO_DAYS_DELIMITER = ':::OVER_TWO_DAYS:::';
+        var PENDING_SUMMARY_OVER_TWO_DAYS_IDS_DELIMITER = ':::OVER_TWO_DAYS_IDS:::';
 
         function getPendingIssueModalContextFromUi() {
             var groupingLabel = 'Component';
@@ -19878,6 +22454,11 @@ td:nth-child(odd), th:nth-child(odd) {
                 + '||' + encodeURIComponent(ids.join(','))
                 + '||' + encodeURIComponent(modalContext.grouping)
                 + '||' + encodeURIComponent(modalContext.sorting);
+
+            if (typeof dispatchPopupAsyncFlow === 'function') {
+                return dispatchPopupAsyncFlow('ShowPendingSummaryIssues', payload, '', '', 'ShowPendingSummaryIssues', payload);
+            }
+
             __doPostBack('ShowPendingSummaryIssues', payload);
             return false;
         }
@@ -19888,51 +22469,105 @@ td:nth-child(odd), th:nth-child(odd) {
                 return false;
             }
 
-            __doPostBack('ShowPendingAgeBucketIssues', encodeURIComponent(bucket));
+            var payload = encodeURIComponent(bucket);
+            if (typeof dispatchPopupAsyncFlow === 'function') {
+                return dispatchPopupAsyncFlow('ShowPendingAgeBucketIssues', payload, '', '', 'ShowPendingAgeBucketIssues', payload);
+            }
+
+            __doPostBack('ShowPendingAgeBucketIssues', payload);
             return false;
         }
 
-        function buildPendingSummaryCellHtml(rawValue, isTotalRow, ingredientName, totalRowIdsCsv) {
+        function buildPendingSummaryCellHtml(rawValue, isTotalRow, ingredientName, totalRowIdsCsv, totalRowOverThresholdIdsCsv) {
             var value = rawValue == null ? '' : String(rawValue);
+            var countPayload = value;
             var countText = value;
             var normalizedIds = [];
+            var overThresholdIds = [];
+            var overThresholdCount = 0;
 
-            if (isTotalRow) {
-                var totalCsv = String(totalRowIdsCsv == null ? '' : totalRowIdsCsv);
-                var totalIds = totalCsv.split(',');
-                var totalSeen = {};
-                for (var totalIndex = 0; totalIndex < totalIds.length; totalIndex++) {
-                    var totalSafeId = String(totalIds[totalIndex] || '').replace(/[^0-9]/g, '').trim();
-                    if (!totalSafeId || totalSeen[totalSafeId]) {
+            function normalizeIds(csv) {
+                var tokens = String(csv == null ? '' : csv).split(',');
+                var seen = {};
+                var normalized = [];
+                for (var tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
+                    var safeId = String(tokens[tokenIndex] || '').replace(/[^0-9]/g, '').trim();
+                    if (!safeId || seen[safeId]) {
                         continue;
                     }
-                    totalSeen[totalSafeId] = true;
-                    normalizedIds.push(totalSafeId);
-                }
-            } else if (value.indexOf(PENDING_SUMMARY_LINKS_DELIMITER) >= 0) {
-                var parts = value.split(PENDING_SUMMARY_LINKS_DELIMITER);
-                countText = parts[0] || '0';
-                var csv = parts.length > 1 ? String(parts[1] || '') : '';
-                var ids = csv.split(',');
-                var seen = {};
-
-                for (var i = 0; i < ids.length; i++) {
-                    var token = String(ids[i] || '').trim();
-                    if (!token) continue;
-                    var safeId = token.replace(/[^0-9]/g, '');
-                    if (!safeId || seen[safeId]) continue;
                     seen[safeId] = true;
-                    normalizedIds.push(safeId);
+                    normalized.push(safeId);
+                }
+                return normalized;
+            }
+
+            function parseCountValue(rawCountValue) {
+                var cleaned = String(rawCountValue == null ? '' : rawCountValue).replace(/[^\d\-]/g, '');
+                var parsed = parseInt(cleaned, 10);
+                return isNaN(parsed) ? 0 : parsed;
+            }
+
+            if (isTotalRow) {
+                normalizedIds = normalizeIds(totalRowIdsCsv);
+                overThresholdIds = normalizeIds(totalRowOverThresholdIdsCsv);
+                overThresholdCount = overThresholdIds.length;
+            } else {
+                if (value.indexOf(PENDING_SUMMARY_LINKS_DELIMITER) >= 0) {
+                    var parts = value.split(PENDING_SUMMARY_LINKS_DELIMITER);
+                    countPayload = parts[0] || '0';
+                    normalizedIds = normalizeIds(parts.length > 1 ? parts[1] : '');
+                }
+
+                if (countPayload.indexOf(PENDING_SUMMARY_OVER_TWO_DAYS_IDS_DELIMITER) >= 0) {
+                    var overThresholdParts = countPayload.split(PENDING_SUMMARY_OVER_TWO_DAYS_IDS_DELIMITER);
+                    countPayload = overThresholdParts[0] || '0';
+                    overThresholdIds = normalizeIds(overThresholdParts.length > 1 ? overThresholdParts[1] : '');
+                }
+
+                if (countPayload.indexOf(PENDING_SUMMARY_OVER_TWO_DAYS_DELIMITER) >= 0) {
+                    var overTwoParts = countPayload.split(PENDING_SUMMARY_OVER_TWO_DAYS_DELIMITER);
+                    countText = overTwoParts[0] || '0';
+                    overThresholdCount = parseCountValue(overTwoParts.length > 1 ? overTwoParts[1] : 0);
+                } else {
+                    countText = countPayload;
                 }
             }
 
-            if (!normalizedIds.length) {
-                return escapeHtml(value);
+            var countValue = parseCountValue(countText);
+
+            var allOverThreshold = overThresholdCount > 0 && overThresholdCount === countValue;
+            var countContentHtml = allOverThreshold
+                ? '(<span class="overall-break-over-two-days-count">' + escapeHtml(countText) + '</span>)'
+                : escapeHtml(countText);
+            var countHtml = allOverThreshold
+                ? '<span class="overall-break-over-two-days">' + countContentHtml + '</span>'
+                : countContentHtml;
+            if (normalizedIds.length) {
+                var encodedIngredient = encodeURIComponent(String(ingredientName == null ? '' : ingredientName));
+                var encodedIds = encodeURIComponent(normalizedIds.join(','));
+                var countLinkClass = 'ccip-pending-summary-count-link' + (allOverThreshold ? ' overall-break-over-two-days-link' : '');
+                countHtml = '<a href="javascript:void(0);" class="' + countLinkClass + '" onclick="return showPendingSummaryIssues(decodeURIComponent(\'' + encodedIngredient + '\'), decodeURIComponent(\'' + encodedIds + '\'));">' + countContentHtml + '</a>';
             }
 
-            var encodedIngredient = encodeURIComponent(String(ingredientName == null ? '' : ingredientName));
-            var encodedIds = encodeURIComponent(normalizedIds.join(','));
-            return '<a href="javascript:void(0);" class="ccip-pending-summary-count-link" onclick="return showPendingSummaryIssues(decodeURIComponent(\'' + encodedIngredient + '\'), decodeURIComponent(\'' + encodedIds + '\'));">' + escapeHtml(countText) + '</a>';
+            if (overThresholdCount <= 0 || allOverThreshold) {
+                return countHtml;
+            }
+
+            var thresholdDays = resolvePendingSummaryAgeThresholdDays();
+            var overThresholdText = '(' + String(overThresholdCount) + ')';
+            var canOpenOverThreshold = overThresholdIds.length > 0 && overThresholdCount < countValue;
+            var overThresholdHtml;
+
+            if (canOpenOverThreshold) {
+                var overIngredientLabel = String(ingredientName == null ? '' : ingredientName) + ' (>' + String(thresholdDays) + ' days)';
+                var encodedOverIngredient = encodeURIComponent(overIngredientLabel);
+                var encodedOverIds = encodeURIComponent(overThresholdIds.join(','));
+                overThresholdHtml = '<a href="javascript:void(0);" class="overall-break-over-two-days overall-break-over-two-days-link" onclick="return showPendingSummaryIssues(decodeURIComponent(\'' + encodedOverIngredient + '\'), decodeURIComponent(\'' + encodedOverIds + '\'));">(<span class="overall-break-over-two-days-count">' + escapeHtml(String(overThresholdCount)) + '</span>)</a>';
+            } else {
+                overThresholdHtml = '<span class="overall-break-over-two-days" title="Issues open more than ' + escapeHtml(String(thresholdDays)) + ' days">' + escapeHtml(overThresholdText) + '</span>';
+            }
+
+            return countHtml + ' ' + overThresholdHtml;
         }
 
         function getTextById(id) {
@@ -20002,6 +22637,27 @@ td:nth-child(odd), th:nth-child(odd) {
 
             if (pendingShell && issueShell.parentElement && pendingShell.parentElement !== issueShell.parentElement) {
                 issueShell.parentElement.insertBefore(pendingShell, issueShell.nextSibling);
+            }
+        }
+
+        function syncPendingPlatformControls(pendingActive, issueActive) {
+            var panel = document.getElementById('sharedFilterPanel');
+            var platformSlot = document.getElementById('cmfPendingPlatformSlot');
+            var linksSlot = document.getElementById('cmfPendingExternalLinks');
+            if (!panel) return;
+
+            var platform = document.querySelector('#sharedFilterPanel .overview-platform-filter, #cmfPendingPlatformSlot .overview-platform-filter, #issuePlatformSlot .overview-platform-filter');
+            var links = document.querySelector('#sharedFilterPanel .issue-external-links, #cmfPendingExternalLinks .issue-external-links, #issueExternalLinks .issue-external-links');
+            var targetPlatform = pendingActive ? platformSlot : document.getElementById('issuePlatformSlot');
+            var targetLinks = pendingActive ? linksSlot : document.getElementById('issueExternalLinks');
+            if ((pendingActive || issueActive) && targetPlatform && targetLinks) {
+                if (platform) targetPlatform.appendChild(platform);
+                if (links) targetLinks.appendChild(links);
+                panel.classList.add('cmf-pending-controls-docked');
+            } else {
+                if (platform) panel.appendChild(platform);
+                if (links) panel.appendChild(links);
+                panel.classList.remove('cmf-pending-controls-docked');
             }
         }
 
@@ -20091,8 +22747,10 @@ td:nth-child(odd), th:nth-child(odd) {
                 pendingGridWrap.classList.toggle('portal-view-hidden', !pendingActive);
             }
 
+            syncPendingPlatformControls(pendingActive, issueActive);
             populateCmfPendingFilterOptions();
             filterPortalVisibleTables();
+            if (pendingActive) filterCmfPendingRows();
         }
 
         function isReportsViewActive() {
@@ -20107,6 +22765,7 @@ td:nth-child(odd), th:nth-child(odd) {
             window.CMF_PORTAL.availablePlatforms = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(AvailablePlatformTablesJson) %>');
             window.CMF_PORTAL.platformChipOptions = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(AvailablePlatformChipOptionsJson) %>');
             window.CMF_PORTAL.overallExcludedPlatforms = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(OverallExcludedPlatformsJson) %>');
+            window.CMF_PORTAL.pendingSummaryAgeThresholdDays = parseInt('<%= PendingSummaryAgeThresholdDaysForClient.ToString() %>', 10) || 0;
             window.CMF_PORTAL.homeDashboardSnapshot = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(string.IsNullOrWhiteSpace(HomeDashboardSnapshotJson) ? "null" : HomeDashboardSnapshotJson) %>');
             renderPlatformChipRails();
             applyPlatformChipVisibility();
@@ -20131,15 +22790,23 @@ td:nth-child(odd), th:nth-child(odd) {
             bindGlobalSearchShortcut();
             applyTableOnlyScroll();
             scheduleInitColumnHideButtons(80);
+            if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) {
+                Sys.WebForms.PageRequestManager.getInstance().add_endRequest(applyTableOnlyScroll);
+            }
         });
 
         if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) {
             Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function () {
+                if (window.CMF_PORTAL && window.CMF_PORTAL.isPopupAsyncDispatchInFlight) {
+                    window.CMF_PORTAL.isPopupAsyncDispatchInFlight = false;
+                    return;
+                }
                 window.CMF_PORTAL.currentPlatform = getCurrentPlatformValue();
                 window.CMF_PORTAL.currentDashboardPlatform = '<%= ResolveDashboardPlatformSelection() %>';
                 window.CMF_PORTAL.availablePlatforms = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(AvailablePlatformTablesJson) %>');
                 window.CMF_PORTAL.platformChipOptions = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(AvailablePlatformChipOptionsJson) %>');
                 window.CMF_PORTAL.overallExcludedPlatforms = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(OverallExcludedPlatformsJson) %>');
+                window.CMF_PORTAL.pendingSummaryAgeThresholdDays = parseInt('<%= PendingSummaryAgeThresholdDaysForClient.ToString() %>', 10) || 0;
                 window.CMF_PORTAL.homeDashboardSnapshot = JSON.parse('<%= HttpUtility.JavaScriptStringEncode(string.IsNullOrWhiteSpace(HomeDashboardSnapshotJson) ? "null" : HomeDashboardSnapshotJson) %>');
                 renderPlatformChipRails();
                 applyPlatformChipVisibility();
@@ -20168,7 +22835,9 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         // ── Column hide buttons ──────────────────────────────────────────────
-        var CMF_HIDDEN_COLS_KEY = 'cmf_hidden_cols';
+        var CMF_HIDDEN_COLS_KEY = 'cmf_issue_columns_v2';
+        var CMF_COLUMN_LAYOUT_KEY = 'cmf_issue_column_layout_v1';
+        var CMF_ISSUE_COLUMN_DRAFT = null;
         var CMF_COLHIDE_TIMER = null;
 
         function scheduleInitColumnHideButtons(delay) {
@@ -20217,39 +22886,225 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function hideColumnByClass(fieldClass) {
-            document.querySelectorAll('.' + fieldClass).forEach(function (el) {
-                el.classList.add('hidden');
-            });
-            var hidden = JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]');
-            if (hidden.indexOf(fieldClass) === -1) {
-                hidden.push(fieldClass);
-                localStorage.setItem(CMF_HIDDEN_COLS_KEY, JSON.stringify(hidden));
+            setIssueColumnVisible(fieldClass, false);
+        }
+
+        function setIssueColumnVisible(fieldClass, visible) {
+            var columns = getIssueColumns();
+            if (!columns.some(function (column) { return column.field === fieldClass; })) return;
+            var layout = readIssueColumnLayout(columns);
+            if (!visible && layout.hidden.indexOf(fieldClass) < 0 && columns.length - layout.hidden.length <= 1) {
+                setIssueColumnNotice('Keep at least one column visible.');
+                return;
             }
-            var btn = document.getElementById('btnShowAllColumns');
-            if (btn) btn.style.display = '';
+            layout.hidden = layout.hidden.filter(function (field) { return field !== fieldClass; });
+            if (!visible) layout.hidden.push(fieldClass);
+            if (!saveIssueColumnLayout(layout)) return;
+            restoreHiddenColumns();
+            requestAnimationFrame(formatIssueLongCells);
+        }
+
+        function getIssueColumns() {
+            return Array.from(document.querySelectorAll('#overall_request_details th[class*="field-"]')).map(function (header, index) {
+                if (!header.hasAttribute('data-issue-column-index')) header.setAttribute('data-issue-column-index', index);
+                var text = (header.querySelector('.filter-header-text') || header).cloneNode(true);
+                text.querySelectorAll('button,select,.filter-container,.cmf-sort-ic').forEach(function (node) { node.remove(); });
+                return {
+                    field: Array.from(header.classList).find(function (name) { return name.indexOf('field-') === 0; }),
+                    title: text.textContent.trim(),
+                    index: Number(header.getAttribute('data-issue-column-index'))
+                };
+            }).sort(function (a, b) { return a.index - b.index; });
+        }
+
+        function setIssueColumnNotice(message) {
+            document.getElementById('issueColumnMessage').textContent = message;
+            var dialog = document.getElementById('issueColumnPicker');
+            document.getElementById('issueColumnStatus').textContent = dialog.open ? '' : message;
+        }
+
+        function readIssueColumnLayout(columns) {
+            var fields = columns.map(function (column) { return column.field; });
+            try {
+                var saved = localStorage.getItem(CMF_COLUMN_LAYOUT_KEY);
+                var layout = saved ? JSON.parse(saved) : {
+                    order: fields,
+                    hidden: JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]')
+                };
+                if (!layout || !Array.isArray(layout.order) || !Array.isArray(layout.hidden)) {
+                    throw new TypeError('Invalid column layout.');
+                }
+                var combinedOrder = Array.from(new Set(layout.order.concat(fields))).filter(function (field) { return fields.indexOf(field) >= 0; });
+                return {
+                    order: combinedOrder,
+                    hidden: Array.from(new Set(layout.hidden)).filter(function (field) { return fields.indexOf(field) >= 0; })
+                };
+            } catch (error) {
+                if (error.name !== 'SyntaxError' && error.name !== 'TypeError' && error.name !== 'SecurityError') throw error;
+                console.warn('Unable to load Issue List column preferences.', error);
+                setIssueColumnNotice('Unable to load saved columns. Default columns are shown; use Reset and OK to save them again.');
+                return { order: fields, hidden: [] };
+            }
+        }
+
+        function saveIssueColumnLayout(layout) {
+            try {
+                localStorage.setItem(CMF_COLUMN_LAYOUT_KEY, JSON.stringify(layout));
+            } catch (error) {
+                if (error.name !== 'SecurityError' && error.name !== 'QuotaExceededError') throw error;
+                console.error('Unable to save Issue List column preferences.', error);
+                setIssueColumnNotice('Unable to save columns. Check browser storage settings and try again.');
+                return false;
+            }
+            setIssueColumnNotice('');
+            return true;
         }
 
         function restoreHiddenColumns() {
-            var hidden = JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]');
-            hidden.forEach(function (fieldClass) {
-                document.querySelectorAll('.' + fieldClass).forEach(function (el) {
-                    el.classList.add('hidden');
+            var grid = document.getElementById('overall_request_details');
+            if (!grid) return;
+            var layout = readIssueColumnLayout(getIssueColumns());
+            Array.from(grid.rows).forEach(function (row) {
+                var cells = Array.from(row.cells);
+                var ordered = layout.order.map(function (field) {
+                    var cell = cells.find(function (item) { return item.classList.contains(field); });
+                    if (cell) cell.classList.toggle('hidden', layout.hidden.indexOf(field) >= 0);
+                    return cell;
+                }).filter(Boolean);
+                ordered.forEach(function (cell, index) {
+                    if (row.cells[index] !== cell) row.insertBefore(cell, row.cells[index] || null);
                 });
             });
-            var btn = document.getElementById('btnShowAllColumns');
-            if (btn) btn.style.display = hidden.length > 0 ? '' : 'none';
         }
 
-        function showAllColumns() {
-            var hidden = JSON.parse(localStorage.getItem(CMF_HIDDEN_COLS_KEY) || '[]');
-            hidden.forEach(function (fieldClass) {
-                document.querySelectorAll('.' + fieldClass).forEach(function (el) {
-                    el.classList.remove('hidden');
+        function openIssueColumnPicker() {
+            setIssueColumnNotice('');
+            var columns = getIssueColumns();
+            if (!columns.length) {
+                setIssueColumnNotice('Columns are unavailable until the Issue List loads.');
+                return;
+            }
+            var layout = readIssueColumnLayout(columns);
+            CMF_ISSUE_COLUMN_DRAFT = {
+                columns: columns,
+                selected: layout.order.filter(function (field) { return layout.hidden.indexOf(field) < 0; })
+            };
+            renderIssueColumnChoices();
+            document.getElementById('issueColumnPicker').showModal();
+            document.getElementById('issueColumnsSelected').focus();
+        }
+
+        function renderIssueColumnChoices(highlighted) {
+            var draft = CMF_ISSUE_COLUMN_DRAFT;
+            if (!draft) return;
+            var available = draft.columns.filter(function (column) { return draft.selected.indexOf(column.field) < 0; })
+                .sort(function (a, b) { return a.title.localeCompare(b.title); });
+            var selected = draft.selected.map(function (field) {
+                return draft.columns.find(function (column) { return column.field === field; });
+            });
+            [available, selected].forEach(function (columns, index) {
+                var list = document.getElementById(index === 0 ? 'issueColumnsAvailable' : 'issueColumnsSelected');
+                list.textContent = '';
+                columns.forEach(function (column) {
+                    var option = document.createElement('option');
+                    option.value = column.field;
+                    option.textContent = column.title;
+                    option.title = column.title;
+                    option.selected = !!highlighted && highlighted.indexOf(column.field) >= 0;
+                    list.appendChild(option);
                 });
             });
-            localStorage.removeItem(CMF_HIDDEN_COLS_KEY);
-            var btn = document.getElementById('btnShowAllColumns');
-            if (btn) btn.style.display = 'none';
+            updateIssueColumnButtons();
+        }
+
+        function updateIssueColumnButtons() {
+            var available = document.getElementById('issueColumnsAvailable');
+            var selected = document.getElementById('issueColumnsSelected');
+            var options = Array.from(selected.options);
+            document.getElementById('issueColumnAdd').disabled = available.selectedOptions.length === 0;
+            document.getElementById('issueColumnRemove').disabled = selected.selectedOptions.length === 0;
+            document.getElementById('issueColumnUp').disabled = !options.some(function (option, index) {
+                return option.selected && index > 0 && !options[index - 1].selected;
+            });
+            document.getElementById('issueColumnDown').disabled = !options.some(function (option, index) {
+                return option.selected && index < options.length - 1 && !options[index + 1].selected;
+            });
+        }
+
+        function moveIssueColumns(toSelected) {
+            var draft = CMF_ISSUE_COLUMN_DRAFT;
+            if (!draft) return;
+            var source = document.getElementById(toSelected ? 'issueColumnsAvailable' : 'issueColumnsSelected');
+            var fields = Array.from(source.selectedOptions).map(function (option) { return option.value; });
+            if (!fields.length) return;
+            if (!toSelected && draft.selected.length === fields.length) {
+                setIssueColumnNotice('Keep at least one column selected.');
+                return;
+            }
+            draft.selected = toSelected ? draft.selected.concat(fields) :
+                draft.selected.filter(function (field) { return fields.indexOf(field) < 0; });
+            setIssueColumnNotice('');
+            renderIssueColumnChoices(fields);
+            document.getElementById(toSelected ? 'issueColumnsSelected' : 'issueColumnsAvailable').focus();
+        }
+
+        function reorderIssueColumns(direction) {
+            var draft = CMF_ISSUE_COLUMN_DRAFT;
+            if (!draft) return;
+            var fields = Array.from(document.getElementById('issueColumnsSelected').selectedOptions).map(function (option) { return option.value; });
+            var order = draft.selected;
+            for (var i = direction < 0 ? 1 : order.length - 2; i >= 0 && i < order.length; i += direction < 0 ? 1 : -1) {
+                var next = i + direction;
+                if (fields.indexOf(order[i]) >= 0 && fields.indexOf(order[next]) < 0) {
+                    var field = order[i];
+                    order[i] = order[next];
+                    order[next] = field;
+                }
+            }
+            renderIssueColumnChoices(fields);
+            document.getElementById('issueColumnsSelected').focus();
+        }
+
+        function resetIssueColumnChoices() {
+            if (!CMF_ISSUE_COLUMN_DRAFT) return;
+            CMF_ISSUE_COLUMN_DRAFT.selected = CMF_ISSUE_COLUMN_DRAFT.columns.map(function (column) { return column.field; });
+            setIssueColumnNotice('');
+            renderIssueColumnChoices();
+        }
+
+        function applyIssueColumnChoices() {
+            var draft = CMF_ISSUE_COLUMN_DRAFT;
+            if (!draft || !draft.selected.length) {
+                setIssueColumnNotice('Keep at least one column selected.');
+                return;
+            }
+            var hidden = draft.columns.map(function (column) { return column.field; })
+                .filter(function (field) { return draft.selected.indexOf(field) < 0; });
+            if (!saveIssueColumnLayout({ order: draft.selected.concat(hidden), hidden: hidden })) return;
+            restoreHiddenColumns();
+            requestAnimationFrame(formatIssueLongCells);
+            document.getElementById('issueColumnPicker').close();
+        }
+
+        function handleIssueColumnDialogKeydown(event) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                document.getElementById('issueColumnPicker').close();
+            } else if (event.key === 'Enter' && event.target.tagName === 'SELECT') {
+                event.preventDefault();
+                applyIssueColumnChoices();
+            }
+        }
+
+        function prepareIssueViewExport() {
+            restoreHiddenColumns();
+            var columns = Array.from(document.querySelectorAll('#overall_request_details th[class*="field-"]'))
+                .filter(function (header) { return !header.classList.contains('hidden') && !header.classList.contains('field-actions'); })
+                .map(function (header) { return Array.from(header.classList).find(function (name) { return name.indexOf('field-') === 0; }); });
+            document.getElementById('<%= hfIssueExportColumns.ClientID %>').value = JSON.stringify(columns);
+            document.getElementById('<%= issueExportMessage.ClientID %>').textContent = columns.length ? '' : 'Select at least one data column to export.';
+            return columns.length > 0;
         }
 
         function filterGridRowsByQuery(grid, query) {
@@ -20267,7 +23122,7 @@ td:nth-child(odd), th:nth-child(odd) {
             var clearBtn = document.getElementById('globalSearchClear');
             var activeTab = (window.CMF_PORTAL.activeFocusedTab || '').toLowerCase();
 
-            if (activeTab !== 'issue') {
+            if (activeTab !== 'issue' && activeTab !== 'pending') {
                 if (clearBtn) clearBtn.style.display = 'none';
                 return;
             }
@@ -20287,6 +23142,13 @@ td:nth-child(odd), th:nth-child(odd) {
 
             if (clearBtn) {
                 clearBtn.style.display = query ? 'inline-flex' : 'none';
+            }
+
+            if (activeTab === 'pending') {
+                var pendingSearch = document.getElementById('cmfPendingClientSearch');
+                if (pendingSearch) pendingSearch.value = query;
+                filterCmfPendingRows();
+                return;
             }
 
             if (activeTab !== 'issue') {
@@ -20342,8 +23204,13 @@ td:nth-child(odd), th:nth-child(odd) {
             var input = document.getElementById('globalPortalSearch');
             var clearBtn = document.getElementById('globalSearchClear');
             var activeTab = (window.CMF_PORTAL.activeFocusedTab || '').toLowerCase();
-            var showSearch = activeTab === 'issue';
+            var showSearch = activeTab === 'issue' || activeTab === 'pending';
             if (shell) shell.style.display = showSearch ? 'flex' : 'none';
+            if (activeTab === 'pending' && input) {
+                var pendingSearch = document.getElementById('cmfPendingClientSearch');
+                input.value = pendingSearch ? pendingSearch.value : '';
+                if (clearBtn) clearBtn.style.display = input.value ? 'inline-flex' : 'none';
+            }
             if (!showSearch) {
                 if (input) input.value = '';
                 if (clearBtn) clearBtn.style.display = 'none';
@@ -20360,7 +23227,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 issueWrap.style.setProperty('max-height', 'none', 'important');
                 issueWrap.style.setProperty('min-height', '0', 'important');
                 issueWrap.style.setProperty('overflow', 'hidden', 'important');
-                issueWrap.style.setProperty('scrollbar-gutter', 'stable', 'important');
+                issueWrap.style.setProperty('scrollbar-gutter', 'auto', 'important');
             }
 
             if (issueInner) {
@@ -20370,12 +23237,12 @@ td:nth-child(odd), th:nth-child(odd) {
                 issueInner.style.setProperty('min-height', '0', 'important');
                 issueInner.style.setProperty('overflow-x', 'auto', 'important');
                 issueInner.style.setProperty('overflow-y', 'auto', 'important');
-                issueInner.style.setProperty('scrollbar-gutter', 'stable both-edges', 'important');
+                issueInner.style.setProperty('scrollbar-gutter', 'auto', 'important');
             }
 
             if (issueTable) {
                 issueTable.style.setProperty('width', 'max-content', 'important');
-                issueTable.style.setProperty('min-width', '2200px', 'important');
+                issueTable.style.setProperty('min-width', '100%', 'important');
                 issueTable.style.setProperty('max-width', 'none', 'important');
             }
 
@@ -20384,18 +23251,44 @@ td:nth-child(odd), th:nth-child(odd) {
                 pendingWrap.style.setProperty('min-height', '0', 'important');
                 pendingWrap.style.setProperty('overflow-x', 'auto', 'important');
                 pendingWrap.style.setProperty('overflow-y', 'auto', 'important');
-                pendingWrap.style.setProperty('scrollbar-gutter', 'stable', 'important');
+                pendingWrap.style.setProperty('scrollbar-gutter', 'auto', 'important');
             }
+            requestAnimationFrame(formatIssueLongCells);
+        }
+
+        function bootstrapPortalLoadHooks() {
+            if (window.CMF_PORTAL.activeFocusedTab === 'issue') {
+                syncPendingPlatformControls(false, true);
+            } else if (window.CMF_PORTAL.activeFocusedTab === 'pending') {
+                syncPendingPlatformControls(true, false);
+            } else {
+                var pendingShell = document.getElementById('pendingTabShell');
+                var isPending = pendingShell && pendingShell.style.display === 'grid';
+                syncPendingPlatformControls(isPending, !isPending);
+            }
+            applyTableOnlyScroll();
+            syncGlobalSearchVisibility();
+            populateCmfPendingFilterOptions();
+            syncIssueHorizontalScroll(0);
+            scheduleInitColumnHideButtons(0);
+            initQuickLinkPopupLockGeometry();
+            syncQuickLinkPopupLockGeometry(true);
         }
 
         if (window.Sys && Sys.Application) {
             Sys.Application.add_load(function () {
-                applyTableOnlyScroll();
-                syncGlobalSearchVisibility();
-                populateCmfPendingFilterOptions();
-                syncIssueHorizontalScroll(0);
-                scheduleInitColumnHideButtons(0);
+                bootstrapPortalLoadHooks();
             });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function () {
+                bootstrapPortalLoadHooks();
+            });
+        } else {
+            setTimeout(function () {
+                bootstrapPortalLoadHooks();
+            }, 0);
         }
         // ────────────────────────────────────────────────────────────────────
 
@@ -20452,42 +23345,41 @@ td:nth-child(odd), th:nth-child(odd) {
             }).filter(function (item) { return item.text; });
 
             var bullets = [];
+            var opening = '';
             var markedBullets = parsedLines.filter(function (item) { return item.isBullet; });
-            if (markedBullets.length >= 2) {
-                bullets = markedBullets.map(function (item) { return item.text; }).slice(0, 3);
+            if (markedBullets.length) {
+                var openingLines = parsedLines.filter(function (item) { return !item.isBullet; });
+                opening = openingLines.map(function (item) { return item.text; }).join(' ');
+                bullets = markedBullets.map(function (item) { return item.text; }).slice(0, 6);
             } else if (parsedLines.length >= 4) {
-                bullets = parsedLines.slice(1, 4).map(function (item) { return item.text; });
+                opening = parsedLines[0].text;
+                bullets = parsedLines.slice(1, 7).map(function (item) { return item.text; });
             } else {
-                bullets = parsedLines.map(function (item) { return item.text; }).slice(0, 3);
+                bullets = parsedLines.map(function (item) { return item.text; });
             }
 
-            if (bullets.length < 3) {
-                var sentenceParts = parsedLines.map(function (item) { return item.text; }).join(' ').match(/[^.!?]+[.!?]+/g) || [];
-                for (var i = 0; i < sentenceParts.length && bullets.length < 3; i++) {
-                    var sentence = sentenceParts[i].trim();
-                    if (sentence && bullets.indexOf(sentence) < 0) bullets.push(sentence);
-                }
-            }
-
-            var html = '<ul>';
-            for (var j = 0; j < bullets.length && j < 3; j++) {
-                html += '<li>' + escapeHtml(bullets[j]) + '</li>';
+            var html = opening ? '<div>' + escapeHtml(opening) + '</div>' : '';
+            if (!bullets.length) return html;
+            html += '<ul>';
+            for (var j = 0; j < bullets.length && j < 6; j++) {
+                html += '<li>' + renderAssistantRichText(bullets[j]) + '</li>';
             }
             return html + '</ul>';
         }
 
         function normalizeIssueDescriptionBullets(text) {
             return String(text || '')
-                .replace(/\s+([-*•])\s+/g, '\n$1 ')
-                .replace(/\s+(\d+[.)])\s+/g, '\n$1 ');
+                .replace(/\r\n?/g, '\n')
+                .replace(/^[ \t]*(?:[-*•]|\d+[.)])[ \t]+/gm, '- ');
         }
 
         function renderAssistantRichText(text) {
             var html = escapeHtml(text || '');
             html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
             html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            html = html.replace(/_(.+?)_/g, '<em>$1</em>');
-            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            html = html.replace(/^((?:&amp;|[A-Za-z0-9\s/()._\-])+?:\s+)/, '<strong>$1</strong>');
+            html = html.replace(/(^|[^\w])_([^_]+)_(?=[^\w]|$)/g, '$1<em>$2</em>');
+            html = html.replace(/(^|[^\w])\*([^*]+)\*(?=[^\w]|$)/g, '$1<em>$2</em>');
             html = html.replace(/~~(.+?)~~/g, '<u>$1</u>');
             return html;
         }
@@ -20541,12 +23433,12 @@ td:nth-child(odd), th:nth-child(odd) {
             var score = normalizeWeightedCmfScore(result.OverallQualityScore || 0);
             var scorePercent = Math.max(0, Math.min(100, score * 20));
             var rules = normalizeCmfDimensionScores(result.RuleScores || []);
-            var missing = extractCmfMissingInformation(result.Evidence || '', rules, payload);
+            var missing = result.EvidenceReviewStatus ? getCmfDecisionGaps(result) : extractCmfMissingInformation(result.Evidence || '', rules, payload);
             var reasons = buildCmfRecommendationReasoning(recommendation, score, rules, result.Evidence || '', payload);
             var impact = extractCmfImpactSentence(result.Evidence || '', payload);
             var symptom = extractCmfSymptomEvidence(rules, reasons);
-            var reviewerActions = buildCmfReviewerActions(recommendation, missing, rules, impact);
-            var scoreDisplay = formatWeightedCmfScore(score) || '0.0';
+            var reviewerActions = result.NextSteps ? String(result.NextSteps).split(/\n+/) : buildCmfReviewerActions(recommendation, missing, rules, impact);
+            var scoreDisplay = formatWeightedCmfScore(score) || 'N/A';
 
             var html = '<div class="cmf-rec-assessment-shell">';
             html += '<section class="cmf-rec-summary-band">';
@@ -20651,7 +23543,7 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function formatSqaScoreOutOfTen(score) {
-            var value = Math.max(0, Math.min(10, (parseFloat(score) || 0) / 10));
+            var value = Math.round(Math.max(0, Math.min(10, (parseFloat(score) || 0) / 10)) * 2) / 2;
             return value % 1 === 0 ? String(value.toFixed(0)) : value.toFixed(1);
         }
 
@@ -20819,6 +23711,8 @@ td:nth-child(odd), th:nth-child(odd) {
             if (recommendationSection) recommendationSection.classList.add('cmf-rec-hidden');
             if (impactSection) impactSection.classList.add('cmf-rec-hidden');
             if (reasoningSection) reasoningSection.classList.add('cmf-rec-hidden');
+            var chatPanel = document.getElementById('cmfSightingChatPanel');
+            if (chatPanel) chatPanel.classList.add('cmf-rec-hidden');
             if (detailsBody) {
                 detailsBody.classList.remove('cmf-rec-hidden');
                 detailsBody.innerHTML = renderSightingQualityDetails(state.assessment, state.payload || {});
@@ -20839,6 +23733,8 @@ td:nth-child(odd), th:nth-child(odd) {
             if (recommendationSection) recommendationSection.classList.remove('cmf-rec-hidden');
             if (impactSection) impactSection.classList.remove('cmf-rec-hidden');
             if (reasoningSection) reasoningSection.classList.remove('cmf-rec-hidden');
+            var chatPanel = document.getElementById('cmfSightingChatPanel');
+            if (chatPanel) chatPanel.classList.remove('cmf-rec-hidden');
             if (detailsBody) {
                 detailsBody.classList.add('cmf-rec-hidden');
                 detailsBody.innerHTML = '';
@@ -20850,7 +23746,6 @@ td:nth-child(odd), th:nth-child(odd) {
             html += renderSqaTemplateQualityOverview(assessment);
             html += renderSqaFieldEvidenceTable(assessment);
             html += renderSqaAssessmentSummary(assessment);
-            html += renderSightingQualitySuggestions(assessment);
             html += '</div>';
             return html;
         }
@@ -20884,10 +23779,9 @@ td:nth-child(odd), th:nth-child(odd) {
         function renderSqaTemplateQualityOverview(assessment) {
             var score = Math.max(0, Math.min(100, parseFloat(assessment.score) || 0));
             var counts = getSqaStatusCounts(assessment.fields || []);
-            var quality = getSqaQualitySummary(score, counts);
-            var html = '<section class="cmf-quality-detail-card cmf-sqa-overview-template"><h4><span class="cmf-sqa-card-icon" aria-hidden="true">&#xf201;</span>Quality Overview</h4>';
+            var html = '<section class="cmf-quality-detail-card cmf-sqa-overview-template"><h4><span class="cmf-sqa-card-icon" style="font-family: sans-serif" aria-hidden="true">&#9636;</span>Quality Overview</h4>';
             html += '<div class="cmf-sqa-overview-grid">';
-            html += '<div class="cmf-sqa-score-block"><div class="cmf-quality-donut" style="--score:' + escapeHtml(score) + '"><div class="cmf-quality-donut-value">' + escapeHtml(Math.round(score)) + '<span>/100</span></div></div><div class="cmf-sqa-score-message ' + escapeHtml(getQualityStateClass(score)) + '"><strong>' + escapeHtml(quality.title) + '</strong><span>' + escapeHtml(quality.message) + '</span></div></div>';
+            html += '<div class="cmf-sqa-score-block"><div class="cmf-quality-donut" style="--score:' + escapeHtml(score) + '"><div class="cmf-quality-donut-value">' + escapeHtml(formatSqaScoreOutOfTen(score)) + '<span>/10</span></div></div></div>';
             html += '<div class="cmf-sqa-status-summary"><div class="cmf-quality-panel-label">Field Status Summary</div>';
             html += renderSqaStatusSummaryRow('Complete', counts.complete, 'present');
             html += renderSqaStatusSummaryRow('Partial', counts.partial, 'partial');
@@ -20922,35 +23816,42 @@ td:nth-child(odd), th:nth-child(odd) {
 
         function renderSqaFieldEvidenceTable(assessment) {
             var fields = (assessment.fields || []).filter(function (field) { return isSqaCoreField(field.fieldName); });
-            var html = '<section class="cmf-quality-detail-card cmf-sqa-evidence-card"><h4><span class="cmf-sqa-card-icon" aria-hidden="true">&#xf15c;</span>Field Evidence</h4>';
+            var html = '<section class="cmf-quality-detail-card cmf-sqa-evidence-card"><h4><span class="cmf-sqa-card-icon" style="font-family: sans-serif" aria-hidden="true">&#9776;</span>Field Evidence</h4>';
             html += '<div class="cmf-sqa-evidence-table"><div class="cmf-sqa-evidence-row is-header"><div>#</div><div>Field Name</div><div>Detected Value</div><div>Status</div></div>';
             for (var i = 0; i < fields.length; i++) {
                 var field = fields[i] || {};
                 var statusClass = getQualityStatusClass(field.status);
-                html += '<div class="cmf-sqa-evidence-row ' + escapeHtml(statusClass) + '"><div>' + escapeHtml(i + 1) + '</div><div>' + escapeHtml(field.fieldName || 'Field') + '</div><div>' + escapeHtml(getSqaDetectedValue(field)) + '</div><div>' + renderQualityStatusBadge(normalizeSqaFieldStatusLabel(field.status)) + '</div></div>';
+                html += '<div class="cmf-sqa-evidence-row ' + escapeHtml(statusClass) + '"><div>' + escapeHtml(i + 1) + '</div><div>' + escapeHtml(field.fieldName || 'Field') + '</div><div style="white-space: pre-line; overflow-wrap: anywhere">' + escapeHtml(getSqaDetectedValue(field)) + '</div><div>' + renderQualityStatusBadge(normalizeSqaFieldStatusLabel(field.status)) + '</div></div>';
             }
             html += '</div></section>';
             return html;
         }
 
         function getSqaDetectedValue(field) {
-            var evidence = summarizeSqaEvidenceForReason(field && field.evidence);
+            var evidence = String(field && field.evidence || '');
+            var parsed = new DOMParser().parseFromString(evidence, 'text/html');
+            if (parsed.body.textContent.indexOf('<') >= 0) parsed = new DOMParser().parseFromString(parsed.body.textContent, 'text/html');
+            parsed.querySelectorAll('script, style').forEach(function (node) { node.remove(); });
+            parsed.querySelectorAll('br').forEach(function (node) { node.replaceWith('\n'); });
+            parsed.querySelectorAll('p, div, li, tr').forEach(function (node) { node.append('\n'); });
+            evidence = stripSqaSourceLabels(parsed.body.textContent).replace(/\u00a0/g, ' ').replace(/[ \t]+/g, ' ').replace(/\n\s*\n/g, '\n').trim();
             if (!evidence || /^no usable value found/i.test(evidence)) return 'Not found in HSD';
-            return evidence.length > 92 ? evidence.slice(0, 89).replace(/\s+\S*$/, '') + '...' : evidence;
+            return evidence;
         }
 
         function renderSqaAssessmentSummary(assessment) {
-            var fields = assessment.fields || [];
-            var gaps = [];
+            var fields = (assessment.fields || []).filter(function (field) { return isSqaCoreField(field.fieldName); });
+            var explanations = [];
             for (var i = 0; i < fields.length; i++) {
                 var field = fields[i] || {};
-                if (!isSqaCoreField(field.fieldName) || /^present$/i.test(field.status || '')) continue;
-                gaps.push((field.fieldName || 'Field') + ' is ' + normalizeSqaFieldStatusLabel(field.status).toLowerCase());
+                if (normalizeSqaFieldStatusLabel(field.status) === 'Complete') continue;
+                var reason = String(field.characteristic || '').trim();
+                if (!reason) reason = getSqaStatusReason(field);
+                explanations.push('<li><strong>' + escapeHtml(field.fieldName || 'Field') + ' (' + escapeHtml(normalizeSqaFieldStatusLabel(field.status)) + '):</strong> ' + escapeHtml(reason) + '</li>');
             }
-            var summary = (assessment.summary && assessment.summary.length ? assessment.summary[0] : '') || 'The sighting quality was assessed from the requested HSD checklist fields.';
-            if (gaps.length) summary += ' Main gaps: ' + gaps.slice(0, 3).join('; ') + '.';
             var html = '<section class="cmf-quality-detail-card cmf-sqa-assessment-summary"><h4><span class="cmf-sqa-sparkle" aria-hidden="true">&#10024;</span>Assessment Summary</h4>';
-            html += '<p>' + escapeHtml(summary) + '</p></section>';
+            html += explanations.length ? '<ul>' + explanations.join('') + '</ul>' : '<p>No missing, partial, or conflicting fields were identified.</p>';
+            html += '</section>';
             return html;
         }
 
@@ -21476,7 +24377,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
         function renderCmfScorePanel(scoreDisplay, scorePercent, recommendation) {
             return '<div class="cmf-rec-score-panel" style="--score-percent:' + escapeHtml(scorePercent) + '%">' +
-                '<div class="cmf-rec-score-top"><span class="cmf-rec-score-label">Weighted evidence score</span><span class="cmf-rec-score-value">' + escapeHtml(scoreDisplay) + '/5</span></div>' +
+                '<div class="cmf-rec-score-top"><span class="cmf-rec-score-label">Supporting risk score</span><span class="cmf-rec-score-value">' + escapeHtml(scoreDisplay === 'N/A' ? scoreDisplay : scoreDisplay + '/5') + '</span></div>' +
                 '<div class="cmf-rec-score-track" aria-hidden="true"><div class="cmf-rec-score-fill"></div></div>' +
                 '<div class="cmf-rec-score-caption">' + escapeHtml(buildCmfScoreCaption(recommendation)) + '</div>' +
             '</div>';
@@ -21484,10 +24385,10 @@ td:nth-child(odd), th:nth-child(odd) {
 
         function buildCmfScoreCaption(recommendation) {
             var rec = String(recommendation || '').toUpperCase();
-            if (rec === 'CMF_OK') return 'Meets the CMF threshold; verify no blocking evidence is missing.';
-            if (rec === 'CMF_REVIEW') return 'Near or above threshold, but reviewer judgment is needed.';
-            if (rec === 'CMF_INCOMPLETE') return 'Evidence is not complete enough for a final CMF decision.';
-            return 'Below the CMF threshold based on current evidence.';
+            if (rec === 'CMF_OK') return 'OEM-owned correction recommended; reviewer confirmation required.';
+            if (rec === 'CMF_REVIEW') return 'Manual judgment is needed before assigning fix ownership.';
+            if (rec === 'CMF_INCOMPLETE') return 'Verified decision-critical information is needed.';
+            return 'Intel-owned correction recommended; reviewer confirmation required.';
         }
 
         function extractCmfSymptomEvidence(rules, reasons) {
@@ -21508,12 +24409,12 @@ td:nth-child(odd), th:nth-child(odd) {
 
         function normalizeCmfDimensionScores(ruleScores) {
             var defaults = [
-                { RuleId: 'S', RuleName: 'Severity', Score: '0', Evaluation: 'Missing symptom severity evidence.' },
-                { RuleId: 'O', RuleName: 'Occurrence', Score: '0', Evaluation: 'Missing occurrence or reproduction frequency.' },
-                { RuleId: 'D', RuleName: 'Detection', Score: '0', Evaluation: 'Missing customer encounter or usage visibility.' },
-                { RuleId: 'R', RuleName: 'Recovery', Score: '0', Evaluation: 'Missing workaround or recovery evidence.' },
-                { RuleId: 'B', RuleName: 'Business Impact', Score: '0', Evaluation: 'Missing milestone or business exposure evidence.' },
-                { RuleId: 'CX', RuleName: 'Customer Experience', Score: '0', Evaluation: 'Missing customer-experience evidence.' }
+                { RuleId: 'S', RuleName: 'Severity', Score: '', Evaluation: 'Severity not established.' },
+                { RuleId: 'O', RuleName: 'Occurrence', Score: '', Evaluation: 'Occurrence not established.' },
+                { RuleId: 'D', RuleName: 'Detection', Score: '', Evaluation: 'Detection not established.' },
+                { RuleId: 'R', RuleName: 'Recovery', Score: '', Evaluation: 'Recovery not established.' },
+                { RuleId: 'B', RuleName: 'Business Impact', Score: '', Evaluation: 'Business impact not established.' },
+                { RuleId: 'CX', RuleName: 'Customer Experience', Score: '', Evaluation: 'Customer experience not established.' }
             ];
             var map = {};
             for (var i = 0; i < ruleScores.length; i++) {
@@ -21533,10 +24434,10 @@ td:nth-child(odd), th:nth-child(odd) {
             var html = '<div class="cmf-rec-dimension-grid">';
             for (var i = 0; i < rules.length; i++) {
                 var rule = rules[i] || {};
-                var score = normalizeDimensionScore(rule.Score || '1');
+                var score = normalizeDimensionScore(rule.Score);
                 html += '<div class="cmf-rec-dimension-card"><div class="cmf-rec-dimension-head">';
                 html += '<span class="cmf-rec-dimension-name">' + escapeHtml(rule.RuleId || '') + ' ' + escapeHtml(rule.RuleName || 'Score') + '</span>';
-                html += '<span class="cmf-rec-dimension-score">' + escapeHtml(score) + '/5</span></div>';
+                html += '<span class="cmf-rec-dimension-score">' + escapeHtml(score ? score + '/5' : 'N/A') + '</span></div>';
                 html += '<div class="cmf-rec-dimension-eval">' + escapeHtml(buildConciseCmfRuleEvaluation(rule, parseInt(score, 10))) + '</div></div>';
             }
             return html + '</div>';
@@ -21547,10 +24448,10 @@ td:nth-child(odd), th:nth-child(odd) {
             html += '<th>Metric Name</th><th>Score</th><th>Contributing Factor</th></tr></thead><tbody>';
             for (var i = 0; i < rules.length; i++) {
                 var rule = rules[i] || {};
-                var score = normalizeDimensionScore(rule.Score || '1');
+                var score = normalizeDimensionScore(rule.Score);
                 html += '<tr>';
                 html += '<td><strong>' + escapeHtml(buildCmfMetricDisplayName(rule)) + '</strong></td>';
-                html += '<td><span class="cmf-rec-metric-score">' + escapeHtml(score) + '/5</span></td>';
+                html += '<td><span class="cmf-rec-metric-score">' + escapeHtml(score ? score + '/5' : 'N/A') + '</span></td>';
                 html += '<td>' + escapeHtml(extractCmfContributingFactor(rule.Evaluation || '')) + '</td>';
                 html += '</tr>';
             }
@@ -21563,13 +24464,14 @@ td:nth-child(odd), th:nth-child(odd) {
             var recommendation = normalizeCmfRecommendationLabel(result.Recommendation || 'CMF_REVIEW');
             var rules = normalizeCmfDimensionScores(result.RuleScores || []);
             var score = calculateDisplayedCmfScore(rules);
-            if (!score) score = normalizeWeightedCmfScore(result.OverallQualityScore || 0);
-            var scoreDisplay = formatWeightedCmfScore(score) || '0.0';
-            var scorePercent = Math.max(0, Math.min(100, (score / 5) * 100));
+            if (!score && !result.EvidenceReviewStatus) score = normalizeWeightedCmfScore(result.OverallQualityScore || 0);
+            if (result.EvidenceReviewStatus && result.ScoredMetricCount !== 6) score = 0;
+            var scoreDisplay = formatWeightedCmfScore(score) || 'N/A';
+            var scorePercent = score ? Math.max(0, Math.min(100, (parseFloat(scoreDisplay) / 5) * 100)) : 0;
             var reasons = buildCmfAssistantRecommendationReasoning(recommendation, score, rules, result.Evidence || '', payload);
             var html = '<div class="cmf-assistant-rec-shell">';
             html += '<div class="cmf-assistant-rec-top">';
-            html += '<div class="cmf-assistant-overall-score"><span>Overall Score</span><div class="cmf-assistant-score-ring" style="--score-percent:' + escapeHtml(scorePercent.toFixed(2)) + '"><div class="cmf-assistant-score-ring-value">' + escapeHtml(scoreDisplay) + '</div></div><strong>/5</strong></div>';
+            html += '<div class="cmf-assistant-overall-score"><span>Supporting Risk Score</span><div class="cmf-assistant-score-ring" style="--score-percent:' + escapeHtml(scorePercent.toFixed(2)) + '"><div class="cmf-assistant-score-ring-value">' + escapeHtml(score ? scoreDisplay + '/5' : 'N/A') + '</div></div></div>';
             html += renderCmfMetricChips(rules);
             html += '</div>';
             html += '<div class="cmf-assistant-reasoning-box"><h4>Reasoning</h4>' + renderCmfReasoningBullets(reasons) + '</div>';
@@ -21577,12 +24479,22 @@ td:nth-child(odd), th:nth-child(odd) {
             return html;
         }
 
+        function renderCmfDecisionSources(result) {
+            var assessment = (result || {}).Assessment || {};
+            if (!assessment.EvidenceReviewCompleted || result.EvidenceReviewStatus !== 'Completed') return '';
+            var excerpts = (assessment.OwnershipEvidence || []).filter(function (finding) { return finding && finding.Quote; });
+            if (!excerpts.length) return '';
+            var html = '<details class="cmf-assistant-reasoning-box"><summary>Technical source excerpts</summary><ul>';
+            for (var index = 0; index < excerpts.length; index++) html += '<li>' + escapeHtml(excerpts[index].Quote) + '</li>';
+            return html + '</ul></details>';
+        }
+
         function renderCmfReasoningBullets(items) {
             var html = '<div class="cmf-assistant-reasoning-copy"><ul>';
             var list = (items || []).filter(function (item) { return item && String(item).trim().length; });
             if (!list.length) list = ['No reasoning returned; review the score details and issue evidence.'];
-            for (var i = 0; i < list.length; i++) {
-                html += '<li>' + escapeHtml(list[i]) + '</li>';
+            for (var pointIndex = 0; pointIndex < list.length && pointIndex < 6; pointIndex++) {
+                html += '<li>' + renderAssistantRichText(list[pointIndex]) + '</li>';
             }
             return html + '</ul></div>';
         }
@@ -21591,9 +24503,10 @@ td:nth-child(odd), th:nth-child(odd) {
             var html = '<div class="cmf-assistant-metric-grid" aria-label="Individual metric scores">';
             for (var i = 0; i < rules.length; i++) {
                 var rule = rules[i] || {};
-                var score = parseInt(normalizeDimensionScore(rule.Score || '1'), 10);
+                var scoreText = normalizeDimensionScore(rule.Score);
+                var score = scoreText ? parseInt(scoreText, 10) : 0;
                 html += '<div class="cmf-assistant-metric-chip ' + escapeHtml(getCmfMetricScoreClass(score)) + '">';
-                html += '<div class="cmf-assistant-metric-main"><span class="cmf-assistant-metric-name">' + escapeHtml(buildCmfMetricDisplayName(rule)) + '</span><span class="cmf-assistant-metric-value">' + escapeHtml(score) + '/5</span></div>';
+                html += '<div class="cmf-assistant-metric-main"><span class="cmf-assistant-metric-name">' + escapeHtml(buildCmfMetricDisplayName(rule)) + '</span><span class="cmf-assistant-metric-value">' + escapeHtml(scoreText ? scoreText + '/5' : 'N/A') + '</span></div>';
                 html += '<div class="cmf-assistant-metric-factor">' + escapeHtml(extractBriefCmfContributingFactor(rule)) + '</div>';
                 html += '</div>';
             }
@@ -21603,69 +24516,36 @@ td:nth-child(odd), th:nth-child(odd) {
         function calculateDisplayedCmfScore(rules) {
             var weights = { S: 0.25, O: 0.15, D: 0.20, R: 0.10, B: 0.15, CX: 0.15 };
             var total = 0;
-            var hasMetric = false;
+            var metricCount = 0;
+            var seen = {};
             for (var i = 0; i < (rules || []).length; i++) {
                 var rule = rules[i] || {};
                 var id = String(rule.RuleId || '').toUpperCase();
                 if (!weights.hasOwnProperty(id)) continue;
-                var score = parseInt(normalizeDimensionScore(rule.Score || '1'), 10);
+                var scoreText = normalizeDimensionScore(rule.Score);
+                if (!scoreText || seen[id]) return 0;
+                var score = parseInt(scoreText, 10);
                 total += score * weights[id];
-                hasMetric = true;
+                seen[id] = true;
+                metricCount++;
             }
-            return hasMetric ? total : 0;
+            return metricCount === 6 ? total : 0;
         }
 
         function buildCmfAssistantRecommendationReasoning(recommendation, score, rules, evidenceText, payload) {
-            var rec = normalizeCmfRecommendationLabel(recommendation || 'CMF_REVIEW');
             var modelReasoning = buildCmfModelReasoningBullets(evidenceText, payload);
             if (modelReasoning.length) return modelReasoning;
-            var scored = [];
-            var factorMap = {};
-            for (var i = 0; i < (rules || []).length; i++) {
-                var rule = rules[i] || {};
-                var ruleScore = parseInt(normalizeDimensionScore(rule.Score || '1'), 10);
-                var id = String(rule.RuleId || '').toUpperCase();
-                factorMap[String(rule.RuleId || '').toUpperCase()] = extractBriefCmfContributingFactor(rule);
-                scored.push({ id: id || String(rule.RuleName || 'Metric'), score: ruleScore });
-            }
-
-            var issueFact = buildCmfReasoningIssueBullet(evidenceText, payload, factorMap);
-            var impactFact = buildCmfReasoningImpactBullet(evidenceText, payload, scored);
-            var recoveryFact = buildCmfReasoningRecoveryBullet(factorMap, scored);
-            var scoreJudgment = buildCmfReasoningScoreJudgment(rec, score, scored);
-            var result = [];
-            if (rec === 'CMF_OK') {
-                result.push(issueFact);
-                result.push(impactFact);
-                result.push(recoveryFact + ' ' + scoreJudgment);
-            } else if (rec === 'CMF_REVIEW') {
-                result.push(issueFact);
-                result.push(impactFact);
-                result.push(scoreJudgment + ' Confirm the weaker evidence before approving or rejecting the tag.');
-            } else if (rec === 'CMF_INCOMPLETE') {
-                result.push(issueFact);
-                result.push(impactFact);
-                result.push(scoreJudgment + ' Add missing impact, repro, recovery, or customer evidence before final disposition.');
-            } else {
-                result.push(issueFact);
-                result.push(impactFact);
-                result.push(scoreJudgment + ' Current evidence supports CMF_REJECT unless stronger customer-impact or business-gating proof is added.');
-            }
-            return limitCmfReasoningWords(result, 140);
+            return ['No verified decision explanation is available; manual evidence review is required.'];
         }
 
         function buildCmfModelReasoningBullets(evidenceText, payload) {
             var text = extractCmfReasoningText(evidenceText || '');
             if (!text) return [];
-            var bullets = splitCmfReasoningItems(text).map(function (item) {
-                return cleanCmfReasoningSentence(item, payload);
-            }).filter(isUsefulCmfReasoningBullet);
-            if (!bullets.length) {
-                bullets = (text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text]).map(function (item) {
-                    return cleanCmfReasoningSentence(item, payload);
-                }).filter(isUsefulCmfReasoningBullet);
-            }
-            return limitCmfReasoningWords(bullets.slice(0, 4), 180);
+            return text.split(/\n+/).map(function (item) {
+                return item.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').replace(/^\s*(?:observed(?:\s+facts)?|observation|reasoning|inference)\s*:\s*/i, '').replace(/\s+/g, ' ').trim();
+            }).filter(function (item) {
+                return item.length > 0 && !/^(?:CMF\s+)?decision\s*(?:is|:)\s*(?:CMF_)?(?:REVIEW|OK|REJECT|INCOMPLETE)[.!?]?$/i.test(item);
+            }).slice(0, 6);
         }
 
         function splitCmfReasoningItems(text) {
@@ -21860,6 +24740,8 @@ td:nth-child(odd), th:nth-child(odd) {
             else if (rec === 'CMF_REJECT') className += ' is-reject';
             node.className = className;
             node.textContent = rec;
+            node.setAttribute('aria-busy', 'false');
+            node.removeAttribute('aria-label');
         }
 
         function renderCmfRecommendationSkeleton() {
@@ -21886,43 +24768,43 @@ td:nth-child(odd), th:nth-child(odd) {
 
         function extractBriefCmfContributingFactor(rule) {
             var id = String((rule || {}).RuleId || '').toUpperCase();
-            var text = extractCmfContributingFactor((rule || {}).Evaluation || '');
-            var lower = text.toLowerCase();
-            if (!text || /missing evidence|missing .* evidence|not identified/i.test(text)) return getCmfMissingEvidenceFactorLabel(id);
-            if (isConcreteCmfFactor(text)) return formatBriefCmfFactor(id, text);
-            if (id === 'S') {
-                if (/gpgpu|burnin|gpu/i.test(lower)) return 'GPGPU BurnIn failure';
-                if (/bsod|black screen|hang|crash|boot/i.test(lower)) return 'Major system failure';
-                if (/performance|degradation/i.test(lower)) return 'Performance degradation';
-                return 'Functional impact evidence';
-            }
+            var evaluation = String((rule || {}).Evaluation || '').replace(/\s+/g, ' ').trim();
             if (id === 'O') {
-                if (/very_sporadic|sporadic|6\/90/i.test(lower)) return 'Sporadic repro rate';
-                if (/frequent|hourly|1\/10/i.test(lower)) return 'Frequent occurrence';
-                if (/rare|1\/1000/i.test(lower)) return 'Rare occurrence';
-                return 'Repro frequency';
+                if (/very_sporadic_<\s*10%/i.test(evaluation)) return 'Very rare (<10% of attempts)';
+                if (/sporadic_10%\s*-\s*40%/i.test(evaluation)) return 'Sporadic (10%-40% of attempts)';
+                if (/frequently_50%\s*-\s*90%/i.test(evaluation)) return 'Frequent (50%-90% of attempts)';
+                if (/always_100%/i.test(evaluation)) return 'Consistent (100% of attempts)';
+                if (/\bonce\b/i.test(evaluation)) return 'Single occurrence';
+                var category = evaluation.match(/very_sporadic_<\s*10%|sporadic_10%\s*-\s*40%|frequently_50%\s*-\s*90%|always_100%|\bonce\b/i);
+                if (category) return category[0].replace(/_/g, ' ');
             }
-            if (id === 'D') {
-                if (/burnin|stress/i.test(lower)) return 'Stress workflow detection';
-                if (/daily|login|restart/i.test(lower)) return 'Common workflow detection';
-                return 'Usage trigger evidence';
+            var evidence = evaluation.match(/\bEvidence\s*:\s*([\s\S]*)$/i);
+            if (!evaluation || (evidence && /^missing evidence[.!]?$/i.test(evidence[1].trim()))) {
+                var names = { S: 'Severity', O: 'Reproducibility', D: 'Detection', R: 'Recovery', B: 'Business impact', CX: 'Customer experience' };
+                return (names[id] || 'Scoring') + ' evidence missing';
             }
-            if (id === 'R') {
-                if (/revert|rollback|pcode|dcode/i.test(lower)) return 'Firmware rollback workaround';
-                if (/reboot|restart|reconnect|reflash/i.test(lower)) return 'Manual recovery needed';
-                return 'Workaround clarity';
+            var match = evaluation.match(/^Contributing factor\s*:\s*([\s\S]*?)(?:\.\s*Evidence\s*:|$)/i);
+            var factor = (match ? match[1] : (evidence ? '' : evaluation)).replace(/[.!]+$/g, '').trim();
+            factor = factor.replace(/\s*\(estimate\)\s*/i, '').trim();
+            if (/context-based/i.test(factor)) factor = 'Assessed from context';
+            if (!factor || /^(?:workaround clarity|functional impact evidence|business exposure|customer visibility|repro frequency|detection evidence)$/i.test(factor)) {
+                return 'Specific factor unavailable';
             }
-            if (id === 'B') {
-                if (/blocked|blocks|validation|performance test/i.test(lower)) return 'Validation blocked';
-                if (/launch|milestone|gate/i.test(lower)) return 'Milestone risk';
-                return 'Business exposure';
+            factor = factor.replace(/_/g, ' ');
+
+            // If factor is a full sentence, distill into crisp phrase
+            var clauseMatch = factor.match(/^([^,;—–]+)/);
+            if (clauseMatch) factor = clauseMatch[1].trim();
+
+            var words = factor.split(/\s+/);
+            if (words.length > 5) {
+                var trimmed = words.slice(0, 5);
+                while (trimmed.length > 2 && /^(?:are|is|was|were|the|a|an|and|or|in|at|to|for|of|with|by|from|below|under|causes?|terminates?)$/i.test(trimmed[trimmed.length - 1])) {
+                    trimmed.pop();
+                }
+                factor = trimmed.join(' ');
             }
-            if (id === 'CX') {
-                if (/display|audio|camera|network|touch|unusable/i.test(lower)) return 'Visible feature impact';
-                if (/missing/i.test(lower)) return 'Missing CX evidence';
-                return 'Customer visibility';
-            }
-            return trimToWordCount(text, 6);
+            return factor.replace(/[.,;:]+$/, '');
         }
 
         function getCmfMissingEvidenceFactorLabel(id) {
@@ -21984,7 +24866,7 @@ td:nth-child(odd), th:nth-child(odd) {
         function normalizeDimensionScore(value) {
             var raw = String(value || '').replace('/100', '').replace('/5', '').replace('%', '').trim();
             var num = parseFloat(raw);
-            if (isNaN(num)) return '1';
+            if (isNaN(num) || num <= 0) return '';
             if (num > 5) num = Math.round(num / 20);
             num = Math.max(1, Math.min(5, Math.round(num)));
             return String(num);
@@ -22000,7 +24882,7 @@ td:nth-child(odd), th:nth-child(odd) {
         function formatWeightedCmfScore(value) {
             var score = normalizeWeightedCmfScore(value);
             if (!score) return '';
-            return score.toFixed(2).replace(/\.00$/, '.0');
+            return (Math.round((score + 1e-9) * 2) / 2).toFixed(1);
         }
 
         function extractCmfReasonBullets(text) {
@@ -22029,44 +24911,18 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function buildCmfRecommendationReasoning(recommendation, score, rules, evidenceText, payload) {
-            var rec = String(recommendation || '').toUpperCase();
-            var strengths = [];
-            var gaps = [];
-            var conflicts = /conflict|conflicting|borderline/i.test(evidenceText || '');
+            var modelReasoning = buildCmfModelReasoningBullets(evidenceText || '', payload || {});
+            if (modelReasoning.length) return modelReasoning;
+            return ['No verified decision explanation is available; manual evidence review is required.'];
+        }
 
-            for (var i = 0; i < (rules || []).length; i++) {
-                var rule = rules[i] || {};
-                var ruleName = String(rule.RuleName || rule.RuleId || 'criterion').toLowerCase();
-                var ruleScore = parseInt(normalizeDimensionScore(rule.Score || '1'), 10);
-                var evaluation = sanitizeCmfDisplaySentence(rule.Evaluation || '', 240);
-                if (ruleScore >= 4) {
-                    strengths.push(ruleName + ' is strong: ' + evaluation);
-                } else if (ruleScore <= 2) {
-                    gaps.push(ruleName + ' is weak: ' + evaluation);
-                } else {
-                    gaps.push(ruleName + ' needs reviewer judgment: ' + evaluation);
-                }
-            }
-
-            var issueFact = extractCmfSymptomEvidence(rules, []) || firstUsefulText(payload.title, 'The issue has limited symptom detail.');
-            var scoreText = formatWeightedCmfScore(score) || '0';
-            var reasoning = [];
-            reasoning.push('The recommendation is based on the failure evidence and the weighted S/O/D/R/B/CX score, not just the row fields: ' + sanitizeCmfDisplaySentence(issueFact, 260));
-
-            if (rec === 'CMF_OK') {
-                reasoning.push('CMF_OK is supported because the weighted evidence score is ' + scoreText + '/5 and the strongest criteria are ' + summarizeCmfReasonList(strengths, 'severity and business impact') + '.');
-                reasoning.push(gaps.length ? 'Before approval, the reviewer should still confirm ' + summarizeCmfReasonList(gaps, 'any lower-scored criteria') + '.' : 'No decision-critical scoring gaps are visible from the supplied evidence.');
-            } else if (rec === 'CMF_REVIEW') {
-                reasoning.push('CMF_REVIEW is appropriate because the score is near or above the decision band but at least one criterion still needs judgment: ' + summarizeCmfReasonList(gaps, 'the borderline criteria') + '.');
-                reasoning.push(conflicts ? 'The explanation flags conflicting evidence, so the reviewer should resolve that conflict before approving or rejecting the CMF tag.' : 'The reviewer should confirm whether the weaker criteria are real gaps or simply missing details in the current record.');
-            } else if (rec === 'CMF_INCOMPLETE') {
-                reasoning.push('CMF_INCOMPLETE is appropriate because the current record does not provide enough decision-critical evidence across ' + summarizeCmfReasonList(gaps, 'the required criteria') + '.');
-                reasoning.push('The next action is to update the missing evidence, then rerun the recommendation so the score reflects the actual customer risk.');
-            } else {
-                reasoning.push('CMF_REJECT is supported only if the weak criteria remain low after review: ' + summarizeCmfReasonList(gaps, 'the low-scored criteria') + '.');
-                reasoning.push('The reviewer should confirm that no customer, launch, recovery, or business-impact evidence is missing before rejecting the CMF request.');
-            }
-            return reasoning.slice(0, 4);
+        function getCmfDecisionGaps(result) {
+            var assessment = result.Assessment || {};
+            if (!assessment.EvidenceReviewCompleted) return ['Any decision-critical information gaps require manual verification; no absence has been confirmed.'];
+            var gaps = (assessment.MissingEvidence || []).filter(function (gap) {
+                return gap && gap.ConfirmedAbsent && gap.Field && gap.WhyItMatters;
+            }).map(function (gap) { return gap.Field + ': ' + gap.WhyItMatters; });
+            return gaps.length ? gaps : ['No verified decision-critical information gaps identified.'];
         }
 
         function summarizeCmfReasonList(items, fallback) {
@@ -22244,32 +25100,450 @@ td:nth-child(odd), th:nth-child(odd) {
             return trimToCompleteSentence(sentence, maxLength);
         }
 
-        function filterCmfPendingRows() {
+        function filterCmfPendingRows(pageIndex) {
             var input = document.getElementById('cmfPendingClientSearch');
             var table = document.getElementById('GridView_cmf_pending');
             if (!input || !table) return;
             var query = (input.value || '').toLowerCase().trim();
-            var component = getPendingFilterValue('cmfPendingComponentFilter');
-            var owner = getPendingFilterValue('cmfPendingOwnerFilter');
-            var customer = getPendingFilterValue('cmfPendingCustomerFilter');
-            var idst = getPendingFilterValue('cmfPendingIdstFilter');
+            var component = getPendingFilterValues('cmfPendingComponentFilter');
+            var componentControl = document.getElementById('cmfPendingComponentFilter');
+            if (componentControl) componentControl.title = componentControl.value || 'All Components';
+            var owner = getPendingFilterValues('cmfPendingOwnerFilter');
+            var customer = getPendingFilterValues('cmfPendingCustomerFilter');
+            var idst = getPendingFilterValues('cmfPendingIdstFilter');
+            var repro = getPendingFilterValues('cmfPendingRvpFilter');
+            var from = getPendingFilterValue('cmfPendingDateFrom');
+            var to = getPendingFilterValue('cmfPendingDateTo');
+            var fromControl = document.getElementById('cmfPendingDateFrom');
+            var toControl = document.getElementById('cmfPendingDateTo');
+            if (fromControl && toControl) {
+                fromControl.max = to;
+                toControl.min = from;
+                var invalidRange = from && to && from > to;
+                toControl.setCustomValidity(invalidRange ? 'The To date must be on or after the From date.' : '');
+                if (invalidRange) {
+                    toControl.reportValidity();
+                    return;
+                }
+            }
+            var matches = [];
             var rows = table.querySelectorAll('tbody tr');
             for (var i = 0; i < rows.length; i++) {
-                var rowText = (rows[i].innerText || '').toLowerCase();
-                var rowComponent = extractPendingFieldValue(rows[i].innerText || '', 'component').toLowerCase();
-                var rowOwner = extractPendingFieldValue(rows[i].innerText || '', 'owner').toLowerCase();
-                var rowCustomer = extractPendingFieldValue(rows[i].innerText || '', 'customer').toLowerCase();
-                var rowIdst = extractPendingFieldValue(rows[i].innerText || '', 'idst').toLowerCase();
+                if (!rows[i].querySelector('.pending-id-actions')) continue;
+                var rowText = (rows[i].textContent || '').toLowerCase();
+                var rowComponent = extractPendingFieldValue(rows[i], 'component').toLowerCase();
+                var rowOwner = extractPendingFieldValue(rows[i], 'owner').toLowerCase();
+                var rowCustomer = extractPendingFieldValue(rows[i], 'customer').toLowerCase();
+                var rowIdst = extractPendingFieldValue(rows[i], 'idst').toLowerCase();
                 var matchesQuery = !query || rowText.indexOf(query) >= 0;
-                var matchesComponent = !component || rowComponent === component;
-                var matchesOwner = !owner || rowOwner === owner;
-                var matchesCustomer = !customer || rowCustomer === customer;
-                var matchesIdst = !idst || rowIdst === idst;
-                rows[i].style.display = matchesQuery && matchesComponent && matchesOwner && matchesCustomer && matchesIdst ? '' : 'none';
+                var matchesComponent = !component.length || component.indexOf(rowComponent) >= 0;
+                var matchesOwner = !owner.length || owner.indexOf(rowOwner) >= 0;
+                var matchesCustomer = !customer.length || customer.indexOf(rowCustomer) >= 0;
+                var matchesIdst = !idst.length || idst.indexOf(rowIdst) >= 0;
+                var reproNode = rows[i].querySelector('.pending-rvp-status');
+                var rowRepro = reproNode ? (reproNode.getAttribute('data-rvp') || '').toLowerCase() : '';
+                var dateNode = rows[i].querySelector('.pending-field-date');
+                var rowDate = dateNode ? Date.parse(dateNode.textContent.trim()) : NaN;
+                var matchesDate = (!from && !to) || (!isNaN(rowDate) && (!from || rowDate >= Date.parse(from + 'T00:00:00')) && (!to || rowDate <= Date.parse(to + 'T23:59:59')));
+                rows[i].style.display = 'none';
+                var matchesFilters = matchesQuery && matchesComponent && matchesOwner && matchesCustomer && matchesIdst && (!repro.length || repro.indexOf(rowRepro) >= 0) && matchesDate;
+                rows[i].setAttribute('data-pending-filter-match', matchesFilters ? '1' : '0');
+                if (matchesFilters) matches.push(rows[i]);
             }
 
+            var sizeControl = document.getElementById('cmfPendingPageSize');
+            var pageSize = sizeControl ? parseInt(sizeControl.value, 10) : 10;
+            var pageCount = Math.max(1, Math.ceil(matches.length / pageSize));
+            var currentPage = Math.max(0, Math.min(typeof pageIndex === 'number' ? pageIndex : 0, pageCount - 1));
+            var start = currentPage * pageSize;
+            for (var visibleIndex = start; visibleIndex < Math.min(start + pageSize, matches.length); visibleIndex++) matches[visibleIndex].style.display = '';
+            var pager = document.getElementById('cmfPendingPager');
+            if (pager) {
+                pager.setAttribute('data-page', currentPage);
+                document.getElementById('cmfPendingPageStatus').textContent = matches.length ? 'Showing ' + (start + 1) + '\u2013' + Math.min(start + pageSize, matches.length) + ' of ' + matches.length + ' issues' : 'No matching issues';
+                document.getElementById('cmfPendingPageNumber').textContent = (currentPage + 1) + ' / ' + pageCount;
+                document.getElementById('cmfPendingPagePrev').disabled = currentPage === 0;
+                document.getElementById('cmfPendingPageNext').disabled = currentPage === pageCount - 1;
+                var emptyState = document.getElementById('cmfPendingFilterEmpty');
+                if (emptyState) emptyState.hidden = matches.length !== 0;
+            }
+
+            formatPendingLongCells();
             // Load sighting descriptions for visible rows
             loadSightingDescriptions();
+        }
+
+        var issueCellResizeObserver = null;
+        var issueCellObservedTable = null;
+
+        function configureCellPreview(text, clipped) {
+            if (!text.dataset.previewBound) {
+                text.addEventListener('mouseenter', showPendingCellTooltip);
+                text.addEventListener('focus', showPendingCellTooltip);
+                text.addEventListener('click', showPendingCellTooltip);
+                text.addEventListener('mouseleave', scheduleHidePendingCellTooltip);
+                text.addEventListener('blur', hidePendingCellTooltip);
+                text.dataset.previewBound = '1';
+            }
+            text.dataset.fullText = text.innerText || text.textContent;
+            text.classList.toggle('is-truncated', clipped);
+            if (clipped) {
+                text.tabIndex = 0;
+                text.setAttribute('aria-label', 'Show complete content');
+            } else {
+                text.removeAttribute('tabindex');
+                text.removeAttribute('aria-label');
+            }
+        }
+
+        function formatIssueLongCells() {
+            var table = document.getElementById('overall_request_details');
+            if (table && window.ResizeObserver && issueCellObservedTable !== table) {
+                if (!issueCellResizeObserver) {
+                    issueCellResizeObserver = new ResizeObserver(function () {
+                        requestAnimationFrame(formatIssueLongCells);
+                    });
+                }
+                issueCellResizeObserver.disconnect();
+                issueCellObservedTable = table;
+                issueCellResizeObserver.observe(table);
+            }
+            formatPendingCustomerLogos();
+            var targets = document.querySelectorAll('#overall_request_details > tbody > tr > td:not([colspan]):not(.field-actions):not(.field-sightingid):not(.field-status):not(.field-title):not(.field-progress)');
+            targets.forEach(function (cell) {
+                var row = cell.closest('tr');
+                if (row.querySelector('textarea, input, select') || !cell.textContent.trim()) return;
+                var content = cell.querySelector('.pending-cell-content');
+                if (!content) {
+                    content = document.createElement('div');
+                    content.className = 'pending-cell-content';
+                    var text = document.createElement('span');
+                    text.className = 'pending-cell-text';
+                    while (cell.firstChild) text.appendChild(cell.firstChild);
+                    content.appendChild(text);
+                    cell.appendChild(content);
+                }
+                if (!cell.getClientRects().length) return;
+                var value = content.querySelector('.pending-cell-text');
+                var lineLimit = parseFloat(getComputedStyle(value).lineHeight) * 4;
+                var clipped = value.clientHeight >= lineLimit - 1 && value.scrollHeight > lineLimit + 1;
+                configureCellPreview(value, clipped);
+            });
+        }
+
+        function formatPendingCustomerLogos() {
+            var labels = {
+                lenovo: 'Lenovo', hp: 'HP', dell: 'Dell', asus: 'ASUS', acer: 'Acer',
+                samsung: 'Samsung', apple: 'Apple', msi: 'MSI', lg: 'LG',
+                panasonic: 'Panasonic', sony: 'Sony', toshiba: 'Toshiba',
+                huawei: 'Huawei', honor: 'Honor', fujitsu: 'Fujitsu', mechrevo: 'Mechrevo', nec: 'NEC',
+                microsoft: 'Microsoft', razer: 'Razer', google: 'Google', alienware: 'Alienware'
+            };
+            var aliases = {
+                le: 'lenovo', hewlett: 'hp', de: 'dell', as: 'asus', asustek: 'asus',
+                ac: 'acer', sa: 'samsung', ap: 'apple', pa: 'panasonic', so: 'sony',
+                to: 'toshiba', ts: 'toshiba', hu: 'huawei', ho: 'honor', fu: 'fujitsu',
+                ne: 'nec', ms: 'msi', mi: 'microsoft', ra: 'razer', go: 'google', al: 'alienware'
+            };
+            document.querySelectorAll('#GridView_cmf_pending td.pending-field-customer, #overall_request_details .issue-company-name').forEach(function (cell) {
+                if (cell.querySelector('.pending-customer-label')) return;
+                var issueCompany = cell.classList.contains('issue-company-name');
+                var detail = cell.dataset.customerDetail || cell.textContent.trim();
+                var prefix = detail.toLowerCase().match(/^[a-z]+/);
+                if (!prefix) return;
+                var brand = aliases[prefix[0]] || prefix[0];
+                if (!Object.prototype.hasOwnProperty.call(labels, brand) && !issueCompany) return;
+                cell.dataset.customerDetail = detail;
+                cell.querySelectorAll('.pending-customer-logo').forEach(function (logo) { logo.remove(); });
+                if (issueCompany) cell.textContent = '';
+                var label = document.createElement('span');
+                label.className = 'pending-customer-label';
+                label.textContent = labels[brand] || detail;
+                cell.insertBefore(label, cell.firstChild);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            formatPendingCustomerLogos();
+            scheduleInitColumnHideButtons(0);
+            if (window.Sys && Sys.WebForms && Sys.WebForms.PageRequestManager) {
+                Sys.WebForms.PageRequestManager.getInstance().add_endRequest(formatPendingCustomerLogos);
+                Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function () {
+                    scheduleInitColumnHideButtons(0);
+                });
+            }
+        });
+
+        var pendingCellResizeObserver = null;
+        var pendingCellObservedTable = null;
+
+        function formatPendingLongCells() {
+            var table = document.getElementById('GridView_cmf_pending');
+            if (!table) return;
+            PendingColumnPicker.sync();
+            if (window.ResizeObserver && pendingCellObservedTable !== table) {
+                if (!pendingCellResizeObserver) {
+                    pendingCellResizeObserver = new ResizeObserver(function () {
+                        requestAnimationFrame(formatPendingLongCells);
+                    });
+                }
+                pendingCellResizeObserver.disconnect();
+                pendingCellObservedTable = table;
+                pendingCellResizeObserver.observe(table);
+            }
+            formatPendingCustomerLogos();
+            var cells = table.querySelectorAll('td.pending-field-title, td.pending-field-impact, td.pending-field-why, td.pending-field-days-open, td.pending-field-date');
+            cells.forEach(function (cell) {
+                var text = cell.querySelector('.pending-cell-text');
+                if (!text) {
+                    var value = cell.textContent;
+                    cell.textContent = '';
+                    var content = document.createElement('div');
+                    content.className = 'pending-cell-content';
+                    text = document.createElement('span');
+                    text.className = 'pending-cell-text';
+                    text.textContent = value;
+                    content.appendChild(text);
+                    cell.appendChild(content);
+                }
+                if (!cell.getClientRects().length) return;
+                configureCellPreview(text, false);
+            });
+            table.querySelectorAll('.pending-field-request').forEach(function (text) {
+                text.classList.add('pending-cell-text');
+                if (!text.getClientRects().length) return;
+                configureCellPreview(text, false);
+            });
+        }
+
+        var pendingCellTooltipCloseTimer = null;
+
+        function scheduleHidePendingCellTooltip() {
+            clearTimeout(pendingCellTooltipCloseTimer);
+            pendingCellTooltipCloseTimer = setTimeout(hidePendingCellTooltip, 180);
+        }
+
+        function showPendingCellTooltip(event) {
+            hidePendingCellTooltip();
+            var button = event.currentTarget;
+            if (!button.classList.contains('is-truncated')) return;
+            var tooltip = document.createElement('div');
+            tooltip.id = 'pendingCellTooltip';
+            tooltip.className = 'pending-cell-tooltip';
+            tooltip.setAttribute('role', 'tooltip');
+            tooltip.textContent = button.dataset.fullText || button.textContent;
+            tooltip.addEventListener('mouseenter', function () { clearTimeout(pendingCellTooltipCloseTimer); });
+            tooltip.addEventListener('mouseleave', scheduleHidePendingCellTooltip);
+            document.body.appendChild(tooltip);
+            button.setAttribute('aria-describedby', tooltip.id);
+            var rect = button.getBoundingClientRect();
+            var width = tooltip.getBoundingClientRect().width;
+            tooltip.style.left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8)) + 'px';
+            var height = tooltip.getBoundingClientRect().height;
+            tooltip.style.top = (rect.top >= height + 12 ? rect.top - height - 8 : Math.min(rect.bottom + 8, window.innerHeight - height - 8)) + 'px';
+        }
+
+        function hidePendingCellTooltip() {
+            clearTimeout(pendingCellTooltipCloseTimer);
+            var tooltip = document.getElementById('pendingCellTooltip');
+            if (tooltip) tooltip.remove();
+            document.querySelectorAll('.pending-cell-text[aria-describedby]').forEach(function (button) { button.removeAttribute('aria-describedby'); });
+        }
+
+        window.addEventListener('resize', function () {
+            hidePendingCellTooltip();
+            applyTableOnlyScroll();
+            formatIssueLongCells();
+            formatPendingLongCells();
+        });
+        document.addEventListener('scroll', function (event) {
+            var tooltip = document.getElementById('pendingCellTooltip');
+            if (tooltip && !tooltip.contains(event.target)) hidePendingCellTooltip();
+        }, true);
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') hidePendingCellTooltip();
+        });
+
+        function changeCmfPendingPage(offset) {
+            var pager = document.getElementById('cmfPendingPager');
+            filterCmfPendingRows((parseInt(pager.getAttribute('data-page'), 10) || 0) + offset);
+        }
+
+        var PendingColumnPicker = (function () {
+            var storageKey = 'cmf_pending_column_layout_v3';
+            var draft = null;
+            var cachedLayout = null;
+            function notice(message) {
+                document.getElementById('pendingColumnMessage').textContent = message;
+                document.getElementById('pendingColumnStatus').textContent = document.getElementById('pendingColumnPicker').open ? '' : message;
+            }
+            function columns() {
+                var table = document.getElementById('GridView_cmf_pending');
+                if (!table) return [];
+                var headers = Array.from(table.querySelectorAll('th'));
+                Array.from(table.rows).forEach(function (row) {
+                    if (row.cells.length !== headers.length) return;
+                    Array.from(row.cells).forEach(function (cell, index) {
+                        if (!cell.hasAttribute('data-pending-column-index')) cell.dataset.pendingColumnIndex = index;
+                    });
+                });
+                return headers.map(function (header) {
+                    return { index: Number(header.dataset.pendingColumnIndex), title: header.textContent.trim(), exportable: !header.classList.contains('pending-field-ai-recommendation') };
+                }).sort(function (first, second) { return first.index - second.index; });
+            }
+            function layout(items) {
+                var fields = items.map(function (item) { return item.index; });
+                try {
+                    if (!cachedLayout) cachedLayout = JSON.parse(localStorage.getItem(storageKey) || 'null') || { order: fields, hidden: [] };
+                    if (!Array.isArray(cachedLayout.order) || !Array.isArray(cachedLayout.hidden)) throw new TypeError('Invalid column layout.');
+                    var order = Array.from(new Set(cachedLayout.order.concat(fields))).filter(function (index) { return fields.indexOf(index) >= 0; });
+                    var hidden = Array.from(new Set(cachedLayout.hidden)).filter(function (index) { return fields.indexOf(index) >= 0; });
+                    return { order: order, hidden: hidden.length === fields.length ? [] : hidden };
+                } catch (error) {
+                    cachedLayout = { order: fields, hidden: [] };
+                    notice('Saved columns could not be loaded. Default columns are shown.');
+                    return cachedLayout;
+                }
+            }
+            function sync() {
+                var items = columns();
+                if (!items.length) return;
+                var state = layout(items);
+                var table = document.getElementById('GridView_cmf_pending');
+                var headers = Array.from(table.querySelectorAll('th'));
+                var widths = {
+                    'Issue ID': 116, 'Issue Title': 240, 'Customer Detail': 140,
+                    'Component': 150, 'Component Group': 130, 'iDST': 120,
+                    'Owner': 130, 'RVP Repro': 90, 'Occurrence': 124,
+                    'CMF Request / Ask Date': 150, 'Why CMF Change': 160,
+                    'Pending Reason': 100, 'Impact': 180, 'Days Open': 76,
+                    'AI CMF Recommendation': 144
+                };
+                Array.from(table.rows).forEach(function (row) {
+                    var cells = Array.from(row.cells);
+                    if (cells.length !== items.length) return;
+                    state.order.forEach(function (index) {
+                        var cell = cells.find(function (item) { return Number(item.dataset.pendingColumnIndex) === index; });
+                        cell.classList.toggle('pending-column-hidden', state.hidden.indexOf(index) >= 0);
+                        var header = headers.find(function (item) { return Number(item.dataset.pendingColumnIndex) === index; });
+                        var width = widths[header.textContent.trim()] || 120;
+                        cell.style.setProperty('width', width + 'px', 'important');
+                        cell.style.setProperty('min-width', width + 'px', 'important');
+                        cell.style.setProperty('max-width', 'none', 'important');
+                        row.appendChild(cell);
+                    });
+                });
+            }
+            function render(highlighted) {
+                if (!draft) return;
+                var available = draft.columns.filter(function (item) { return draft.selected.indexOf(item.index) < 0; })
+                    .sort(function (first, second) { return first.title.localeCompare(second.title); });
+                var selected = draft.selected.map(function (index) { return draft.columns.find(function (item) { return item.index === index; }); });
+                [available, selected].forEach(function (items, position) {
+                    var list = document.getElementById(position ? 'pendingColumnsSelected' : 'pendingColumnsAvailable');
+                    list.textContent = '';
+                    items.forEach(function (item) {
+                        var option = document.createElement('option');
+                        option.value = item.index;
+                        option.textContent = item.title;
+                        option.title = item.title;
+                        option.selected = !!highlighted && highlighted.indexOf(item.index) >= 0;
+                        list.appendChild(option);
+                    });
+                });
+                updateButtons();
+            }
+            function updateButtons() {
+                var available = document.getElementById('pendingColumnsAvailable');
+                var selected = document.getElementById('pendingColumnsSelected');
+                var options = Array.from(selected.options);
+                document.getElementById('pendingColumnAdd').disabled = !available.selectedOptions.length;
+                document.getElementById('pendingColumnRemove').disabled = !selected.selectedOptions.length;
+                document.getElementById('pendingColumnUp').disabled = !options.some(function (option, index) { return option.selected && index > 0 && !options[index - 1].selected; });
+                document.getElementById('pendingColumnDown').disabled = !options.some(function (option, index) { return option.selected && index < options.length - 1 && !options[index + 1].selected; });
+            }
+            function close() {
+                document.getElementById('pendingColumnPicker').close();
+                draft = null;
+            }
+            function move(toSelected) {
+                var source = document.getElementById(toSelected ? 'pendingColumnsAvailable' : 'pendingColumnsSelected');
+                var fields = Array.from(source.selectedOptions).map(function (option) { return Number(option.value); });
+                if (!fields.length) return;
+                if (!toSelected && draft.selected.length === fields.length) { notice('Keep at least one column selected.'); return; }
+                draft.selected = toSelected ? draft.selected.concat(fields) : draft.selected.filter(function (index) { return fields.indexOf(index) < 0; });
+                notice('');
+                render(fields);
+                document.getElementById(toSelected ? 'pendingColumnsSelected' : 'pendingColumnsAvailable').focus();
+            }
+            function reorder(direction) {
+                var fields = Array.from(document.getElementById('pendingColumnsSelected').selectedOptions).map(function (option) { return Number(option.value); });
+                var order = draft.selected;
+                for (var position = direction < 0 ? 1 : order.length - 2; position >= 0 && position < order.length; position += direction < 0 ? 1 : -1) {
+                    var next = position + direction;
+                    if (fields.indexOf(order[position]) >= 0 && fields.indexOf(order[next]) < 0) {
+                        var field = order[position];
+                        order[position] = order[next];
+                        order[next] = field;
+                    }
+                }
+                render(fields);
+                document.getElementById('pendingColumnsSelected').focus();
+            }
+            function apply() {
+                var fields = draft.columns.map(function (item) { return item.index; });
+                var hidden = fields.filter(function (index) { return draft.selected.indexOf(index) < 0; });
+                var state = { order: draft.selected.concat(hidden), hidden: hidden };
+                try { localStorage.setItem(storageKey, JSON.stringify(state)); }
+                catch (error) { notice('Columns could not be saved. Check browser storage settings.'); return; }
+                cachedLayout = state;
+                sync();
+                close();
+                formatPendingLongCells();
+            }
+            return {
+                sync: sync, move: move, reorder: reorder, apply: apply, close: close, updateButtons: updateButtons,
+                open: function () {
+                    var items = columns();
+                    if (!items.length) { notice('Columns are unavailable until the Pending List loads.'); return; }
+                    var state = layout(items);
+                    draft = { columns: items, selected: state.order.filter(function (index) { return state.hidden.indexOf(index) < 0; }) };
+                    notice('');
+                    render();
+                    document.getElementById('pendingColumnPicker').showModal();
+                    document.getElementById('pendingColumnsSelected').focus();
+                },
+                reset: function () { draft.selected = draft.columns.map(function (item) { return item.index; }); notice(''); render(); },
+                keydown: function (event) {
+                    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); }
+                    else if (event.key === 'Enter' && event.target.tagName === 'SELECT') { event.preventDefault(); apply(); }
+                },
+                exportColumns: function () {
+                    var items = columns(), state = layout(items);
+                    return state.order.filter(function (index) {
+                        return state.hidden.indexOf(index) < 0 && items.some(function (item) { return item.index === index && item.exportable; });
+                    });
+                }
+            };
+        }());
+
+        function preparePendingViewExport() {
+            PendingColumnPicker.sync();
+            var columns = PendingColumnPicker.exportColumns();
+            if (!columns.length) { showPortalToast('Select at least one data column to export.'); return false; }
+            document.getElementById('<%= hfPendingExportColumns.ClientID %>').value = JSON.stringify(columns);
+            var pager = document.getElementById('cmfPendingPager');
+            filterCmfPendingRows(pager ? parseInt(pager.getAttribute('data-page'), 10) || 0 : 0);
+            var rows = document.querySelectorAll('#GridView_cmf_pending tr[data-pending-filter-match="1"]');
+            var ids = Array.from(rows).map(function (row) {
+                return row.querySelector('.pending-id-actions a').textContent.trim();
+            });
+            if (!ids.length) {
+                showPortalToast('No matching issues to export.');
+                return false;
+            }
+            document.getElementById('<%= hfPendingExportIds.ClientID %>').value = JSON.stringify(ids);
+            return true;
         }
 
         function loadSightingDescriptions() {
@@ -22377,13 +25651,18 @@ td:nth-child(odd), th:nth-child(odd) {
             var rows = Array.from(document.querySelectorAll('#GridView_cmf_pending tbody tr')).filter(function (row) { return getComputedStyle(row).display !== 'none'; }).slice(0, 20);
             return rows.map(function (row, index) {
                 var text = row.innerText || '';
-                return 'Sighting ' + (index + 1) + ': component=' + extractPendingFieldValue(text, 'component') + '; customer=' + extractPendingFieldValue(text, 'customer') + '; owner=' + extractPendingFieldValue(text, 'owner') + '; idst=' + extractPendingFieldValue(text, 'idst') + '; repro=' + extractPendingFieldValue(text, 'reproducibility') + '; impact=' + extractPendingFieldValue(text, 'impact') + '.';
+                return 'Sighting ' + (index + 1) + ': component=' + extractPendingFieldValue(row, 'component') + '; customer=' + extractPendingFieldValue(row, 'customer') + '; owner=' + extractPendingFieldValue(row, 'owner') + '; idst=' + extractPendingFieldValue(row, 'idst') + '; repro=' + extractPendingFieldValue(row, 'reproducibility') + '; impact=' + extractPendingFieldValue(row, 'impact') + '.';
             }).join('\n');
         }
 
         function getPendingFilterValue(id) {
             var element = document.getElementById(id);
             return element ? (element.value || '').toLowerCase().trim() : '';
+        }
+
+        function getPendingFilterValues(id) {
+            var element = document.getElementById(id);
+            return element ? Array.from(element.selectedOptions).map(function (option) { return option.value.toLowerCase().trim(); }).filter(Boolean) : [];
         }
 
         function populateCmfPendingFilterOptions() {
@@ -22402,32 +25681,39 @@ td:nth-child(odd), th:nth-child(odd) {
                 var select = document.getElementById(filter.id);
                 if (!select) continue;
 
-                var currentValue = select.value;
+                var currentValues = Array.from(select.selectedOptions).map(function (option) { return option.value; });
                 var values = [];
                 var rows = table.querySelectorAll('tbody tr');
                 for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
                     var text = rows[rowIndex].innerText || '';
-                    var value = extractPendingFieldValue(text, filter.field);
+                    var value = extractPendingFieldValue(rows[rowIndex], filter.field);
                     if (value && values.indexOf(value) === -1) {
                         values.push(value);
                     }
                 }
 
                 values.sort(function (left, right) { return left.localeCompare(right); });
-                select.innerHTML = '<option value="">All ' + filter.label + '</option>';
+                select.innerHTML = '<option value="">Select All</option>';
                 for (var valueIndex = 0; valueIndex < values.length; valueIndex++) {
                     var option = document.createElement('option');
                     option.value = values[valueIndex];
-                    option.textContent = values[valueIndex];
+                    option.textContent = filter.field === 'component' ? values[valueIndex].split('.').pop() : values[valueIndex];
+                    option.title = values[valueIndex];
                     select.appendChild(option);
                 }
-                if (currentValue && values.indexOf(currentValue) >= 0) {
-                    select.value = currentValue;
+                Array.from(select.options).forEach(function (option) { option.selected = currentValues.indexOf(option.value) >= 0; });
+                if (!select.selectedOptions.length) select.options[0].selected = true;
+                if (filter.field === 'component') {
+                    select.title = select.value || 'All Components';
                 }
             }
         }
 
         function extractPendingFieldValue(text, field) {
+            if (text && text.querySelector) {
+                var cell = text.querySelector('.pending-field-' + field);
+                return cell ? (cell.dataset.customerDetail || cell.textContent || '').trim() : '';
+            }
             var lines = (text || '').split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
             for (var i = 0; i < lines.length; i++) {
                 var line = lines[i];
@@ -22445,21 +25731,56 @@ td:nth-child(odd), th:nth-child(odd) {
         function resetCmfPendingClientFilters() {
             var input = document.getElementById('cmfPendingClientSearch');
             if (input) input.value = '';
-            var selects = ['cmfPendingComponentFilter', 'cmfPendingOwnerFilter', 'cmfPendingCustomerFilter', 'cmfPendingIdstFilter'];
+            var globalInput = document.getElementById('globalPortalSearch');
+            if (globalInput) globalInput.value = '';
+            var clearButton = document.getElementById('globalSearchClear');
+            if (clearButton) clearButton.style.display = 'none';
+            var selects = ['cmfPendingComponentFilter', 'cmfPendingOwnerFilter', 'cmfPendingCustomerFilter', 'cmfPendingIdstFilter', 'cmfPendingRvpFilter', 'cmfPendingDateFrom', 'cmfPendingDateTo'];
             for (var i = 0; i < selects.length; i++) {
                 var select = document.getElementById(selects[i]);
-                if (select) select.value = '';
+                if (select) {
+                    select.value = '';
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                }
             }
             filterCmfPendingRows();
         }
 </script>
-    <script src="Scripts/cmf-portal-main.js?v=20261023-popup-export-all"></script>
+    <script src="Scripts/cmf-portal-main.js?v=20261103-title-actions"></script>
+    <script src="Scripts/cmf-dashboard-insights.js?v=8"></script>
 
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261104-vertical-actions" />
+    <link rel="stylesheet" href="Content/cmf-dashboard-insights.css?v=5" />
 
 </head>
 
 <body>
     <form id="form1" runat="server">
+    <div id="cmfPopupFlowFrozenLayer" class="cmf-popup-flow-frozen-layer" aria-hidden="true"></div>
+    <script type="text/javascript">
+        (function () {
+            try {
+                if (!(window.sessionStorage && window.sessionStorage.getItem('cmfPopupTableFlow') === '1')) {
+                    return;
+                }
+
+                var snapshotHtml = window.sessionStorage.getItem('cmfPopupTableSnapshotHtml') || '';
+                if (!snapshotHtml) {
+                    return;
+                }
+
+                var frozenLayer = document.getElementById('cmfPopupFlowFrozenLayer');
+                if (!frozenLayer) {
+                    return;
+                }
+
+                frozenLayer.innerHTML = '<div class="cmf-popup-flow-frozen-content">' + snapshotHtml + '</div>';
+                frozenLayer.classList.add('active');
+            } catch (error) {
+                // Ignore storage and rendering issues.
+            }
+        })();
+    </script>
     <asp:HiddenField ID="HiddenModalDesign" runat="server" />
     <asp:HiddenField ID="HiddenInlineDesignName" runat="server" />
     <asp:HiddenField ID="HiddenInlineSwImageFreeze" runat="server" />
@@ -22468,17 +25789,20 @@ td:nth-child(odd), th:nth-child(odd) {
     <asp:HiddenField ID="HiddenComponentName" runat="server" />
     <asp:HiddenField ID="HiddenIssueType" runat="server" />
     <asp:HiddenField ID="hfIssueGlobalSearch" runat="server" />
+    <asp:HiddenField ID="hfPendingExportIds" runat="server" />
+    <asp:HiddenField ID="hfPendingExportColumns" runat="server" />
     <asp:LinkButton ID="btnIssueGlobalSearchApply" runat="server" OnClick="btnIssueGlobalSearchApply_Click" Style="display:none;" />
 <!-- You already have HiddenDriverName -->
     <asp:HiddenField ID="dw_trigger" runat="server" />
 
     <!-- Header -->
-    <header>
+    <header class="portal-app-header">
         <!-- Convert to ASP.NET DropDownList -->
 
-
+        <a class="portal-brand" href="CMF_Web_portal.aspx" aria-label="CMF Portal home"><span class="portal-brand-mark"><img src="others/images/design-diagrams/intel%20logo.png" alt="Intel" class="portal-brand-logo" /></span><span>CMF Portal</span></a>
+        <span class="portal-work-week" title="Current work week">WW'<%= System.Globalization.CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(DateTime.Now, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday).ToString("00") %></span>
         <div class="header-title" runat="server" id="headerTitle">CMF Live Dashboard</div>
-        <div class="global-search-shell" role="search">
+        <div class="global-search-shell" role="search" style="display:none;">
             <i class="fas fa-search" aria-hidden="true"></i>
             <input type="text" id="globalPortalSearch" placeholder="Search issues, customers, components..." autocomplete="off" value="<%= HttpUtility.HtmlAttributeEncode(GetIssueGlobalSearchQuery()) %>" oninput="scheduleIssueGlobalSearch()" />
             <button type="button" id="globalSearchClear" class="global-search-clear" onclick="clearGlobalPortalSearch()" aria-label="Clear search">&times;</button>
@@ -22490,10 +25814,15 @@ td:nth-child(odd), th:nth-child(odd) {
                 <asp:ListItem Text="Program Manager" Value="program_manager" />
                 <asp:ListItem Text="Admin" Value="admin" />
             </asp:DropDownList>
+            <div class="portal-header-updated">Updated <asp:Label ID="lblHomeDashboardGeneratedAt" runat="server" /></div>
         </div>
         <div class="sidebar-toggle-div">
             <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
         </div>
+
+        <asp:Panel ID="dashboardHeaderTools" runat="server" CssClass="ccip-dash-top-tools dashboard-header-tools">
+            <asp:HyperLink ID="lnkPlatformDashboardHome" runat="server" Target="_blank" CssClass="ccip-link-btn" Visible="false">Open platform dashboard</asp:HyperLink>
+        </asp:Panel>
 
               <div id="updateinfo" runat="server">
   <div id="last-update">Last Updated: </div>
@@ -22559,11 +25888,11 @@ Submit
                             <asp:Label ID="lblActiveViewTitle" runat="server" Text="Issue List" />
                         </div>
                         <div id="mainMenuSectionBody" class="collapsible-body">
-                            <asp:LinkButton ID="lnkNavHome" runat="server" CssClass="portal-nav-link" OnClick="btnShowHomeDashboard_Click"><i class="fas fa-chart-pie" aria-hidden="true"></i><span>Dashboard</span></asp:LinkButton>
+                            <asp:LinkButton ID="lnkNavHome" runat="server" CssClass="portal-nav-link" OnClick="btnShowHomeDashboard_Click" aria-label="Dashboard" ToolTip="Dashboard"><i class="fas fa-chart-pie" aria-hidden="true"></i><span>Dashboard</span></asp:LinkButton>
                             <asp:LinkButton ID="lnkNavCmfSummary" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView3_Click" Visible="false"><i class="fas fa-table-list" aria-hidden="true"></i><span>CMF Summary</span></asp:LinkButton>
-                            <asp:LinkButton ID="lnkNavIssueList" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView1_Click"><i class="fas fa-fire" aria-hidden="true"></i><span>Issue List</span></asp:LinkButton>
-                            <asp:LinkButton ID="lnkNavPendingList" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView4_Click"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>CMF Pending</span></asp:LinkButton>
-                            <asp:LinkButton ID="lnkNavReports" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView8_Click"><i class="fas fa-chart-line" aria-hidden="true"></i><span>Reports &amp; Analytics</span></asp:LinkButton>
+                            <asp:LinkButton ID="lnkNavIssueList" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView1_Click" aria-label="Issue List" ToolTip="Issue List"><i class="fas fa-bug" aria-hidden="true"></i><span>Issue List</span></asp:LinkButton>
+                            <asp:LinkButton ID="lnkNavPendingList" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView4_Click" aria-label="CMF Pending List" ToolTip="CMF Pending List"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>CMF Pending</span></asp:LinkButton>
+                            <asp:LinkButton ID="lnkNavReports" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView8_Click" aria-label="Reports and Analytics" ToolTip="Reports and Analytics"><i class="fas fa-chart-line" aria-hidden="true"></i><span>Reports &amp; Analytics</span></asp:LinkButton>
                             <asp:LinkButton ID="lnkNavConfigRules" runat="server" CssClass="portal-nav-link" OnClick="btnShowGridView9_Click" Visible="false"><i class="fas fa-sliders-h" aria-hidden="true"></i><span>Rules</span></asp:LinkButton>
                         </div>
                     </aside>
@@ -22574,19 +25903,37 @@ Submit
 
                     <div class="portal-main-workspace">
                         <asp:Panel ID="homeWelcomePanel" runat="server" Visible="false" CssClass="ccip-dashboard-host">
-                            <div class="ccip-dashboard">
                                 <div class="ccip-dash-top">
                                     <div>
                                         <asp:Label ID="lblHomeGreeting" runat="server" CssClass="ccip-dash-greeting" Text="Good Morning" />
-                                        <p class="ccip-dash-sub">Here is what is happening with your critical issues today on <%: HomeDashboardPlatformLabel %> in <asp:Label ID="lblWelcomeMode" runat="server" /> mode.</p>
-                                    </div>
-                                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                                        <div class="ccip-dash-updated">Updated  <asp:Label ID="lblHomeDashboardGeneratedAt" runat="server" /></div>
-                                        <asp:HyperLink ID="lnkPlatformDashboardHome" runat="server" Target="_blank" CssClass="ccip-link-btn" Visible="false">Open platform dashboard</asp:HyperLink>
+                                        <p class="ccip-dash-sub">Here is what is happening with your critical issues today on <%: HomeDashboardPlatformLabel %>.</p>
+                                        <asp:Label ID="lblWelcomeMode" runat="server" Visible="false" />
                                     </div>
                                 </div>
 
-                                <div class="platform-chip-rail" data-chip-source="server" role="tablist" aria-label="Dashboard platform switch" style="margin-bottom:14px;"></div>
+                            <div class="ccip-dashboard">
+                                <div class="dashboard-platform-toolbar">
+                                    <div class="platform-chip-rail" data-chip-source="server" role="tablist" aria-label="Dashboard platform switch"></div>
+                                    <div class="dashboard-date-filter">
+                                    <% if (ddlDashboardDateMode.SelectedValue != "all") { %>
+                                    <span class="dashboard-date-basis-label">CMFs Accepted<%= ddlDashboardDateMode.SelectedValue == "today" ? string.Empty : " in" %></span>
+                                    <% } %>
+                                    <asp:DropDownList ID="ddlDashboardDateMode" runat="server" AutoPostBack="true" OnSelectedIndexChanged="DashboardDateFilter_Changed" aria-label="Dashboard date range">
+                                        <asp:ListItem Text="All dates" Value="all" />
+                                        <asp:ListItem Text="Today" Value="today" />
+                                        <asp:ListItem Text="Last 7 days" Value="7days" />
+                                        <asp:ListItem Text="Last 30 days" Value="30days" />
+                                        <asp:ListItem Text="Last 12 months" Value="12months" />
+                                        <asp:ListItem Text="Custom range" Value="custom" />
+                                    </asp:DropDownList>
+                                    <asp:Panel ID="dashboardCustomDates" runat="server" Visible="false">
+                                        <asp:TextBox ID="txtDashboardDateStart" runat="server" TextMode="Date" AutoPostBack="true" OnTextChanged="DashboardDateFilter_Changed" aria-label="Start date" />
+                                        <asp:TextBox ID="txtDashboardDateEnd" runat="server" TextMode="Date" AutoPostBack="true" OnTextChanged="DashboardDateFilter_Changed" aria-label="End date" />
+                                    </asp:Panel>
+                                    <asp:Button ID="btnApplyDashboardDates" runat="server" Text="Apply" OnClick="DashboardDateFilter_Changed" Visible="false" />
+                                    <asp:Label ID="lblDashboardDateError" runat="server" />
+                                    </div>
+                                </div>
 
                                 <asp:Label ID="lblHomeAiNewTodayValue" runat="server" style="display:none;" />
                                 <asp:Label ID="lblHomeAiClosedTodayValue" runat="server" style="display:none;" />
@@ -22597,8 +25944,12 @@ Submit
                                             <h4 class="overall-card-title"><i class="fas fa-layer-group" aria-hidden="true"></i> Q.Links</h4>
                                         </div>
                                         <div class="overall-summary-side-body">
-                                            <div class="overall-summary-facts overall-summary-side-facts" aria-hidden="true">
-                                                <div class="ccip-summary-fact overall-summary-fact tone-total overall-summary-fact-blank" aria-hidden="true"></div>
+                                            <div class="overall-summary-facts overall-summary-side-facts">
+                                                <div class="overall-quick-links" aria-label="Overall quick links">
+                                                    <asp:LinkButton ID="lnkQuickOverallDesign" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showDesignIndicatorSummaryModal(); return false;">Design Indicator</asp:LinkButton>
+                                                    <asp:LinkButton ID="lnkQuickOverallIngredient" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showIngredientIndicatorSummaryModal(); return false;">Ingredient Indicator</asp:LinkButton>
+                                                    <asp:LinkButton ID="lnkQuickOverallOem" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showOemIndicatorSummaryModal(); return false;">OEM Indicator</asp:LinkButton>
+                                                </div>
                                             </div>
                                         </div>
                                     </article>
@@ -22609,8 +25960,12 @@ Submit
                                                 <h4 class="overall-card-title"><i class="fas fa-layer-group" aria-hidden="true"></i> Q.Links</h4>
                                             </div>
                                             <div class="overall-summary-side-body">
-                                                <div class="overall-summary-facts overall-summary-side-facts" aria-hidden="true">
-                                                    <div class="ccip-summary-fact overall-summary-fact tone-total overall-summary-fact-blank" aria-hidden="true"></div>
+                                                <div class="overall-summary-facts overall-summary-side-facts">
+                                                    <div class="overall-quick-links" aria-label="Platform quick links">
+                                                        <asp:LinkButton ID="lnkQuickPlatformDesign" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showDesignIndicatorSummaryModal(); return false;">Design Indicator</asp:LinkButton>
+                                                        <asp:LinkButton ID="lnkQuickPlatformIngredient" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showIngredientIndicatorSummaryModal(); return false;">Ingredient Indicator</asp:LinkButton>
+                                                        <asp:LinkButton ID="lnkQuickPlatformOem" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showOemIndicatorSummaryModal(); return false;">OEM Indicator</asp:LinkButton>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </article>
@@ -22626,9 +25981,15 @@ Submit
                                     <section class="overall-row overall-row-second">
                                         <article class="overall-card overall-trend-card">
                                             <div class="overall-card-head">
-                                                <h4 class="overall-card-title"><i class="fas fa-chart-line" aria-hidden="true" style="color:#3b82f6; margin-right:6px;"></i>Issue Trend by Work Week</h4>
-                                                <div class="overall-trend-range">
-                                                    <select id="homeOverallTrendRange" class="overall-trend-range-select" aria-label="Issue trend time range">
+                                                <h4 class="overall-card-title overall-trend-title">
+                                                    <i class="fas fa-chart-line" aria-hidden="true" style="color:#3b82f6;"></i>
+                                                    <select id="homeOverallTrendView" class="overall-trend-title-select" aria-label="Trend chart title and view">
+                                                        <option value="line" selected="selected">OPEN BACKLOG TREND BY WORK WEEK</option>
+                                                        <option value="bar">WEEKLY ISSUE FLOW</option>
+                                                    </select>
+                                                </h4>
+                                                <div class="overall-trend-range" style="<%= ddlDashboardDateMode.SelectedValue == "all" ? string.Empty : "display:none;" %>">
+                                                    <select id="homeOverallTrendRange" class="overall-trend-range-select" aria-label="Issue trend time range" <%= ddlDashboardDateMode.SelectedValue == "all" ? string.Empty : "disabled=\"disabled\"" %>>
                                                         <option value="6" selected="selected">Last 6 Weeks</option>
                                                         <option value="12">Last 12 Weeks</option>
                                                     </select>
@@ -22643,12 +26004,12 @@ Submit
                                             </div>
                                             <div class="overall-pending-body">
                                                 <div class="overall-pending-top">
+                                                    <div id="homeOverallPendingTotal" class="overall-pending-total"></div>
                                                     <div id="homeOverallPendingPie" class="overall-pending-pie"></div>
-                                                    <div id="homeOverallPendingBreakdown" class="overall-pending-breakdown"></div>
                                                 </div>
                                                 <div class="overall-pending-bottom">
-                                                    <div class="overall-age-title">Pending Age Bucket</div>
-                                                    <div id="homeOverallPendingAgeBuckets" class="overall-age-buckets"></div>
+                                                    <div id="homeOverallPendingBreakdown" class="overall-pending-breakdown"></div>
+                                                    <div id="homeOverallPendingLegend" class="component-summary-legend overall-pending-legend" aria-label="Pending age threshold legend"></div>
                                                 </div>
                                             </div>
                                         </article>
@@ -22656,10 +26017,10 @@ Submit
 
                                     <article class="overall-card overall-ai-card overall-ai-span-card">
                                         <div class="overall-card-head">
-                                            <h4 class="overall-card-title"><i class="fas fa-wand-magic-sparkles" aria-hidden="true" style="margin-right:6px;"></i>AI Insights</h4>
+                                            <h4 class="overall-card-title ci-heading"><span><i class="fas fa-wand-magic-sparkles" aria-hidden="true" style="margin-right:6px;"></i>AI INSIGHTS</span><span id="homeOverallInsightsScope" class="ci-scope"></span></h4>
                                             <span class="ccip-ai-beta">Beta</span>
                                         </div>
-                                        <div class="overall-ai-blank"></div>
+                                        <div id="homeOverallInsights" class="cmf-insights"></div>
                                     </article>
 
                                     <section class="overall-row overall-row-third">
@@ -22686,8 +26047,12 @@ Submit
                                                 <h4 class="overall-card-title"><i class="fas fa-layer-group" aria-hidden="true"></i> Q.Links</h4>
                                             </div>
                                             <div class="overall-summary-side-body">
-                                                <div class="overall-summary-facts overall-summary-side-facts" aria-hidden="true">
-                                                    <div class="ccip-summary-fact overall-summary-fact tone-total overall-summary-fact-blank" aria-hidden="true"></div>
+                                                <div class="overall-summary-facts overall-summary-side-facts">
+                                                    <div class="overall-quick-links" aria-label="Platform quick links">
+                                                        <asp:LinkButton ID="lnkQuickLegacyDesign" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showDesignIndicatorSummaryModal(); return false;">Design Indicator</asp:LinkButton>
+                                                        <asp:LinkButton ID="lnkQuickLegacyIngredient" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showIngredientIndicatorSummaryModal(); return false;">Ingredient Indicator</asp:LinkButton>
+                                                        <asp:LinkButton ID="lnkQuickLegacyOem" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showOemIndicatorSummaryModal(); return false;">OEM Indicator</asp:LinkButton>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </article>
@@ -22711,9 +26076,15 @@ Submit
                                             </div>
                                             <section class="ccip-card ccip-trend-card-inline overall-card overall-trend-card">
                                                 <div class="overall-card-head">
-                                                    <h4 class="overall-card-title"><i class="fas fa-chart-line" aria-hidden="true" style="color:#3b82f6; margin-right:6px;"></i>Issue Trend by Work Week</h4>
-                                                    <div class="overall-trend-range">
-                                                        <select id="homeSpecificTrendRange" class="overall-trend-range-select" aria-label="Issue trend time range">
+                                                    <h4 class="overall-card-title overall-trend-title">
+                                                        <i class="fas fa-chart-line" aria-hidden="true" style="color:#3b82f6;"></i>
+                                                        <select id="homeSpecificTrendView" class="overall-trend-title-select" aria-label="Trend chart title and view">
+                                                            <option value="line" selected="selected">OPEN BACKLOG TREND BY WORK WEEK</option>
+                                                            <option value="bar">WEEKLY ISSUE FLOW</option>
+                                                        </select>
+                                                    </h4>
+                                                    <div class="overall-trend-range" style="<%= ddlDashboardDateMode.SelectedValue == "all" ? string.Empty : "display:none;" %>">
+                                                        <select id="homeSpecificTrendRange" class="overall-trend-range-select" aria-label="Issue trend time range" <%= ddlDashboardDateMode.SelectedValue == "all" ? string.Empty : "disabled=\"disabled\"" %>>
                                                             <option value="6" selected="selected">Last 6 Weeks</option>
                                                             <option value="12">Last 12 Weeks</option>
                                                         </select>
@@ -22734,10 +26105,10 @@ Submit
 
                                     <aside id="homeLegacyAiHealthCard" class="overall-card overall-ai-card overall-ai-span-card">
                                         <div class="overall-card-head ccip-ai-health-head">
-                                            <span><i class="fas fa-wand-magic-sparkles" aria-hidden="true" style="margin-right:6px;"></i>AI Program Health</span>
+                                            <span class="ci-heading"><span><i class="fas fa-wand-magic-sparkles" aria-hidden="true" style="margin-right:6px;"></i>AI INSIGHTS</span><span id="homePlatformInsightsScope" class="ci-scope"></span></span>
                                             <span class="ccip-ai-beta">Beta</span>
                                         </div>
-                                        <div class="overall-ai-blank"></div>
+                                        <div id="homePlatformInsights" class="cmf-insights"></div>
                                     </aside>
                                 </div>
 
@@ -22757,6 +26128,7 @@ Submit
                                                         <h3 class="ccip-card-mini-title"><i class="fas fa-clipboard-list" aria-hidden="true" style="color:#0f766e; margin-right:6px;"></i>CMF Pending Count</h3>
                                                     </div>
                                                     <div id="homePendingSummaryTable" class="ccip-live-table-wrap"></div>
+                                                    <div class="component-summary-legend overall-pending-legend pending-summary-threshold-legend" aria-label="Pending age threshold legend"></div>
                                                 </section>
                                             </div>
 
@@ -22785,7 +26157,6 @@ Submit
                                         <h2 class="ccip-dash-greeting" style="margin:0;">CMF Summary</h2>
                                         <p class="ccip-dash-sub">Platform-specific CMF process metrics, milestone counts, component breakdown, and pending CMF count for <%: HomeDashboardPlatformLabel %>.</p>
                                     </div>
-                                    <div class="ccip-dash-updated">Updated <asp:Label ID="lblCmfSummaryGeneratedAt" runat="server" /></div>
                                 </div>
 
                                 <div class="platform-chip-rail" data-chip-source="server" role="tablist" aria-label="CMF Summary platform switch" style="margin-bottom:14px;"></div>
@@ -22822,6 +26193,7 @@ Submit
                                                 <h3 class="ccip-card-mini-title"><i class="fas fa-clipboard-list" aria-hidden="true" style="color:#0f766e; margin-right:6px;"></i>CMF Pending Count</h3>
                                             </div>
                                             <div id="homePendingSummaryTable" class="ccip-live-table-wrap"></div>
+                                            <div class="component-summary-legend overall-pending-legend pending-summary-threshold-legend" aria-label="Pending age threshold legend"></div>
                                         </section>
                                     </div>
 
@@ -22999,10 +26371,14 @@ Submit
                 <div class="pane-heading" runat="server" id="pane9" visible="false">Config/CMF Rules</div>
 
                 <div id="aiSummaryDrawerBg" class="ai-summary-drawer-bg" onclick="closeAiSummaryDrawer()"></div>
-                <aside id="aiSummaryDrawer" class="ai-summary-drawer" aria-hidden="true" role="dialog" aria-label="AI Issue Summary">
+                <aside id="aiSummaryDrawer" class="ai-summary-drawer" aria-hidden="true" role="dialog" aria-label="AI Debug Summary">
                     <button type="button" class="ai-summary-drawer-close" onclick="closeAiSummaryDrawer()" aria-label="Close">&times;</button>
-                    <h2 class="ai-summary-drawer-title"><span id="aiSummaryHeadingText">AI Summary</span><span id="aiSummaryTitleBadges" class="ai-summary-title-badges"><span id="aiSummaryConfidence" class="ai-summary-confidence-inline">Confidence: --</span><span id="aiSummaryStatusBadge" class="ai-summary-status-value">Status: --</span></span></h2>
-                    <div id="aiSummaryMeta" class="ai-summary-meta-row ai-summary-meta-combined"><strong>Sighting ID:</strong> <span id="aiSummaryIssueId">-</span><strong>CMF Ask Date:</strong> <span id="aiSummarySubmittedDate">-</span></div>
+                    <h2 class="ai-summary-drawer-title"><span id="aiSummaryHeadingText"><span class="cmf-assistant-title-icon" aria-hidden="true">✨</span>AI Debug Summary</span><span id="aiSummaryTitleBadges" class="ai-summary-title-badges"><span id="aiSummaryConfidence" class="ai-summary-confidence-inline">Confidence: --</span><span id="aiSummaryStatusBadge" class="ai-summary-status-value">Status: --</span></span></h2>
+                    <div id="aiSummaryMeta" class="ai-summary-meta-row ai-summary-meta-combined">
+                        <strong>Sighting ID:</strong> <span id="aiSummaryIssueId">-</span>
+                        <a id="aiSummaryHsdLink" class="cmf-assistant-hsd-link" href="#" target="_blank" rel="noopener noreferrer" title="Open sighting in HSD" aria-label="Open sighting in HSD" style="display:none;"><i class="fas fa-external-link-alt" aria-hidden="true"></i></a>
+                        <strong style="margin-left: 8px;">CMF Ask Date:</strong> <span id="aiSummarySubmittedDate">-</span>
+                    </div>
                     <div class="ai-summary-meta-row" id="aiSummaryTitleRow" style="display:none"><strong>Title:</strong> <span id="aiSummaryTitle">-</span></div>
                     <div id="aiSummaryFacts" class="ai-summary-facts"></div>
                     <div class="ai-summary-body" id="aiSummaryBody">Generating AI summary...</div>
@@ -23010,8 +26386,8 @@ Submit
                         <button type="button" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc; background-color: #f7f7f7; font-weight: bold; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e2e2e2'" onmouseout="this.style.backgroundColor='#f7f7f7'" onclick="copyAiSummaryForReport()" title="Copy summary as plain text for pasting into reports">
                             &#x2398; Copy for Report
                         </button>
-                        <button type="button" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc; background-color: #f7f7f7; font-weight: bold; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e2e2e2'" onmouseout="this.style.backgroundColor='#f7f7f7'" onclick="regenerateAiSummary()" title="Regenerate summary from AI">
-                            &#x21BA; Regenerate
+                        <button type="button" style="padding: 8px 16px; border-radius: 6px; border: 1px solid #ccc; background-color: #f7f7f7; font-weight: bold; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e2e2e2'" onmouseout="this.style.backgroundColor='#f7f7f7'" onclick="regenerateAiSummary()" title="Regenerate summary from AI" aria-label="Regenerate summary from AI">
+                            &#x21BA;
                         </button>
                     </div>
                     <div id="aiSummaryChat" class="ai-summary-chat" style="display:none">
@@ -23043,13 +26419,6 @@ Submit
                             <div id="cmfAssistantSightingDescription" class="cmf-assistant-description">-</div>
                         </div>
                     </section>
-                    <section id="cmfAssistantRecommendationSection" class="cmf-assistant-sighting-card" aria-label="CMF recommendation">
-                        <div class="cmf-assistant-text-section cmf-assistant-recommendation-section">
-                            <h3>CMF Recommendation</h3>
-                            <div id="cmfAssistantRecommendationBody">-</div>
-                        </div>
-                    </section>
-                    <div id="cmfAssistantQualityAssessment" class="cmf-assistant-quality-slot" aria-label="Sighting quality assessment"></div>
                     <section id="cmfAssistantImpactSection" class="cmf-assistant-sighting-card" aria-label="Impact summary">
                         <div class="cmf-assistant-text-section cmf-assistant-impact-section">
                             <h3>Impact Summary</h3>
@@ -23058,6 +26427,13 @@ Submit
                             </div>
                         </div>
                     </section>
+                    <section id="cmfAssistantRecommendationSection" class="cmf-assistant-sighting-card" aria-label="CMF recommendation">
+                        <div class="cmf-assistant-text-section cmf-assistant-recommendation-section">
+                            <h3>CMF Recommendation</h3>
+                            <div id="cmfAssistantRecommendationBody">-</div>
+                        </div>
+                    </section>
+                    <div id="cmfAssistantQualityAssessment" class="cmf-assistant-quality-slot" aria-label="Sighting quality assessment"></div>
                     <div id="cmfRecTitleRow" class="ai-summary-meta-row cmf-rec-title-row" style="display:none"><strong>Issue Title:</strong> <span class="cmf-rec-title-text">-</span><span id="cmfRecRecommendation" class="cmf-rec-decision-badge">Generating...</span></div>
                     <div id="cmfRecSightingRow" class="ai-summary-meta-row" style="display:none"><strong>Sighting ID:</strong> <span id="cmfRecCpId">-</span></div>
                     <span id="cmfRecComponent" style="display:none">-</span>
@@ -23067,6 +26443,17 @@ Submit
                         <div id="cmfRecEvidence" class="ai-summary-body">-</div>
                     </div>
                     <div id="cmfDecisionDetailsBody" class="cmf-rec-hidden"></div>
+
+                    <section id="cmfSightingChatPanel" class="cmf-sighting-chat-panel" aria-label="Ask about this sighting">
+                        <div class="cmf-sighting-chat-title">Ask about this sighting</div>
+                        <div id="cmfSightingChatMessages" class="cmf-sighting-chat-messages">
+                            <div class="cmf-sighting-chat-msg">Ask a follow-up question about this opened sighting. Answers are limited to the sighting context.</div>
+                        </div>
+                        <div class="cmf-sighting-chat-input-row">
+                            <textarea id="cmfSightingChatInput" rows="1" aria-label="Question about this sighting" placeholder="Ask about root cause, recovery, repro, impact..." onkeydown="handleCmfSightingChatKeydown(event)"></textarea>
+                            <button type="button" id="cmfSightingChatSend" class="cmf-sighting-chat-send" onclick="sendCmfSightingChatQuestion()" title="Send message" aria-label="Send message"><i class="fas fa-paper-plane" aria-hidden="true"></i></button>
+                        </div>
+                    </section>
 
                     <div id="cmfRecActions" class="cmf-rec-placeholder-actions" style="display:none">
                         <button type="button" class="cmf-rec-placeholder-btn primary" onclick="showCmfPlaceholderAction('Approve CMF Tag')">Approve CMF Tag</button>
@@ -23086,10 +26473,15 @@ Submit
                             <select id="summaryIssuesGroupBy"></select>
                             <label for="summaryIssuesSortBy">Sort by</label>
                             <select id="summaryIssuesSortBy"></select>
+                            <label id="summaryIssuesRecordTypeLabel">Records</label>
+                            <div id="summaryIssuesRecordTypeChecks" class="summary-issues-popup-checkers" role="group" aria-labelledby="summaryIssuesRecordTypeLabel">
+                                <label><input type="checkbox" id="summaryIssuesIncludeUnique" checked="checked" />Unique</label>
+                                <label><input type="checkbox" id="summaryIssuesIncludeDuplicates" checked="checked" />Duplicates</label>
+                            </div>
                             <label for="summaryIssuesShowOpen" id="summaryIssuesTrendStatusLabel">Show issues</label>
                             <div id="summaryIssuesTrendStatusChecks" class="summary-issues-popup-checkers">
                                 <label><input type="checkbox" id="summaryIssuesShowOpen" checked="checked" />Open</label>
-                                <label><input type="checkbox" id="summaryIssuesShowClosed" checked="checked" />Closed</label>
+                                <label><input type="checkbox" id="summaryIssuesShowClosed" checked="checked" /><span id="summaryIssuesClosedLabel">Closed</span></label>
                             </div>
                         </div>
                         <span id="summaryIssuesPopupMeta" class="summary-issues-popup-meta"></span>
@@ -23183,17 +26575,23 @@ Submit
     <div class="modal-body popup">
         <asp:UpdatePanel ID="UpdatePanel1" runat="server">
             <ContentTemplate>
+                <asp:HiddenField ID="hfPopupAsyncAction" runat="server" />
+                <asp:HiddenField ID="hfPopupAsyncArg1" runat="server" />
+                <asp:HiddenField ID="hfPopupAsyncArg2" runat="server" />
+                <asp:HiddenField ID="hfPopupAsyncArg3" runat="server" />
+                <asp:LinkButton ID="btnPopupAsyncDispatch" runat="server" OnClick="btnPopupAsyncDispatch_Click" CausesValidation="false" Style="display:none;" />
+
                 <div class="table-container">
 
                     <!-- SHARED FILTER PANEL FOR ISSUE LIST & CMF PENDING LIST -->
-                    <div id="sharedFilterPanel" runat="server" visible="false" class="overview-platform-actions">
+                    <div id="sharedFilterPanel" runat="server" class="overview-platform-actions">
                         <div class="overview-platform-filter">
                             <label>Platform:</label>
-                            <asp:DropDownList ID="ddlSharedPlatform" runat="server" AutoPostBack="true"
+                            <asp:ListBox ID="ddlSharedPlatform" runat="server" AutoPostBack="true" Rows="1" SelectionMode="Single"
                                 OnSelectedIndexChanged="ddlSharedPlatform_SelectedIndexChanged"
                                 CssClass="form-control">
                                 <asp:ListItem Text="-- Select Platform --" Value="" />
-                            </asp:DropDownList>
+                            </asp:ListBox>
                         </div>
                         <div class="issue-external-links">
                             <a href="https://crtt.intel.com/Administration/SetupIDST.aspx?DNo=5343&PNo=135&Ing=92&CNo=1225" target="_blank">CRTT</a>
@@ -23209,46 +26607,81 @@ Submit
                     <asp:Panel ID="issueListHeaderPanel" runat="server" Visible="true">
                         <div class="issue-page-hd">
                             <div class="issue-page-hd-top">
-                                <h1 class="issue-page-title">Issue List</h1>
+                                <div>
+                                    <h1 class="issue-page-title">Issue List</h1>
+                                    <p class="issue-page-desc">Review active issues, understand their current status, and identify what needs attention next.</p>
+                                </div>
+                                <div class="cmf-pending-actions">
+                                    <div id="issueExternalLinks"></div>
+                                    <button id="issueColumnPickerButton" type="button" class="cmf-pending-action-btn" aria-haspopup="dialog" aria-controls="issueColumnPicker" onclick="openIssueColumnPicker()"><i class="fas fa-table-columns" aria-hidden="true"></i><span>Columns</span></button>
+                                    <span id="issueColumnStatus" role="status" aria-live="polite"></span>
+                                    <asp:HiddenField ID="hfIssueExportColumns" runat="server" />
+                                    <asp:LinkButton ID="btnIssueViewExport" runat="server" CssClass="cmf-pending-action-btn primary" CausesValidation="false" OnClientClick="if (!prepareIssueViewExport()) return false;" OnClick="btnIssueViewExport_Click" ToolTip="Export all filtered issues and selected columns to Excel"><i class="fas fa-download" aria-hidden="true"></i><span>Export</span></asp:LinkButton>
+                                    <span id="issueExportMessage" runat="server" role="status" aria-live="polite"></span>
+                                </div>
                             </div>
-                            <p class="issue-page-desc">
-                                Review active issues, understand their current status, and identify what needs attention next.
-                            </p>
                         </div>
+
+                        <dialog id="issueColumnPicker" class="issue-column-dialog" aria-labelledby="issueColumnTitle" aria-describedby="issueColumnHelp" onclose="CMF_ISSUE_COLUMN_DRAFT = null" onkeydown="handleIssueColumnDialogKeydown(event)">
+                            <div class="issue-column-dialog-header">
+                                <h2 id="issueColumnTitle">Personalize List Columns</h2>
+                                <button type="button" class="issue-column-close" aria-label="Close column personalization" onclick="document.getElementById('issueColumnPicker').close()">&times;</button>
+                            </div>
+                            <div class="issue-column-dialog-body">
+                                <div class="issue-column-lists">
+                                    <div class="issue-column-list">
+                                        <label for="issueColumnsAvailable">Available</label>
+                                        <select id="issueColumnsAvailable" multiple size="14" onchange="updateIssueColumnButtons()" ondblclick="moveIssueColumns(true)"></select>
+                                    </div>
+                                    <div class="issue-column-controls">
+                                        <button id="issueColumnAdd" type="button" aria-label="Add selected columns" title="Add selected columns" onclick="moveIssueColumns(true)"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                                        <button id="issueColumnRemove" type="button" aria-label="Remove selected columns" title="Remove selected columns" onclick="moveIssueColumns(false)"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                                    </div>
+                                    <div class="issue-column-list">
+                                        <label for="issueColumnsSelected">Selected</label>
+                                        <select id="issueColumnsSelected" multiple size="14" onchange="updateIssueColumnButtons()" ondblclick="moveIssueColumns(false)"></select>
+                                    </div>
+                                    <div class="issue-column-controls">
+                                        <button id="issueColumnUp" type="button" aria-label="Move selected columns up" title="Move selected columns up" onclick="reorderIssueColumns(-1)"><i class="fas fa-chevron-up" aria-hidden="true"></i></button>
+                                        <button id="issueColumnDown" type="button" aria-label="Move selected columns down" title="Move selected columns down" onclick="reorderIssueColumns(1)"><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+                                    </div>
+                                </div>
+                                <p id="issueColumnHelp">Use the arrows to choose and order columns. Hold Ctrl (Command on Mac) to select multiple columns.</p>
+                                <div id="issueColumnMessage" role="status" aria-live="polite"></div>
+                            </div>
+                            <div class="issue-column-dialog-footer">
+                                <button type="button" class="issue-column-reset" onclick="resetIssueColumnChoices()">Reset to column defaults</button>
+                                <button type="button" onclick="document.getElementById('issueColumnPicker').close()">Cancel</button>
+                                <button type="button" class="issue-column-apply" onclick="applyIssueColumnChoices()">OK</button>
+                            </div>
+                        </dialog>
                         <div class="issue-kpi-row">
                             <div class="issue-kpi">
+                                <i class="fas fa-file-alt issue-kpi-icon" aria-hidden="true"></i>
                                 <div class="issue-kpi-label">Total Issues</div>
                                 <div class="issue-kpi-value"><asp:Label ID="lblIssueTotal" runat="server" Text="0" /></div>
-                                <div class="issue-kpi-sub"><i class="fas fa-arrow-up" aria-hidden="true"></i> current platform workload</div>
                             </div>
                             <div class="issue-kpi">
+                                <i class="fas fa-folder-open issue-kpi-icon" aria-hidden="true"></i>
                                 <div class="issue-kpi-label">Open Issues</div>
                                 <div class="issue-kpi-value" style="color:#0068b5;"><asp:Label ID="lblIssueInProgress" runat="server" Text="0" /></div>
-                                <div class="issue-kpi-sub"><i class="fas fa-arrow-up" aria-hidden="true"></i> open status</div>
                             </div>
                             <div class="issue-kpi">
+                                <i class="fas fa-check-circle issue-kpi-icon" aria-hidden="true"></i>
                                 <div class="issue-kpi-label">Closed Issues</div>
                                 <div class="issue-kpi-value" style="color:#107c10;"><asp:Label ID="lblIssueClosed" runat="server" Text="0" /></div>
-                                <div class="issue-kpi-sub"><i class="fas fa-arrow-up" aria-hidden="true"></i> complete or rejected</div>
                             </div>
                             <div class="issue-kpi">
+                                <i class="fas fa-check-double issue-kpi-icon" aria-hidden="true"></i>
                                 <div class="issue-kpi-label">Implemented Issues</div>
                                 <div class="issue-kpi-value" style="color:#bc2f32;"><asp:Label ID="lblIssueStale" runat="server" Text="0" /></div>
-                                <div class="issue-kpi-sub"><i class="fas fa-clock" aria-hidden="true"></i> implemented or verified</div>
                             </div>
                         </div>
                     </asp:Panel>
 
-                    <!-- TOP FILTER PANEL - FOR ISSUE LIST -->
-                    <asp:Panel ID="fieldSelectorPanel" runat="server" Visible="true">
+                    <!-- TOP FILTER PANEL - FOR ISSUE LIST (Hidden to save a line; filters moved to column headers) -->
+                    <asp:Panel ID="fieldSelectorPanel" runat="server" Visible="true" style="display:none;">
                         <div class="field-selector-panel issue-top-filter-panel">
-                            <div class="issue-filter-section-header">
-                                <div class="issue-filter-title"><i class="fas fa-filter" aria-hidden="true"></i> Filters</div>
-                                <button type="button" id="issueFiltersToggleBtn" class="issue-collapse-btn" aria-expanded="true" onclick="toggleCollapsibleSection('issueFilters')">
-                                    <span class="toggle-label">Hide</span>
-                                    <span class="toggle-chevron">▾</span>
-                                </button>
-                            </div>
                             <div id="issueTopFilterBody" class="collapsible-body">
                                 <div class="issue-top-filter-grid">
                                     <div class="issue-top-filter-item"><span>Milestone</span><asp:DropDownList ID="ddlMilestoneTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlMilestoneHeader_SelectedIndexChanged" CssClass="header-dropdown" /></div>
@@ -23259,57 +26692,26 @@ Submit
                                     <div class="issue-top-filter-item"><span>Company</span><asp:DropDownList ID="ddlCompanyTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlCompanyHeader_SelectedIndexChanged" CssClass="header-dropdown" /></div>
                                     <div class="issue-top-filter-item"><span>Customer Detail</span><asp:DropDownList ID="ddlDetailTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlDetailHeader_SelectedIndexChanged" CssClass="header-dropdown" /></div>
                                     <div class="issue-top-filter-item"><span>Component Group</span><asp:DropDownList ID="ddlComponentTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlComponentHeader_SelectedIndexChanged" CssClass="header-dropdown" /></div>
-                                </div>
-                                <div class="issue-top-filter-buttons">
-                                    <asp:Button ID="btnClearFilters" runat="server" CssClass="filter-btn filter-btn-secondary" Text="Clear Filters" OnClick="btnClearFilters_Click" />
+                                    <div class="issue-top-filter-item"><span>Status</span><asp:DropDownList ID="ddlStatusTop" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlStatusTop_SelectedIndexChanged" CssClass="header-dropdown" /></div>
                                 </div>
                             </div>
                         </div>
                     </asp:Panel>
                     <!-- END TOP FILTER PANEL -->
 
-                    <div id="searchfilters" class="header-overlay" runat="server" visible="false">
-                        <!-- Your existing search filters -->
-                        <input type="text" id="searchColumn0" placeholder="Search Progress" oninput="filterGrid()" />
-                        <input type="text" id="searchColumn5" placeholder="Search Owner" oninput="filterGrid()" />
-                        <input type="text" id="searchColumn10" placeholder="Search Component" oninput="filterGrid()" />
-                        <input type="text" id="searchColumn4" placeholder="Search Component" oninput="filterGrid()" />
-                        <input type="text" id="searchColumn6" placeholder="Search RVP Repro" oninput="filterGrid()" />
-                    </div>
+                    <div id="searchfilters" class="header-overlay" runat="server" visible="false" style="display:none;"></div>
 
-                    <div class="issue-user-toolbar">
-                        <div class="issue-view-note"><i class="fas fa-table-list" aria-hidden="true"></i> Compact issue workspace</div>
-                        <div class="issue-user-actions">
-                            <button
-                                type="button"
-                                id="issueFilterToolbarBtn"
-                                class="issue-toolbar-btn filter-toggle"
-                                onclick="toggleCollapsibleSection('issueFilters')">
-                                <i class="fas fa-filter" aria-hidden="true"></i>
-                                Filters
-                            </button>
-                            <button
-                                type="button"
-                                id="btnShowAllColumns"
-                                class="issue-toolbar-btn secondary"
-                                onclick="showAllColumns()"
-                                style="display:none">
-                                <i class="fas fa-table-columns" aria-hidden="true"></i>
-                                Show Columns
-                            </button>
-                        </div>
+                    <div class="issue-platform-bar" style="display: flex; align-items: center; justify-content: space-between; margin: 10px 0 8px 0;">
+                        <div id="issuePlatformSlot"></div>
+                        <asp:Button ID="btnClearFilters" runat="server" CssClass="filter-btn filter-btn-secondary" Text="Clear Filters" OnClick="btnClearFilters_Click" />
                     </div>
-
 
                     <div class="gridview-container issue-grid-scroll">
-                        <div class="issue-grid-toolbar">
-                            <button type="button" id="btnShowAllColumns" class="show-cols-btn" onclick="showAllColumns()" style="display:none" title="Restore all hidden columns">&#x21BA; Show All Columns</button>
-                        </div>
                         <!-- MODIFY YOUR GRIDVIEW TO ADD DATA-FIELD ATTRIBUTES -->
                         <div id="issue-grid-inner" class="issue-grid-inner">
 
 <asp:GridView ID="overall_request_details" CssClass="table-primary" runat="server" AutoGenerateColumns="False"
-    EmptyDataText="No Open CMFs" OnRowEditing="overall_request_details_RowEditing"
+    EmptyDataText="No Open CMFs" ShowHeaderWhenEmpty="True" OnRowEditing="overall_request_details_RowEditing"
     OnRowUpdating="overall_request_details_RowUpdating" OnRowCancelingEdit="overall_request_details_RowCancelingEdit"
     OnRowDataBound="overall_request_details_RowDataBound" OnPageIndexChanging="overall_request_details_PageIndexChanging"
     AllowPaging="true" PageSize="12" PagerStyle-CssClass="pager" Visible="false">
@@ -23318,69 +26720,25 @@ Submit
 
     <Columns>
 
-        <asp:TemplateField HeaderText="#" ItemStyle-Width="50px" HeaderStyle-Width="50px"
-            ItemStyle-CssClass="field-sno" HeaderStyle-CssClass="field-sno">
+        <asp:TemplateField HeaderText="Actions" ItemStyle-CssClass="field-actions" HeaderStyle-CssClass="field-actions">
+            <HeaderTemplate>Actions</HeaderTemplate>
             <ItemTemplate>
-                <div class="issue-sno-cell">
-                    <span class="issue-sno-index"><%# Container.DataItemIndex + 1 %></span>
-                    <asp:LinkButton ID="btnRowEdit" runat="server" CommandName="Edit" CausesValidation="false" CssClass="issue-inline-edit-btn" ToolTip="Edit row" aria-label="Edit row">
-                        <i class="fas fa-pencil-alt" aria-hidden="true"></i>
-                    </asp:LinkButton>
+                <div class="issue-actions-cell" role="group" aria-label="Issue actions">
+                    <button type="button" class="issue-action-btn action-debug" onclick="runIssueRowAiAction(this, 'debug')" title="AI Debug Summary" aria-label="AI Debug Summary"><span aria-hidden="true">&#10024;</span></button>
+                    <button type="button" class="issue-action-btn action-details" onclick="runIssueRowAiAction(this, 'details')" title="AI Issue Details" aria-label="AI Issue Details"><i class="fas fa-file-alt" aria-hidden="true"></i></button>
+                    <asp:LinkButton ID="btnRowEdit" runat="server" CommandName="Edit" CausesValidation="false" CssClass="issue-action-btn action-edit" ToolTip="Edit row" aria-label="Edit row"><i class="fas fa-pencil-alt" aria-hidden="true"></i></asp:LinkButton>
                 </div>
             </ItemTemplate>
             <EditItemTemplate>
-                <div class="issue-sno-cell">
-                    <span class="issue-sno-index"><%# Container.DataItemIndex + 1 %></span>
-                    <span class="issue-inline-edit-actions">
-                        <asp:LinkButton ID="btnRowUpdate" runat="server" CommandName="Update" CssClass="issue-inline-edit-action" ToolTip="Save changes" aria-label="Save changes">
-                            <i class="fas fa-check" aria-hidden="true"></i>
-                        </asp:LinkButton>
-                        <asp:LinkButton ID="btnRowCancel" runat="server" CommandName="Cancel" CausesValidation="false" CssClass="issue-inline-edit-action" ToolTip="Cancel edit" aria-label="Cancel edit">
-                            <i class="fas fa-times" aria-hidden="true"></i>
-                        </asp:LinkButton>
-                    </span>
+                <div class="issue-actions-cell" role="group" aria-label="Edit actions">
+                    <asp:LinkButton ID="btnRowUpdate" runat="server" CommandName="Update" CssClass="issue-action-btn action-save" ToolTip="Save changes" aria-label="Save changes"><i class="fas fa-check" aria-hidden="true"></i></asp:LinkButton>
+                    <asp:LinkButton ID="btnRowCancel" runat="server" CommandName="Cancel" CausesValidation="false" CssClass="issue-action-btn action-cancel" ToolTip="Cancel edit" aria-label="Cancel edit"><i class="fas fa-times" aria-hidden="true"></i></asp:LinkButton>
                 </div>
             </EditItemTemplate>
         </asp:TemplateField>
 
-        <asp:TemplateField HeaderText="Issue Details" ItemStyle-CssClass="field-issue_details" HeaderStyle-CssClass="field-issue_details">
-            <ItemTemplate>
-                <%# RenderIssueDetails(Eval("SightingID"), Eval("Merged_PromotedID"), Eval("title"), Eval("cmf_request"), Eval("SubmittedDate"), Eval("IssueStatus"), Eval("sysdebug")) %>
-            </ItemTemplate>
-        </asp:TemplateField>
-
-        <asp:TemplateField HeaderText="Customer" ItemStyle-CssClass="field-customer_detail" HeaderStyle-CssClass="field-customer_detail">
-            <ItemTemplate><%# RenderCustomerDetailWithCompanyAndProcessor(Eval("customer_detail"), Eval("customer_company"), Eval("processor")) %></ItemTemplate>
-        </asp:TemplateField>
-
-        <asp:TemplateField HeaderText="Component" ItemStyle-CssClass="component-column field-component" HeaderStyle-CssClass="field-component">
-            <HeaderTemplate>
-                <div class="filter-header-container">
-                    <div class="filter-header-text">Component</div>
-                    <div class="filter-container">
-                        <asp:DropDownList ID="ddlComponentHeader" runat="server" AutoPostBack="true"
-                            OnSelectedIndexChanged="ddlComponentHeader_SelectedIndexChanged" CssClass="header-dropdown" />
-                    </div>
-                </div>
-            </HeaderTemplate>
-            <ItemTemplate><%# RenderComponentWithGroupBadge(Eval("component"), Eval("component_group")) %></ItemTemplate>
-        </asp:TemplateField>
-
-        <asp:TemplateField HeaderText="Owner" ItemStyle-CssClass="field-owner" HeaderStyle-CssClass="field-owner">
-            <HeaderTemplate>
-                <div class="filter-header-container">
-                    <div class="filter-header-text">Owner</div>
-                    <div class="filter-container">
-                        <asp:DropDownList ID="ddlOwnerHeader" runat="server" AutoPostBack="true"
-                            OnSelectedIndexChanged="ddlOwnerHeader_SelectedIndexChanged" CssClass="header-dropdown" />
-                    </div>
-                </div>
-            </HeaderTemplate>
-            <ItemTemplate><%# RenderOwnerWithPromotedOwner(Eval("Owner"), Eval("owners_name")) %></ItemTemplate>
-            <EditItemTemplate>
-                <asp:TextBox ID="txtOwner" runat="server" TextMode="MultiLine" Text='<%# Bind("Owner") %>'
-                    CssClass="form-control"></asp:TextBox>
-            </EditItemTemplate>
+        <asp:TemplateField HeaderText="S.No" ItemStyle-CssClass="field-sno" HeaderStyle-CssClass="field-sno">
+            <ItemTemplate><%# Container.DataItemIndex + 1 %></ItemTemplate>
         </asp:TemplateField>
 
         <asp:TemplateField HeaderText="Milestone" ItemStyle-CssClass="field-milestone" HeaderStyle-CssClass="field-milestone">
@@ -23398,23 +26756,121 @@ Submit
             </ItemTemplate>
         </asp:TemplateField>
 
-        <asp:TemplateField HeaderText="Status" ItemStyle-CssClass="field-status" HeaderStyle-CssClass="field-status">
+        <asp:TemplateField HeaderText="Progress" ItemStyle-CssClass="field-progress" HeaderStyle-CssClass="field-progress">
+            <HeaderTemplate>
+                <div class="filter-header-container">
+                    <div class="filter-header-text">Progress</div>
+                    <div class="filter-container">
+                        <asp:DropDownList ID="ddlStatusHeader" runat="server" AutoPostBack="true"
+                            OnSelectedIndexChanged="ddlStatusHeader_SelectedIndexChanged" CssClass="header-dropdown" />
+                    </div>
+                </div>
+            </HeaderTemplate>
+            <ItemTemplate><%# Eval("IssueStatus") %></ItemTemplate>
+        </asp:TemplateField>
+
+        <asp:TemplateField HeaderText="Sighting ID" ItemStyle-CssClass="field-sightingid" HeaderStyle-CssClass="field-sightingid">
             <ItemTemplate>
-                <%# RenderStatusWithAiSummaryButton(Eval("IssueStatus"), Eval("Status"), Eval("SightingID"), Eval("title"), Eval("SubmittedDate"), Eval("sysdebug"), Container.DataItem) %>
+                <%# RenderIssueDetails(Eval("SightingID"), Eval("Merged_PromotedID"), Eval("title"), Eval("cmf_request"), Eval("SubmittedDate"), Eval("IssueStatus"), Eval("sysdebug"), false) %>
             </ItemTemplate>
         </asp:TemplateField>
 
-        <asp:BoundField DataField="Status" HeaderText="CMF Status" ReadOnly="True" Visible="false"
-            ItemStyle-CssClass="field-cmf_status" HeaderStyle-CssClass="field-cmf_status" />
+        <asp:HyperLinkField DataTextField="Merged_PromotedID" HeaderText="Promoted ID"
+            DataNavigateUrlFields="Merged_PromotedID" DataNavigateUrlFormatString="https://hsdes.intel.com/appstore/article/#/{0}" Target="_blank"
+            ItemStyle-CssClass="field-promotedid" HeaderStyle-CssClass="field-promotedid" />
+
+        <asp:TemplateField HeaderText="Customer Detail" ItemStyle-CssClass="field-customer_detail" HeaderStyle-CssClass="field-customer_detail">
+            <HeaderTemplate>
+                <div class="filter-header-container">
+                    <div class="filter-header-text">Customer Detail</div>
+                    <div class="filter-container">
+                        <asp:DropDownList ID="ddlDetailHeader" runat="server" AutoPostBack="true"
+                            OnSelectedIndexChanged="ddlDetailHeader_SelectedIndexChanged" CssClass="header-dropdown" />
+                    </div>
+                </div>
+            </HeaderTemplate>
+            <ItemTemplate>
+                <%#: Eval("customer_detail") %>
+            </ItemTemplate>
+        </asp:TemplateField>
 
         <asp:BoundField DataField="ImageFreeze" HeaderText="Image Freeze" ReadOnly="True"
-    ItemStyle-CssClass="field-imagefreeze" HeaderStyle-CssClass="field-imagefreeze" />
+            ItemStyle-CssClass="field-imagefreeze" HeaderStyle-CssClass="field-imagefreeze" />
 
         <asp:TemplateField HeaderText="Duplicate Details"
             ItemStyle-CssClass="field-duplicatedetails" HeaderStyle-CssClass="field-duplicatedetails">
             <ItemTemplate><%# CreateDuplicateLinks(Eval("DuplicateDetails")) %></ItemTemplate>
         </asp:TemplateField>
 
+        <asp:TemplateField HeaderText="Customer Company" ItemStyle-CssClass="field-customer_company" HeaderStyle-CssClass="field-customer_company">
+            <HeaderTemplate>
+                <div class="filter-header-container">
+                    <div class="filter-header-text">Customer Company</div>
+                    <div class="filter-container">
+                        <asp:DropDownList ID="ddlCompanyHeader" runat="server" AutoPostBack="true"
+                            OnSelectedIndexChanged="ddlCompanyHeader_SelectedIndexChanged" CssClass="header-dropdown" />
+                    </div>
+                </div>
+            </HeaderTemplate>
+            <ItemTemplate><span class="issue-company-name"><%#: Eval("customer_company") %></span></ItemTemplate>
+        </asp:TemplateField>
+
+        <asp:TemplateField HeaderText="Title" ItemStyle-CssClass="field-title" HeaderStyle-CssClass="field-title">
+            <ItemTemplate>
+                <asp:Label ID="lblIssueTitle" runat="server" CssClass="issue-title-text" Text='<%# HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(Convert.ToString(Eval("title"))) ? "unknown" : Convert.ToString(Eval("title"))) %>' />
+            </ItemTemplate>
+            <EditItemTemplate>
+                <asp:Label ID="lblIssueTitle" runat="server" CssClass="issue-title-text" Text='<%# HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(Convert.ToString(Eval("title"))) ? "unknown" : Convert.ToString(Eval("title"))) %>' />
+            </EditItemTemplate>
+        </asp:TemplateField>
+
+        <asp:TemplateField HeaderText="Component" ItemStyle-CssClass="field-component" HeaderStyle-CssClass="field-component">
+            <HeaderTemplate>
+                <div class="filter-header-container">
+                    <div class="filter-header-text">Component</div>
+                    <div class="filter-container">
+                        <asp:DropDownList ID="ddlComponentHeader" runat="server" AutoPostBack="true"
+                            OnSelectedIndexChanged="ddlComponentHeader_SelectedIndexChanged" CssClass="header-dropdown" />
+                    </div>
+                </div>
+            </HeaderTemplate>
+            <ItemTemplate>
+                <span><%#: Eval("component") %></span>
+            </ItemTemplate>
+        </asp:TemplateField>
+
+        <asp:TemplateField HeaderText="Component Group" ItemStyle-CssClass="field-component_group" HeaderStyle-CssClass="field-component_group">
+            <HeaderTemplate>
+                <div class="filter-header-container">
+                    <div class="filter-header-text">Component Group</div>
+                    <div class="filter-container">
+                        <asp:DropDownList ID="ddlComponentGroupHeader" runat="server" AutoPostBack="true"
+                            OnSelectedIndexChanged="ddlComponentGroupHeader_SelectedIndexChanged" CssClass="header-dropdown" />
+                    </div>
+                </div>
+            </HeaderTemplate>
+            <ItemTemplate><%#: Eval("component_group") %></ItemTemplate>
+        </asp:TemplateField>
+
+        <asp:TemplateField HeaderText="Owner" ItemStyle-CssClass="field-owner" HeaderStyle-CssClass="field-owner">
+            <HeaderTemplate>
+                <div class="filter-header-container">
+                    <div class="filter-header-text">Owner</div>
+                    <div class="filter-container">
+                        <asp:DropDownList ID="ddlOwnerHeader" runat="server" AutoPostBack="true"
+                            OnSelectedIndexChanged="ddlOwnerHeader_SelectedIndexChanged" CssClass="header-dropdown" />
+                    </div>
+                </div>
+            </HeaderTemplate>
+            <ItemTemplate><%#: Eval("Owner") %></ItemTemplate>
+            <EditItemTemplate>
+                <asp:TextBox ID="txtOwner" runat="server" TextMode="MultiLine" Text='<%# Bind("Owner") %>'
+                    CssClass="form-control"></asp:TextBox>
+            </EditItemTemplate>
+        </asp:TemplateField>
+
+        <asp:BoundField DataField="owners_name" HeaderText="Promoted Owner" ReadOnly="True"
+            ItemStyle-CssClass="field-promoted_owner" HeaderStyle-CssClass="field-promoted_owner" />
 
         <asp:TemplateField HeaderText="RVP Repro" ItemStyle-CssClass="field-rvp_repro" HeaderStyle-CssClass="field-rvp_repro">
             <HeaderTemplate>
@@ -23427,6 +26883,12 @@ Submit
                 </div>
             </HeaderTemplate>
             <ItemTemplate><span><%# Eval("repro_on_rvp") %></span></ItemTemplate>
+        </asp:TemplateField>
+
+        <asp:TemplateField HeaderText="Status" ItemStyle-CssClass="field-status" HeaderStyle-CssClass="field-status">
+            <ItemTemplate>
+                <%# RenderStatusWithAiSummaryButton(Eval("IssueStatus"), Eval("Status"), Eval("SightingID"), Eval("title"), Eval("SubmittedDate"), Eval("sysdebug"), Container.DataItem) %>
+            </ItemTemplate>
         </asp:TemplateField>
 
         <asp:TemplateField HeaderText="iDST" ItemStyle-CssClass="field-idst" HeaderStyle-CssClass="field-idst">
@@ -23457,8 +26919,6 @@ Submit
                     </div>
                 </div>
             </HeaderTemplate>
-            <ItemStyle Width="100px" />
-            <HeaderStyle Width="100px" />
             <ItemTemplate><span class="los-column"><%# Eval("los") %></span></ItemTemplate>
             <EditItemTemplate>
                 <asp:DropDownList ID="ddllos" runat="server" CssClass="form-control"></asp:DropDownList>
@@ -23467,11 +26927,11 @@ Submit
 
 
         <asp:BoundField DataField="processor" HeaderText="Processor" ReadOnly="True"
-            ItemStyle-CssClass="field-processor" HeaderStyle-CssClass="field-processor" Visible="false" />
+            ItemStyle-CssClass="field-processor" HeaderStyle-CssClass="field-processor" />
 
 
     <asp:TemplateField HeaderText="Impact" ItemStyle-CssClass="field-impact_processor" HeaderStyle-CssClass="field-impact_processor">
-        <ItemTemplate><%# RenderImpactWithProcessor(Eval("impact"), Eval("processor")) %></ItemTemplate>
+        <ItemTemplate><%#: Eval("impact") %></ItemTemplate>
             <EditItemTemplate>
                 <asp:TextBox ID="txtimpact" runat="server" TextMode="MultiLine" Text='<%# Bind("impact") %>'
                     CssClass="form-control"></asp:TextBox>
@@ -23486,136 +26946,11 @@ Submit
         <asp:BoundField DataField="ClosedDetails" HeaderText="Closed Reason / Fixed Version" ReadOnly="True"
             ItemStyle-CssClass="cmfrequest-column field-closed_reason" HeaderStyle-CssClass="field-closed_reason" />
 
-        <asp:BoundField DataField="progress" HeaderText="Progress" ReadOnly="True" Visible="false"
-            ItemStyle-CssClass="field-progress" HeaderStyle-CssClass="field-progress" />
-
     </Columns>
 
 <EmptyDataTemplate>
     <div class="empty-data-container">
-        <table class="table-primary" style="width:100%">
-            <thead>
-                <tr>
-
-                    <th style="width:50px;" class="field-sno">S.No</th>
-
-                    <th class="field-sightingid">SightingID | Promoted ID</th>
-
-                    <th class="field-milestone">
-                        <div class="filter-header-container">
-                            <div class="filter-header-text">Milestone</div>
-                            <div class="filter-container">
-                                <asp:DropDownList ID="ddlMilestoneHeaderEmpty" runat="server"
-                                    AutoPostBack="true"
-                                    OnSelectedIndexChanged="ddlMilestoneHeader_SelectedIndexChanged"
-                                    CssClass="header-dropdown">
-                                </asp:DropDownList>
-                            </div>
-                        </div>
-                    </th>
-
-                    <th class="field-title">Title</th>
-
-                    <th class="field-owner">
-                        <div class="filter-header-container">
-                            <div class="filter-header-text">Owner</div>
-                            <div class="filter-container">
-                                <asp:DropDownList ID="ddlOwnerHeaderEmpty" runat="server"
-                                    AutoPostBack="true"
-                                    OnSelectedIndexChanged="ddlOwnerHeader_SelectedIndexChanged"
-                                    CssClass="header-dropdown">
-                                </asp:DropDownList>
-                            </div>
-                        </div>
-                    </th>
-
-                    <th class="field-status">Status</th>
-
-                    <th class="field-component">Component</th>
-
-
-                    <th class="field-customer_detail">
-                        <div class="filter-header-container">
-                            <div class="filter-header-text">Customer Detail</div>
-                            <div class="filter-container">
-                                <asp:DropDownList ID="ddlDetailHeaderEmpty" runat="server"
-                                    AutoPostBack="true"
-                                    OnSelectedIndexChanged="ddlDetailHeader_SelectedIndexChanged"
-                                    CssClass="header-dropdown">
-                                </asp:DropDownList>
-                            </div>
-                        </div>
-                    </th>
-
-                    <th class="field-imagefreeze">ImageFreeze</th>
-
-                    <th class="field-duplicatedetails">Duplicate Details</th>
-
-                    <th class="field-rvp_repro">
-                        <div class="filter-header-container">
-                            <div class="filter-header-text">RVP Repro</div>
-                            <div class="filter-container">
-                                <asp:DropDownList ID="ddlRvpReproHeaderEmpty" runat="server"
-                                    AutoPostBack="true"
-                                    OnSelectedIndexChanged="ddlRvpReproHeader_SelectedIndexChanged"
-                                    CssClass="header-dropdown">
-                                </asp:DropDownList>
-                            </div>
-                        </div>
-                    </th>
-
-                    <th class="field-idst">
-                        <div class="filter-header-container">
-                            <div class="filter-header-text">iDST</div>
-                            <div class="filter-container">
-                                <asp:DropDownList ID="ddlIdstHeaderEmpty" runat="server"
-                                    AutoPostBack="true"
-                                    OnSelectedIndexChanged="ddlIdstHeader_SelectedIndexChanged"
-                                    CssClass="header-dropdown">
-                                </asp:DropDownList>
-                            </div>
-                        </div>
-                    </th>
-
-
-                    <th class="field-los" style="width:100px;">
-                        <div class="filter-header-container">
-                            <div class="filter-header-text">LOS</div>
-                            <div class="filter-container">
-                                <asp:DropDownList ID="ddlLosHeaderEmpty" runat="server"
-                                    AutoPostBack="true"
-                                    OnSelectedIndexChanged="ddlLosHeader_SelectedIndexChanged"
-                                    CssClass="header-dropdown">
-                                </asp:DropDownList>
-                            </div>
-                        </div>
-                    </th>
-
-
-                    <th class="field-processor">Processor</th>
-
-
-                    <th class="field-impact">Impact</th>
-
-
-                    <th class="field-days_open">Days_Open</th>
-
-
-                    <th class="field-closed_reason">Closed Reason / Fixed Version</th>
-
-                    <th class="field-progress">Progress</th>
-
-
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td colspan="23" style="text-align:center; padding:20px;">
-                        No Open CMFs found for the selected filters. Please adjust your filter criteria.
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        No Open CMFs found for the selected filters. Please adjust your filter criteria.
     </div>
 </EmptyDataTemplate>
 
@@ -23627,7 +26962,20 @@ Submit
                             <div id="issue-scroll-proxy" class="issue-scroll-proxy" aria-label="Issue list horizontal scroll">
                                 <div id="issue-scroll-proxy-inner" class="issue-scroll-proxy-inner"></div>
                             </div>
-                            <div class="issue-pager-controls">
+                            <div class="issue-pager-controls portal-table-footer">
+                                <label class="issue-page-size-control" for="ddlIssuePageSize">
+                                    <span>Rows per page</span>
+                                    <asp:DropDownList ID="ddlIssuePageSize" runat="server" AutoPostBack="true" CssClass="issue-page-size-select" OnSelectedIndexChanged="ddlIssuePageSize_SelectedIndexChanged">
+                                        <asp:ListItem Text="10" Value="10" />
+                                        <asp:ListItem Text="12" Value="12" Selected="True" />
+                                        <asp:ListItem Text="25" Value="25" />
+                                        <asp:ListItem Text="50" Value="50" />
+                                        <asp:ListItem Text="100" Value="100" />
+                                    </asp:DropDownList>
+                                </label>
+                                <div class="issue-page-status">
+                                    <asp:Label ID="lblIssuePageStatus" runat="server" />
+                                </div>
                                 <div class="issue-page-nav" aria-label="Issue pages">
                                     <asp:LinkButton ID="btnPageGroupPrev" runat="server" CssClass="issue-pager-group-btn" OnClick="btnPageGroupPrev_Click" ToolTip="Previous 10 pages">&laquo;</asp:LinkButton>
                                     <asp:Repeater ID="rptPageNumbers" runat="server" OnItemCommand="rptPageNumbers_ItemCommand">
@@ -23637,19 +26985,6 @@ Submit
                                     </asp:Repeater>
                                     <asp:LinkButton ID="btnPageGroupNext" runat="server" CssClass="issue-pager-group-btn" OnClick="btnPageGroupNext_Click" ToolTip="Next 10 pages">&raquo;</asp:LinkButton>
                                 </div>
-                                <span class="issue-page-size-control">
-                                    <span>Rows per page</span>
-                                    <asp:DropDownList ID="ddlIssuePageSize" runat="server" AutoPostBack="true" CssClass="issue-page-size-select" OnSelectedIndexChanged="ddlIssuePageSize_SelectedIndexChanged">
-                                        <asp:ListItem Text="10" Value="10" />
-                                        <asp:ListItem Text="12" Value="12" Selected="True" />
-                                        <asp:ListItem Text="25" Value="25" />
-                                        <asp:ListItem Text="50" Value="50" />
-                                        <asp:ListItem Text="100" Value="100" />
-                                    </asp:DropDownList>
-                                </span>
-                            </div>
-                            <div class="issue-page-status">
-                                <asp:Label ID="lblIssuePageStatus" runat="server" />
                             </div>
                         </asp:Panel>
                     </div>
@@ -23659,20 +26994,54 @@ Submit
                         <div class="pending-tab-main">
                             <div class="cmf-pending-page-hd">
                                 <div>
-                                    <div class="cmf-pending-breadcrumb"><asp:LinkButton ID="lnkPendingBreadcrumbHome" runat="server" OnClick="btnShowHomeDashboard_Click">Home</asp:LinkButton> <span>›</span> CMF Pending List</div>
+                                    <asp:LinkButton ID="lnkPendingBreadcrumbHome" runat="server" OnClick="btnShowHomeDashboard_Click" Visible="false">Home</asp:LinkButton>
                                     <div class="cmf-pending-page-hd-top">
                                         <div>
                                             <h1 class="cmf-pending-page-title">CMF Pending List</h1>
                                             <p class="cmf-pending-page-desc">Track and manage all pending CMFs and recommended dispositions.</p>
                                         </div>
                                         <div class="cmf-pending-actions">
-                                            <button type="button" class="cmf-pending-action-btn" onclick="openCmfPendingInsights();"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span>AI Insights</span></button>
-                                            <button type="button" class="cmf-pending-action-btn primary" onclick="showPortalToast('Use Export to Excel from the left navigation for the active portal export workflow.');"><i class="fas fa-download" aria-hidden="true"></i><span>Export</span></button>
+                                            <div id="cmfPendingExternalLinks"></div>
+                                            <button type="button" class="cmf-pending-action-btn" aria-haspopup="dialog" aria-controls="pendingColumnPicker" onclick="PendingColumnPicker.open()"><i class="fas fa-table-columns" aria-hidden="true"></i><span>Columns</span></button>
+                                            <asp:LinkButton ID="btnPendingViewExport" runat="server" CssClass="cmf-pending-action-btn primary" CausesValidation="false" OnClientClick="if (!preparePendingViewExport()) return false;" OnClick="btnExportToExcel_Click_cmf_pending" ToolTip="Export all issues matching the current filters to Excel"><i class="fas fa-download" aria-hidden="true"></i><span>Export</span></asp:LinkButton>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
+                            <dialog id="pendingColumnPicker" class="issue-column-dialog" aria-labelledby="pendingColumnTitle" onkeydown="PendingColumnPicker.keydown(event)">
+                                <div class="issue-column-dialog-header">
+                                    <h2 id="pendingColumnTitle">Personalize List Columns</h2>
+                                    <button type="button" class="issue-column-close" aria-label="Close column personalization" onclick="PendingColumnPicker.close()">&times;</button>
+                                </div>
+                                <div class="issue-column-dialog-body">
+                                    <div class="issue-column-lists">
+                                        <div class="issue-column-list">
+                                            <label for="pendingColumnsAvailable">Available</label>
+                                            <select id="pendingColumnsAvailable" multiple size="14" onchange="PendingColumnPicker.updateButtons()" ondblclick="PendingColumnPicker.move(true)"></select>
+                                        </div>
+                                        <div class="issue-column-controls">
+                                            <button id="pendingColumnAdd" type="button" title="Add selected columns" aria-label="Add selected columns" onclick="PendingColumnPicker.move(true)"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                                            <button id="pendingColumnRemove" type="button" title="Remove selected columns" aria-label="Remove selected columns" onclick="PendingColumnPicker.move(false)"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                                        </div>
+                                        <div class="issue-column-list">
+                                            <label for="pendingColumnsSelected">Selected</label>
+                                            <select id="pendingColumnsSelected" multiple size="14" onchange="PendingColumnPicker.updateButtons()" ondblclick="PendingColumnPicker.move(false)"></select>
+                                        </div>
+                                        <div class="issue-column-controls">
+                                            <button id="pendingColumnUp" type="button" title="Move selected columns up" aria-label="Move selected columns up" onclick="PendingColumnPicker.reorder(-1)"><i class="fas fa-chevron-up" aria-hidden="true"></i></button>
+                                            <button id="pendingColumnDown" type="button" title="Move selected columns down" aria-label="Move selected columns down" onclick="PendingColumnPicker.reorder(1)"><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+                                        </div>
+                                    </div>
+                                    <div id="pendingColumnMessage" role="status" aria-live="polite"></div>
+                                </div>
+                                <div class="issue-column-dialog-footer">
+                                    <button type="button" class="issue-column-reset" onclick="PendingColumnPicker.reset()">Reset to column defaults</button>
+                                    <button type="button" onclick="PendingColumnPicker.close()">Cancel</button>
+                                    <button type="button" class="issue-column-apply" onclick="PendingColumnPicker.apply()">OK</button>
+                                </div>
+                            </dialog>
+                            <span id="pendingColumnStatus" role="status" aria-live="polite"></span>
                             <asp:Panel ID="cmf_pending_header_panel" runat="server" Visible="false"></asp:Panel>
 
                             <div class="cmf-pending-kpi-row template-kpi-row">
@@ -23695,40 +27064,64 @@ Submit
                             </div>
 
                             <div class="cmf-pending-filter-card" aria-label="CMF pending list filters">
+                                <div id="cmfPendingPlatformSlot"></div>
                                 <div class="cmf-pending-searchbox"><i class="fas fa-search" aria-hidden="true"></i><input type="text" id="cmfPendingClientSearch" placeholder="Search by ID, title, customer, component..." oninput="filterCmfPendingRows()" /></div>
-                                <select id="cmfPendingComponentFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()" aria-label="Filter CMF Pending by component"><option value="">All Components</option></select>
-                                <select id="cmfPendingOwnerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()" aria-label="Filter CMF Pending by owner"><option value="">All Owners</option></select>
-                                <select id="cmfPendingCustomerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()" aria-label="Filter CMF Pending by customer"><option value="">All Customers</option></select>
-                                <select id="cmfPendingIdstFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()" aria-label="Filter CMF Pending by iDST"><option value="">All iDST</option></select>
-                                <button type="button" class="cmf-pending-filter-btn" onclick="resetCmfPendingClientFilters()"><i class="fas fa-rotate-left" aria-hidden="true"></i><span>Reset</span></button>
+                                <label class="portal-filter-field" for="cmfPendingCustomerFilter">Customer<select id="cmfPendingCustomerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select></label>
+                                <label class="portal-filter-field" for="cmfPendingRvpFilter">RVP Repro<select id="cmfPendingRvpFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option><option value="yes">Yes</option><option value="no">No</option><option value="unknown">Unknown</option></select></label>
+                                <label class="portal-filter-field" for="cmfPendingIdstFilter">iDST<select id="cmfPendingIdstFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select></label>
+                                <fieldset class="portal-filter-field portal-date-filter"><legend>CMF Ask Date</legend><div><input type="date" id="cmfPendingDateFrom" aria-label="CMF Ask Date from" onchange="filterCmfPendingRows()" /><span aria-hidden="true">to</span><input type="date" id="cmfPendingDateTo" aria-label="CMF Ask Date to" onchange="filterCmfPendingRows()" /></div></fieldset>
+                                <label class="portal-filter-field" for="cmfPendingComponentFilter">Component<select id="cmfPendingComponentFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select></label>
+                                <label class="portal-filter-field" for="cmfPendingOwnerFilter">Owner<select id="cmfPendingOwnerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select></label>
+                                <button type="button" class="cmf-pending-filter-btn" onclick="resetCmfPendingClientFilters()">Clear</button>
                             </div>
 
                             <!-- CMF PENDING LIST GRIDVIEW - INSIDE mainDataWrapper -->
                             <div class="gridview-container cmf-pending-grid-wrap" id="cmfPendingGridContainer" runat="server">
-                                <asp:GridView ID="GridView_cmf_pending" CssClass="table-primary" runat="server" AutoGenerateColumns="False" EmptyDataText="No Open CMFs" Visible="false">
+                                <asp:GridView ID="GridView_cmf_pending" CssClass="table-primary cmf-pending-columns" runat="server" AutoGenerateColumns="False" DataKeyNames="cp_id,repro_on_rvp" EmptyDataText="No Open CMFs" Visible="false">
                                     <Columns>
-                                        <asp:TemplateField HeaderText="Issue Details" ItemStyle-Width="285px" HeaderStyle-Width="285px">
-                                            <ItemTemplate><%# RenderPendingIssueDetailsWithRecommendation(Eval("cp_id"), Eval("title"), Eval("cmf_request"), Eval("component"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner")) %></ItemTemplate>
+                                        <asp:TemplateField HeaderText="Issue ID">
+                                            <ItemTemplate>
+                                                <div class="pending-id-actions">
+                                                    <asp:HyperLink runat="server" Text='<%# Eval("cp_id") %>' NavigateUrl='<%# "https://hsdes.intel.com/appstore/article/#/" + HttpUtility.UrlEncode(Convert.ToString(Eval("cp_id"))) %>' Target="_blank" rel="noopener noreferrer" />
+                                                </div>
+                                            </ItemTemplate>
                                         </asp:TemplateField>
-
-                                        <asp:TemplateField HeaderText="Customer / Owner" ItemStyle-Width="160px" HeaderStyle-Width="160px">
-                                            <ItemTemplate><%# RenderPendingCustomer(Eval("customer_detail"), Eval("customer_owner")) %></ItemTemplate>
+                                        <asp:BoundField DataField="title" HeaderText="Issue Title" ItemStyle-CssClass="pending-field-title" HeaderStyle-CssClass="pending-field-title" />
+                                        <asp:BoundField DataField="customer_detail" HeaderText="Customer Detail" ItemStyle-CssClass="pending-field-customer" />
+                                        <asp:BoundField DataField="component" HeaderText="Component" ItemStyle-CssClass="pending-field-component" />
+                                        <asp:BoundField DataField="component_group" HeaderText="Component Group" ItemStyle-CssClass="pending-field-component-group" />
+                                        <asp:BoundField DataField="idst_display_name" HeaderText="iDST" ItemStyle-CssClass="pending-field-idst" />
+                                        <asp:BoundField DataField="customer_owner" HeaderText="Owner" ItemStyle-CssClass="pending-field-owner" />
+                                        <asp:TemplateField HeaderText="RVP Repro" ItemStyle-CssClass="pending-field-rvp">
+                                            <ItemTemplate><span class="pending-rvp-status" data-rvp="<%#: string.IsNullOrWhiteSpace(Convert.ToString(Eval("repro_on_rvp"))) ? "unknown" : Convert.ToString(Eval("repro_on_rvp")).Trim() %>"><%#: string.IsNullOrWhiteSpace(Convert.ToString(Eval("repro_on_rvp"))) ? "unknown" : Convert.ToString(Eval("repro_on_rvp")).Trim() %></span></ItemTemplate>
                                         </asp:TemplateField>
-
-                                        <asp:TemplateField HeaderText="Evidence" ItemStyle-Width="190px" HeaderStyle-Width="190px">
-                                            <ItemTemplate><%# RenderPendingEvidence(Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility")) %></ItemTemplate>
+                                        <asp:BoundField DataField="reproducibility" HeaderText="Occurrence" ItemStyle-CssClass="pending-field-reproducibility" />
+                                        <asp:TemplateField HeaderText="CMF Request / Ask Date" ItemStyle-CssClass="pending-field-request-date">
+                                            <ItemTemplate>
+                                                <div class="pending-request-date">
+                                                    <asp:Label ID="PendingStaleBadge" runat="server" CssClass="pending-stale-badge" Text="Stale" Visible='<%# IsPendingRequestStale(Eval("date_cmf_ask")) %>' ToolTip="CMF ask is more than 2 days old" />
+                                                    <asp:Label ID="PendingRequestValue" runat="server" CssClass='<%# IsPendingRequestStale(Eval("date_cmf_ask")) ? "pending-field-request pending-request-stale" : "pending-field-request" %>' Text='<%# HttpUtility.HtmlEncode(Convert.ToString(Eval("cmf_request"))) %>' />
+                                                    <asp:Label ID="PendingAskDateValue" runat="server" CssClass="pending-field-date pending-cell-text" Text='<%# Eval("date_cmf_ask", "{0:dd-MMM-yyyy HH:mm:ss}") %>' />
+                                                </div>
+                                            </ItemTemplate>
                                         </asp:TemplateField>
-
-                                        <asp:TemplateField HeaderText="Impact" ItemStyle-Width="210px" HeaderStyle-Width="210px">
-                                            <ItemTemplate><%# RenderPendingAskImpact(Eval("cp_id"), Eval("title"), Eval("component"), Eval("date_cmf_ask"), Eval("cmf_request"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner")) %></ItemTemplate>
+                                        <asp:BoundField DataField="why_cmf_change" HeaderText="Why CMF Change" ItemStyle-CssClass="pending-field-why" />
+                                        <asp:BoundField DataField="pending_reason" HeaderText="Pending Reason" ItemStyle-CssClass="pending-field-reason" HeaderStyle-CssClass="pending-field-reason" />
+                                        <asp:BoundField DataField="impact" HeaderText="Impact" ItemStyle-CssClass="pending-field-impact" HeaderStyle-CssClass="pending-field-impact" />
+                                        <asp:BoundField DataField="days_open" HeaderText="Days Open" ItemStyle-CssClass="pending-field-days-open" HeaderStyle-CssClass="pending-field-days-open" NullDisplayText="N/A" />
+                                        <asp:TemplateField HeaderText="AI CMF Recommendation" ItemStyle-CssClass="pending-field-ai-recommendation" HeaderStyle-CssClass="pending-field-ai-recommendation">
+                                            <ItemTemplate>
+                                                <%# RenderPendingRecommendationCell(Eval("cp_id"), Eval("title"), Eval("component"), Eval("component_group"), Eval("cmf_request"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner"), Eval("source_platform")) %>
+                                            </ItemTemplate>
                                         </asp:TemplateField>
-
-                                        <asp:TemplateField HeaderText="AI CMF Assistant" ItemStyle-Width="150px" HeaderStyle-Width="150px">
-                                            <ItemTemplate><%# RenderPendingRecommendationCell(Eval("cp_id"), Eval("title"), Eval("component"), Eval("component_group"), Eval("cmf_request"), Eval("impact"), Eval("idst"), Eval("repro_on_rvp"), Eval("reproducibility"), Eval("customer_detail"), Eval("customer_owner")) %></ItemTemplate>
-                                        </asp:TemplateField>
-
                                     </Columns>
                                 </asp:GridView>
+                                <div id="cmfPendingFilterEmpty" class="portal-table-empty" hidden>No matching issues</div>
+                            </div>
+                            <div id="cmfPendingPager" class="portal-table-footer" data-page="0">
+                                <label for="cmfPendingPageSize">Rows per page<select id="cmfPendingPageSize" onchange="filterCmfPendingRows()"><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></label>
+                                <span id="cmfPendingPageStatus" role="status" aria-live="polite"></span>
+                                <nav aria-label="CMF Pending pages"><button type="button" id="cmfPendingPagePrev" onclick="changeCmfPendingPage(-1)" aria-label="Previous page" title="Previous page"><i class="fas fa-chevron-left" aria-hidden="true"></i></button><span id="cmfPendingPageNumber">1 / 1</span><button type="button" id="cmfPendingPageNext" onclick="changeCmfPendingPage(1)" aria-label="Next page" title="Next page"><i class="fas fa-chevron-right" aria-hidden="true"></i></button></nav>
                             </div>
                         </div>
                         
@@ -23771,15 +27164,6 @@ Submit
                             </section>
                         </aside>
                     </div>
-
-                    </div>
-                </div>
-            </ContentTemplate>
-        </asp:UpdatePanel>
-    </div>
-</div>
-
-                 
 
                                     <div class="gridview-container">
                                         <asp:GridView ID="GridView_design_open" CssClass="table-primary2" runat="server" AutoGenerateColumns="False" EmptyDataText="No Open CMFs" Visible="false" OnRowEditing="GridView_design_open_RowEditing" OnRowDataBound="GridView_design_open_RowDataBound" DataKeyNames="Design">
@@ -23856,6 +27240,118 @@ Submit
     </asp:GridView>
 </div>
                     </asp:Panel>
+
+<!-- Bootstrap Modal for OEM Indicator Summary -->
+<div class="modal fade" id="detailsModalOemIndicator" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog custom-modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title-container">
+                    <h5 class="modal-title">OEM Indicator Summary</h5>
+                    <button type="button" class="modern-button2 export-btn" onclick="return exportGridViewTableToExcel('<%= GridView_oem_indicator_modal.ClientID %>', 'OEM_Indicator');">Export to Excel</button>
+                </div>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body custom-modal-body">
+                <div class="gridview-container">
+                    <asp:GridView ID="GridView_oem_indicator_modal" CssClass="table-primary custom-gridview" runat="server" AutoGenerateColumns="False" EmptyDataText="No OEM Indicator data" Visible="true" OnRowDataBound="GridView7_RowDataBound">
+                        <Columns>
+                            <asp:BoundField DataField="OEM" HeaderText="OEM" />
+                            <asp:BoundField DataField="Issues_in_CMF_ASK" HeaderText="Issues in CMF_ASK" />
+                            <asp:BoundField DataField="Total_CMF_REJECT" HeaderText="Total CMF_REJECT" />
+                            <asp:BoundField DataField="Total_CMF_Approved" HeaderText="Total CMF_Approved" />
+                            <asp:BoundField DataField="crit_tpt" HeaderText="CMF Overall TPT" />
+                            <asp:BoundField DataField="disp_tpt" HeaderText="CMF Disposition TPT" />
+                            <asp:BoundField DataField="resolve_tpt" HeaderText="CMF Resolution TPT" />
+                            <asp:BoundField DataField="CMFOpenPercentage" HeaderText="CMF Open %" />
+                            <asp:BoundField DataField="Noise" HeaderText="Noise%" />
+                            <asp:BoundField DataField="IntelIssuePercentage" HeaderText="Intel Issue %" />
+                            <asp:BoundField DataField="ThirdPartyPercentage" HeaderText="3rd Party %" />
+                            <asp:BoundField DataField="CustomerIssuePercentage" HeaderText="Customer Issue %" />
+                        </Columns>
+                    </asp:GridView>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Modal for Ingredient Indicator Summary -->
+<div class="modal fade" id="detailsModalIngredientIndicator" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog custom-modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title-container">
+                    <h5 class="modal-title">Ingredient Indicator Summary</h5>
+                    <button type="button" class="modern-button2 export-btn" onclick="return exportGridViewTableToExcel('<%= GridView_ingredient_indicator_modal.ClientID %>', 'Ingredient_Indicator');">Export to Excel</button>
+                </div>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body custom-modal-body">
+                <div class="gridview-container">
+                    <asp:GridView ID="GridView_ingredient_indicator_modal" CssClass="table-primary custom-gridview" runat="server" AutoGenerateColumns="False" EmptyDataText="No Ingredient Indicator data" Visible="true" OnRowDataBound="GridView6_RowDataBound">
+                        <Columns>
+                            <asp:BoundField DataField="Component" HeaderText="Ingredient" />
+                            <asp:BoundField DataField="Total_CMF_Approved" HeaderText="Total CMF_Approved" />
+                            <asp:BoundField DataField="Total_CMF_REJECT" HeaderText="Total CMF_REJECT" />
+                            <asp:BoundField DataField="Issues_in_CMF_ASK" HeaderText="Issues in CMF_ASK" />
+                            <asp:BoundField DataField="CMFOpenPercentage" HeaderText="CMF Open %" />
+                            <asp:BoundField DataField="disp_tpt" HeaderText="CMF disposition TPT" />
+                            <asp:BoundField DataField="crit_tpt" HeaderText="CMF Overall TPT" />
+                            <asp:BoundField DataField="resolve_tpt" HeaderText="CMF Resolution TPT" />
+                            <asp:BoundField DataField="Noise" HeaderText="Noise%" />
+                            <asp:BoundField DataField="IntelIssuePercentage" HeaderText="Intel Issue %" />
+                            <asp:BoundField DataField="ThirdPartyPercentage" HeaderText="3rd Party %" />
+                            <asp:BoundField DataField="CustomerIssuePercentage" HeaderText="Customer Issue %" />
+                        </Columns>
+                    </asp:GridView>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Modal for Design Indicator Summary -->
+<div class="modal fade" id="detailsModalDesignIndicator" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog custom-modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title-container">
+                    <h5 class="modal-title">Design Indicator Summary</h5>
+                    <button type="button" class="modern-button2 export-btn" onclick="return exportGridViewTableToExcel('<%= GridView_design_indicator_modal.ClientID %>', 'Design_Indicator');">Export to Excel</button>
+                </div>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body custom-modal-body">
+                <div class="gridview-container">
+                    <asp:GridView ID="GridView_design_indicator_modal" CssClass="table-primary custom-gridview" runat="server" AutoGenerateColumns="False" EmptyDataText="No Design Indicator data" Visible="true" OnRowDataBound="GridView5_RowDataBound">
+                        <Columns>
+                            <asp:BoundField DataField="Design" HeaderText="Design" />
+                            <asp:BoundField DataField="SWImageFreeze" HeaderText="SW Image Freeze" />
+                            <asp:BoundField DataField="Issues_in_CMF_ASK" HeaderText="Issues in CMF_ASK" />
+                            <asp:BoundField DataField="Total_CMF_REJECT" HeaderText="Total CMF_REJECT" />
+                            <asp:BoundField DataField="Total_CMF_Approved" HeaderText="Total CMF_Approved" />
+                            <asp:BoundField DataField="crit_tpt" HeaderText="CMF Overall TPT" />
+                            <asp:BoundField DataField="disp_tpt" HeaderText="CMF Disposition TPT" />
+                            <asp:BoundField DataField="resolve_tpt" HeaderText="CMF Resolution TPT" />
+                            <asp:BoundField DataField="CMFOpenPercentage" HeaderText="CMF Open %" />
+                            <asp:BoundField DataField="Noise" HeaderText="Noise%" />
+                            <asp:BoundField DataField="IntelIssuePercentage" HeaderText="Intel Issue %" />
+                            <asp:BoundField DataField="ThirdPartyPercentage" HeaderText="3rd Party %" />
+                            <asp:BoundField DataField="CustomerIssuePercentage" HeaderText="Customer Issue %" />
+                        </Columns>
+                    </asp:GridView>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
                 <!-- Bootstrap Modal for OEM Summary -->
 <div class="modal fade" id="detailsModal3" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog custom-modal-dialog" role="document"> <!-- Custom class for modal -->
@@ -24078,9 +27574,9 @@ Target="_blank" />
                         EmptyDataText="No issues for this driver">
             <Columns>
             
-                            <asp:HyperLinkField DataTextField="id"
+                            <asp:HyperLinkField DataTextField="cp_id"
                                                                     HeaderText="ID"
-                                                                    DataNavigateUrlFields="id"
+                                                                    DataNavigateUrlFields="cp_id"
                                   DataNavigateUrlFormatString="https://hsdes.intel.com/appstore/article/#/{0}"
                                   Target="_blank" />
                 
@@ -24096,7 +27592,7 @@ Target="_blank" />
                 <asp:BoundField DataField="cmf_request" HeaderText="CMF Request" />
                             <asp:BoundField DataField="why_cmf_change" HeaderText="Why CMF Change" />
                             <asp:BoundField DataField="pending_reason" HeaderText="Pending Reason" />
-                            <asp:BoundField DataField="justification" HeaderText="Justification" />
+                            <asp:BoundField DataField="justification" HeaderText="Justi" />
               <%-- Add more columns if you want, e.g. status/component --%>
             </Columns>
           </asp:GridView>
@@ -24150,6 +27646,7 @@ Target="_blank" />
                             <asp:BoundField DataField="PromotedOwner" HeaderText="Promoted_Owner" />
                             <asp:BoundField DataField="RvpRepro" HeaderText="RVP Repro" />
                             <asp:BoundField DataField="Status" HeaderText="Status" />
+                            <asp:BoundField DataField="CmfRequest" HeaderText="CMF Request" />
                             <asp:BoundField DataField="Idst" HeaderText="iDST" />
                             <asp:BoundField DataField="Los" HeaderText="LOS" />
                             <asp:BoundField DataField="Processor" HeaderText="Processor" />
