@@ -298,7 +298,7 @@ public partial class CMF_Web_portal : System.Web.UI.Page
 
     private string ConnectionString
     {
-        get { return ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString; }
+        get { return CmfAssistantConfigService.ResolveDatabaseConnectionString(); }
     }
 
     protected string ResolvePlatformTable(string platform = null)
@@ -1293,7 +1293,7 @@ FROM " + tableName + (applyDashboardDateFilter ? " WHERE " + GetDashboardDateFil
         if (columns == null)
         {
             columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            using (var connection = new SqlConnection(ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString))
+            using (var connection = new SqlConnection(CmfAssistantConfigService.ResolveDatabaseConnectionString()))
             using (var command = new SqlCommand("SELECT name FROM sys.columns WHERE object_id = OBJECT_ID(@table)", connection))
             {
                 command.Parameters.Add("@table", SqlDbType.NVarChar, 256).Value = tableName;
@@ -1656,7 +1656,7 @@ END";
 
         try
         {
-            using (SqlConnection connection = new SqlConnection(ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString))
+            using (SqlConnection connection = new SqlConnection(CmfAssistantConfigService.ResolveDatabaseConnectionString()))
             {
                 connection.Open();
 
@@ -1838,7 +1838,7 @@ ORDER BY group_name, cp_id";
 
         try
         {
-            using (SqlConnection connection = new SqlConnection(ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString))
+            using (SqlConnection connection = new SqlConnection(CmfAssistantConfigService.ResolveDatabaseConnectionString()))
             {
                 connection.Open();
 
@@ -2005,7 +2005,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
 
         try
         {
-            using (SqlConnection connection = new SqlConnection(ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString))
+            using (SqlConnection connection = new SqlConnection(CmfAssistantConfigService.ResolveDatabaseConnectionString()))
             {
                 connection.Open();
 
@@ -2566,7 +2566,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
 
     //private void BindImplementedVerifiedDetailsModal(string design)
     //{
-    //    string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+    //    string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
     //    string modalquery;
     //    if (design == "Total")
     //    {
@@ -3465,7 +3465,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
             if (cached != null) return cached;
             string source = BuildSummaryIssueComponentSourceSql(selection, false, true);
             var data = new DataTable();
-            using (var connection = new SqlConnection(ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString))
+            using (var connection = new SqlConnection(CmfAssistantConfigService.ResolveDatabaseConnectionString()))
             using (var command = CmfSummaryTrendService.CreateBalanceEvidenceCommand(connection, "(" + source + ") AS insight_source", DateTime.Today, true))
             {
                 connection.Open();
@@ -5359,7 +5359,7 @@ WHERE LOWER(LTRIM(RTRIM(ISNULL(A.sysdebug, '')))) LIKE '%customer_must_fix%'
         string basePlatform = resolvedPlatformTable.Replace("_ALL_COMPONENTS_TABLE", string.Empty);
         string designTable = basePlatform + "_DESIGN_TABLE";
 
-        string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+        string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
         using (SqlConnection connection = new SqlConnection(connectionString))
         {
             connection.Open();
@@ -6087,6 +6087,62 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             lblCmfRulesStatus.Text = "Default CMF rules restored.";
         }
 
+        btnShowGridView9_Click(sender, e);
+    }
+
+    protected void btnImportScoringExcel_Click(object sender, EventArgs e)
+    {
+        if (!IsAdminMode())
+        {
+            ShowWelcomeHome();
+            return;
+        }
+
+        if (fuScoringExcel == null || !fuScoringExcel.HasFile)
+        {
+            if (lblCmfRulesStatus != null)
+            {
+                lblCmfRulesStatus.ForeColor = System.Drawing.ColorTranslator.FromHtml("#dc2626");
+                lblCmfRulesStatus.Text = "Please select a Scoring Guidelines (.xlsx) file to import.";
+            }
+            btnShowGridView9_Click(sender, e);
+            return;
+        }
+
+        string statusMsg;
+        bool ok = CmfAssistantConfigService.ImportScoringGuidelinesFromExcel(fuScoringExcel.FileContent, out statusMsg);
+        if (lblCmfRulesStatus != null)
+        {
+            lblCmfRulesStatus.ForeColor = System.Drawing.ColorTranslator.FromHtml(ok ? "#059669" : "#dc2626");
+            lblCmfRulesStatus.Text = statusMsg;
+        }
+        LoadCmfRulesEditor();
+        btnShowGridView9_Click(sender, e);
+    }
+
+    protected void btnAddJargonMapping_Click(object sender, EventArgs e)
+    {
+        if (!IsAdminMode())
+        {
+            ShowWelcomeHome();
+            return;
+        }
+
+        string cat = ddlJargonCategory != null ? ddlJargonCategory.SelectedValue : "platformFamilies";
+        string target = txtJargonTarget != null ? txtJargonTarget.Text : string.Empty;
+        string synonym = txtJargonSynonym != null ? txtJargonSynonym.Text : string.Empty;
+        string statusMsg;
+        bool ok = CmfAssistantConfigService.RegisterLearnedJargonSynonym(cat, target, synonym, out statusMsg);
+        if (lblCmfRulesStatus != null)
+        {
+            lblCmfRulesStatus.ForeColor = System.Drawing.ColorTranslator.FromHtml(ok ? "#059669" : "#dc2626");
+            lblCmfRulesStatus.Text = statusMsg;
+        }
+        if (ok)
+        {
+            if (txtJargonTarget != null) txtJargonTarget.Text = string.Empty;
+            if (txtJargonSynonym != null) txtJargonSynonym.Text = string.Empty;
+        }
         btnShowGridView9_Click(sender, e);
     }
 
@@ -7220,7 +7276,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         List<string> users = new List<string>();
 
         using (SqlConnection con = new SqlConnection(
-            ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString))
+            CmfAssistantConfigService.ResolveDatabaseConnectionString()))
         {
             con.Open();
 
@@ -7253,7 +7309,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         };
 
         using (SqlConnection updateCon = new SqlConnection(
-            ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString))
+            CmfAssistantConfigService.ResolveDatabaseConnectionString()))
         {
             updateCon.Open();
 
@@ -7765,7 +7821,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
     //    if (columnFilters == null)
     //        columnFilters = GetAllFilterValues();
 
-    //    string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+    //    string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
     //    using (SqlConnection con = new SqlConnection(connectionString))
     //    {
     //        con.Open();
@@ -9444,7 +9500,7 @@ LEFT JOIN " + designTable + @" AS d
 
         try
         {
-            string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+            string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
             using (SqlConnection con = new SqlConnection(connectionString))
             {
                 con.Open();
@@ -9525,6 +9581,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
                     AppendSummaryContextLine(builder, "Processor", row, "processor");
                     AppendSummaryContextLine(builder, "Reproducibility", row, "reproducibility", "repro_on_rvp");
                     AppendSummaryContextLine(builder, "RVP Platform Debug Details", row, "repro_on_rvp");
+                    AppendSummaryContextLine(builder, "Merge ID", row, "merge_id");
 
                     string promotedId = FirstNonEmptyColumnValue(row, "promoted_id", "merge_id");
                     if (string.IsNullOrWhiteSpace(promotedId))
@@ -9560,26 +9617,47 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
 
                     if (forDebugSummary) return builder.ToString().Trim();
 
-                    // ── Section 2: HSD portal – sighting article ───────────────
-                    HsdArticleData hsdSighting =
-                        HsdPortalService.FetchArticle(issueId.Trim());
+                    // ── Section 2 & 3: HSD portal – sighting article (and promoted article only if sighting lacks details) ──
+                    string cleanIssueId = issueId.Trim();
+                    string cleanPromotedId = string.IsNullOrWhiteSpace(promotedId) ? string.Empty : promotedId.Trim();
+                    bool hasDistinctPromoted = !string.IsNullOrWhiteSpace(cleanPromotedId)
+                        && !string.Equals(cleanPromotedId, cleanIssueId, StringComparison.OrdinalIgnoreCase);
+
+                    HsdArticleData hsdSighting = FetchCachedHsdArticle(cleanIssueId);
 
                     string hsdSightingContext =
                         HsdPortalService.FormatForAiContext(
                             hsdSighting,
-                            "Sighting " + issueId.Trim());
+                            "Sighting " + cleanIssueId);
 
                     if (!string.IsNullOrWhiteSpace(hsdSightingContext))
                         builder.AppendLine(hsdSightingContext);
 
-                    // ── Section 3: HSD portal – promoted article (if different) ─
-                    if (!string.IsNullOrWhiteSpace(promotedId)
-                        && !string.Equals(promotedId.Trim(), issueId.Trim(), StringComparison.OrdinalIgnoreCase))
+                    if (!hasDistinctPromoted && !string.IsNullOrWhiteSpace(hsdSightingContext))
                     {
-                        HsdArticleData hsdPromoted = HsdPortalService.FetchArticle(promotedId.Trim());
-                        string hsdPromotedContext = HsdPortalService.FormatForAiContext(hsdPromoted, "Promoted Issue " + promotedId.Trim());
-                        if (!string.IsNullOrWhiteSpace(hsdPromotedContext))
-                            builder.AppendLine(hsdPromotedContext);
+                        string extractedPromoted = AiSummaryService.ExtractPromotedIdFromContext(cleanIssueId, hsdSightingContext);
+                        if (!string.IsNullOrWhiteSpace(extractedPromoted) && !string.Equals(extractedPromoted, "NA", StringComparison.OrdinalIgnoreCase))
+                        {
+                            cleanPromotedId = extractedPromoted;
+                            hasDistinctPromoted = true;
+                            builder.AppendLine("Promoted Issue ID: " + cleanPromotedId);
+                        }
+                    }
+
+                    bool sightingHasRichDetails = hsdSighting != null
+                        && hsdSighting.FetchSuccess
+                        && !string.IsNullOrWhiteSpace(hsdSighting.Description)
+                        && (!string.IsNullOrWhiteSpace(hsdSighting.FixDescription) || (hsdSighting.Comments != null && hsdSighting.Comments.Count > 0));
+
+                    if (hasDistinctPromoted && !sightingHasRichDetails)
+                    {
+                        HsdArticleData hsdPromoted = FetchCachedHsdArticle(cleanPromotedId);
+                        if (hsdPromoted != null)
+                        {
+                            string hsdPromotedContext = HsdPortalService.FormatForAiContext(hsdPromoted, "Promoted Issue " + cleanPromotedId);
+                            if (!string.IsNullOrWhiteSpace(hsdPromotedContext))
+                                builder.AppendLine(hsdPromotedContext);
+                        }
                     }
 
                     return builder.ToString().Trim();
@@ -9821,7 +9899,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         return string.IsNullOrWhiteSpace(normalized) ? "Selected Platform" : normalized;
     }
 
-    [WebMethod(EnableSession = true)]
+    [WebMethod]
     public static CmfRecommendationResponse GetCmfPendingRecommendation(
         string cpId,
         string title,
@@ -9833,9 +9911,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         string reproducibility,
         string customerDetail,
         string customerOwner,
-        string platform,
-        string description = null,
-        string impactSummary = null)
+        string platform)
     {
         try
         {
@@ -9843,6 +9919,10 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
             if (string.IsNullOrWhiteSpace(resolvedPlatform) && HttpContext.Current != null && HttpContext.Current.Session != null)
             {
                 resolvedPlatform = HttpContext.Current.Session["selectedPlatform"] as string;
+            }
+            if (string.IsNullOrWhiteSpace(resolvedPlatform))
+            {
+                resolvedPlatform = "CMF_OVERALL_ALL_COMPONENTS_TABLE";
             }
 
             if (!IsAllowedOrOverallPlatform(resolvedPlatform))
@@ -9855,23 +9935,6 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
             }
 
             string hsdContext = BuildPendingRecommendationContext(NormalizePlatformForLookup(resolvedPlatform), cpId, true);
-            if (!string.IsNullOrWhiteSpace(description) || !string.IsNullOrWhiteSpace(impactSummary))
-            {
-                StringBuilder contextEnrichment = new StringBuilder();
-                if (!string.IsNullOrWhiteSpace(description))
-                {
-                    contextEnrichment.AppendLine("PROVEN PROBLEM DESCRIPTION:");
-                    contextEnrichment.AppendLine(description.Trim());
-                    contextEnrichment.AppendLine();
-                }
-                if (!string.IsNullOrWhiteSpace(impactSummary))
-                {
-                    contextEnrichment.AppendLine("PROVEN IMPACT SUMMARY:");
-                    contextEnrichment.AppendLine(impactSummary.Trim());
-                    contextEnrichment.AppendLine();
-                }
-                hsdContext = contextEnrichment.ToString() + hsdContext;
-            }
 
             CmfRecommendationRequest request = new CmfRecommendationRequest
             {
@@ -9901,7 +9964,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         }
     }
 
-    [WebMethod(EnableSession = true)]
+    [WebMethod]
     public static SightingQualityAssessmentResponse GetSightingQualityAssessment(
         string cpId,
         string title,
@@ -9922,6 +9985,10 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
             {
                 resolvedPlatform = HttpContext.Current.Session[IssuePendingPlatformSessionKey] as string
                     ?? HttpContext.Current.Session["selectedPlatform"] as string;
+            }
+            if (string.IsNullOrWhiteSpace(resolvedPlatform))
+            {
+                resolvedPlatform = "CMF_OVERALL_ALL_COMPONENTS_TABLE";
             }
 
             if (!IsAllowedOrOverallPlatform(resolvedPlatform))
@@ -9960,7 +10027,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         }
     }
 
-    [WebMethod(EnableSession = true)]
+    [WebMethod]
     public static SightingQualityValidationTraceResponse GetSightingQualityValidationTrace(
         string cpId,
         string title,
@@ -9981,6 +10048,10 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
             {
                 resolvedPlatform = HttpContext.Current.Session[IssuePendingPlatformSessionKey] as string
                     ?? HttpContext.Current.Session["selectedPlatform"] as string;
+            }
+            if (string.IsNullOrWhiteSpace(resolvedPlatform))
+            {
+                resolvedPlatform = "CMF_OVERALL_ALL_COMPONENTS_TABLE";
             }
 
             if (!IsAllowedOrOverallPlatform(resolvedPlatform))
@@ -10019,7 +10090,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         }
     }
 
-    [WebMethod(EnableSession = true)]
+    [WebMethod]
     public static CmfRecommendationResponse GetCmfPendingDecisionDetails(
         string cpId,
         string title,
@@ -10139,25 +10210,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 };
             }
 
-            // Build HSD context for better AI description generation
-            string hsdContext = BuildPendingHsdContext(cpId);
-
-            // Build database context (issue details from CMF database)
-            string dbContext = BuildIssueSummaryContext(platform, cpId);
-
-            // Combine contexts
-            StringBuilder contextBuilder = new StringBuilder();
-            if (!string.IsNullOrWhiteSpace(dbContext))
-            {
-                contextBuilder.AppendLine(dbContext);
-            }
-            if (!string.IsNullOrWhiteSpace(hsdContext))
-            {
-                if (contextBuilder.Length > 0) contextBuilder.AppendLine();
-                contextBuilder.AppendLine(hsdContext);
-            }
-
-            string contextDetails = contextBuilder.ToString();
+            string contextDetails = BuildPendingRecommendationContext(platform, cpId);
 
             // Call the AI service to generate the sighting description
             AiSummaryResponse response = AiSummaryService.GenerateSightingDescription(cpId, title, contextDetails);
@@ -10175,7 +10228,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
     }
 
     [WebMethod]
-    public static AiSummaryResponse GetSightingImpactSummary(string cpId, string title, string impact, string platform, string description = null)
+    public static AiSummaryResponse GetSightingFixStatus(string cpId, string title, string platform)
     {
         try
         {
@@ -10188,27 +10241,33 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 };
             }
 
-            string hsdContext = BuildPendingHsdContext(cpId);
-            string dbContext = BuildIssueSummaryContext(platform, cpId);
+            return AiSummaryService.GenerateSightingFixStatus(cpId, title, BuildPendingRecommendationContext(platform, cpId));
+        }
+        catch (Exception ex)
+        {
+            return new AiSummaryResponse
+            {
+                Success = false,
+                Message = "Failed to generate sighting fix status: " + ex.Message
+            };
+        }
+    }
 
-            StringBuilder contextBuilder = new StringBuilder();
-            if (!string.IsNullOrWhiteSpace(description))
+    [WebMethod]
+    public static AiSummaryResponse GetSightingImpactSummary(string cpId, string title, string impact, string platform)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(cpId) || string.IsNullOrWhiteSpace(title))
             {
-                contextBuilder.AppendLine("Problem Description:");
-                contextBuilder.AppendLine(description.Trim());
-                contextBuilder.AppendLine();
-            }
-            if (!string.IsNullOrWhiteSpace(dbContext))
-            {
-                contextBuilder.AppendLine(dbContext);
-            }
-            if (!string.IsNullOrWhiteSpace(hsdContext))
-            {
-                if (contextBuilder.Length > 0) contextBuilder.AppendLine();
-                contextBuilder.AppendLine(hsdContext);
+                return new AiSummaryResponse
+                {
+                    Success = false,
+                    Message = "Sighting ID and title are required."
+                };
             }
 
-            return AiSummaryService.GenerateSightingImpactSummary(cpId, title, impact, contextBuilder.ToString());
+            return AiSummaryService.GenerateSightingImpactSummary(cpId, title, impact, BuildPendingRecommendationContext(platform, cpId));
         }
         catch (Exception ex)
         {
@@ -10218,6 +10277,77 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 Message = "Failed to generate sighting impact summary: " + ex.Message
             };
         }
+    }
+
+    [WebMethod]
+    public static CmfFeedbackSubmitResponse SubmitCmfRecommendationFeedback(string cpId, string title, string component, string aiTag, string reviewerTag, bool helpful, string feedbackNote)
+    {
+        try
+        {
+            return CmfFeedbackMemoryService.RecordFeedback(cpId, title, component, aiTag, reviewerTag, helpful, feedbackNote);
+        }
+        catch (Exception ex)
+        {
+            return new CmfFeedbackSubmitResponse
+            {
+                Success = false,
+                Message = "Failed to save reviewer feedback: " + ex.Message
+            };
+        }
+    }
+
+    [WebMethod]
+    public static CmfGlobalAssistantResponse AskGlobalPortalAssistant(string prompt, string platform, string activeTab, List<CmfGlobalAssistantTurn> history, string dashboardContext, string templateId)
+    {
+        try
+        {
+            string resolvedPlatform = NormalizePlatformForLookup(platform);
+            return CmfGlobalAssistantService.ProcessQuery(prompt, resolvedPlatform, activeTab, history, dashboardContext, templateId);
+        }
+        catch (Exception ex)
+        {
+            return new CmfGlobalAssistantResponse
+            {
+                Success = false,
+                Message = "Ask CMF Pulse request failed: " + ex.Message
+            };
+        }
+    }
+
+    [WebMethod]
+    public static CmfFeedbackSubmitResponse SubmitPulseAssistantFeedback(string userPrompt, string scopeLabel, string activeTab, bool helpful, string feedbackNote)
+    {
+        try
+        {
+            return CmfFeedbackMemoryService.RecordPulseFeedback(userPrompt, scopeLabel, activeTab, helpful, feedbackNote);
+        }
+        catch (Exception ex)
+        {
+            return new CmfFeedbackSubmitResponse
+            {
+                Success = false,
+                Message = "Failed to save Ask CMF Pulse feedback: " + ex.Message
+            };
+        }
+    }
+
+    [WebMethod]
+    public static List<CmfPulseReportTemplate> GetPulseReportTemplatesList()
+    {
+        try
+        {
+            return CmfGlobalAssistantService.GetPulseReportTemplates();
+        }
+        catch
+        {
+            return new List<CmfPulseReportTemplate>();
+        }
+    }
+
+    [WebMethod]
+    public static CmfPulseReportTemplate SaveCustomPulseTemplate(string name, string blueprint, string focusMode)
+    {
+        return CmfGlobalAssistantService.SaveCustomPulseReportTemplate(name, blueprint, focusMode);
     }
 
     [WebMethod]
@@ -10243,18 +10373,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 };
             }
 
-            string hsdContext = BuildPendingHsdContext(cpId);
-            string dbContext = BuildIssueSummaryContext(platform, cpId);
-
-            StringBuilder contextBuilder = new StringBuilder();
-            if (!string.IsNullOrWhiteSpace(dbContext)) contextBuilder.AppendLine(dbContext);
-            if (!string.IsNullOrWhiteSpace(hsdContext))
-            {
-                if (contextBuilder.Length > 0) contextBuilder.AppendLine();
-                contextBuilder.AppendLine(hsdContext);
-            }
-
-            return AiSummaryService.GenerateSightingFollowUpAnswer(cpId, title, contextBuilder.ToString(), question, history);
+            return AiSummaryService.GenerateSightingFollowUpAnswer(cpId, title, BuildPendingRecommendationContext(platform, cpId), question, history);
         }
         catch (Exception ex)
         {
@@ -10264,6 +10383,58 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 Message = "Failed to answer sighting question: " + ex.Message
             };
         }
+    }
+
+    private static HsdArticleData FetchCachedHsdArticle(string articleId)
+    {
+        if (string.IsNullOrWhiteSpace(articleId)) return null;
+        string normalizedId = articleId.Trim();
+        string cacheKey = "cmf-assistant-hsd-article:" + normalizedId;
+        using (CmfAssistantResponseCache.Enter(cacheKey))
+        {
+            HsdArticleData cached = HttpRuntime.Cache[cacheKey] as HsdArticleData;
+            if (cached != null) return cached;
+
+            try
+            {
+                HsdArticleData article = HsdPortalService.FetchArticle(normalizedId);
+                if (article != null && article.FetchSuccess)
+                {
+                    int refreshSeconds = CmfAssistantConfigService.GetConfig().HsdCacheRefreshSeconds;
+                    if (refreshSeconds <= 0) refreshSeconds = 60;
+                    refreshSeconds = Math.Max(15, Math.Min(300, refreshSeconds));
+                    HttpRuntime.Cache.Insert(cacheKey, article, null, DateTime.UtcNow.AddSeconds(refreshSeconds), System.Web.Caching.Cache.NoSlidingExpiration);
+                }
+                return article;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
+
+    private static string ComputeStableHsdFingerprint(HsdArticleData article)
+    {
+        if (article == null || !article.FetchSuccess) return string.Empty;
+        string canonical = string.Join("|", new string[]
+        {
+            article.ArticleId ?? string.Empty,
+            article.UpdatedDate ?? string.Empty,
+            article.Title ?? string.Empty,
+            article.Status ?? string.Empty,
+            article.Priority ?? string.Empty,
+            article.Exposure ?? string.Empty,
+            article.Reproducibility ?? string.Empty,
+            article.ClosedReason ?? string.Empty,
+            article.FixedVersion ?? string.Empty,
+            article.Description ?? string.Empty,
+            article.CustomerImpact ?? string.Empty,
+            article.FixDescription ?? string.Empty,
+            article.Comments != null ? article.Comments.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) : "0",
+            article.Comments != null && article.Comments.Count > 0 ? (article.Comments[0] ?? string.Empty) : string.Empty
+        });
+        return CmfAssistantResponseCache.Fingerprint(canonical);
     }
 
     private static string BuildPendingHsdContext(string cpId, bool evidenceLed = false)
@@ -10277,12 +10448,12 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
 
         try
         {
-            HsdArticleData article = HsdPortalService.FetchArticle(cpId.Trim());
-            if (article == null || !article.FetchSuccess) return evidenceLed ? "External Evidence Status: Unavailable" : string.Empty;
-            string context = evidenceLed ? HsdPortalService.FormatForRecommendationContext(article) : HsdPortalService.FormatForAiContext(article, "Pending Sighting");
-            context += "\nHSD Source Fingerprint: " + CmfAssistantResponseCache.Fingerprint(article);
-            int refreshSeconds;
-            if (!int.TryParse(System.Configuration.ConfigurationManager.AppSettings["CMF:AssistantHsdRefreshSeconds"], out refreshSeconds)) refreshSeconds = 60;
+            HsdArticleData article = FetchCachedHsdArticle(cpId.Trim());
+            if (article == null || !article.FetchSuccess) return string.Empty;
+            string context = HsdPortalService.FormatForAiContext(article, "Pending Sighting");
+            context += "\nHSD Source Fingerprint: " + ComputeStableHsdFingerprint(article);
+            int refreshSeconds = CmfAssistantConfigService.GetConfig().HsdCacheRefreshSeconds;
+            if (refreshSeconds <= 0) refreshSeconds = 60;
             refreshSeconds = Math.Max(15, Math.Min(300, refreshSeconds));
             HttpRuntime.Cache.Insert(cacheKey, context, null, DateTime.UtcNow.AddSeconds(refreshSeconds), System.Web.Caching.Cache.NoSlidingExpiration);
             return context;
@@ -10298,23 +10469,47 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
     {
         if (string.IsNullOrWhiteSpace(cpId)) return string.Empty;
         string resolvedPlatform = NormalizePlatformForLookup(platformTable);
-
-        StringBuilder builder = new StringBuilder();
-        string dbContext = BuildIssueSummaryContext(resolvedPlatform, cpId);
-        if (!string.IsNullOrWhiteSpace(dbContext))
+        string cacheKey = "cmf-assistant-full-context:" + resolvedPlatform + ":" + cpId.Trim();
+        using (CmfAssistantResponseCache.Enter(cacheKey))
         {
-            builder.AppendLine(dbContext);
-        }
+            string cached = HttpRuntime.Cache[cacheKey] as string;
+            if (cached != null) return cached;
 
-        string hsdContext = BuildPendingHsdContext(cpId, evidenceLed);
-        if (!string.IsNullOrWhiteSpace(hsdContext) && builder.ToString().IndexOf(hsdContext, StringComparison.OrdinalIgnoreCase) < 0)
-        {
-            if (builder.Length > 0) builder.AppendLine();
-            builder.AppendLine(hsdContext);
-        }
+            StringBuilder builder = new StringBuilder();
+            string dbContext = BuildIssueSummaryContext(resolvedPlatform, cpId);
+            if (!string.IsNullOrWhiteSpace(dbContext))
+            {
+                builder.AppendLine(dbContext);
+            }
 
-        string context = builder.ToString().Trim();
-        return context;
+            HsdArticleData article = FetchCachedHsdArticle(cpId.Trim());
+            if (article != null && article.FetchSuccess)
+            {
+                string fingerprintLine = "HSD Source Fingerprint: " + ComputeStableHsdFingerprint(article);
+                if (builder.ToString().IndexOf(fingerprintLine, StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    if (string.IsNullOrWhiteSpace(dbContext))
+                    {
+                        string hsdContext = BuildPendingHsdContext(cpId);
+                        if (!string.IsNullOrWhiteSpace(hsdContext)) builder.AppendLine(hsdContext);
+                    }
+                    else
+                    {
+                        builder.AppendLine(fingerprintLine);
+                    }
+                }
+            }
+
+            string context = builder.ToString().Trim();
+            if (!string.IsNullOrWhiteSpace(context))
+            {
+                int refreshSeconds = CmfAssistantConfigService.GetConfig().HsdCacheRefreshSeconds;
+                if (refreshSeconds <= 0) refreshSeconds = 60;
+                refreshSeconds = Math.Max(15, Math.Min(300, refreshSeconds));
+                HttpRuntime.Cache.Insert(cacheKey, context, null, DateTime.UtcNow.AddSeconds(refreshSeconds), System.Web.Caching.Cache.NoSlidingExpiration);
+            }
+            return context;
+        }
     }
 
     [WebMethod(EnableSession = true)]
@@ -11171,7 +11366,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         string main_query = "";
         string basePlatform = selectedPlatform.Replace("_ALL_COMPONENTS_TABLE", "");
         string designTable = basePlatform + "_DESIGN_TABLE";
-        string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+        string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
 
         using (SqlConnection con = new SqlConnection(connectionString))
         {
@@ -11957,7 +12152,7 @@ firstPatternCaseStatements +
 
     //        //(SELECT COUNT(cp_id) FROM " + designTable + " WHERE status NOT IN ('complete','rejected')) AS cmf_pending_count,
 
-    //        string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+    //        string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
 
     //        using (SqlConnection con = new SqlConnection(connectionString))
     //        {
@@ -12801,7 +12996,7 @@ firstPatternCaseStatements +
         string basePlatform = isOverallSelection ? string.Empty : platformSelection.Replace("_ALL_COMPONENTS_TABLE", "");
         string designTable = basePlatform + "_CMF_ASK";
         string allComponentsTable = basePlatform + "_ALL_COMPONENTS_TABLE";
-        string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+        string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
 
         using (SqlConnection con = new SqlConnection(connectionString))
         {
@@ -12973,7 +13168,7 @@ firstPatternCaseStatements +
 
     private void BindGridView_design_summary(string filtervalue = null)
     {
-        string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+        string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
         string summaryPlatform = ResolveSummaryQuickLinkPlatform();
         bool isOverallSummary = IsOverallDashboardPlatform(summaryPlatform);
 
@@ -15712,7 +15907,7 @@ ORDER BY
 
     private void BindGridView_component_summary(string filtervalue = null)
     {
-        string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+        string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
         string summaryPlatform = ResolveSummaryQuickLinkPlatform();
         bool isOverallSummary = IsOverallDashboardPlatform(summaryPlatform);
 
@@ -16110,7 +16305,7 @@ ORDER BY Total_CMF_Approved DESC";
     // Bind data to OEM Summary GridView
     private void BindGridView_oem_summary(string filtervalue = null)
     {
-        string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+        string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
         string summaryPlatform = ResolveSummaryQuickLinkPlatform();
         bool isOverallSummary = IsOverallDashboardPlatform(summaryPlatform);
 
@@ -17070,7 +17265,7 @@ ORDER BY Total_CMF_Approved DESC";
 
         // Fetch the current value of the Status field from the database
 
-        string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+        string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
 
 
         // Update the database
@@ -17439,7 +17634,7 @@ ORDER BY Total_CMF_Approved DESC";
         string design = GridView2_edit.DataKeys[e.RowIndex].Value.ToString();
 
         // Update the database with the new value
-        string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+        string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
         using (SqlConnection con = new SqlConnection(connectionString))
         {
             string query = "UPDATE " + designTable + " SET sw_image_freeze = @SWImageFreeze, support_model=@SupportModel WHERE customer_detail = @Design";
@@ -17625,7 +17820,7 @@ ORDER BY Total_CMF_Approved DESC";
             string ddrivers;
             string alldriver_query = "SELECT DISTINCT([drivers]) FROM " + selectedPlatform + " WHERE status in ('open') and cmf_request not in ('cmf_reject') AND sysdebug Like ('%customer_must_fix%') ";
 
-            string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+            string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
 
             using (SqlConnection con = new SqlConnection(connectionString))
             {
@@ -17922,7 +18117,7 @@ ORDER BY Total_CMF_Approved DESC";
 
     protected System.Data.DataTable GetGridViewData_maindriver(string filterValue = null)
     {
-        string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+        string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
         using (SqlConnection con = new SqlConnection(connectionString))
         {
             string master_query = "SELECT progress As color, cp_id As SightingID, title , component_group , customer_owner As Owner, repro_on_rvp, cmf_status As Status, idst, los, drivers AS Driver FROM " + selectedPlatform;
@@ -17999,7 +18194,7 @@ ORDER BY Total_CMF_Approved DESC";
     {
 
         // Reuse the existing BindGridView method logic to fetch the data
-        string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+        string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
         using (SqlConnection con = new SqlConnection(connectionString))
         {
             string main_query = "SELECT progress, cp_id As SightingID, title , component_group , customer_owner As Owner, repro_on_rvp, cmf_status As Status, idst As iDST, los AS LOS, drivers AS Diver FROM " + selectedPlatform;
@@ -18035,7 +18230,7 @@ ORDER BY Total_CMF_Approved DESC";
         string basePlatform = selectedPlatform.Replace("_ALL_COMPONENTS_TABLE", "");
         string componentTable = basePlatform + "_COMPONENT_GROUP_TABLE";
         //string driver_filter = "";
-        string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+        string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
 
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
@@ -18755,7 +18950,7 @@ ORDER BY Total_CMF_Approved DESC";
         string designTable = basePlatform + "_DESIGN_TABLE";
 
         int rowsUpdated = 0;
-        string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+        string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
 
         using (SqlConnection con = new SqlConnection(connectionString))
         {

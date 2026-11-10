@@ -1,0 +1,331 @@
+{
+  "version": "1.0",
+  "gnai": {
+    "endpoint": "https://gnai.intel.com/api/providers/anthropic/v1/messages",
+    "anthropicEndpoint": "https://gnai.intel.com/api/providers/anthropic/v1/messages",
+    "apiKey": "REPLACE_WITH_GNAI_TOKEN",
+    "primaryModel": "claude-4-5-sonnet",
+    "fastSummaryModel": "claude-4-5-haiku",
+    "fallbackModels": [
+      "claude-4-5-haiku"
+    ],
+    "proxy": "",
+    "requestTimeoutSeconds": 30
+  },
+  "hsd": {
+    "enabled": true,
+    "providerOrder": [
+      "rest",
+      "gnai"
+    ],
+    "articleApiBaseUrl": "https://hsdes-api.intel.com/rest/article",
+    "timeoutSeconds": 12,
+    "cacheRefreshSeconds": 120,
+    "skipCommentEndpointsWhenHistoryPresent": true
+  },
+  "database": {
+    "connectionName": "gfxitt",
+    "connectionString": "REPLACE_WITH_SQL_CONNECTION_STRING",
+    "providerName": "System.Data.SqlClient"
+  },
+  "plugins": {
+    "feedbackMemory": {
+      "enabled": true,
+      "storagePath": "~/App_Data/cmf-feedback-memory.json",
+      "maxFewShotExamples": 4
+    }
+  },
+  "scoringRules": {
+    "scaleMax": 4,
+    "formula": "Overall Score = (S * 0.20) + (O * 0.15) + (D * 0.15) + (R * 0.10) + (B * 0.20) + (CX * 0.20)",
+    "cmfOkMinScore": 3.5,
+    "cmfReviewMinScore": 2.75,
+    "thresholdScore": 88,
+    "reviewThresholdScore": 69,
+    "customerExperienceOverrideScore": 3,
+    "mandatoryRequirements": {
+      "requireComponentInDescription": true,
+      "requireRvpReproInDescription": true,
+      "requirePromotedIdInHeader": true,
+      "requireRvpReproInReasoning": true,
+      "rvpReproPolicy": "1) When RVP_repro is Yes: the issue reproduces on the Intel Reference Validation Platform (RVP), meaning there is a high likelihood the defect appears across most OEM customer units designed on that RVP platform (critical platform-wide impact) -- explicitly highlight \u0027also reproduced on RVP\u0027 in the CMF reasoning and recommendation justification. 2) When RVP_repro is No, NA, Not available, or Pending: normalize display to \u0027RVP repro: No\u0027; do NOT penalize or reduce the 6-category mathematical score (a high-scoring customer-unit blocker \u003e= 3.50 with B\u003e=3 and D\u003e=3 still qualifies for CMF_OK), and state in the reasoning that RVP repro is currently No (isolated to customer unit / not yet reproduced on RVP)."
+    },
+    "dimensions": [
+      {
+        "id": "S",
+        "name": "Severity",
+        "weight": 20,
+        "rubric": "4=Catastrophic / System Crash: Cannot power on or boot; BSOD / kernel crash; system hard hang or freeze; unexpected reboot/shutdown; permanent black screen / no display; data loss/corruption; permanent HW damage; certification/WHQL failure OR Major Subsystem / Core Feature Loss: Core subsystem unusable (audio, camera, Wi-Fi/BT, USB-C/TBT port dead); persistent display flickering or blanking until app/session closes; failed sleep/wake (S0ix/S3/S4); severe performance/thermal throttling. 3=Moderate / Intermittent Functional Degradation: Momentary or intermittent display flicker/glitch; single application hang/crash; specific feature or wake-word misses intermittently while OS stays responsive; moderate performance degradation. 2=Minor Functional / Warning: Minor UI artifact, brief single-frame visual blip, wrong LED behavior, or Device Manager/event-log warning with limited functional impact. 1=Cosmetic / Negligible: Cosmetic issue, typo, wrong status/description string, or internal debug log note with negligible functional impact."
+      },
+      {
+        "id": "O",
+        "name": "Occurrence",
+        "weight": 15,
+        "rubric": "4=Always / Consistent (90%-100%): Reproduces on every attempt (always_100%) or \u003e=90% of test cycles across units; at least hourly SW failure OR Frequent (50%-89%): Reproduces in 50%-89% of cycles (frequently_50%-90%, e.g., 6/9 cycles) across multiple UUTs or configurations. 3=Occasional / Sporadic (10%-49%): Reproduces in 10%-49% of cycles (sporadic_10%-40%, e.g., 2/7 cycles); recurring intermittent failure. 2=Rare / Very Sporadic (\u003c10%): Reproduces in \u003c10% of cycles (very_sporadic_\u003c10%, e.g., 1/20 to 1/100 tries; \u003c1 failure per 40 hours SW). 1=Isolated / Seen Once (\u003c1%): Seen only once (once), \u003c1/5000 cycles, or cannot be reliably reproduced."
+      },
+      {
+        "id": "D",
+        "name": "Detection",
+        "weight": 15,
+        "rubric": "4=Universal / Desktop \u0026 Idle Flow: Triggered on boot to desktop, idle state, or opening any standard app/file; immediately and easily visible to every end user OR Daily Core Workflow: Triggered during common daily user actions such as login/logout, S0ix sleep/resume, AC adapter plug/unplug, dock attach/detach, or voice wake.S4/S5 hibernate, restart 3=Specific Feature / Secondary Workflow: Triggered during a specific feature flow, OOBE, AFT, multi-monitor mode switch, or heavy GPU/CPU stress workload. 2=Corner-Case / Single App Button / Stress: Triggered only when clicking a specific button in one non-core app, unusual multi-step sequence, or synthetic corner-case stress. 1=Lab / Debug Setup Only: Requires special debug steps/settings/device, non-preloaded test tool, or unique manufacturing process."
+      },
+      {
+        "id": "R",
+        "name": "Recovery",
+        "weight": 10,
+        "rubric": "4=No Runtime Recovery: No acceptable workaround or runtime recovery exists; failure persists across reboots or permanently blocks the device OR Hard Reset / Disruptive Recovery: Requires forced power-button hold (4s/10s shutdown), AC/battery pull, BIOS reflash, or OS reinstall; or symptom remains continuously while any app/file is open.Recovery requires warm system reboot, 3=App Restart / Replug:  closing/restarting the affected app, or unplugging/replugging the device. (SW/driver updates are fixes, not runtime recovery.) 2=Simple User Action / Undocumented: Simple, reliable user action resolves the issue immediately with minor inconvenience, or runtime recovery is not documented. 1=Automatic / Transparent Recovery: Fully effective automatic self-recovery with negligible usability or validation impact."
+      },
+      {
+        "id": "B",
+        "name": "Business Impact",
+        "weight": 20,
+        "rubric": "4=Launch / Phase Exit Gate: Production halt, launch blocker, or showstopper blocking FVT/SIT phase exit; executive OEM escalation; financial/brand risk; multi-platform impact OR Validation Blocked / Milestone Risk: Customer milestone at risk; blocks a key customer validation test suite (HLK, feature FVT, stress sign-off); multiple escalations likely. 3=Moderate Program / Support Risk: Delays a non-gating test case; single-project scope with a viable debug path; customer dissatisfaction, support burden, or warranty exposure possible. 2=Low Business Exposure: Isolated corner-case observation in a single app or lab setup; does not block customer milestone sign-off or phase exit. 1=No Business / Customer Impact: Internal-only observation with no identified customer validation or schedule impact."
+      },
+      {
+        "id": "CX",
+        "name": "Customer Experience",
+        "weight": 20,
+        "rubric": "4=System or Core Experience Unusable: Laptop or core feature (display, audio, touch, keyboard, Wi-Fi, boot) is unusable in normal daily use (e.g., persistent display flickering whenever desktop/apps are open) OR Severe Visible Disruption: Significant visible degradation that materially disrupts normal tasks (e.g., repeated full-screen flicker on AC plug/unplug, frequent audio drop, or forced reboot losing unsaved work). 3=Noticeable User Annoyance: Intermittent visible degradation; user notices the flicker/glitch or must restart an app/peripheral, but the system remains usable. 2=Minimal User Impact: Minor visible annoyance or isolated to a rare single-app button that normal users rarely encounter. 1=Not Visible to End User: Debug-only symptom, internal status mismatch, or invisible to end users."
+      }
+    ],
+    "dispositionTable": [
+      {
+        "disposition": "CMF_OK",
+        "scoreBand": "\u003e= 3.50",
+        "minimumConditions": "B \u003e= 3 and D \u003e= 3",
+        "meaning": "Clear customer must-fix issue with substantial combined technical, customer, and business impact.",
+        "requiredAction": "Approve as CMF; assign owner, target, containment, and customer communication.",
+        "output": "Approve"
+      },
+      {
+        "disposition": "CMF_REVIEW",
+        "scoreBand": "2.75-3.49",
+        "minimumConditions": "Or capped by a guardrail",
+        "meaning": "Borderline issue requiring cross-functional judgment because one or more dimensions are moderate or incomplete.",
+        "requiredAction": "Review evidence, scope, requirement, and customer commitment; document rationale.",
+        "output": "Review"
+      },
+      {
+        "disposition": "CMF_REJECT",
+        "scoreBand": "\u003c 2.75",
+        "minimumConditions": "No mandatory escalation",
+        "meaning": "Low combined exposure, narrow trigger, simple recovery, or limited customer/business effect.",
+        "requiredAction": "Track through the standard defect process; reassess if scope or impact increases.",
+        "output": "Reject"
+      },
+      {
+        "disposition": "CMF_INCOMPLETE",
+        "scoreBand": "Condition-based (Any Score)",
+        "minimumConditions": "Core metric evidence missing (Guardrail #3)",
+        "meaning": "One or more core categories cannot be scored from the available ticket evidence.",
+        "requiredAction": "Request missing reproduction, recovery, or impact details from the submitter before disposition.",
+        "output": "Incomplete"
+      },
+      {
+        "disposition": "CMF_DUPLICATE",
+        "scoreBand": "Condition-based (Any Score)",
+        "minimumConditions": "Duplicate sighting or merge ID identified in ticket/comments",
+        "meaning": "Issue reports the same underlying failure already tracked under a primary sighting.",
+        "requiredAction": "Mark as cmf_duplicate and link to the primary sighting.",
+        "output": "Duplicate"
+      }
+    ],
+    "gatingGuardrails": [
+      {
+        "id": "low_business_or_narrow_trigger_cap",
+        "name": "Low business or narrow trigger cap",
+        "rule": "If B \u003c= 2 OR D \u003c= 2, the issue cannot be CMF_OK and is capped at CMF_REVIEW.",
+        "rationale": "Prevents a severe symptom in a rare, lab-only, or low-business scenario from being automatically approved."
+      },
+      {
+        "id": "mandatory_escalation",
+        "name": "Mandatory escalation",
+        "rule": "Safety, security/privacy, data loss/corruption, permanent hardware damage, or certification/WHQL launch blocker is at least CMF_REVIEW regardless of score.",
+        "rationale": "Prevents a weighted average from hiding unacceptable consequences."
+      },
+      {
+        "id": "incomplete_evidence",
+        "name": "Incomplete evidence",
+        "rule": "If any category cannot be scored from evidence, return INCOMPLETE rather than assigning a low score.",
+        "rationale": "Unknown information is not evidence of low risk."
+      },
+      {
+        "id": "high_normal_flow_ux_exception",
+        "name": "High normal-flow UX exception",
+        "rule": "A persistent normal-flow issue with B = 4, CX = 4, and D = 4 may qualify as CMF_OK when the weighted score is \u003e= 3.50 even if Severity is 3.",
+        "rationale": "Allows major user-facing failures to be recognized without requiring a crash-level technical severity."
+      },
+      {
+        "id": "occurrence_discipline",
+        "name": "Occurrence discipline",
+        "rule": "Use actual fail/attempt cycles and unit/configuration counts. Do not increase Occurrence solely because the symptom is severe.",
+        "rationale": "Avoids double-counting Severity and Occurrence."
+      }
+    ]
+  },
+  "jargonMappings": {
+    "platformFamilies": {
+      "NVL": [
+        "novalake",
+        "nova lake",
+        "nvl"
+      ],
+      "PTL": [
+        "pantherlake",
+        "panther lake",
+        "ptl"
+      ],
+      "LNL": [
+        "lunarlake",
+        "lunar lake",
+        "lnl"
+      ],
+      "ARL": [
+        "arrowlake",
+        "arrow lake",
+        "arl"
+      ],
+      "WCL": [
+        "wildcatlake",
+        "wildcat lake",
+        "wcl"
+      ],
+      "GNR": [
+        "graniterapids",
+        "granite rapids",
+        "gnr"
+      ]
+    },
+    "platformSkus": {
+      "NVL-H": [
+        "novalake-h",
+        "novalake h",
+        "nova lake-h",
+        "nova lake h",
+        "nvl-h",
+        "nvl h",
+        "nvl_h"
+      ],
+      "NVL-S": [
+        "novalake-s",
+        "novalake s",
+        "nova lake-s",
+        "nova lake s",
+        "nvl-s",
+        "nvl s",
+        "nvl_s"
+      ],
+      "NVL-Hx": [
+        "novalake-hx",
+        "novalake hx",
+        "nova lake-hx",
+        "nova lake hx",
+        "nvl-hx",
+        "nvl hx",
+        "nvl_hx"
+      ],
+      "NVL-U": [
+        "novalake-u",
+        "novalake u",
+        "nova lake-u",
+        "nova lake u",
+        "nvl-u",
+        "nvl u",
+        "nvl_u"
+      ],
+      "ARL-S": [
+        "arrowlake-s",
+        "arrowlake s",
+        "arrow lake-s",
+        "arrow lake s",
+        "arl-s",
+        "arl s",
+        "arl_s"
+      ],
+      "ARL-H": [
+        "arrowlake-h",
+        "arrowlake h",
+        "arrow lake-h",
+        "arrow lake h",
+        "arl-h",
+        "arl h",
+        "arl_h"
+      ],
+      "ARL-U": [
+        "arrowlake-u",
+        "arrowlake u",
+        "arrow lake-u",
+        "arrow lake u",
+        "arl-u",
+        "arl u",
+        "arl_u"
+      ],
+      "ARL-Hx": [
+        "arrowlake-hx",
+        "arrowlake hx",
+        "arrow lake-hx",
+        "arrow lake hx",
+        "arl-hx",
+        "arl hx",
+        "arl_hx"
+      ],
+      "ARL-Refresh": [
+        "arrowlake-refresh",
+        "arrowlake refresh",
+        "arrow lake refresh",
+        "arl-refresh",
+        "arl refresh"
+      ]
+    },
+    "componentSynonyms": {
+      "iGFX (Graphics)": [
+        "graphics",
+        "igfx",
+        "display",
+        "gfx",
+        "igpu",
+        "media"
+      ],
+      "Audio": [
+        "audio",
+        "sound",
+        "speaker",
+        "microphone",
+        "mic",
+        "voice",
+        "soundwire"
+      ],
+      "TBT": [
+        "thunderbolt",
+        "tbt",
+        "usb4",
+        "type-c",
+        "usb-c",
+        "usbc"
+      ],
+      "BIOS": [
+        "bios",
+        "ifwi",
+        "firmware",
+        "uefi"
+      ],
+      "CSME": [
+        "csme",
+        "cse",
+        "manageability"
+      ],
+      "PnP": [
+        "pnp",
+        "power",
+        "battery",
+        "modern standby",
+        "s0ix"
+      ],
+      "DTT": [
+        "dtt",
+        "thermal",
+        "temperature"
+      ]
+    }
+  }
+}

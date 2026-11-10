@@ -2,6 +2,43 @@
 
 This repository contains an ASP.NET Web Forms CMF portal demo that runs locally with IIS Express. The portal provides platform-scoped CMF dashboards, Issue List and CMF Pending views, AI-assisted summaries/recommendations, Reports & Analytics, and CMF rule configuration.
 
+## What's New in `updated_recommendation`
+
+1. **Modular JSON Configuration & Plugin Architecture (`App_Data/cmf-assistant-config.json` & `App_Code/CmfAssistantConfigService.cs`):**
+   - Centralizes GNAI endpoints (`/providers/anthropic/v1/messages` for `claude-4-5-sonnet` primary and `claude-4-5-haiku` backup), HSDES REST API settings, SQL database connection settings, 6-category scoring rules, disposition bands, gating guardrails, and platform/component jargon mappings in a single hot-reloading JSON file.
+   - **Required Files to Run:** Ensure both **`App_Data/cmf-assistant-config.json`** and **`Web.config`** are present in the project directory (optional local-only credentials can also be placed in git-ignored `App_Data/cmf-assistant-config.local.json`).
+
+2. **6-Category / 4-Point Scoring Mechanism & 5 Gating Guardrails (`App_Code/CmfRecommendationService.cs`):**
+   - **4-Point Scale (`1` to `4`):** `Overall Score = (S * 0.20) + (O * 0.15) + (D * 0.15) + (R * 0.10) + (B * 0.20) + (CX * 0.20)`.
+   - **5-Tag Disposition Model:**
+     - `CMF_OK` (`Approve`): Weighted score `>= 3.50/4` with minimum conditions `B >= 3` and `D >= 3`.
+     - `CMF_REVIEW` (`Review`): Weighted score `2.75 - 3.49/4` or capped/escalated by a gating guardrail.
+     - `CMF_REJECT` (`Reject`): Weighted score `< 2.75/4` with complete evidence and no mandatory escalation.
+     - `CMF_INCOMPLETE` (`Incomplete`): Condition-based override when core metric evidence is missing (Guardrail #3).
+     - `CMF_DUPLICATE` (`Duplicate`): Condition-based override when a duplicate sighting or merge ID is identified.
+   - **5 Gating Guardrails:**
+     - *Low business or narrow trigger cap:* If `B <= 2` or `D <= 2`, capped at `CMF_REVIEW`.
+     - *Mandatory escalation:* Safety, security/privacy, data loss/corruption, permanent HW damage, or certification/WHQL blocker is at least `CMF_REVIEW`.
+     - *Incomplete evidence:* Missing core category evidence returns `CMF_INCOMPLETE`.
+     - *High normal-flow UX exception:* Persistent normal-flow issue with `B = 4`, `CX = 4`, and `D = 4` qualifies as `CMF_OK` when weighted score `>= 3.50` even if `Severity = 3`.
+     - *Occurrence discipline:* Uses actual fail/attempt cycles and unit/configuration counts without inflating `Occurrence` for symptom severity.
+
+3. **One-Click Excel (`.xlsx`) Scoring Guidelines Importer (`Config/CMF Rules` Tab):**
+   - Upload an updated `CMF_6_Category_Scoring_Mechanism.xlsx` file in the Admin **Config/CMF Rules** tab to automatically parse Sheet 1 (`1-4` rubrics and weights) and Sheet 2 (CMF Disposition Table and Gating Guardrails) via `EPPlus.dll` and update `App_Data/cmf-assistant-config.json`.
+
+4. **AI CMF Assistant Drawer & Scenario Feedback Learning (`CMF Pending` Tab):**
+   - **Problem Description (`App_Code/AiSummaryService.cs`):** Enforces `[Component]` in the opening sentence, reconciles conflicting cycle/UUT counts, and restricts `**Repro details:**` strictly to reproduction details (`RVP repro: Yes/No;` + customer/lab reproduction status and builds) without debug/root-cause leakage.
+   - **Dedicated `Current Status` Section:** Summarizes candidate fixes, workarounds, and validation status (with promoted issue ID attribution).
+   - **Promoted ID Header Link & Click-Only Score Guide Tooltip:** Displays `Promoted ID: <ID/NA>` next to `Sighting ID` and shows the `Score to Tag Guide (Out of 4)` tooltip when clicking the `i` icon.
+   - **Mandatory `RVP repro` Reasoning:** Explicitly evaluates and cites `RVP repro` status (`Yes` = platform-wide risk across OEM customer units; `No` = isolated to customer unit without penalizing the 6-category score).
+   - **Scenario-Based Feedback Log (`App_Code/CmfFeedbackMemoryService.cs` & `App_Data/cmf-feedback-memory.json`):** Appends every reviewer feedback submission as a reusable scenario lesson (`SCN-...`) for future recommendations.
+
+5. **Global `Ask CMF Pulse` Assistant & Native Executive PowerPoint (`.pptx`) Generator (`App_Code/CmfGlobalAssistantService.cs` & `App_Code/CmfExecutivePptxService.cs`):**
+   - Accessible across all portal tabs via the bottom-right **`Ask CMF Pulse`** button (`Analyze. Generate. Assist.`).
+   - **Multi-Tab Q&A & Family/SKU Rollups:** Answers questions across Dashboard KPIs, Issue List sightings, CMF Summary TPT/Designs/SW Image Freeze/OEMs/Drivers, CMF Pending items/age buckets, Reports workweeks/closed reasons, and Config rules. Reports both **Family Totals (`NVL (Nova Lake)`)** and **individual SKU breakdowns (`NVL-H`, `NVL-S`, `NVL-Hx` vs `PTL`)**.
+   - **3-Layer Hybrid Jargon Scaling:** Combines dynamic SQL discovery + fuzzy Levenshtein matching, LLM semantic mapping, and self-learning synonym persistence via chat, feedback notes, or the Admin UI.
+   - **Custom PPT Report Templates & Native 16:9 `.pptx` Generation:** Supports preset and uploaded/saved custom slide blueprints (`App_Data/reports-assistant/pulse-templates.json`) + natural prompts to generate 4-slide widescreen PowerPoint decks using `DocumentFormat.OpenXml` and inline ECharts visuals, plus a dedicated Pulse scenario feedback log (`App_Data/cmf-pulse-feedback.json`).
+
 ## Prerequisites
 
 Install or confirm the following on your Windows machine:
@@ -24,15 +61,16 @@ C:\Program Files\IIS Express\iisexpress.exe
 Important files and folders:
 
 ```text
-CMF_Web_portal.aspx        Main Web Forms page and client-side UI
-CMF_Web_portal.aspx.cs     Main code-behind logic for tabs, dashboard, grids, AI WebMethods
-Web.config.example         Template local configuration file
-Web.config                 Local runtime configuration file, not safe for secrets in source control
-App_Code/                  Server-side services for AI, CMF recommendations, HSD, reports
-App_Data/                  Local data/rules/generated report artifacts
-Content/                   CSS and generated report content
-Scripts/                   JavaScript and Python analytics scripts
-bin/                       Runtime assemblies required by the Web Forms app
+CMF_Web_portal.aspx                  Main Web Forms page and client-side UI
+CMF_Web_portal.aspx.cs               Main code-behind logic for tabs, dashboard, grids, AI WebMethods
+App_Data/cmf-assistant-config.json   Required unified JSON configuration (GNAI, SQL DB, HSD, Scoring Rules, Jargon)
+Web.config                           Required ASP.NET .NET 4.8 runtime & IIS configuration file
+Web.config.example                   Template ASP.NET runtime configuration file
+App_Code/                            Server-side services for AI, CMF recommendations, Ask CMF Pulse, HSD, reports
+App_Data/                            Configuration JSONs, feedback memory logs, and generated report artifacts
+Content/                             CSS and generated report content
+Scripts/                             JavaScript and Python analytics scripts
+bin/                                 Runtime assemblies required by the Web Forms app
 ```
 
 The runtime entry point is `CMF_Web_portal.aspx`.
@@ -389,6 +427,8 @@ exported, in table order; UI controls are excluded.
 
 ## First-Time Setup
 
+> **Important Requirement:** Both **`App_Data/cmf-assistant-config.json`** and **`Web.config`** must be present and configured in the project folder to run the portal.
+
 1. Clone or extract the project to a local folder.
 
 2. Open the project folder in VS Code.
@@ -397,31 +437,44 @@ exported, in table order; UI controls are excluded.
 code "C:\Path\To\CMF_Portal_Demo"
 ```
 
-3. Create a local `Web.config` file if it does not already exist.
+3. Confirm **`Web.config`** is present in the root folder (used for ASP.NET `.NET Framework 4.8` compilation, assemblies, and IIS pipeline settings). If missing, copy it from `Web.config.example`:
 
 ```powershell
 Copy-Item .\Web.config.example .\Web.config
 ```
 
-4. Open `Web.config` and fill in environment-specific values.
+4. Confirm **`App_Data/cmf-assistant-config.json`** is present inside the `App_Data/` folder and fill in your environment-specific credentials (or copy from `App_Data/cmf-assistant-config.example.json` if needed):
 
-At minimum, configure:
-
-```xml
-<connectionStrings>
-  <add name="gfxitt" connectionString="YOUR_DATABASE_CONNECTION_STRING" providerName="System.Data.SqlClient" />
-</connectionStrings>
+```powershell
+Copy-Item .\App_Data\cmf-assistant-config.example.json .\App_Data\cmf-assistant-config.json
 ```
 
-For AI features, configure either GNAI or GitHub Models settings. The current preferred path is GNAI:
+Inside **`App_Data/cmf-assistant-config.json`**, ensure the following sections are configured:
 
-```xml
-<add key="GNAI:Endpoint" value="https://gnai.intel.com/api/providers/openai/v1/chat/completions" />
-<add key="GNAI:Model" value="gpt-5-mini" />
-<add key="GNAI:ApiKey" value="YOUR_GNAI_TOKEN" />
+```json
+{
+  "gnai": {
+    "endpoint": "https://gnai.intel.com/api/providers/anthropic/v1/messages",
+    "anthropicEndpoint": "https://gnai.intel.com/api/providers/anthropic/v1/messages",
+    "apiKey": "YOUR_GNAI_TOKEN",
+    "primaryModel": "claude-4-5-sonnet",
+    "fastSummaryModel": "claude-4-5-haiku",
+    "fallbackModels": [ "claude-4-5-haiku" ]
+  },
+  "hsd": {
+    "enabled": true,
+    "providerOrder": [ "rest", "gnai" ],
+    "articleApiBaseUrl": "https://hsdes-api.intel.com/rest/article"
+  },
+  "database": {
+    "connectionName": "gfxitt",
+    "connectionString": "YOUR_SQL_SERVER_CONNECTION_STRING",
+    "providerName": "System.Data.SqlClient"
+  }
+}
 ```
 
-Do not commit real API keys, tokens, passwords, or internal connection strings.
+Do not commit real API keys, tokens, passwords, or internal connection strings to public repositories (you can also store local-only credentials in `App_Data/cmf-assistant-config.local.json`, which is git-ignored and automatically overlaid at runtime).
 
 5. Confirm required assemblies exist in `bin/`.
 
@@ -558,23 +611,28 @@ These fixtures test policy behavior, not real-world accuracy. The earlier six hi
 
 ## Configuration Notes
 
-### Database
+> **Required Configuration Files:** To run the portal, ensure both **`App_Data/cmf-assistant-config.json`** (single source of truth for SQL database, GNAI `claude-4-5-sonnet` / `claude-4-5-haiku`, HSD-ES API, 4-point scoring rules, 5 gating guardrails, and jargon mappings) and **`Web.config`** (ASP.NET `.NET 4.8` runtime configuration) exist in your workspace.
 
-The app reads database settings from the `gfxitt` connection string in `Web.config`.
+### Database (`App_Data/cmf-assistant-config.json`)
+
+The app reads database settings directly from `database.connectionString` in `App_Data/cmf-assistant-config.json` via `CmfAssistantConfigService.ResolveDatabaseConnectionString()`.
 
 The dashboard and issue views resolve platform tables from the single source in `App_Code/CmfPlatformCatalog.cs`, and runtime UI lists are generated from that source.
 
-### AI
+### AI (`App_Data/cmf-assistant-config.json`)
 
-AI features use settings from `Web.config`. GNAI is preferred when these values are configured:
+AI features read their endpoint, token, and model chain directly from the `gnai` section in `App_Data/cmf-assistant-config.json` (using `claude-4-5-sonnet` as primary and `claude-4-5-haiku` as backup):
 
-```xml
-<add key="GNAI:Endpoint" value="..." />
-<add key="GNAI:Model" value="..." />
-<add key="GNAI:ApiKey" value="..." />
+```json
+"gnai": {
+  "endpoint": "https://gnai.intel.com/api/providers/anthropic/v1/messages",
+  "anthropicEndpoint": "https://gnai.intel.com/api/providers/anthropic/v1/messages",
+  "apiKey": "YOUR_GNAI_TOKEN",
+  "primaryModel": "claude-4-5-sonnet",
+  "fastSummaryModel": "claude-4-5-haiku",
+  "fallbackModels": [ "claude-4-5-haiku" ]
+}
 ```
-
-If GNAI is not configured, the services can fall back to GitHub Models settings when available.
 
 AI-powered features include:
 
@@ -585,9 +643,10 @@ Issue List AI Summary
 Issue List Issue Details
 CMF Pending AI Recommendation
 AI CMF Assessment / Decision Details
+Ask CMF Pulse (Global Cross-Tab Assistant & 4-Slide PPTX Generator)
 
-The CMF Assistant checks HSD context on access, with a 60-second source cache
-by default (`CMF:AssistantHsdRefreshSeconds`, bounded to 15-300 seconds). Reopen
+The CMF Assistant checks HSD context on access, with a configurable source cache
+(`hsd.cacheRefreshSeconds` in `App_Data/cmf-assistant-config.json`, bounded to 15-300 seconds). Reopen
 the assistant after that window to pick up changes; an already-open drawer is
 not automatically pushed updates. The combined recommendation context no
 longer adds another ten-minute cache window.
@@ -615,15 +674,18 @@ memory caches). Follow-up chat and dashboard caches are unchanged.
 Reports Assistant
 ```
 
-### HSD Enrichment
+### HSD Enrichment (`App_Data/cmf-assistant-config.json`)
 
-HSD-related settings live in `Web.config`:
+HSD-related settings live in the `hsd` section of `App_Data/cmf-assistant-config.json`:
 
-```xml
-<add key="HSD:Enabled" value="true" />
-<add key="HSD:ProviderOrder" value="rest,gnai" />
-<add key="HSD:ArticleApiBaseUrl" value="https://hsdes-api.intel.com/rest/article" />
-<add key="HSD:UseDefaultCredentials" value="true" />
+```json
+"hsd": {
+  "enabled": true,
+  "providerOrder": [ "rest", "gnai" ],
+  "articleApiBaseUrl": "https://hsdes-api.intel.com/rest/article",
+  "timeoutSeconds": 12,
+  "cacheRefreshSeconds": 120
+}
 ```
 
 If HSD access is unavailable, AI features may still work but with less context.

@@ -71,10 +71,9 @@ public static class HsdPortalService
     {
         var result = CreateEmptyArticleData(articleId);
 
-        string enabledStr = ConfigurationManager.AppSettings["HSD:Enabled"];
-        if (string.Equals(enabledStr, "false", StringComparison.OrdinalIgnoreCase))
+        if (!CmfAssistantConfigService.GetConfig().HsdEnabled)
         {
-            result.FetchError = "HSD integration disabled (HSD:Enabled=false).";
+            result.FetchError = "HSD integration disabled in cmf-assistant-config.json (hsd.enabled=false).";
             return result;
         }
 
@@ -274,15 +273,12 @@ public static class HsdPortalService
 
     private static string[] ResolveProviderOrder()
     {
-        string configured = ConfigurationManager.AppSettings["HSD:ProviderOrder"];
-        if (string.IsNullOrWhiteSpace(configured))
+        List<string> configured = CmfAssistantConfigService.GetConfig().HsdProviderOrder;
+        if (configured != null && configured.Count > 0)
         {
-            configured = string.IsNullOrWhiteSpace(ConfigurationManager.AppSettings["HSD:McpEndpoint"])
-                ? "gnai,rest"
-                : "gnai,mcp,rest";
+            return configured.ToArray();
         }
-
-        return configured.Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries);
+        return new[] { "rest", "gnai" };
     }
 
     private static bool HasRecognizableArticleFields(HsdArticleData data)
@@ -302,8 +298,7 @@ public static class HsdPortalService
     private static bool TryFetchWithRest(string articleId, HsdArticleData result, bool forDebugSummary = false, bool forInsights = false)
     {
         string baseUrl = FirstNonEmpty(
-            ConfigurationManager.AppSettings["HSD:ArticleApiBaseUrl"],
-            ConfigurationManager.AppSettings["HSD:ApiBaseUrl"],
+            CmfAssistantConfigService.GetConfig().HsdArticleApiBaseUrl,
             DefaultBaseUrl).TrimEnd('/');
 
         string articleUrl = baseUrl + "/" + Uri.EscapeUriString(articleId.Trim());
@@ -319,9 +314,21 @@ public static class HsdPortalService
 
             MergeArticleJsonIntoResult(json, result, forDebugSummary, forInsights);
 
-            // Try to fetch discussion comments; ignore errors since comments are optional.
-            if (forInsights) FetchInsightComments(articleUrl, result);
-            else TryFetchComments(articleUrl, result, forDebugSummary);
+            // Try to fetch discussion comments; skip separate comment endpoints when inline history is already present and configured.
+            if (forInsights)
+            {
+                FetchInsightComments(articleUrl, result);
+            }
+            else
+            {
+                bool skipComments = !forDebugSummary
+                    && CmfAssistantConfigService.GetConfig().SkipCommentEndpointsWhenHistoryPresent
+                    && (!string.IsNullOrWhiteSpace(result.InvestigationHistory) || (result.Comments != null && result.Comments.Count > 0));
+                if (!skipComments)
+                {
+                    TryFetchComments(articleUrl, result, forDebugSummary);
+                }
+            }
             return HasRecognizableArticleFields(result);
         }
         catch (WebException webEx)
@@ -336,25 +343,15 @@ public static class HsdPortalService
 
     private static bool TryFetchWithGnaiPlugin(string articleId, HsdArticleData result, bool forDebugSummary = false, bool forInsights = false)
     {
-        string enabled = ConfigurationManager.AppSettings["HSD:GnaiEnabled"];
-        if (string.Equals(enabled, "false", StringComparison.OrdinalIgnoreCase))
-        {
-            result.FetchError = "GNAI HSD provider disabled (HSD:GnaiEnabled=false).";
-            return false;
-        }
-
         string token = ResolveGnaiToken();
-        string endpoint = FirstNonEmpty(
-            Environment.GetEnvironmentVariable("GNAI_ENDPOINT"),
-            ConfigurationManager.AppSettings["GNAI:Endpoint"]);
+        string endpoint = CmfAssistantConfigService.ResolveGnaiEndpoint();
         string model = FirstNonEmpty(
-            Environment.GetEnvironmentVariable("GNAI_MODEL"),
-            ConfigurationManager.AppSettings["GNAI:Model"],
-            "gpt-5-mini");
+            CmfAssistantConfigService.ResolvePrimaryModel(),
+            "claude-4-5-sonnet");
 
         if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(endpoint) || endpoint.StartsWith("REPLACE", StringComparison.OrdinalIgnoreCase))
         {
-            result.FetchError = "GNAI endpoint/token not configured.";
+            result.FetchError = "GNAI endpoint/token not configured in cmf-assistant-config.json.";
             return false;
         }
 
@@ -616,7 +613,7 @@ public static class HsdPortalService
         {
             try
             {
-                ReadInsightCommentPages(articleUrl + suffix, HttpGetSspi, result);
+                ReadInsightCommentPages(articleUrl + suffix, u => HttpGetSspi(u), result);
                 return;
             }
             catch (Exception ex)
@@ -691,8 +688,10 @@ public static class HsdPortalService
 
     private static string PostJson(string endpoint, string payloadJson, string authorization, IWebProxy proxy, string userAgent)
     {
-        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(endpoint);
         ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+        if (ServicePointManager.DefaultConnectionLimit < 24) ServicePointManager.DefaultConnectionLimit = 24;
+        ServicePointManager.Expect100Continue = false;
+        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(endpoint);
         request.Method = "POST";
         request.ContentType = "application/json";
         request.Accept = "application/json";
@@ -735,10 +734,7 @@ public static class HsdPortalService
 
     private static IWebProxy BuildGnaiProxy()
     {
-        string explicitProxy = FirstNonEmpty(
-            Environment.GetEnvironmentVariable("GNAI_PROXY"),
-            ConfigurationManager.AppSettings["GNAI:Proxy"],
-            ConfigurationManager.AppSettings["HSD:GnaiProxy"]);
+        string explicitProxy = CmfAssistantConfigService.GetConfig().GnaiProxy;
         if (!string.IsNullOrWhiteSpace(explicitProxy))
         {
             WebProxy proxy = new WebProxy(explicitProxy.Trim(), true);
@@ -751,15 +747,7 @@ public static class HsdPortalService
 
     private static string ResolveGnaiToken()
     {
-        string token = ConfigurationManager.AppSettings["GNAI:ApiKey"];
-        if (!string.IsNullOrWhiteSpace(token))
-        {
-            return token;
-        }
-
-        return FirstNonEmpty(
-            Environment.GetEnvironmentVariable("GNAI_TOKEN"),
-            Environment.GetEnvironmentVariable("GNAI_API_KEY"));
+        return CmfAssistantConfigService.ResolveGnaiToken();
     }
 
     private static string ExtractModelContent(string responseBody)
@@ -944,7 +932,7 @@ public static class HsdPortalService
         {
             try
             {
-                string json = HttpGetSspi(endpoint);
+                string json = HttpGetSspi(endpoint, 3500);
                 if (string.IsNullOrWhiteSpace(json)) continue;
 
                 ParseCommentsJson(json, result);
@@ -954,20 +942,22 @@ public static class HsdPortalService
         }
     }
 
-    private static string HttpGetSspi(string url)
+    private static string HttpGetSspi(string url, int maxTimeoutMs = 6000)
     {
-        int timeoutMs = 10000;
-
-        string timeoutStr = ConfigurationManager.AppSettings["HSD:TimeoutSeconds"];
-        int secs;
-
-        if (!string.IsNullOrWhiteSpace(timeoutStr) &&
-            int.TryParse(timeoutStr, out secs) &&
-            secs > 0)
+        int timeoutMs = 6000;
+        int secs = CmfAssistantConfigService.GetConfig().HsdTimeoutSeconds;
+        if (secs > 0)
         {
             timeoutMs = secs * 1000;
         }
+        if (maxTimeoutMs > 0 && timeoutMs > maxTimeoutMs)
+        {
+            timeoutMs = maxTimeoutMs;
+        }
 
+        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+        if (ServicePointManager.DefaultConnectionLimit < 24) ServicePointManager.DefaultConnectionLimit = 24;
+        ServicePointManager.Expect100Continue = false;
         HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
 
         request.Method = "GET";

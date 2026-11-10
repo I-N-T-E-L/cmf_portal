@@ -262,21 +262,21 @@ ORDER BY t.name", connection))
             "CMF_NVL_H_ALL_COMPONENTS_TABLE",
             "https://dashboards.intel.com/projects/nvl-h",
             string.Empty,
-            new[] { "nvl-h", "nvl h", "nvl_h" }),
+            new[] { "nvl-h", "nvl h", "nvl_h", "novalake-h", "novalake h", "nova lake-h", "nova lake h" }),
 
         new CmfPlatformDefinition(
             "NVL-S",
             "CMF_NVL_S_ALL_COMPONENTS_TABLE",
             "https://dashboards.intel.com/projects/nvl-s",
             string.Empty,
-            new[] { "nvl-s", "nvl s", "nvl_s" }),
+            new[] { "nvl-s", "nvl s", "nvl_s", "novalake-s", "novalake s", "nova lake-s", "nova lake s" }),
 
         new CmfPlatformDefinition(
             "NVL-U",
             "CMF_NVL_U_ALL_COMPONENTS_TABLE",
             "https://dashboards.intel.com/projects/nvl-u",
             string.Empty,
-            new[] { "nvl-u", "nvl u", "nvl_u" }),
+            new[] { "nvl-u", "nvl u", "nvl_u", "novalake-u", "novalake u", "nova lake-u", "nova lake u" }),
 
         new CmfPlatformDefinition(
             "PTL",
@@ -297,42 +297,42 @@ ORDER BY t.name", connection))
             "CMF_ARL_S_ALL_COMPONENTS_TABLE",
             "https://dashboards.intel.com/projects/arl-s",
             string.Empty,
-            new[] { "arl-s", "arl s", "arl_s" }),
+            new[] { "arl-s", "arl s", "arl_s", "arrowlake-s", "arrowlake s", "arrow lake-s", "arrow lake s" }),
 
         new CmfPlatformDefinition(
             "ARL-H",
             "CMF_ARL_H_ALL_COMPONENTS_TABLE",
             "https://dashboards.intel.com/projects/arl-h",
             string.Empty,
-            new[] { "arl-h", "arl h", "arl_h" }),
+            new[] { "arl-h", "arl h", "arl_h", "arrowlake-h", "arrowlake h", "arrow lake-h", "arrow lake h" }),
 
         new CmfPlatformDefinition(
             "ARL-U",
             "CMF_ARL_U_ALL_COMPONENTS_TABLE",
             "https://dashboards.intel.com/projects/arl-u",
             string.Empty,
-            new[] { "arl-u", "arl u", "arl_u" }),
+            new[] { "arl-u", "arl u", "arl_u", "arrowlake-u", "arrowlake u", "arrow lake-u", "arrow lake u" }),
 
         new CmfPlatformDefinition(
             "ARL-Hx",
             "CMF_ARL_HX_ALL_COMPONENTS_TABLE",
             "https://dashboards.intel.com/projects/arl-hx",
             string.Empty,
-            new[] { "arl-hx", "arl hx", "arl_hx" }),
+            new[] { "arl-hx", "arl hx", "arl_hx", "arrowlake-hx", "arrowlake hx", "arrow lake-hx", "arrow lake hx" }),
 
         new CmfPlatformDefinition(
             "ARL-Refresh",
             "CMF_ARL_Refresh_ALL_COMPONENTS_TABLE",
             "https://dashboards.intel.com/projects/arl-refresh",
             string.Empty,
-            new[] { "arl-refresh", "arl refresh", "arl_refresh" }),
+            new[] { "arl-refresh", "arl refresh", "arl_refresh", "arrowlake-refresh", "arrowlake refresh", "arrow lake refresh" }),
 
         new CmfPlatformDefinition(
             "GNR",
             "CMF_GNR_ALL_COMPONENTS_TABLE",
             "https://dashboards.intel.com/projects/gnr",
             "https://cdrdv2.intel.com/v1/dl/getContent/824182",
-            new[] { "gnr" }),
+            new[] { "gnr", "granite rapids", "graniterapids" }),
 
         new CmfPlatformDefinition(
             "WCL",
@@ -345,7 +345,12 @@ ORDER BY t.name", connection))
     private static readonly Dictionary<string, string[]> FamilyPromptAliases =
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
-            { "nvl", new[] { "nova lake", "novalake" } }
+            { "nvl", new[] { "nova lake", "novalake" } },
+            { "arl", new[] { "arrow lake", "arrowlake" } },
+            { "ptl", new[] { "panther lake", "pantherlake" } },
+            { "lnl", new[] { "lunar lake", "lunarlake" } },
+            { "wcl", new[] { "wildcat lake", "wildcatlake" } },
+            { "gnr", new[] { "granite rapids", "graniterapids" } }
         };
 
     private static readonly Dictionary<string, CmfPlatformDefinition> PlatformByTable =
@@ -378,9 +383,9 @@ ORDER BY t.name", connection))
         CmfPlatformDefinition[] platforms = context == null ? null : context.Items[cacheKey] as CmfPlatformDefinition[];
         if (platforms == null)
         {
-            ConnectionStringSettings settings = ConfigurationManager.ConnectionStrings["gfxitt"];
-            if (settings == null) throw new InvalidOperationException("The CMF database connection is not configured.");
-            using (SqlConnection connection = new SqlConnection(settings.ConnectionString))
+            string connStr = CmfAssistantConfigService.ResolveDatabaseConnectionString();
+            if (string.IsNullOrWhiteSpace(connStr)) throw new InvalidOperationException("The CMF database connection is not configured.");
+            using (SqlConnection connection = new SqlConnection(connStr))
             {
                 connection.Open();
                 platforms = DiscoverPlatforms(connection);
