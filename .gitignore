@@ -10,6 +10,7 @@ App_Data/cmf-assistant-config.local.json
 *.user
 *.suo
 command.txt
+Web.config
 
 # Generated diagnostics and captures
 page500_ai_confidence.html

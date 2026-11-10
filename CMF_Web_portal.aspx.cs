@@ -11426,25 +11426,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                     foreach (int columnIndex in exportColumns)
                     {
                         var column = GridView_cmf_pending.Columns[columnIndex];
-                        string value;
-                        if (columnIndex == 0)
-                        {
-                            value = issueId;
-                        }
-                        else if (column.ItemStyle.CssClass == "pending-field-rvp")
-                        {
-                            value = Convert.ToString(keys.Values["repro_on_rvp"], CultureInfo.InvariantCulture);
-                        }
-                        else if (column.ItemStyle.CssClass == "pending-field-request-date")
-                        {
-                            var request = (Label)gridRow.FindControl("PendingRequestValue");
-                            var date = (Label)gridRow.FindControl("PendingAskDateValue");
-                            value = HttpUtility.HtmlDecode(request.Text) + "\n" + HttpUtility.HtmlDecode(date.Text);
-                        }
-                        else
-                        {
-                            value = HttpUtility.HtmlDecode(gridRow.Cells[columnIndex].Text).Replace("\u00a0", " ");
-                        }
+                        string value = GetPendingExportColumnValue(gridRow, columnIndex, column, keys);
                         exportRow.Append(CreatePendingExportCell(value));
                     }
                     sheetData.Append(exportRow);
@@ -11463,6 +11445,105 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         Response.Cache.SetNoStore();
         Response.BinaryWrite(workbookBytes);
         Response.End();
+    }
+
+    private static string GetPendingExportColumnValue(GridViewRow gridRow, int columnIndex, DataControlField column, DataKey keys)
+    {
+        string css = column != null ? column.ItemStyle.CssClass : string.Empty;
+
+        if (columnIndex == 0)
+        {
+            return keys != null && keys.Values.Contains("cp_id")
+                ? Convert.ToString(keys.Values["cp_id"], CultureInfo.InvariantCulture)
+                : string.Empty;
+        }
+
+        if (css.Contains("pending-field-customer"))
+        {
+            if (keys != null && keys.Values.Contains("customer_detail"))
+            {
+                string val = Convert.ToString(keys.Values["customer_detail"], CultureInfo.InvariantCulture);
+                if (!string.IsNullOrWhiteSpace(val)) return val.Trim();
+            }
+            return GetPendingCellRenderedText(gridRow.Cells[columnIndex]);
+        }
+
+        if (css.Contains("pending-field-component") && !css.Contains("pending-field-component-group"))
+        {
+            if (keys != null && keys.Values.Contains("component"))
+            {
+                string val = Convert.ToString(keys.Values["component"], CultureInfo.InvariantCulture);
+                if (!string.IsNullOrWhiteSpace(val)) return val.Trim();
+            }
+            return GetPendingCellRenderedText(gridRow.Cells[columnIndex]);
+        }
+
+        if (css.Contains("pending-field-idst"))
+        {
+            if (keys != null && keys.Values.Contains("idst_display_name"))
+            {
+                string val = Convert.ToString(keys.Values["idst_display_name"], CultureInfo.InvariantCulture);
+                if (!string.IsNullOrWhiteSpace(val)) return val.Trim();
+            }
+            return GetPendingCellRenderedText(gridRow.Cells[columnIndex]);
+        }
+
+        if (css.Contains("pending-field-owner"))
+        {
+            if (keys != null && keys.Values.Contains("customer_owner"))
+            {
+                string val = Convert.ToString(keys.Values["customer_owner"], CultureInfo.InvariantCulture);
+                if (!string.IsNullOrWhiteSpace(val)) return val.Trim();
+            }
+            return GetPendingCellRenderedText(gridRow.Cells[columnIndex]);
+        }
+
+        if (css.Contains("pending-field-rvp"))
+        {
+            string rvp = keys != null && keys.Values.Contains("repro_on_rvp")
+                ? Convert.ToString(keys.Values["repro_on_rvp"], CultureInfo.InvariantCulture)
+                : string.Empty;
+            if (string.IsNullOrWhiteSpace(rvp)) rvp = GetPendingCellRenderedText(gridRow.Cells[columnIndex]);
+            return string.IsNullOrWhiteSpace(rvp) ? "unknown" : rvp.Trim();
+        }
+
+        if (css.Contains("pending-field-request-date"))
+        {
+            var request = (Label)gridRow.FindControl("PendingRequestValue");
+            var date = (Label)gridRow.FindControl("PendingAskDateValue");
+            string reqText = request != null ? HttpUtility.HtmlDecode(request.Text).Trim() : string.Empty;
+            string dateText = date != null ? HttpUtility.HtmlDecode(date.Text).Trim() : string.Empty;
+            if (!string.IsNullOrEmpty(reqText) && !string.IsNullOrEmpty(dateText)) return reqText + "\n" + dateText;
+            if (!string.IsNullOrEmpty(reqText)) return reqText;
+            if (!string.IsNullOrEmpty(dateText)) return dateText;
+            return GetPendingCellRenderedText(gridRow.Cells[columnIndex]);
+        }
+
+        TableCell cell = gridRow.Cells[columnIndex];
+        if (!string.IsNullOrEmpty(cell.Text))
+        {
+            return HttpUtility.HtmlDecode(cell.Text).Replace("\u00a0", " ").Trim();
+        }
+
+        return GetPendingCellRenderedText(cell);
+    }
+
+    private static string GetPendingCellRenderedText(TableCell cell)
+    {
+        if (cell == null) return string.Empty;
+        if (!string.IsNullOrEmpty(cell.Text))
+        {
+            return HttpUtility.HtmlDecode(cell.Text).Replace("\u00a0", " ").Trim();
+        }
+        using (var buffer = new StringWriter())
+        using (var writer = new HtmlTextWriter(buffer))
+        {
+            cell.RenderControl(writer);
+            string html = System.Text.RegularExpressions.Regex.Replace(buffer.ToString(), @"<button\b[^>]*>[\s\S]*?</button>", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            html = System.Text.RegularExpressions.Regex.Replace(html, @"<br\s*/?>|</(?:div|p)>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            string text = HttpUtility.HtmlDecode(System.Text.RegularExpressions.Regex.Replace(html, "<[^>]*>", "")).Replace('\u00a0', ' ').Trim();
+            return text;
+        }
     }
 
     private static Spreadsheet.Cell CreatePendingExportCell(string value)

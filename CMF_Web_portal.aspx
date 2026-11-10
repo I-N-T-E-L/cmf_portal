@@ -28206,7 +28206,7 @@ Submit
 
                             <!-- CMF PENDING LIST GRIDVIEW - INSIDE mainDataWrapper -->
                             <div class="gridview-container cmf-pending-grid-wrap" id="cmfPendingGridContainer" runat="server">
-                                <asp:GridView ID="GridView_cmf_pending" CssClass="table-primary cmf-pending-columns" runat="server" AutoGenerateColumns="False" DataKeyNames="cp_id,repro_on_rvp" EmptyDataText="No Open CMFs" Visible="false">
+                                <asp:GridView ID="GridView_cmf_pending" CssClass="table-primary cmf-pending-columns" runat="server" AutoGenerateColumns="False" DataKeyNames="cp_id,repro_on_rvp,customer_detail,component,idst_display_name,customer_owner" EmptyDataText="No Open CMFs" Visible="false">
                                     <Columns>
                                         <asp:TemplateField HeaderText="Issue ID">
                                             <ItemTemplate>
