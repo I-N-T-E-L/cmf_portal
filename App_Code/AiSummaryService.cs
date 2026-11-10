@@ -224,25 +224,20 @@ public static class AiSummaryService
             return cached;
         }
 
-        string modelSummary;
-        string modelError;
-        bool hasModelSummary = TryGenerateWithGitHubModel(issueId, submittedDate, title, status, sysdebug, contextDetails, out modelSummary, out modelError);
-
-        if (!hasModelSummary)
-        {
-            return new AiSummaryResponse
-            {
-                Success = false,
-                IssueId = issueId,
-                Title = title,
-                SubmittedDate = submittedDate,
-                Message = "AI Debug Summary could not be generated. Please retry. " + modelError,
-                UsedFallback = false
-            };
-        }
-
+        string modelError = string.Empty;
+        bool hasModelSummary = false;
         string concise;
-        if (!TryNormalizeDebugSummary(modelSummary, out concise))
+        string formatFailure;
+        bool validSummary = TryGenerateValidatedDebugSummary(formatFeedback =>
+        {
+            string modelSummary;
+            string prompt = formatFeedback == null ? null
+                : BuildPrompt(issueId, submittedDate, title, status, sysdebug, contextDetails) + "\n\n" + formatFeedback;
+            hasModelSummary = TryGenerateWithGitHubModel(issueId, submittedDate, title, status, sysdebug, contextDetails,
+                out modelSummary, out modelError, prompt);
+            return hasModelSummary ? modelSummary : null;
+        }, out concise, out formatFailure);
+        if (!validSummary)
         {
             return new AiSummaryResponse
             {
@@ -250,7 +245,10 @@ public static class AiSummaryService
                 IssueId = issueId,
                 Title = title,
                 SubmittedDate = submittedDate,
-                Message = "The AI response was not a plain debugging bullet list. Please retry."
+                Message = hasModelSummary
+                    ? "The AI response was not a plain debugging bullet list (" + formatFailure + "). Please retry."
+                    : "AI Debug Summary could not be generated. Please retry. " + modelError,
+                UsedFallback = false
             };
         }
 
@@ -788,7 +786,7 @@ public static class AiSummaryService
             string model = ConfigurationManager.AppSettings["GitHubModels:Model"] ?? string.Empty;
             if (string.IsNullOrWhiteSpace(apiKey))
             {
-                error = "No AI credentials. Set GNAI_TOKEN env var (or GNAI:ApiKey in Web.config) + GNAI:Endpoint, or set GitHubModels:ApiKey.";
+                error = "No AI credentials. Set GNAI:ApiKey in Web.config and gnai.endpoint in cmf-assistant-config.json, or set GitHubModels:ApiKey in Web.config.";
                 return false;
             }
             if (string.IsNullOrWhiteSpace(endpoint))
@@ -1218,7 +1216,8 @@ public static class AiSummaryService
         builder.AppendLine();
         builder.AppendLine("OUTPUT REQUIREMENTS:");
         builder.AppendLine("- Return only a single flat Markdown bullet list, with each bullet on its own line starting with '- '.");
-        builder.AppendLine("- Return 2-5 short bullets and no more than 140 words overall (typically 2-3 bullets summarizing recent debugging followed by 1-2 valuable debug suggestions). Do not pad the list.");
+        builder.AppendLine("- Return 2-5 short bullets and no more than 100 words overall. Use at most 20 words per bullet, including any '[Suggestion]' label. Prefer 2-3 bullets summarizing recent debugging followed by one valuable debug suggestion. Do not pad the list.");
+        builder.AppendLine("- Select only the latest material findings. Omit lower-priority history or detail rather than exceeding the word budget; explain only technical terms needed for those selected findings. Count the words before returning the list.");
         builder.AppendLine("- Write in simple, grammatically sound, and natural English that a layman can easily comprehend without prior knowledge of the issue.");
         builder.AppendLine("- Technical terms, acronyms, and specific parameters (such as MRC/firmware versions, memory turnaround timings like TAT or tRdRd, voltages, or test tools) may be included, but always explain their meaning or practical purpose in plain words (for example, explaining that MRC is memory firmware, or that TAT/tRdRd adjustments are memory timing settings).");
         builder.AppendLine("- Avoid dense, unexplained engineer shorthand or isolated variable names. State clearly what was tested or changed, what happened (passed, failed, or hung), and what that result means.");
@@ -1240,9 +1239,36 @@ public static class AiSummaryService
         return builder.ToString();
     }
 
-    private static bool TryNormalizeDebugSummary(string text, out string summary)
+    private static bool TryGenerateValidatedDebugSummary(Func<string, string> generateDraft, out string summary, out string failureReason)
     {
         summary = string.Empty;
+        failureReason = string.Empty;
+        string formatFeedback = null;
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            string draft = generateDraft(formatFeedback);
+            if (draft == null) return false;
+            if (TryValidateDebugSummary(draft, out summary, out failureReason)) return true;
+            formatFeedback = "FORMAT CORRECTION: The previous response failed validation: " + failureReason + ". "
+                + "Generate a fresh answer using only the original ticket evidence above, not the previous draft as evidence. "
+                + "Return only 2-5 short bullets, each on one line beginning with '- ', and no more than 100 words overall. "
+                + "Use at most 20 words per bullet and prefer three or four bullets. Select the most important findings instead of compressing every detail into the answer. Count words before returning. "
+                + "No headings, bold text, numbered lists, code fences, introductory text or closing text. "
+                + "Keep documented findings separate from any '[Suggestion]' bullets. Do not invent or pad content.";
+        }
+        return false;
+    }
+
+    private static bool TryNormalizeDebugSummary(string text, out string summary)
+    {
+        string failureReason;
+        return TryValidateDebugSummary(text, out summary, out failureReason);
+    }
+
+    private static bool TryValidateDebugSummary(string text, out string summary, out string failureReason)
+    {
+        summary = string.Empty;
+        failureReason = "empty output";
         if (string.IsNullOrWhiteSpace(text)) return false;
 
         List<string> bullets = new List<string>();
@@ -1250,18 +1276,32 @@ public static class AiSummaryService
         {
             string line = rawLine.Trim();
             if (line.Length == 0) continue;
-            if (!line.StartsWith("- ", StringComparison.Ordinal) || line.Length <= 2
-                || line.IndexOf("**", StringComparison.Ordinal) >= 0
-                || line.StartsWith("- #", StringComparison.Ordinal))
+            if (!line.StartsWith("- ", StringComparison.Ordinal) || line.Length <= 2)
             {
+                failureReason = "each nonempty line must start with '- ' and contain a complete bullet";
+                return false;
+            }
+            if (line.IndexOf("**", StringComparison.Ordinal) >= 0 || line.StartsWith("- #", StringComparison.Ordinal))
+            {
+                failureReason = "bold text and headings are not allowed";
                 return false;
             }
             bullets.Add(line);
         }
-        if (bullets.Count == 0 || bullets.Count > 5
-            || string.Join(" ", bullets.ToArray()).Split((char[])null, StringSplitOptions.RemoveEmptyEntries).Length - bullets.Count > 150) return false;
+        if (bullets.Count == 0 || bullets.Count > 5)
+        {
+            failureReason = "no more than five bullets are allowed";
+            return false;
+        }
+        int wordCount = string.Join(" ", bullets.ToArray()).Split((char[])null, StringSplitOptions.RemoveEmptyEntries).Length - bullets.Count;
+        if (wordCount > 150)
+        {
+            failureReason = "the summary exceeds the 150-word validation limit (" + wordCount + " words); target 100 words or fewer";
+            return false;
+        }
 
         summary = string.Join("\n", bullets.ToArray());
+        failureReason = string.Empty;
         return true;
     }
 

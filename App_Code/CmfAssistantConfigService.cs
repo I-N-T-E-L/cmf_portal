@@ -39,6 +39,9 @@ public sealed class CmfAssistantUnifiedConfig
     public string FeedbackStoragePath { get; set; }
     public int MaxFewShotExamples { get; set; }
 
+    public string PythonExecutable { get; set; }
+    public string SyncfusionLicenseKey { get; set; }
+
     public int ScaleMax { get; set; }
     public string Formula { get; set; }
     public double CmfOkMinScore { get; set; }
@@ -229,14 +232,10 @@ public static class CmfAssistantConfigService
             {
                 config.GnaiEndpoint = ReadString(gnai, "endpoint", config.GnaiEndpoint);
                 config.GnaiAnthropicEndpoint = ReadString(gnai, "anthropicEndpoint", config.GnaiAnthropicEndpoint);
-                config.GnaiOpenAiEndpoint = ReadString(gnai, "openaiEndpoint", config.GnaiOpenAiEndpoint);
-                config.GnaiApiKey = ReadString(gnai, "apiKey", config.GnaiApiKey);
                 config.PrimaryModel = ReadString(gnai, "primaryModel", config.PrimaryModel);
                 config.FastSummaryModel = ReadString(gnai, "fastSummaryModel", config.FastSummaryModel);
-                config.GnaiProxy = ReadString(gnai, "proxy", config.GnaiProxy);
-                config.RequestTimeoutSeconds = ReadInt(gnai, "requestTimeoutSeconds", config.RequestTimeoutSeconds);
-                List<string> fallbacks = ReadStringList(gnai, "fallbackModels");
-                if (fallbacks.Count > 0) config.FallbackModels = fallbacks;
+                List<string> fallbackModels = ReadStringList(gnai, "fallbackModels");
+                if (fallbackModels.Count > 0) config.FallbackModels = fallbackModels;
             }
 
             IDictionary hsd = root["hsd"] as IDictionary;
@@ -251,13 +250,16 @@ public static class CmfAssistantConfigService
                 if (providers.Count > 0) config.HsdProviderOrder = providers;
             }
 
-            IDictionary database = root["database"] as IDictionary;
-            if (database != null)
+            IDictionary reports = root["reports"] as IDictionary;
+            if (reports != null)
             {
-                config.DatabaseConnectionName = ReadString(database, "connectionName", config.DatabaseConnectionName);
-                config.DatabaseConnectionString = ReadString(database, "connectionString", config.DatabaseConnectionString);
-                config.DatabaseProviderName = ReadString(database, "providerName", config.DatabaseProviderName);
-                config.DatabaseFallbackToWebConfig = ReadBool(database, "fallbackToWebConfig", config.DatabaseFallbackToWebConfig);
+                config.PythonExecutable = ReadString(reports, "pythonExecutable", config.PythonExecutable);
+            }
+
+            IDictionary ui = root["ui"] as IDictionary;
+            if (ui != null)
+            {
+                config.SyncfusionLicenseKey = ReadString(ui, "syncfusionLicenseKey", config.SyncfusionLicenseKey);
             }
 
             IDictionary plugins = root["plugins"] as IDictionary;
@@ -375,39 +377,6 @@ public static class CmfAssistantConfigService
                 Dictionary<string, List<string>> compMap = ReadDictionaryOfStringLists(jargons["componentSynonyms"] as IDictionary);
                 if (compMap.Count > 0) config.ComponentSynonymJargons = compMap;
             }
-
-            // Overlay local-only credentials from cmf-assistant-config.local.json (git-ignored) when main config uses placeholders
-            try
-            {
-                string dir = Path.GetDirectoryName(path) ?? string.Empty;
-                string localPath = Path.Combine(dir, "cmf-assistant-config.local.json");
-                if (File.Exists(localPath))
-                {
-                    IDictionary localRoot = serializer.DeserializeObject(File.ReadAllText(localPath, Encoding.UTF8)) as IDictionary;
-                    if (localRoot != null)
-                    {
-                        IDictionary localGnai = localRoot["gnai"] as IDictionary;
-                        if (localGnai != null)
-                        {
-                            string localKey = ReadString(localGnai, "apiKey", string.Empty);
-                            if (!string.IsNullOrWhiteSpace(localKey) && !string.Equals(localKey, "FROM_ENV_OR_WEB_CONFIG", StringComparison.OrdinalIgnoreCase))
-                            {
-                                config.GnaiApiKey = localKey;
-                            }
-                        }
-                        IDictionary localDb = localRoot["database"] as IDictionary;
-                        if (localDb != null)
-                        {
-                            string localConn = ReadString(localDb, "connectionString", string.Empty);
-                            if (!string.IsNullOrWhiteSpace(localConn) && !string.Equals(localConn, "FROM_WEB_CONFIG", StringComparison.OrdinalIgnoreCase))
-                            {
-                                config.DatabaseConnectionString = localConn;
-                            }
-                        }
-                    }
-                }
-            }
-            catch { }
         }
         catch (Exception ex)
         {
@@ -419,7 +388,7 @@ public static class CmfAssistantConfigService
 
     private static CmfAssistantUnifiedConfig CreateDefaultConfig()
     {
-        return new CmfAssistantUnifiedConfig
+        var config = new CmfAssistantUnifiedConfig
         {
             Version = "1.0",
             GnaiEndpoint = "https://gnai.intel.com/api/providers/anthropic/v1/messages",
@@ -444,6 +413,8 @@ public static class CmfAssistantConfigService
             FeedbackMemoryEnabled = true,
             FeedbackStoragePath = "~/App_Data/cmf-feedback-memory.json",
             MaxFewShotExamples = 4,
+            PythonExecutable = "python",
+            SyncfusionLicenseKey = string.Empty,
             ScaleMax = 4,
             Formula = "Overall Score = (S * 0.20) + (O * 0.15) + (D * 0.15) + (R * 0.10) + (B * 0.20) + (CX * 0.20)",
             CmfOkMinScore = 3.50,
@@ -488,6 +459,30 @@ public static class CmfAssistantConfigService
                 { "DTT", new List<string> { "dtt", "thermal", "temperature" } }
             }
         };
+
+        var settings = new Hashtable(StringComparer.OrdinalIgnoreCase);
+        foreach (string key in ConfigurationManager.AppSettings.AllKeys)
+        {
+            settings[key] = ConfigurationManager.AppSettings[key];
+        }
+        ApplyPortalInfrastructureSettings(config, settings, ConfigurationManager.ConnectionStrings);
+        return config;
+    }
+
+    private static void ApplyPortalInfrastructureSettings(CmfAssistantUnifiedConfig config, IDictionary settings, ConnectionStringSettingsCollection connections)
+    {
+        config.GnaiApiKey = ReadString(settings, "GNAI:ApiKey", config.GnaiApiKey);
+        config.GnaiOpenAiEndpoint = ReadString(settings, "GNAI:OpenAiEndpoint", config.GnaiOpenAiEndpoint);
+        config.GnaiProxy = ReadString(settings, "GNAI:Proxy", config.GnaiProxy);
+        config.RequestTimeoutSeconds = ReadInt(settings, "GNAI:RequestTimeoutSeconds", config.RequestTimeoutSeconds);
+
+        config.DatabaseConnectionName = ReadString(settings, "Database:ConnectionName", config.DatabaseConnectionName);
+        ConnectionStringSettings connection = connections[config.DatabaseConnectionName];
+        if (connection != null)
+        {
+            config.DatabaseConnectionString = connection.ConnectionString;
+            if (!string.IsNullOrWhiteSpace(connection.ProviderName)) config.DatabaseProviderName = connection.ProviderName;
+        }
     }
 
     private static Dictionary<string, List<string>> ReadDictionaryOfStringLists(IDictionary dict)

@@ -1,18 +1,23 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
-  CMF Web Portal – Web.config
-  Note: All AI (GNAI claude-4-5-sonnet / claude-4-5-haiku), HSD-ES API, SQL Database,
-  Scoring Rules, Guardrails, and Jargon settings are configured in and fetched directly from:
+  CMF Web Portal - Web.config
+  SQL and the portal-wide GNAI API key/proxy/timeout belong here alongside ASP.NET/IIS settings.
+  GNAI endpoints and models, HSD enrichment and assistant feature settings remain in:
     App_Data/cmf-assistant-config.json
-  Web.config is kept strictly for ASP.NET .NET 4.8 runtime, IIS pipeline, and UI framework settings.
 -->
 <configuration>
   <appSettings>
     <add key="ValidationSettings:UnobtrusiveValidationMode" value="None" />
-    <add key="Syncfusion:LicenseKey" value="YOUR_SYNCFUSION_LICENSE_KEY" />
     <add key="DashboardRefreshSeconds" value="600" />
-    <add key="Python:Executable" value="C:\Program Files\Python314\python.exe" />
+    <add key="GNAI:ApiKey" value="REPLACE_WITH_GNAI_TOKEN" />
+    <add key="GNAI:Proxy" value="" />
+    <add key="GNAI:RequestTimeoutSeconds" value="30" />
+    <add key="Database:ConnectionName" value="gfxitt" />
   </appSettings>
+
+  <connectionStrings>
+    <add name="gfxitt" connectionString="REPLACE_WITH_SQL_CONNECTION_STRING" providerName="System.Data.SqlClient" />
+  </connectionStrings>
 
   <!-- ================================================================
        SYSTEM.WEB
