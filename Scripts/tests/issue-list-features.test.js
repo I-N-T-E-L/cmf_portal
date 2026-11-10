@@ -16,8 +16,14 @@ test('Issue List preserves the reference column order with separate promoted fie
         const grid = source.replace(/<%--[\s\S]*?--%>/g, '').match(/<asp:GridView ID="overall_request_details"[\s\S]*?<Columns>([\s\S]*?)<\/Columns>/)[1];
         return Array.from(grid.matchAll(/HeaderStyle-CssClass="(field-[^"]+)"/g), match => match[1]);
     }
-    const old = fs.readFileSync(path.join(root, 'others', 'test_scripts', 'CMF_Web_portal_old.aspx'), 'utf8');
-    const expected = fields(old).filter(name => name !== 'field-edit_column');
+    const expected = [
+        'field-sno', 'field-milestone', 'field-progress', 'field-sightingid',
+        'field-promotedid', 'field-customer_detail', 'field-imagefreeze',
+        'field-duplicatedetails', 'field-customer_company', 'field-title',
+        'field-component', 'field-component_group', 'field-owner', 'field-promoted_owner',
+        'field-rvp_repro', 'field-status', 'field-idst', 'field-los',
+        'field-processor', 'field-impact', 'field-days_open', 'field-closed_reason'
+    ];
     const actual = fields(page).map(name => name === 'field-impact_processor' ? 'field-impact' : name);
     assert.deepEqual(actual, expected);
     assert.doesNotMatch(page, /HeaderText="Promoted ID \/ Owner"/);

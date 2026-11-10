@@ -53,6 +53,10 @@ public sealed class CmfInsightTrend
 
 public sealed class CmfInsightFinding
 {
+    public string Category { get; set; }
+    public string Label { get; set; }
+    public string Topic { get; set; }
+    public double PriorityScore { get; set; }
     public string Id { get; set; }
     public string RelatedId { get; set; }
     public string Title { get; set; }
@@ -92,6 +96,8 @@ public sealed class CmfInsightPage
 
 public sealed class CmfDashboardInsights
 {
+    public string Pipeline { get; set; }
+    public List<CmfInsightFinding> TrendFindings { get; set; }
     public bool Success { get; set; }
     public string Scope { get; set; }
     public string DateRange { get; set; }
@@ -132,6 +138,8 @@ public sealed class CmfDashboardInsights
     public List<CmfInsightCandidate> Candidates { get; set; }
     [ScriptIgnore]
     public List<CmfDashboardInsights> PlatformEvidence { get; set; }
+    [ScriptIgnore]
+    public List<CmfPanelInsightSource> PanelSources { get; set; }
 }
 
 public sealed class CmfInsightClusterPacket
@@ -391,13 +399,20 @@ public static class CmfDashboardInsightsService
         var serializer = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
         CmfDashboardInsights view = serializer.Deserialize<CmfDashboardInsights>(serializer.Serialize(source));
         view.EvidenceKey = evidenceKey;
+        if (view.Pipeline == CmfRenderedInsightsService.Pipeline)
+        {
+            view.Highlights = view.Highlights.Take(view.PageSize).ToList();
+            view.TrendFindings = view.TrendFindings.Take(view.PageSize).ToList();
+            return view;
+        }
         if (view.Mode != "ai")
         {
             view.Trends = new List<CmfInsightTrend>();
-            view.Highlights = new List<CmfInsightFinding>();
-            view.Groups = new List<CmfInsightFinding>();
-            view.HighlightCount = view.GroupCount = 0;
         }
+        view.Highlights = view.Highlights.Where(finding => finding.AiReviewed).ToList();
+        view.Groups = view.Groups.Where(finding => finding.AiReviewed).ToList();
+        view.HighlightCount = view.Highlights.Count;
+        view.GroupCount = view.Groups.Count;
         view.Highlights = view.Highlights.Take(FindingsPerPage).ToList();
         view.Groups = view.Groups.Take(FindingsPerPage).ToList();
         return view;
@@ -405,14 +420,20 @@ public static class CmfDashboardInsightsService
 
     public static CmfInsightPage CreatePage(CmfDashboardInsights source, string view, int page)
     {
-        if (!source.Success || source.Mode != "ai") return new CmfInsightPage { Success = false, Message = "AI analysis is not complete." };
-        if (view != "highlights" && view != "similar") return new CmfInsightPage { Success = false, Message = "Select a valid insight view." };
-        List<CmfInsightFinding> items = view == "highlights" ? source.Highlights : source.Groups;
-        if (page < 0 || page > Math.Max(0, (items.Count - 1) / FindingsPerPage))
+        if (source == null || (source.Mode != "ai" && source.Mode != "ai-loading" && source.Mode != "ai-unavailable"))
+            return new CmfInsightPage { Success = false, Message = "AI analysis is not available." };
+        bool rendered = source.Pipeline == CmfRenderedInsightsService.Pipeline;
+        if (view != "highlights" && view != "similar" && !(rendered && view == "trends")) return new CmfInsightPage { Success = false, Message = "Select a valid insight view." };
+        List<CmfInsightFinding> items = view == "highlights" ? source.Highlights : view == "trends" ? source.TrendFindings : source.Groups;
+        if (!rendered) items = items.Where(finding => finding.AiReviewed).ToList();
+        if (source.Mode != "ai" && items.Count == 0)
+            return new CmfInsightPage { Success = false, Message = "No validated AI findings are available yet." };
+        int size = rendered ? source.PageSize : FindingsPerPage;
+        if (page < 0 || page > Math.Max(0, (items.Count - 1) / size))
             return new CmfInsightPage { Success = false, Message = "Select a valid insight page." };
         return new CmfInsightPage {
-            Success = true, GeneratedAt = source.GeneratedAt, View = view, Page = page, PageSize = FindingsPerPage,
-            Total = items.Count, Items = items.Skip(page * FindingsPerPage).Take(FindingsPerPage).ToList()
+            Success = true, GeneratedAt = source.GeneratedAt, View = view, Page = page, PageSize = size,
+            Total = items.Count, Items = items.Skip(page * size).Take(size).ToList()
         };
     }
 
@@ -426,6 +447,12 @@ public static class CmfDashboardInsightsService
             waiting.PlatformsReady = platforms.Count(platform => platform.Mode == "ai");
             waiting.CandidateCount = platforms.Sum(platform => platform.CandidateCount);
             waiting.ReviewedCandidates = platforms.Sum(platform => platform.ReviewedCandidates);
+            waiting.Highlights = ReviewedFindings(platforms.SelectMany(platform => platform.Highlights).Where(finding => finding.AiReviewed));
+            waiting.Groups = ReviewedFindings(platforms.SelectMany(platform => platform.Groups).Where(finding => finding.AiReviewed));
+            waiting.HighlightCount = waiting.Highlights.Count;
+            waiting.GroupCount = waiting.Groups.Count;
+            if (platforms.Count > 0) waiting.GeneratedAt = platforms.Max(platform => platform.GeneratedAt);
+            waiting.SourceStatus = "Completed platform AI findings received so far. Overall synthesis is waiting for the remaining platform reviews.";
             waiting.Message = "Platform AI reviews ready: " + waiting.PlatformsReady + "/" + waiting.PlatformsTotal + ". Overall will be derived from their insights.";
             if (platforms.Any(platform => platform.Mode == "ai-loading")) return waiting;
             if (platforms.Any(platform => !platform.Success))
@@ -441,7 +468,8 @@ public static class CmfDashboardInsightsService
             waiting.PlatformEvidence = platforms;
             evidence = waiting;
         }
-        string cacheKey = "cmf-dashboard-insights:hybrid-v1:" + evidence.SourceHash + ":" + AiSummaryService.DashboardInsightsProviderSignature();
+        string providerSignature = AiSummaryService.DashboardInsightsProviderSignature();
+        string cacheKey = "cmf-dashboard-insights:hybrid-v2:" + evidence.SourceHash + ":" + providerSignature;
         using (CmfAssistantResponseCache.Enter(cacheKey))
         {
             var work = HttpRuntime.Cache[cacheKey] as InsightWork;
@@ -458,13 +486,28 @@ public static class CmfDashboardInsightsService
                     {
                         await AnalysisSlots.WaitAsync(cancellation);
                         acquired = true;
+                        EnsureDashboardAiConfiguration(providerSignature);
                         Func<string, string> generate = prompt => {
+                            EnsureDashboardAiConfiguration(providerSignature);
+                            string reviewMessage;
+                            lock (pending.Sync) reviewMessage = pending.Result.Message;
                             string output, error;
-                            if (!AiSummaryService.TryGenerateDashboardInsights(prompt, out output, out error))
+                            bool generated = AiSummaryService.TryGenerateDashboardInsights(prompt, out output, out error, (attempt, delay) => {
+                                EnsureDashboardAiConfiguration(providerSignature);
+                                lock (pending.Sync) pending.Result.Message = attempt < 0
+                                    ? "AI provider rate-limited (HTTP 429); automatic retries stopped. The provider cooldown remains active."
+                                    : delay == TimeSpan.Zero ? reviewMessage : attempt == 0
+                                    ? "AI requests are paced; waiting " + Math.Ceiling(delay.TotalSeconds) + " seconds before the next review."
+                                    : "AI provider rate-limited (HTTP 429); cooling down for " + Math.Ceiling(delay.TotalSeconds)
+                                        + " seconds before retry " + attempt + "/3. Completed findings remain available.";
+                            }, cancellation);
+                            EnsureDashboardAiConfiguration(providerSignature);
+                            if (!generated)
                                 throw new InsightAnalysisException(ProviderFailure(error));
                             return output;
                         };
                         Action<CmfDashboardInsights> publish = progress => {
+                            EnsureDashboardAiConfiguration(providerSignature);
                             lock (pending.Sync) pending.Result = Clone(progress);
                         };
                         lock (pending.Sync) pending.Result.Message = evidence.PlatformEvidence == null
@@ -472,7 +515,8 @@ public static class CmfDashboardInsightsService
                             : "AI deriving Overall patterns from completed platform insights.";
                         var result = evidence.PlatformEvidence == null
                             ? AnalyzeHybrid(evidence, id => HsdPortalService.FetchArticle(id, false, true), generate, publish, cancellation)
-                            : AnalyzeRollup(evidence, evidence.PlatformEvidence, generate, cancellation);
+                            : AnalyzeRollup(evidence, evidence.PlatformEvidence, generate, cancellation, publish);
+                        EnsureDashboardAiConfiguration(providerSignature);
                         lock (pending.Sync) pending.Result = result;
                     }
                     catch (Exception ex)
@@ -486,7 +530,9 @@ public static class CmfDashboardInsightsService
                             string reason = ex is InsightAnalysisException ? ex.Message
                                 : ex is ArgumentException || ex is InvalidOperationException ? "AI returned malformed or unsupported JSON."
                                 : ex is OperationCanceledException ? "The background analysis was interrupted." : "The background analysis failed.";
-                            pending.Result.Message = reason + " No partial or calculated insights are shown. Refresh to retry.";
+                            pending.Result.Message = reason + (pending.Result.HighlightCount > 0
+                                ? " Completed AI-reviewed findings remain available; the remaining review stopped. Refresh to retry."
+                                : " No validated AI findings are available. Refresh to retry.");
                             pending.Result.ExpiresAt = DateTime.UtcNow.AddMinutes(1).ToString("o");
                         }
                     }
@@ -499,10 +545,18 @@ public static class CmfDashboardInsightsService
 
     private static readonly SemaphoreSlim AnalysisSlots = new SemaphoreSlim(2);
 
+    private static void EnsureDashboardAiConfiguration(string signature)
+    {
+        if (!string.Equals(signature, AiSummaryService.DashboardInsightsProviderSignature(), StringComparison.Ordinal))
+            throw new OperationCanceledException("The dashboard AI model or endpoint changed.");
+    }
+
     public static void WarmPlatforms(IEnumerable<string> platforms, Func<string, CmfDashboardInsights> load)
     {
         var tables = platforms.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        string key = "cmf-insight-warmup:" + CmfAssistantResponseCache.Fingerprint(tables) + ":" + DateTime.Today.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        string key = "cmf-insight-warmup:" + CmfAssistantResponseCache.Fingerprint(new {
+            Tables = tables, Provider = AiSummaryService.DashboardInsightsProviderSignature()
+        }) + ":" + DateTime.Today.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
         using (CmfAssistantResponseCache.Enter(key))
         {
             if (HttpRuntime.Cache[key] != null) return;
@@ -519,12 +573,14 @@ public static class CmfDashboardInsightsService
     }
 
     public static CmfDashboardInsights AnalyzeRollup(CmfDashboardInsights evidence, List<CmfDashboardInsights> platforms,
-        Func<string, string> generate, CancellationToken cancellation)
+        Func<string, string> generate, CancellationToken cancellation, Action<CmfDashboardInsights> progress = null)
     {
         if (platforms.Any(platform => !platform.Success || platform.Mode != "ai"))
             throw new InsightAnalysisException("Overall requires completed platform reviews.");
         var result = EmptyAnalysis(evidence);
         var sourceFindings = platforms.SelectMany(platform => platform.Highlights).ToList();
+        result.Groups = ReviewedFindings(platforms.SelectMany(platform => platform.Groups));
+        result.GroupCount = result.Groups.Count;
         var sourceGroups = sourceFindings.Select(finding => new List<CmfInsightFinding> { finding }).ToList();
         sourceGroups.AddRange(sourceFindings.SelectMany(finding => (finding.SharedFields ?? new Dictionary<string, string>())
                 .Where(field => field.Key != "platform" && field.Key != "processor")
@@ -549,16 +605,30 @@ public static class CmfDashboardInsightsService
                     Issues = finding.Issues.Select(issue => new CmfInsightIssue { Id = issue.Id, Platform = issue.Platform }).ToList()
                 }).ToList() };
         }).ToList();
-        var findings = ReviewClusterPackets(packets, generate, cancellation, packet => new List<CmfInsightClusterPacket>(), ignored => {});
-        foreach (var finding in findings)
-        {
-            var sources = sourceFindings.Where(source => finding.SourceInsightIds.Contains(source.Id)).ToList();
-            finding.Issues = sources.SelectMany(source => source.Issues).GroupBy(issue => issue.Platform + ":" + issue.Id).Select(group => group.First()).ToList();
-            finding.PlatformCount = finding.Issues.Select(issue => issue.Platform).Distinct().Count();
-            finding.DistinctIssues = finding.Occurrences = finding.Issues.Select(issue => issue.Id).Distinct().Count();
-            finding.Reasons = sources.Select(source => new CmfInsightReason { Source = "Platform AI review",
-                Text = source.Title + ": " + source.Evidence, IssueIds = source.Issues.Select(issue => issue.Id).Distinct().ToList() }).ToList();
-        }
+        Action<List<CmfInsightFinding>> normalize = current => {
+            foreach (var finding in current)
+            {
+                var sources = sourceFindings.Where(source => finding.SourceInsightIds.Contains(source.Id)).ToList();
+                finding.Issues = sources.SelectMany(source => source.Issues).GroupBy(issue => issue.Platform + ":" + issue.Id).Select(group => group.First()).ToList();
+                finding.PlatformCount = finding.Issues.Select(issue => issue.Platform).Distinct().Count();
+                finding.DistinctIssues = finding.Occurrences = finding.Issues.Select(issue => issue.Id).Distinct().Count();
+                finding.Reasons = sources.Select(source => new CmfInsightReason { Source = "Platform AI review",
+                    Text = source.Title + ": " + source.Evidence, IssueIds = source.Issues.Select(issue => issue.Id).Distinct().ToList() }).ToList();
+            }
+        };
+        var findings = ReviewClusterPackets(packets, generate, cancellation, packet => new List<CmfInsightClusterPacket>(), ignored => {},
+            (stage, batch, total) => {
+                result.Message = "AI deriving Overall insights: review batch " + batch + "/" + total + ".";
+                if (progress != null) progress(result);
+            }, partial => {
+                normalize(partial);
+                result.Highlights = ReviewedFindings(partial.Concat(sourceFindings.Where(source => !partial.Any(finding => finding.SourceInsightIds.Contains(source.Id)))));
+                result.HighlightCount = result.Highlights.Count;
+                result.GeneratedAt = DateTime.UtcNow.ToString("o");
+                result.SourceStatus = "Overall AI synthesis in progress. Showing validated Overall reviews and remaining platform AI findings.";
+                if (progress != null) progress(result);
+            });
+        normalize(findings);
         result.Highlights = findings;
         result.Groups = platforms.SelectMany(platform => platform.Groups).OrderByDescending(finding => finding.RankScore).ThenBy(finding => finding.Id).ToList();
         result.HighlightCount = findings.Count;
@@ -595,6 +665,8 @@ public static class CmfDashboardInsightsService
 
     private static string ProviderFailure(string error)
     {
+        if ((error ?? "").StartsWith("Dashboard AI provider rate-limited", StringComparison.Ordinal))
+            return "AI provider remains rate-limited (HTTP 429). Automatic retries were bounded; wait before retrying or check the model quota.";
         if (error == "Dashboard AI request timed out.") return "AI provider request timed out.";
         if ((error ?? "").StartsWith("No AI credentials.", StringComparison.Ordinal)) return "AI provider credentials are not configured.";
         var status = Regex.Match(error ?? "", @"\A(?:GNAI|GitHub Models) request failed \(([1-5][0-9]{2})(?:[ )])");
@@ -615,9 +687,12 @@ public static class CmfDashboardInsightsService
     {
         var result = Clone(evidence);
         result.Mode = "ai-loading";
-        result.Groups.Clear();
-        result.Highlights.Clear();
-        result.GroupCount = result.HighlightCount = 0;
+        if (evidence.PlatformEvidence == null)
+        {
+            result.Groups.Clear();
+            result.Highlights.Clear();
+            result.GroupCount = result.HighlightCount = 0;
+        }
         result.Message = "AI reviewing " + evidence.CandidateCount + " ranked categorical groups from " + evidence.DistinctIssues + " distinct issues.";
         return result;
     }
@@ -631,6 +706,24 @@ public static class CmfDashboardInsightsService
         foreach (var candidate in evidence.Candidates)
             packets.AddRange(ClusterPackets(candidate, candidate.IssueIds.Select(id => documents[id]).ToList(), "structured", null));
         var fetched = new Dictionary<string, CmfInsightDocument>(StringComparer.Ordinal);
+        Action<List<CmfInsightFinding>> publishFindings = current => {
+            var ordered = ReviewedFindings(current);
+            if (result.Highlights.SequenceEqual(ordered)) return;
+            foreach (var finding in ordered)
+            {
+                finding.Occurrences = finding.Issues.Sum(issue => documents[issue.Id].Occurrences);
+                finding.OpenRecords = finding.Issues.Sum(issue => documents[issue.Id].OpenRecords);
+                foreach (var issue in finding.Issues)
+                    if (documents[issue.Id].Fields.ContainsKey("Local.title")) issue.Title = documents[issue.Id].Fields["Local.title"];
+            }
+            result.Highlights = ordered;
+            result.Groups = ordered.Where(finding => finding.Kind == "technical").ToList();
+            result.HighlightCount = ordered.Count;
+            result.GroupCount = result.Groups.Count;
+            result.GeneratedAt = DateTime.UtcNow.ToString("o");
+            result.SourceStatus = "Hybrid review in progress. Only validated AI-reviewed findings are shown; remaining groups are still being analyzed.";
+            progress(result);
+        };
         var findings = ReviewClusterPackets(packets, generate, cancellation, packet => {
             if (packet.Stage != "structured") return new List<CmfInsightClusterPacket>();
             var enriched = new List<CmfInsightDocument>();
@@ -681,14 +774,8 @@ public static class CmfDashboardInsightsService
             result.Message = "AI reviewing " + stage + " evidence batch " + batch + "/" + total + "; "
                 + result.ReviewedCandidates + "/" + evidence.CandidateCount + " groups reviewed, " + fetched.Count + " HSDs enriched.";
             progress(result);
-        });
-        foreach (var finding in findings)
-        {
-            finding.Occurrences = finding.Issues.Sum(issue => documents[issue.Id].Occurrences);
-            finding.OpenRecords = finding.Issues.Sum(issue => documents[issue.Id].OpenRecords);
-            foreach (var issue in finding.Issues)
-                if (documents[issue.Id].Fields.ContainsKey("Local.title")) issue.Title = documents[issue.Id].Fields["Local.title"];
-        }
+        }, publishFindings);
+        publishFindings(findings);
         result.Groups = findings.Where(finding => finding.Kind == "technical").ToList();
         result.Highlights = findings.ToList();
         result.GroupCount = result.Groups.Count;
@@ -722,12 +809,13 @@ public static class CmfDashboardInsightsService
 
     private static List<CmfInsightFinding> ReviewClusterPackets(List<CmfInsightClusterPacket> packets, Func<string, string> generate,
         CancellationToken cancellation, Func<CmfInsightClusterPacket, List<CmfInsightClusterPacket>> details, Action<int> progress,
-        Action<string, int, int> batchProgress = null)
+        Action<string, int, int> batchProgress = null, Action<List<CmfInsightFinding>> findingsProgress = null)
     {
         var serializer = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
         var batches = Pack(packets);
         var findings = new List<CmfInsightFinding>();
         var completed = new HashSet<string>(StringComparer.Ordinal);
+        var remainingPackets = packets.GroupBy(packet => packet.Facts.Id).ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
         var detailRequested = new HashSet<string>(StringComparer.Ordinal);
         int batchNumber = 0;
         foreach (var batch in batches)
@@ -772,7 +860,8 @@ public static class CmfDashboardInsightsService
                         && Regex.Matches(chunk.Text, @"[A-Za-z][A-Za-z0-9_-]*").Cast<Match>()
                             .Select(match => match.Value.ToLowerInvariant()).Distinct().Count() >= 4).ToList();
                     if (cues.Select(chunk => chunk.IssueId).Distinct().Count() >= 2 && detailRequested.Add(packet.Facts.Id))
-                        findings.AddRange(ReviewClusterPackets(details(packet), generate, cancellation, details, ignored => {}, batchProgress));
+                        findings.AddRange(ReviewClusterPackets(details(packet), generate, cancellation, details, ignored => {}, batchProgress,
+                            partial => { if (findingsProgress != null) findingsProgress(ReviewedFindings(findings.Concat(partial))); }));
                 }
                 else if (review.Supported)
                 {
@@ -809,10 +898,16 @@ public static class CmfDashboardInsightsService
                             Text = source.IssueId + " / " + source.Field + ": \"" + source.Text + "\"" })).ToList()
                     });
                 }
-                completed.Add(packet.Facts.Id);
+                if (--remainingPackets[packet.Facts.Id] == 0) completed.Add(packet.Facts.Id);
+                if (findingsProgress != null) findingsProgress(ReviewedFindings(findings));
+                progress(completed.Count);
             }
-            progress(completed.Count);
         }
+        return ReviewedFindings(findings);
+    }
+
+    private static List<CmfInsightFinding> ReviewedFindings(IEnumerable<CmfInsightFinding> findings)
+    {
         return findings.GroupBy(finding => finding.Id).Select(group => group.OrderByDescending(finding => finding.Kind == "technical").First())
             .OrderByDescending(finding => finding.RankScore).ThenBy(finding => finding.Id, StringComparer.Ordinal).ToList();
     }

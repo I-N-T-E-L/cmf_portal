@@ -62,6 +62,54 @@ test('the integrated inline JavaScript is syntactically valid', () => {
     new vm.Script(script[1].replace(/<%[\s\S]*?%>/g, '0'));
 });
 
+test('pending summary normalizes missing iDST placeholders before counting and building issue links', () => {
+    const server = fs.readFileSync(path.join(__dirname, '..', '..', 'CMF_Web_portal.aspx.cs'), 'utf8');
+    const expressions = Array.from(server.matchAll(/CASE\s+WHEN src_comp\.idst IS NULL[\s\S]*?END AS idst_name/g), match => match[0]);
+    assert.equal(expressions.length, 2);
+    assert.equal(expressions[0], expressions[1]);
+    assert.match(expressions[0], /LOWER\(LTRIM\(RTRIM\(src_comp\.idst\)\)\) = 'no idst assigned' THEN 'Unassigned'/);
+    assert.match(expressions[0], /ELSE LTRIM\(RTRIM\(src_comp\.idst\)\)/);
+    assert.match(server, /GROUP BY component_group, idst_name/);
+});
+
+test('weekly Closed bars exclude duplicates and use closure dates for complete and rejected records', () => {
+    const server = fs.readFileSync(path.join(__dirname, '..', '..', 'CMF_Web_portal.aspx.cs'), 'utf8');
+    const closed = server.match(/resolved_issues AS \(([\s\S]*?)\r?\n\),\r?\nimplemented_issues AS/);
+    assert.ok(closed);
+    assert.match(closed[1], /BuildWeeklyClosedPredicate\("src", "w.week_offset"\)/);
+    assert.doesNotMatch(closed[1], /implemented_date/);
+    assert.match(closed[1], /JOIN " \+ weeklyFlowSourceSql \+ @"/);
+    assert.match(server, /string weeklyFlowSourceSql = "\(" \+ BuildSummaryIssueComponentSourceSql\(dashboardPlatform\)/);
+    assert.match(server, /string weeklyFlowPredicate = BuildSummaryIssueRecordTypePredicate\("src", true, false\)/);
+    const implemented = server.match(/implemented_issues AS \(([\s\S]*?)\r?\n\)\r?\nSELECT/);
+    assert.ok(implemented);
+    assert.match(implemented[1], /TRY_CAST\(implemented_date AS DATE\)/);
+    assert.doesNotMatch(implemented[1], /closed_date/);
+    const drilldown = server.match(/    public static SummaryIssueLinksResponse GetTrendWeekIssueLinks\([^)]*\)[\s\S]*?\r?\n    \}/);
+    assert.ok(drilldown);
+    assert.match(drilldown[0], /BuildWeeklyClosedPredicate\("src", "@week_offset"\)/);
+    assert.match(drilldown[0], /bool includeDuplicates = false/);
+    assert.doesNotMatch(drilldown[0], /TRY_CAST\(src\.implemented_date AS DATE\)|<> 'rejected'/);
+    assert.match(drilldown[0], /BuildTrendWeekEndStatusPredicate\("src", cutoffSql, false, "@week_offset"\)/);
+    assert.match(drilldown[0], /BuildTrendWeekEndStatusPredicate\("src", cutoffSql, true, "@week_offset"\)/);
+});
+
+test('weekly Open bars and details retain all request-week intake regardless of resolution', () => {
+    const server = fs.readFileSync(path.join(__dirname, '..', '..', 'CMF_Web_portal.aspx.cs'), 'utf8');
+    const open = server.match(/new_issues AS \(([\s\S]*?)\r?\n\),\r?\nresolved_issues AS/);
+    assert.ok(open);
+    assert.match(open[1], /CmfSummaryTrendService\.BuildWeeklyOpenPredicate\("src", "w.week_offset"\)/);
+    assert.doesNotMatch(open[1], /status.*= 'open'/);
+    assert.match(server, /CmfSummaryTrendService\.BuildWeeklyOpenPredicate\("src", "@week_offset"\)/);
+    assert.match(server, /weekPredicate = allowOpen && allowClosed \? "\(\(" \+ openPredicate/);
+    assert.match(server, /: allowOpen \? openPredicate : closedPredicate/);
+    const service = fs.readFileSync(path.join(__dirname, '..', '..', 'App_Code', 'CmfSummaryTrendService.cs'), 'utf8');
+    const predicate = service.match(/    public static string BuildWeeklyOpenPredicate\([^)]*\)[\s\S]*?\r?\n    \}/);
+    assert.ok(predicate);
+    assert.match(predicate[0], /date_cmf_ask/);
+    assert.doesNotMatch(predicate[0], /implemented_date|closed_date|status|cutoff/);
+});
+
 test('one shared Updated timestamp follows Mode outside tab-specific panels', () => {
     const header = source.match(/<header class="portal-app-header">([\s\S]*?)<\/header>/);
     assert.ok(header);
@@ -90,7 +138,7 @@ test('accepted date filtering is fixed for saved sessions and range changes with
     assert.doesNotMatch(server, /FROM " \+ pendingTable \+ " WHERE " \+ GetDashboardDateFilter\(\)\.BuildPredicate/);
 });
 
-test('all CMF summary trend indicators are omitted when the applied date range is shorter than 30 days', () => {
+test('Summary trends obey date visibility and suppress hover tooltips while preserving accessible comparisons', () => {
     const definition = source.match(/        function renderSummaryWeeklyTrend\([^)]*\) \{[\s\S]*?\r?\n        \}/);
     assert.ok(definition);
     assert.match(definition[0], /<%= ShowSummaryTrends \? "true" : "false" %>/);
@@ -103,8 +151,13 @@ test('all CMF summary trend indicators are omitted when the applied date range i
             { Direction: 'flat', Tone: 'neutral', Display: '0' },
             { Direction: 'unavailable', Tone: 'unavailable', Display: 'N/A' }
         ]) {
+            trend.Tooltip = 'Current versus the estimated count seven days earlier.';
             const html = context.renderSummaryWeeklyTrend(trend);
-            if (visible) assert.match(html, /class="cmf-weekly-trend /);
+            if (visible) {
+                assert.match(html, /class="cmf-weekly-trend /);
+                assert.match(html, /title=""/, 'An empty title suppresses both the trend tooltip and inherited card tooltips.');
+                assert.match(html, /aria-label="Current versus the estimated count seven days earlier\."/);
+            }
             else assert.equal(html, '');
         }
         assert.equal(context.renderSummaryWeeklyTrend(null), '');
@@ -275,21 +328,43 @@ test('all Open percentage numerators and their drilldowns use the Summary Open b
     assert.match(source, /CMFs that are not complete, rejected, implemented, or future\./);
 });
 
-test('summary counts use same-weekday scoped balances while TPT retains rolling-week comparisons', () => {
+test('all summary metrics use same-weekday scoped estimates and TPT subtracts whole-day headlines', () => {
     const server = fs.readFileSync(path.join(__dirname, '..', '..', 'CMF_Web_portal.aspx.cs'), 'utf8');
     const summary = server.slice(server.indexOf('private void PopulateHomeCmfSummaryTables('));
     assert.match(summary, /componentSourceSql = BuildDashboardComponentSourceSql\(platformTable, true\)/);
     assert.match(summary, /balanceTrends = CmfSummaryTrendService\.LoadBalanceEstimates\(\s*con, componentSourceSql, DateTime.Today\)/);
-    assert.match(summary, /weeklyTrends = CmfSummaryTrendService\.Load\(\s*con, BuildDashboardComponentSourceSql\(platformTable\), DateTime.Today\)/);
-    for (const label of ['Total CMFs', 'Closed', 'Implemented', 'Open']) {
+    assert.match(summary, /tptTrends = CmfSummaryTrendService\.LoadTptEstimates\(\s*con, componentSourceSql, DateTime.Today\)/);
+    for (const [label, headline] of [['Total CMFs', 'total'], ['Closed', 'closed'], ['Implemented', 'implemented'], ['Open', 'pending']]) {
         const fact = summary.match(new RegExp('Label = "' + label + '",([\\s\\S]*?)\\n                    \\}\\);'));
         assert.ok(fact, label + ' summary card remains defined');
-        assert.ok(fact[1].includes('WeeklyTrend = balanceTrends["' + label + '"]'));
+        assert.ok(fact[1].includes('WeeklyTrend = balanceTrends["' + label + '"].WithCurrentCount(' + headline + ')'));
     }
-    for (const label of ['CMF Disposition TPT', 'CMF Resolution TPT', 'CMF Overall TPT']) {
-        assert.ok(summary.includes('WeeklyTrend = weeklyTrends["' + label + '"]'));
+    for (const [label, headline, trend] of [['CMF Disposition TPT', 'dispositionTpt', 'dispositionTrend'],
+        ['CMF Resolution TPT', 'resolutionTpt', 'resolutionTrend'], ['CMF Overall TPT', 'overallTpt', 'overallTrend']]) {
+        assert.ok(summary.includes('tptTrends["' + label + '"].WithCurrentTpt(' + headline + ')'));
+        const fact = summary.match(new RegExp('Label = "' + label + '",([\\s\\S]*?)\\n                    \\}\\);'));
+        assert.ok(fact, label + ' summary card remains defined');
+        assert.ok(fact[1].includes('WeeklyTrend = ' + trend));
+        assert.ok(fact[1].includes('FormatTptTrendNote(' + headline + ' - decimal.ToInt32(' + trend + '.PreviousValue.Value))'));
     }
+    assert.doesNotMatch(summary, /weeklyTrends|dispositionThisWeek|resolutionThisWeek|overallThisWeek|CROSS JOIN wk/);
     assert.ok(summary.includes('CmfSummaryTrendService.LoadPendingEstimate('));
+});
+
+test('hover tooltips omit click instructions without removing sorting handlers', () => {
+    const sorting = fs.readFileSync(path.join(__dirname, '..', 'cmf-portal-field-filter.js'), 'utf8');
+    assert.doesNotMatch(source, /\bclick\s+to\b/i);
+    assert.doesNotMatch(sorting, /\bclick\s+to\b/i);
+    assert.match(sorting, /th\.addEventListener\('click'/);
+    new vm.Script(sorting);
+});
+
+test('Pending summary tooltips omit oldest-age explanations while retaining the visible age', () => {
+    const server = fs.readFileSync(path.join(__dirname, '..', '..', 'CMF_Web_portal.aspx.cs'), 'utf8');
+    const pending = server.match(/Label = "Pending",[\s\S]*?\r?\n\s*\}\);/);
+    assert.ok(pending);
+    assert.match(pending[0], /Note = oldestPendingAgeDays\.HasValue\s*\? "Oldest: "/);
+    assert.match(pending[0], /ConstituentTooltip = pendingConstituentLines\.Count > 0\s*\? string\.Join\("\\n", pendingConstituentLines\.ToArray\(\)\)\s*: "No pending constituent counts in this scope\."/);
 });
 
 test('non-TPT summary cards place duplicate notes beneath values and trends in the footer', () => {
@@ -302,7 +377,8 @@ test('non-TPT summary cards place duplicate notes beneath values and trends in t
             const context = vm.createContext({
                 document: {
                     getElementById: () => host,
-                    createElement: () => ({ innerHTML: '', setAttribute() {}, addEventListener() {} })
+                    createElement: () => ({ innerHTML: '', attributes: {},
+                        setAttribute(name, value) { this.attributes[name] = value; }, addEventListener() {} })
                 },
                 shouldRenderOverallSummaryFact: () => true,
                 formatSummaryFactValueAndNote: (value, note) => ({ valueText: value, noteText: note || '' }),
@@ -325,6 +401,10 @@ test('non-TPT summary cards place duplicate notes beneath values and trends in t
             assert.match(cards[2].innerHTML, /class="ccip-summary-fact-value">6<\/div>/);
             assert.doesNotMatch(cards[2].innerHTML, /cmf-summary-value-stack|CMF pending table/);
             for (const card of cards) {
+                assert.equal(card.attributes.title, 'Summary details');
+                assert.doesNotMatch(card.attributes['aria-label'], /\bclick\s+to\b/i);
+                assert.equal(card.attributes.role, 'button');
+                assert.equal(card.attributes.tabindex, '0');
                 if (display) assert.ok(card.innerHTML.endsWith('<div class="ccip-summary-fact-note"><span class="cmf-weekly-trend">' + display + '</span></div>'));
                 else assert.doesNotMatch(card.innerHTML, /cmf-weekly-trend|N\/A/);
             }
@@ -332,9 +412,12 @@ test('non-TPT summary cards place duplicate notes beneath values and trends in t
     }
 });
 
-test('Overall TPT uses the shared indicator renderer without changing its headline', () => {
+test('Overall TPT aligns legends and footer trends with summary cards without changing platform layouts', () => {
     const definition = source.match(/        function renderOverallTptBoxes\([^)]*\) \{[\s\S]*?\r?\n        \}/);
     assert.ok(definition);
+    assert.match(source, /#homeOverallSummaryTptInline \.overall-tpt-value\s*\{\s*font-size: 30px;\s*line-height: 1\.05;/);
+    assert.match(source, /#homeOverallSummaryTptInline \.overall-tpt-legend\s*\{\s*font-size: 10px;\s*line-height: 1\.2;/);
+    assert.match(source, /#homeOverallSummaryTptInline \.overall-tpt-trend\s*\{\s*display: flex;\s*justify-content: center;\s*align-self: end;\s*min-height: 14px;/);
     for (const hostId of ['homeOverallSummaryTptInline', 'homeSpecificSummaryFactsDashboardTptInline', 'homeSpecificSummaryFactsCmfTptInline']) {
         const host = { id: hostId, innerHTML: '', querySelectorAll: () => [] };
         const context = vm.createContext({
@@ -342,17 +425,30 @@ test('Overall TPT uses the shared indicator renderer without changing its headli
             findTptFactByLabel: (facts, pattern) => facts.find(fact => pattern.test(fact.Label)),
             escapeHtml: value => String(value),
             getLegacyTptValueToneClass: () => 'tone',
-            buildTptColorLegend: () => '',
+            buildTptColorLegend: kind => '<div class="overall-tpt-legend">' + kind + ' legend</div>',
             renderSummaryWeeklyTrend: trend => trend.Display ? '<span class="cmf-weekly-trend">' + trend.Display + '</span>' : ''
         });
         vm.runInContext(definition[0], context);
-        for (const display of ['50%', '0%', '']) {
-            context.renderOverallTptBoxes([{ Label: 'CMF Overall TPT', Value: '41', WeeklyTrend: { Display: display } }], hostId);
-            const overall = host.innerHTML.split('data-tpt-kind="overall"')[1];
-            assert.match(overall, /cmf-summary-value-stack/);
-            assert.match(overall, />41 <span/);
-            if (display) assert.ok(overall.includes('class="cmf-weekly-trend">' + display));
-            else assert.doesNotMatch(overall, /cmf-weekly-trend|N\/A/);
+        for (const display of ['50%', '0%', '', null]) {
+            const metrics = [['disposition', '3'], ['resolution', '16'], ['overall', '41']];
+            context.renderOverallTptBoxes(metrics.map(([kind, value]) => ({
+                Label: 'CMF ' + kind + ' TPT', Value: value,
+                WeeklyTrend: display === null ? null : { Display: display }
+            })), hostId);
+            for (const [kind, value] of metrics) {
+                const card = host.innerHTML.split('data-tpt-kind="' + kind + '"')[1].split('<div class="overall-tpt-box"')[0];
+                const legend = '<div class="overall-tpt-legend">' + kind + ' legend</div>';
+                const trend = display ? '<span class="cmf-weekly-trend">' + display + '</span>' : '';
+                assert.ok(card.includes('>' + value + ' <span'));
+                if (hostId === 'homeOverallSummaryTptInline') {
+                    assert.ok(card.includes(legend + '</div><div class="overall-tpt-trend">' + trend + '</div>'));
+                    assert.match(card, /cmf-summary-value-stack/);
+                } else {
+                    assert.doesNotMatch(card, /overall-tpt-trend/);
+                    assert.ok(card.endsWith((display === null ? '' : trend + '</div>') + legend + '</div>'));
+                }
+                if (!display) assert.doesNotMatch(card, /cmf-weekly-trend|N\/A/);
+            }
         }
     }
 });

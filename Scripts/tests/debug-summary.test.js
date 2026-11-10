@@ -2,7 +2,6 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const os = require('node:os');
 const { spawnSync } = require('node:child_process');
 const { test } = require('node:test');
 
@@ -141,15 +140,23 @@ test('compiled debug assistant isolates forum data, orders recent evidence, and 
     skip: !fs.existsSync(compiler)
 }, () => {
     const root = path.join(__dirname, '..', '..');
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cmf-debug-summary-'));
+    const directory = fs.mkdtempSync(path.join(root, 'App_Data', 'cmf-debug-summary-'));
     const output = path.join(directory, 'Tests.exe');
     try {
+        const assemblies = fs.readdirSync(path.join(root, 'bin'))
+            .filter(file => file.endsWith('.dll'));
+        for (const assembly of assemblies) {
+            fs.copyFileSync(path.join(root, 'bin', assembly), path.join(directory, assembly));
+        }
         const build = spawnSync(compiler, [
             '/nologo', '/target:exe', '/out:' + output, '/r:System.Web.dll',
-            '/r:System.Web.Extensions.dll', '/r:System.Configuration.dll',
-            path.join(root, 'App_Code', 'AiSummaryService.cs'),
-            path.join(root, 'App_Code', 'HsdPortalService.cs'),
-            path.join(root, 'App_Code', 'CmfAssistantResponseCache.cs'),
+            '/r:System.Web.Extensions.dll', '/r:System.Configuration.dll', '/r:System.Data.dll',
+            '/r:System.Data.DataSetExtensions.dll', '/r:System.Xml.dll', '/r:System.Net.Http.dll',
+            '/r:System.Drawing.dll', '/r:System.Web.Services.dll', '/r:System.Runtime.Caching.dll',
+            '/r:' + path.join(path.dirname(compiler), 'WPF', 'WindowsBase.dll'),
+            ...assemblies.map(assembly => '/r:' + path.join(root, 'bin', assembly)),
+            ...fs.readdirSync(path.join(root, 'App_Code')).filter(file => file.endsWith('.cs'))
+                .map(file => path.join(root, 'App_Code', file)),
             path.join(__dirname, 'DebugSummaryServiceTests.cs')
         ], { encoding: 'utf8', timeout: 120000 });
         assert.equal(build.status, 0, build.stdout + build.stderr);
@@ -157,7 +164,6 @@ test('compiled debug assistant isolates forum data, orders recent evidence, and 
             env: { ...process.env, GNAI_ENDPOINT: 'REPLACE_TEST_ENDPOINT', GNAI_TOKEN: '' } });
         assert.equal(run.status, 0, run.stdout + run.stderr);
     } finally {
-        for (const file of [output, output + '.config']) fs.rmSync(file, { force: true });
-        fs.rmdirSync(directory);
+        fs.rmSync(directory, { recursive: true, force: true });
     }
 });
