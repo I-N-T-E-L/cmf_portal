@@ -23132,16 +23132,30 @@ td:nth-child(odd), th:nth-child(odd) {
             }
         }
 
-        var issueGlobalSearchTimer = null;
+        function handleGlobalPortalSearchInput() {
+            var input = document.getElementById('globalPortalSearch');
+            var query = input ? (input.value || '').trim() : '';
+            var clearBtn = document.getElementById('globalSearchClear');
+            if (clearBtn) {
+                clearBtn.style.display = (input && input.value) ? 'inline-flex' : 'none';
+            }
+        }
 
-        function scheduleIssueGlobalSearch() {
+        function handleGlobalPortalSearchKeydown(event) {
+            if (event.key === 'Enter' || event.keyCode === 13) {
+                event.preventDefault();
+                executeGlobalPortalSearch();
+            }
+        }
+
+        function executeGlobalPortalSearch() {
             var input = document.getElementById('globalPortalSearch');
             var query = input ? (input.value || '').trim() : '';
             var clearBtn = document.getElementById('globalSearchClear');
             var activeTab = (window.CMF_PORTAL.activeFocusedTab || '').toLowerCase();
 
             if (clearBtn) {
-                clearBtn.style.display = query ? 'inline-flex' : 'none';
+                clearBtn.style.display = (input && input.value) ? 'inline-flex' : 'none';
             }
 
             if (activeTab === 'pending') {
@@ -23155,24 +23169,24 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
-            if (issueGlobalSearchTimer) {
-                clearTimeout(issueGlobalSearchTimer);
+            var hidden = document.getElementById('<%= hfIssueGlobalSearch.ClientID %>');
+            if (hidden) {
+                hidden.value = query;
             }
+            __doPostBack('<%= btnIssueGlobalSearchApply.UniqueID %>', '');
+        }
 
-            issueGlobalSearchTimer = setTimeout(function () {
-                var hidden = document.getElementById('<%= hfIssueGlobalSearch.ClientID %>');
-                if (hidden) {
-                    hidden.value = query;
-                }
-                __doPostBack('<%= btnIssueGlobalSearchApply.UniqueID %>', '');
-            }, 450);
+        function scheduleIssueGlobalSearch() {
+            executeGlobalPortalSearch();
         }
 
         function clearGlobalPortalSearch() {
             var input = document.getElementById('globalPortalSearch');
             if (!input) return;
             input.value = '';
-            scheduleIssueGlobalSearch();
+            var clearBtn = document.getElementById('globalSearchClear');
+            if (clearBtn) clearBtn.style.display = 'none';
+            executeGlobalPortalSearch();
             input.focus();
         }
 
@@ -25209,7 +25223,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 issueCellResizeObserver.observe(table);
             }
             formatPendingCustomerLogos();
-            var targets = document.querySelectorAll('#overall_request_details > tbody > tr > td:not([colspan]):not(.field-actions):not(.field-sightingid):not(.field-status):not(.field-title):not(.field-progress)');
+            var targets = document.querySelectorAll('#overall_request_details > tbody > tr > td:not([colspan]):not(.field-actions):not(.field-sightingid):not(.field-status):not(.field-title):not(.field-progress):not(.field-impact):not(.field-impact_processor)');
             targets.forEach(function (cell) {
                 var row = cell.closest('tr');
                 if (row.querySelector('textarea, input, select') || !cell.textContent.trim()) return;
@@ -25685,6 +25699,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 var values = [];
                 var rows = table.querySelectorAll('tbody tr');
                 for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+                    if (!rows[rowIndex].querySelector('.pending-id-actions')) continue;
                     var text = rows[rowIndex].innerText || '';
                     var value = extractPendingFieldValue(rows[rowIndex], filter.field);
                     if (value && values.indexOf(value) === -1) {
@@ -25706,6 +25721,9 @@ td:nth-child(odd), th:nth-child(odd) {
                 if (filter.field === 'component') {
                     select.title = select.value || 'All Components';
                 }
+            }
+            if (window.CMF_PORTAL && window.CMF_PORTAL.refreshFilterMenus) {
+                window.CMF_PORTAL.refreshFilterMenus();
             }
         }
 
@@ -25739,17 +25757,26 @@ td:nth-child(odd), th:nth-child(odd) {
             for (var i = 0; i < selects.length; i++) {
                 var select = document.getElementById(selects[i]);
                 if (select) {
-                    select.value = '';
+                    if (select.multiple) {
+                        Array.from(select.options).forEach(function (option, index) {
+                            option.selected = (index === 0);
+                        });
+                    } else {
+                        select.value = '';
+                    }
                     select.dispatchEvent(new Event('change', { bubbles: true }));
                 }
             }
             filterCmfPendingRows();
+            if (window.CMF_PORTAL && window.CMF_PORTAL.refreshFilterMenus) {
+                window.CMF_PORTAL.refreshFilterMenus();
+            }
         }
 </script>
-    <script src="Scripts/cmf-portal-main.js?v=20261103-title-actions"></script>
+    <script src="Scripts/cmf-portal-main.js?v=20261105-header-filters"></script>
     <script src="Scripts/cmf-dashboard-insights.js?v=8"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261104-vertical-actions" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261105-header-filters" />
     <link rel="stylesheet" href="Content/cmf-dashboard-insights.css?v=5" />
 
 </head>
@@ -25804,7 +25831,7 @@ td:nth-child(odd), th:nth-child(odd) {
         <div class="header-title" runat="server" id="headerTitle">CMF Live Dashboard</div>
         <div class="global-search-shell" role="search" style="display:none;">
             <i class="fas fa-search" aria-hidden="true"></i>
-            <input type="text" id="globalPortalSearch" placeholder="Search issues, customers, components..." autocomplete="off" value="<%= HttpUtility.HtmlAttributeEncode(GetIssueGlobalSearchQuery()) %>" oninput="scheduleIssueGlobalSearch()" />
+            <input type="text" id="globalPortalSearch" placeholder="Search issues, customers, components..." autocomplete="off" value="<%= HttpUtility.HtmlAttributeEncode(GetIssueGlobalSearchQuery()) %>" oninput="handleGlobalPortalSearchInput()" onkeydown="handleGlobalPortalSearchKeydown(event)" />
             <button type="button" id="globalSearchClear" class="global-search-clear" onclick="clearGlobalPortalSearch()" aria-label="Clear search">&times;</button>
             <span class="global-search-shortcut">Ctrl + K</span>
         </div>
@@ -26720,25 +26747,22 @@ Submit
 
     <Columns>
 
-        <asp:TemplateField HeaderText="Actions" ItemStyle-CssClass="field-actions" HeaderStyle-CssClass="field-actions">
-            <HeaderTemplate>Actions</HeaderTemplate>
+        <asp:TemplateField HeaderText="S.No" ItemStyle-CssClass="field-sno" HeaderStyle-CssClass="field-sno">
             <ItemTemplate>
-                <div class="issue-actions-cell" role="group" aria-label="Issue actions">
-                    <button type="button" class="issue-action-btn action-debug" onclick="runIssueRowAiAction(this, 'debug')" title="AI Debug Summary" aria-label="AI Debug Summary"><span aria-hidden="true">&#10024;</span></button>
-                    <button type="button" class="issue-action-btn action-details" onclick="runIssueRowAiAction(this, 'details')" title="AI Issue Details" aria-label="AI Issue Details"><i class="fas fa-file-alt" aria-hidden="true"></i></button>
+                <div class="issue-sno-cell">
+                    <asp:Label ID="lblSno" runat="server" CssClass="issue-sno-num" Text='<%# Container.DataItemIndex + 1 %>' />
                     <asp:LinkButton ID="btnRowEdit" runat="server" CommandName="Edit" CausesValidation="false" CssClass="issue-action-btn action-edit" ToolTip="Edit row" aria-label="Edit row"><i class="fas fa-pencil-alt" aria-hidden="true"></i></asp:LinkButton>
                 </div>
             </ItemTemplate>
             <EditItemTemplate>
-                <div class="issue-actions-cell" role="group" aria-label="Edit actions">
-                    <asp:LinkButton ID="btnRowUpdate" runat="server" CommandName="Update" CssClass="issue-action-btn action-save" ToolTip="Save changes" aria-label="Save changes"><i class="fas fa-check" aria-hidden="true"></i></asp:LinkButton>
-                    <asp:LinkButton ID="btnRowCancel" runat="server" CommandName="Cancel" CausesValidation="false" CssClass="issue-action-btn action-cancel" ToolTip="Cancel edit" aria-label="Cancel edit"><i class="fas fa-times" aria-hidden="true"></i></asp:LinkButton>
+                <div class="issue-sno-cell">
+                    <asp:Label ID="lblSno" runat="server" CssClass="issue-sno-num" Text='<%# Container.DataItemIndex + 1 %>' />
+                    <div class="issue-sno-edit-actions">
+                        <asp:LinkButton ID="btnRowUpdate" runat="server" CommandName="Update" CssClass="issue-action-btn action-save" ToolTip="Save changes" aria-label="Save changes"><i class="fas fa-check" aria-hidden="true"></i></asp:LinkButton>
+                        <asp:LinkButton ID="btnRowCancel" runat="server" CommandName="Cancel" CausesValidation="false" CssClass="issue-action-btn action-cancel" ToolTip="Cancel edit" aria-label="Cancel edit"><i class="fas fa-times" aria-hidden="true"></i></asp:LinkButton>
+                    </div>
                 </div>
             </EditItemTemplate>
-        </asp:TemplateField>
-
-        <asp:TemplateField HeaderText="S.No" ItemStyle-CssClass="field-sno" HeaderStyle-CssClass="field-sno">
-            <ItemTemplate><%# Container.DataItemIndex + 1 %></ItemTemplate>
         </asp:TemplateField>
 
         <asp:TemplateField HeaderText="Milestone" ItemStyle-CssClass="field-milestone" HeaderStyle-CssClass="field-milestone">
@@ -26818,6 +26842,10 @@ Submit
         <asp:TemplateField HeaderText="Title" ItemStyle-CssClass="field-title" HeaderStyle-CssClass="field-title">
             <ItemTemplate>
                 <asp:Label ID="lblIssueTitle" runat="server" CssClass="issue-title-text" Text='<%# HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(Convert.ToString(Eval("title"))) ? "unknown" : Convert.ToString(Eval("title"))) %>' />
+                <div class="issue-title-actions" role="group" aria-label="Issue actions">
+                    <button type="button" class="issue-title-action" onclick="runIssueRowAiAction(this, 'debug')" aria-label="AI Debug Summary" title="AI Debug Summary"><span aria-hidden="true">&#10024;</span><span class="issue-action-label">AI Debug Summary</span></button>
+                    <button type="button" class="issue-title-action" onclick="runIssueRowAiAction(this, 'details')" aria-label="AI Issue Details" title="AI Issue Details"><i class="fas fa-file-alt" aria-hidden="true"></i><span class="issue-action-label">AI Issue Details</span></button>
+                </div>
             </ItemTemplate>
             <EditItemTemplate>
                 <asp:Label ID="lblIssueTitle" runat="server" CssClass="issue-title-text" Text='<%# HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(Convert.ToString(Eval("title"))) ? "unknown" : Convert.ToString(Eval("title"))) %>' />
@@ -27063,16 +27091,13 @@ Submit
                                 </div>
                             </div>
 
-                            <div class="cmf-pending-filter-card" aria-label="CMF pending list filters">
+                            <div class="cmf-pending-platform-bar" style="display: flex; align-items: center; justify-content: space-between; margin: 10px 0 8px 0; gap: 12px; flex-wrap: wrap;">
                                 <div id="cmfPendingPlatformSlot"></div>
-                                <div class="cmf-pending-searchbox"><i class="fas fa-search" aria-hidden="true"></i><input type="text" id="cmfPendingClientSearch" placeholder="Search by ID, title, customer, component..." oninput="filterCmfPendingRows()" /></div>
-                                <label class="portal-filter-field" for="cmfPendingCustomerFilter">Customer<select id="cmfPendingCustomerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select></label>
-                                <label class="portal-filter-field" for="cmfPendingRvpFilter">RVP Repro<select id="cmfPendingRvpFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option><option value="yes">Yes</option><option value="no">No</option><option value="unknown">Unknown</option></select></label>
-                                <label class="portal-filter-field" for="cmfPendingIdstFilter">iDST<select id="cmfPendingIdstFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select></label>
-                                <fieldset class="portal-filter-field portal-date-filter"><legend>CMF Ask Date</legend><div><input type="date" id="cmfPendingDateFrom" aria-label="CMF Ask Date from" onchange="filterCmfPendingRows()" /><span aria-hidden="true">to</span><input type="date" id="cmfPendingDateTo" aria-label="CMF Ask Date to" onchange="filterCmfPendingRows()" /></div></fieldset>
-                                <label class="portal-filter-field" for="cmfPendingComponentFilter">Component<select id="cmfPendingComponentFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select></label>
-                                <label class="portal-filter-field" for="cmfPendingOwnerFilter">Owner<select id="cmfPendingOwnerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select></label>
-                                <button type="button" class="cmf-pending-filter-btn" onclick="resetCmfPendingClientFilters()">Clear</button>
+                                <input type="hidden" id="cmfPendingClientSearch" />
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <fieldset class="portal-filter-field portal-date-filter" style="margin:0;padding:2px 10px 4px 10px;border:1px solid #d8e2ee;border-radius:6px;background:#fff;"><legend style="font-size:11px;font-weight:600;color:#475569;padding:0 4px;margin-bottom:2px;width:auto;">CMF Ask Date</legend><div style="display:flex;gap:6px;align-items:center;"><input type="date" id="cmfPendingDateFrom" aria-label="CMF Ask Date from" onchange="filterCmfPendingRows()" style="font-size:12px;padding:2px 8px;width:140px;min-width:135px;height:30px;border:1px solid #cbd5e1;border-radius:4px;color:#1e293b;" /><span aria-hidden="true" style="font-size:12px;color:#64748b;font-weight:500;">to</span><input type="date" id="cmfPendingDateTo" aria-label="CMF Ask Date to" onchange="filterCmfPendingRows()" style="font-size:12px;padding:2px 8px;width:140px;min-width:135px;height:30px;border:1px solid #cbd5e1;border-radius:4px;color:#1e293b;" /></div></fieldset>
+                                    <button type="button" class="filter-btn filter-btn-secondary" onclick="resetCmfPendingClientFilters()">Clear Filters</button>
+                                </div>
                             </div>
 
                             <!-- CMF PENDING LIST GRIDVIEW - INSIDE mainDataWrapper -->
@@ -27087,12 +27112,60 @@ Submit
                                             </ItemTemplate>
                                         </asp:TemplateField>
                                         <asp:BoundField DataField="title" HeaderText="Issue Title" ItemStyle-CssClass="pending-field-title" HeaderStyle-CssClass="pending-field-title" />
-                                        <asp:BoundField DataField="customer_detail" HeaderText="Customer Detail" ItemStyle-CssClass="pending-field-customer" />
-                                        <asp:BoundField DataField="component" HeaderText="Component" ItemStyle-CssClass="pending-field-component" />
+                                        <asp:TemplateField HeaderText="Customer Detail" ItemStyle-CssClass="pending-field-customer" HeaderStyle-CssClass="pending-field-customer">
+                                            <HeaderTemplate>
+                                                <div class="filter-header-container">
+                                                    <div class="filter-header-text">Customer Detail</div>
+                                                    <div class="filter-container">
+                                                        <select id="cmfPendingCustomerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select>
+                                                    </div>
+                                                </div>
+                                            </HeaderTemplate>
+                                            <ItemTemplate><%# Eval("customer_detail") %></ItemTemplate>
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="Component" ItemStyle-CssClass="pending-field-component" HeaderStyle-CssClass="pending-field-component">
+                                            <HeaderTemplate>
+                                                <div class="filter-header-container">
+                                                    <div class="filter-header-text">Component</div>
+                                                    <div class="filter-container">
+                                                        <select id="cmfPendingComponentFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select>
+                                                    </div>
+                                                </div>
+                                            </HeaderTemplate>
+                                            <ItemTemplate><%# Eval("component") %></ItemTemplate>
+                                        </asp:TemplateField>
                                         <asp:BoundField DataField="component_group" HeaderText="Component Group" ItemStyle-CssClass="pending-field-component-group" />
-                                        <asp:BoundField DataField="idst_display_name" HeaderText="iDST" ItemStyle-CssClass="pending-field-idst" />
-                                        <asp:BoundField DataField="customer_owner" HeaderText="Owner" ItemStyle-CssClass="pending-field-owner" />
-                                        <asp:TemplateField HeaderText="RVP Repro" ItemStyle-CssClass="pending-field-rvp">
+                                        <asp:TemplateField HeaderText="iDST" ItemStyle-CssClass="pending-field-idst" HeaderStyle-CssClass="pending-field-idst">
+                                            <HeaderTemplate>
+                                                <div class="filter-header-container">
+                                                    <div class="filter-header-text">iDST</div>
+                                                    <div class="filter-container">
+                                                        <select id="cmfPendingIdstFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select>
+                                                    </div>
+                                                </div>
+                                            </HeaderTemplate>
+                                            <ItemTemplate><%# Eval("idst_display_name") %></ItemTemplate>
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="Owner" ItemStyle-CssClass="pending-field-owner" HeaderStyle-CssClass="pending-field-owner">
+                                            <HeaderTemplate>
+                                                <div class="filter-header-container">
+                                                    <div class="filter-header-text">Owner</div>
+                                                    <div class="filter-container">
+                                                        <select id="cmfPendingOwnerFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option></select>
+                                                    </div>
+                                                </div>
+                                            </HeaderTemplate>
+                                            <ItemTemplate><%# Eval("customer_owner") %></ItemTemplate>
+                                        </asp:TemplateField>
+                                        <asp:TemplateField HeaderText="RVP Repro" ItemStyle-CssClass="pending-field-rvp" HeaderStyle-CssClass="pending-field-rvp">
+                                            <HeaderTemplate>
+                                                <div class="filter-header-container">
+                                                    <div class="filter-header-text">RVP Repro</div>
+                                                    <div class="filter-container">
+                                                        <select id="cmfPendingRvpFilter" class="cmf-pending-filter-select" onchange="filterCmfPendingRows()"><option value="">Select All</option><option value="yes">Yes</option><option value="no">No</option><option value="unknown">Unknown</option></select>
+                                                    </div>
+                                                </div>
+                                            </HeaderTemplate>
                                             <ItemTemplate><span class="pending-rvp-status" data-rvp="<%#: string.IsNullOrWhiteSpace(Convert.ToString(Eval("repro_on_rvp"))) ? "unknown" : Convert.ToString(Eval("repro_on_rvp")).Trim() %>"><%#: string.IsNullOrWhiteSpace(Convert.ToString(Eval("repro_on_rvp"))) ? "unknown" : Convert.ToString(Eval("repro_on_rvp")).Trim() %></span></ItemTemplate>
                                         </asp:TemplateField>
                                         <asp:BoundField DataField="reproducibility" HeaderText="Occurrence" ItemStyle-CssClass="pending-field-reproducibility" />

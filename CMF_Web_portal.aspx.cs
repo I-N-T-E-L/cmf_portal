@@ -6336,12 +6336,33 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         }
     }
 
+    private static string ExtractSelectedFilterValues(DropDownList ddl)
+    {
+        if (ddl == null) return "All";
+        string[] values = HttpContext.Current != null && HttpContext.Current.Request != null
+            ? HttpContext.Current.Request.Form.GetValues(ddl.UniqueID)
+            : null;
+
+        if (values != null && values.Length > 0)
+        {
+            var nonAll = values
+                .Where(v => !string.IsNullOrWhiteSpace(v) && !v.Equals("All", StringComparison.OrdinalIgnoreCase))
+                .Select(v => v.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            return nonAll.Length > 0 ? string.Join(",", nonAll) : "All";
+        }
+
+        return ddl.SelectedValue ?? "All";
+    }
+
     protected void ddlOwnerHeader_SelectedIndexChanged(object sender, EventArgs e)
     {
         DropDownList ddl = sender as DropDownList;
         if (ddl != null)
         {
-            Session["ownerFilter"] = ddl.SelectedValue;
+            Session["ownerFilter"] = ExtractSelectedFilterValues(ddl);
             if (ddlOwnerTop != null) ddlOwnerTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
@@ -6352,7 +6373,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         DropDownList ddl = sender as DropDownList;
         if (ddl != null)
         {
-            Session["rvpReproFilter"] = ddl.SelectedValue;
+            Session["rvpReproFilter"] = ExtractSelectedFilterValues(ddl);
             if (ddlRvpReproTop != null) ddlRvpReproTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
@@ -6363,7 +6384,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         DropDownList ddl = sender as DropDownList;
         if (ddl != null)
         {
-            Session["idstFilter"] = ddl.SelectedValue;
+            Session["idstFilter"] = ExtractSelectedFilterValues(ddl);
             if (ddlIdstTop != null) ddlIdstTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
@@ -6374,7 +6395,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         DropDownList ddl = sender as DropDownList;
         if (ddl != null)
         {
-            Session["companyFilter"] = ddl.SelectedValue;
+            Session["companyFilter"] = ExtractSelectedFilterValues(ddl);
             if (ddlCompanyTop != null) ddlCompanyTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
@@ -6385,7 +6406,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         DropDownList ddl = sender as DropDownList;
         if (ddl != null)
         {
-            Session["detailFilter"] = ddl.SelectedValue;
+            Session["detailFilter"] = ExtractSelectedFilterValues(ddl);
             if (ddlDetailTop != null) ddlDetailTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
@@ -6396,7 +6417,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         DropDownList ddl = sender as DropDownList;
         if (ddl != null)
         {
-            Session["componentFilter"] = ddl.SelectedValue;
+            Session["componentFilter"] = ExtractSelectedFilterValues(ddl);
             if (ddlComponentTop != null) ddlComponentTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
@@ -6407,7 +6428,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         DropDownList ddl = sender as DropDownList;
         if (ddl != null)
         {
-            Session["componentFilter"] = ddl.SelectedValue;
+            Session["componentFilter"] = ExtractSelectedFilterValues(ddl);
             if (ddlComponentTop != null) ddlComponentTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
@@ -6418,7 +6439,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         DropDownList ddl = sender as DropDownList;
         if (ddl != null)
         {
-            Session["losFilter"] = ddl.SelectedValue;
+            Session["losFilter"] = ExtractSelectedFilterValues(ddl);
             if (ddlLosTop != null) ddlLosTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
@@ -6429,7 +6450,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         DropDownList ddl = sender as DropDownList;
         if (ddl != null)
         {
-            Session["milestoneFilter"] = ddl.SelectedValue;
+            Session["milestoneFilter"] = ExtractSelectedFilterValues(ddl);
             if (ddlMilestoneTop != null) ddlMilestoneTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
@@ -6440,7 +6461,7 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         DropDownList ddl = sender as DropDownList;
         if (ddl != null)
         {
-            Session["issueStatusFilter"] = ddl.SelectedValue;
+            Session["issueStatusFilter"] = ExtractSelectedFilterValues(ddl);
             if (ddlStatusTop != null) ddlStatusTop.SelectedValue = ddl.SelectedValue;
             ApplyAllFilters();
         }
@@ -6708,32 +6729,99 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
             switch (filter.Key)
             {
                 case "owner":
-                    cmd.Parameters.AddWithValue("@OwnerFilter", filter.Value);
+                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, cmd, "", "@OwnerFilter", filter.Value);
+                    else cmd.Parameters.AddWithValue("@OwnerFilter", filter.Value);
                     break;
                 case "rvpRepro":
-                    cmd.Parameters.AddWithValue("@RvpReproFilter", filter.Value);
+                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, cmd, "", "@RvpReproFilter", filter.Value);
+                    else cmd.Parameters.AddWithValue("@RvpReproFilter", filter.Value);
                     break;
                 case "idst":
-                    cmd.Parameters.AddWithValue("@IdstFilter", filter.Value);
+                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, cmd, "", "@IdstFilter", filter.Value);
+                    else cmd.Parameters.AddWithValue("@IdstFilter", filter.Value);
                     break;
                 case "los":
-                    cmd.Parameters.AddWithValue("@LosFilter", filter.Value);
+                    if (filter.Value.Contains(","))
+                    {
+                        var parts = filter.Value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
+                        var otherParts = parts.Where(p => !p.Equals("No", StringComparison.OrdinalIgnoreCase)).ToArray();
+                        for (int i = 0; i < otherParts.Length; i++)
+                        {
+                            cmd.Parameters.AddWithValue("@LosFilter_" + i, otherParts[i]);
+                        }
+                    }
+                    else
+                    {
+                        cmd.Parameters.AddWithValue("@LosFilter", filter.Value);
+                    }
                     break;
                 case "milestone":
-                    cmd.Parameters.AddWithValue("@MilestoneFilter", filter.Value);
+                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, cmd, "", "@MilestoneFilter", filter.Value);
+                    else cmd.Parameters.AddWithValue("@MilestoneFilter", filter.Value);
                     break;
                 case "Company":
-                    cmd.Parameters.AddWithValue("@CompanyFilter", filter.Value);
+                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, cmd, "", "@CompanyFilter", filter.Value);
+                    else cmd.Parameters.AddWithValue("@CompanyFilter", filter.Value);
                     break;
                 case "Detail":
-                    cmd.Parameters.AddWithValue("@DetailFilter", filter.Value);
+                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, cmd, "", "@DetailFilter", filter.Value);
+                    else cmd.Parameters.AddWithValue("@DetailFilter", filter.Value);
                     break;
                 case "Component":
-                    cmd.Parameters.AddWithValue("@ComponentFilter", filter.Value);
+                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, cmd, "", "@ComponentFilter", filter.Value);
+                    else cmd.Parameters.AddWithValue("@ComponentFilter", filter.Value);
                     break;
                 case "IssueStatus":
-                    cmd.Parameters.AddWithValue("@IssueStatusFilter", filter.Value);
+                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, cmd, "", "@IssueStatusFilter", filter.Value);
+                    else cmd.Parameters.AddWithValue("@IssueStatusFilter", filter.Value);
                     break;
+            }
+        }
+    }
+
+    private static void AppendInOrEqualClause(List<string> clauses, SqlCommand cmd, string columnSql, string paramBase, string csvValues)
+    {
+        if (string.IsNullOrWhiteSpace(csvValues) || csvValues.Equals("All", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var parts = csvValues.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                             .Select(p => p.Trim())
+                             .Where(p => !string.IsNullOrEmpty(p) && !p.Equals("All", StringComparison.OrdinalIgnoreCase))
+                             .Distinct(StringComparer.OrdinalIgnoreCase)
+                             .ToArray();
+
+        if (parts.Length == 0)
+        {
+            return;
+        }
+
+        if (clauses != null)
+        {
+            if (parts.Length == 1)
+            {
+                clauses.Add(" AND " + columnSql + " = " + paramBase + " ");
+            }
+            else
+            {
+                var paramPlaceholders = parts.Select((p, idx) => paramBase + "_" + idx);
+                clauses.Add(" AND " + columnSql + " IN (" + string.Join(", ", paramPlaceholders) + ") ");
+            }
+        }
+
+        if (cmd != null)
+        {
+            if (parts.Length == 1)
+            {
+                cmd.Parameters.AddWithValue(paramBase, parts[0]);
+            }
+            else
+            {
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    cmd.Parameters.AddWithValue(paramBase + "_" + i, parts[i]);
+                }
             }
         }
     }
@@ -7050,9 +7138,20 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                 if (Session[sessionKey] != null)
                 {
                     string value = Session[sessionKey].ToString();
-                    var item = ddl.Items.FindByValue(value);
-                    if (item != null)
-                        ddl.SelectedValue = value;
+                    if (value.Contains(","))
+                    {
+                        HashSet<string> selectedSet = new HashSet<string>(value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()), StringComparer.OrdinalIgnoreCase);
+                        foreach (ListItem item in ddl.Items)
+                        {
+                            item.Selected = selectedSet.Contains(item.Value);
+                        }
+                    }
+                    else
+                    {
+                        var item = ddl.Items.FindByValue(value);
+                        if (item != null)
+                            item.Selected = true;
+                    }
                 }
             }
         }
@@ -7102,42 +7201,91 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
                 switch (filter.Key)
                 {
                     case "owner":
-                        clauses.Add(" AND LTRIM(RTRIM(" + prefix + "customer_owner)) = @OwnerFilter ");
+                        if (filter.Value.Contains(","))
+                            AppendInOrEqualClause(clauses, null, "LTRIM(RTRIM(" + prefix + "customer_owner))", "@OwnerFilter", filter.Value);
+                        else
+                            clauses.Add(" AND LTRIM(RTRIM(" + prefix + "customer_owner)) = @OwnerFilter ");
                         break;
                     case "rvpRepro":
-                        clauses.Add(" AND LTRIM(RTRIM(" + prefix + "repro_on_rvp)) = @RvpReproFilter ");
+                        if (filter.Value.Contains(","))
+                            AppendInOrEqualClause(clauses, null, "LTRIM(RTRIM(" + prefix + "repro_on_rvp))", "@RvpReproFilter", filter.Value);
+                        else
+                            clauses.Add(" AND LTRIM(RTRIM(" + prefix + "repro_on_rvp)) = @RvpReproFilter ");
                         break;
                     case "idst":
-                        clauses.Add(" AND LTRIM(RTRIM(" + prefix + "idst)) = @IdstFilter ");
+                        if (filter.Value.Contains(","))
+                            AppendInOrEqualClause(clauses, null, "LTRIM(RTRIM(" + prefix + "idst))", "@IdstFilter", filter.Value);
+                        else
+                            clauses.Add(" AND LTRIM(RTRIM(" + prefix + "idst)) = @IdstFilter ");
                         break;
                     case "Company":
-                        clauses.Add(" AND LTRIM(RTRIM(" + prefix + "customer_company)) = @CompanyFilter ");
+                        if (filter.Value.Contains(","))
+                            AppendInOrEqualClause(clauses, null, "LTRIM(RTRIM(" + prefix + "customer_company))", "@CompanyFilter", filter.Value);
+                        else
+                            clauses.Add(" AND LTRIM(RTRIM(" + prefix + "customer_company)) = @CompanyFilter ");
                         break;
                     case "Detail":
-                        clauses.Add(" AND LTRIM(RTRIM(" + prefix + "customer_detail)) = @DetailFilter ");
+                        if (filter.Value.Contains(","))
+                            AppendInOrEqualClause(clauses, null, "LTRIM(RTRIM(" + prefix + "customer_detail))", "@DetailFilter", filter.Value);
+                        else
+                            clauses.Add(" AND LTRIM(RTRIM(" + prefix + "customer_detail)) = @DetailFilter ");
                         break;
                     case "Component":
-                        clauses.Add(" AND LTRIM(RTRIM(" + prefix + "component_group)) = @ComponentFilter ");
+                        if (filter.Value.Contains(","))
+                            AppendInOrEqualClause(clauses, null, "LTRIM(RTRIM(" + prefix + "component_group))", "@ComponentFilter", filter.Value);
+                        else
+                            clauses.Add(" AND LTRIM(RTRIM(" + prefix + "component_group)) = @ComponentFilter ");
                         break;
                     case "IssueStatus":
-                        clauses.Add(" AND LTRIM(RTRIM(" + prefix + "status)) = @IssueStatusFilter ");
+                        if (filter.Value.Contains(","))
+                            AppendInOrEqualClause(clauses, null, "LTRIM(RTRIM(" + prefix + "status))", "@IssueStatusFilter", filter.Value);
+                        else
+                            clauses.Add(" AND LTRIM(RTRIM(" + prefix + "status)) = @IssueStatusFilter ");
                         break;
                     //case "los":
                     //    clauses.Add(" AND LTRIM(RTRIM(los)) = @LosFilter ");
                     //    break;
 
                     case "los":
-                        // Special handling: 'No' in the UI means NULL or empty in DB
-                        clauses.Add(
-                            " AND ( " +
-                            "     (@LosFilter = 'No' AND (" + prefix + "los IS NULL OR LTRIM(RTRIM(" + prefix + "los)) = '')) " +
-                            "  OR (@LosFilter <> 'No' AND LTRIM(RTRIM(" + prefix + "los)) = @LosFilter) " +
-                            ") "
-                        );
+                        if (filter.Value.Contains(","))
+                        {
+                            var parts = filter.Value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
+                            bool hasNo = parts.Any(p => p.Equals("No", StringComparison.OrdinalIgnoreCase));
+                            var otherParts = parts.Where(p => !p.Equals("No", StringComparison.OrdinalIgnoreCase)).ToArray();
+                            if (hasNo && otherParts.Length > 0)
+                            {
+                                List<string> inP = new List<string>();
+                                for (int i = 0; i < otherParts.Length; i++) inP.Add("@LosFilter_" + i);
+                                clauses.Add(" AND ( (" + prefix + "los IS NULL OR LTRIM(RTRIM(" + prefix + "los)) = '') OR LTRIM(RTRIM(" + prefix + "los)) IN (" + string.Join(", ", inP) + ") ) ");
+                            }
+                            else if (hasNo)
+                            {
+                                clauses.Add(" AND (" + prefix + "los IS NULL OR LTRIM(RTRIM(" + prefix + "los)) = '') ");
+                            }
+                            else
+                            {
+                                List<string> inP = new List<string>();
+                                for (int i = 0; i < otherParts.Length; i++) inP.Add("@LosFilter_" + i);
+                                clauses.Add(" AND LTRIM(RTRIM(" + prefix + "los)) IN (" + string.Join(", ", inP) + ") ");
+                            }
+                        }
+                        else
+                        {
+                            // Special handling: 'No' in the UI means NULL or empty in DB
+                            clauses.Add(
+                                " AND ( " +
+                                "     (@LosFilter = 'No' AND (" + prefix + "los IS NULL OR LTRIM(RTRIM(" + prefix + "los)) = '')) " +
+                                "  OR (@LosFilter <> 'No' AND LTRIM(RTRIM(" + prefix + "los)) = @LosFilter) " +
+                                ") "
+                            );
+                        }
                         break;
 
                     case "milestone":
-                        clauses.Add(" AND LTRIM(RTRIM(" + prefix + "drivers)) = @MilestoneFilter ");
+                        if (filter.Value.Contains(","))
+                            AppendInOrEqualClause(clauses, null, "LTRIM(RTRIM(" + prefix + "drivers))", "@MilestoneFilter", filter.Value);
+                        else
+                            clauses.Add(" AND LTRIM(RTRIM(" + prefix + "drivers)) = @MilestoneFilter ");
                         break;
                 }
             }
@@ -8358,31 +8506,51 @@ LEFT JOIN " + designTable + @" AS d
                             switch (filter.Key)
                             {
                                 case "owner":
-                                    sda.SelectCommand.Parameters.AddWithValue("@OwnerFilter", filter.Value);
+                                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, sda.SelectCommand, "", "@OwnerFilter", filter.Value);
+                                    else sda.SelectCommand.Parameters.AddWithValue("@OwnerFilter", filter.Value);
                                     break;
                                 case "rvpRepro":
-                                    sda.SelectCommand.Parameters.AddWithValue("@RvpReproFilter", filter.Value);
+                                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, sda.SelectCommand, "", "@RvpReproFilter", filter.Value);
+                                    else sda.SelectCommand.Parameters.AddWithValue("@RvpReproFilter", filter.Value);
                                     break;
                                 case "idst":
-                                    sda.SelectCommand.Parameters.AddWithValue("@IdstFilter", filter.Value);
+                                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, sda.SelectCommand, "", "@IdstFilter", filter.Value);
+                                    else sda.SelectCommand.Parameters.AddWithValue("@IdstFilter", filter.Value);
                                     break;
                                 case "los":
-                                    sda.SelectCommand.Parameters.AddWithValue("@LosFilter", filter.Value);
+                                    if (filter.Value.Contains(","))
+                                    {
+                                        var parts = filter.Value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
+                                        var otherParts = parts.Where(p => !p.Equals("No", StringComparison.OrdinalIgnoreCase)).ToArray();
+                                        for (int i = 0; i < otherParts.Length; i++)
+                                        {
+                                            sda.SelectCommand.Parameters.AddWithValue("@LosFilter_" + i, otherParts[i]);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        sda.SelectCommand.Parameters.AddWithValue("@LosFilter", filter.Value);
+                                    }
                                     break;
                                 case "milestone":
-                                    sda.SelectCommand.Parameters.AddWithValue("@MilestoneFilter", filter.Value);
+                                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, sda.SelectCommand, "", "@MilestoneFilter", filter.Value);
+                                    else sda.SelectCommand.Parameters.AddWithValue("@MilestoneFilter", filter.Value);
                                     break;
                                 case "Company":
-                                    sda.SelectCommand.Parameters.AddWithValue("@CompanyFilter", filter.Value);
+                                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, sda.SelectCommand, "", "@CompanyFilter", filter.Value);
+                                    else sda.SelectCommand.Parameters.AddWithValue("@CompanyFilter", filter.Value);
                                     break;
                                 case "Detail":
-                                    sda.SelectCommand.Parameters.AddWithValue("@DetailFilter", filter.Value);
+                                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, sda.SelectCommand, "", "@DetailFilter", filter.Value);
+                                    else sda.SelectCommand.Parameters.AddWithValue("@DetailFilter", filter.Value);
                                     break;
                                 case "Component":
-                                    sda.SelectCommand.Parameters.AddWithValue("@ComponentFilter", filter.Value);
+                                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, sda.SelectCommand, "", "@ComponentFilter", filter.Value);
+                                    else sda.SelectCommand.Parameters.AddWithValue("@ComponentFilter", filter.Value);
                                     break;
                                 case "IssueStatus":
-                                    sda.SelectCommand.Parameters.AddWithValue("@IssueStatusFilter", filter.Value);
+                                    if (filter.Value.Contains(",")) AppendInOrEqualClause(null, sda.SelectCommand, "", "@IssueStatusFilter", filter.Value);
+                                    else sda.SelectCommand.Parameters.AddWithValue("@IssueStatusFilter", filter.Value);
                                     break;
                             }
                         }
@@ -10985,6 +11153,12 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         if (title != null)
         {
             string text = HttpUtility.HtmlDecode(title.Text).Trim();
+            return string.IsNullOrWhiteSpace(text) ? "unknown" : text;
+        }
+        Label sno = cell.Controls.OfType<Label>().FirstOrDefault(label => label.ID == "lblSno");
+        if (sno != null)
+        {
+            string text = HttpUtility.HtmlDecode(sno.Text).Trim();
             return string.IsNullOrWhiteSpace(text) ? "unknown" : text;
         }
         using (var buffer = new StringWriter())
