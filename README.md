@@ -5,8 +5,8 @@ This repository contains an ASP.NET Web Forms CMF portal demo that runs locally 
 ## What's New in `updated_recommendation`
 
 1. **Modular JSON Configuration & Plugin Architecture (`App_Data/cmf-assistant-config.json` & `App_Code/CmfAssistantConfigService.cs`):**
-   - Centralizes GNAI endpoints (`/providers/anthropic/v1/messages` for `claude-4-5-sonnet` primary and `claude-4-5-haiku` backup), HSDES REST API settings, SQL database connection settings, 6-category scoring rules, disposition bands, gating guardrails, and platform/component jargon mappings in a single hot-reloading JSON file.
-   - **Required Files to Run:** Ensure both **`App_Data/cmf-assistant-config.json`** and **`Web.config`** are present in the project directory (optional local-only credentials can also be placed in git-ignored `App_Data/cmf-assistant-config.local.json`).
+  - Keeps SQL and the portal-wide GNAI API key/proxy/timeout settings in `Web.config`. GNAI endpoints, primary/fast/fallback models, HSD enrichment, Reports Python path, unused Syncfusion license placeholder, scoring rules, guardrails, feedback and jargon remain in the hot-reloading JSON file. `CmfAssistantConfigService` supplies both sources to existing consumers.
+  - **Required Files to Run:** Ensure both **`App_Data/cmf-assistant-config.json`** and **`Web.config`** are present. Configure SQL and shared GNAI credentials in the local `Web.config`; the separate legacy JSON credential override file is no longer read.
 
 2. **6-Category / 4-Point Scoring Mechanism & 5 Gating Guardrails (`App_Code/CmfRecommendationService.cs`):**
    - **4-Point Scale (`1` to `4`):** `Overall Score = (S * 0.20) + (O * 0.15) + (D * 0.15) + (R * 0.10) + (B * 0.20) + (CX * 0.20)`.
@@ -63,9 +63,9 @@ Important files and folders:
 ```text
 CMF_Web_portal.aspx                  Main Web Forms page and client-side UI
 CMF_Web_portal.aspx.cs               Main code-behind logic for tabs, dashboard, grids, AI WebMethods
-App_Data/cmf-assistant-config.json   Required unified JSON configuration (GNAI, SQL DB, HSD, Scoring Rules, Jargon)
-Web.config                           Required ASP.NET .NET 4.8 runtime & IIS configuration file
-Web.config.example                   Template ASP.NET runtime configuration file
+App_Data/cmf-assistant-config.json   GNAI endpoints/models, HSD, Reports Python, UI integration and feature rules
+Web.config                           SQL, shared GNAI token/proxy/timeout plus ASP.NET .NET 4.8 and IIS configuration
+Web.config.example                   Deployment template for infrastructure and runtime settings
 App_Code/                            Server-side services for AI, CMF recommendations, Ask CMF Pulse, HSD, reports
 App_Data/                            Configuration JSONs, feedback memory logs, and generated report artifacts
 Content/                             CSS and generated report content
@@ -540,14 +540,21 @@ The existing `sysdebug_forum` value is excluded from summary evidence and debug
 follow-up chat; Issue Details and other features retain their existing sources.
 The draft uses the most recent retrieved discussion/engineering activity,
 test results, and fix/validation notes, including clearly attributed linked
-promoted articles. It returns 1-4 simple bullets, at most 100 words, rather than a
-full investigation history. Planned tests and suspected causes stay distinct
+promoted articles. It targets 2-5 simple bullets, at most 20 words per bullet and
+100 words overall, rather than a full investigation history. Relevant next checks are labeled `[Suggestion]`,
+not presented as completed debugging. Planned tests and suspected causes stay distinct
 from completed tests and confirmed results. The draft is written in simple,
 grammatically sound English understandable to a layman or general reviewer,
 explaining technical parameters and firmware settings in plain words while
 remaining technically accurate. It contains only debugging activity, results,
 and supported technical uncertainty; it does not append source-coverage
 disclaimers or commentary about retrieval or the feature.
+
+If the model returns an invalid bullet list or exceeds the validated length limit,
+the server allows one fresh generation with explicit format feedback and the same
+original evidence and the specific format/length failure. Only drafts that pass
+the existing plain-bullet validator are shown or cached. Provider failures receive no extra
+format-correction attempt, and no fabricated fallback summary is used.
 
 The summary uses retrieved HSD text, not attachment contents, and discussion
 history may be partial. Debug retrieval keeps the newest five dated comments
@@ -606,38 +613,15 @@ code "C:\Path\To\CMF_Portal_Demo"
 Copy-Item .\Web.config.example .\Web.config
 ```
 
-4. Confirm **`App_Data/cmf-assistant-config.json`** is present inside the `App_Data/` folder and fill in your environment-specific credentials (or copy from `App_Data/cmf-assistant-config.example.json` if needed):
+4. Configure shared infrastructure in **`Web.config`**:
 
-```powershell
-Copy-Item .\App_Data\cmf-assistant-config.example.json .\App_Data\cmf-assistant-config.json
-```
+- Set the portal-wide `GNAI:ApiKey`, shared proxy and request timeout in `appSettings`.
+- Set the named `gfxitt` entry in `connectionStrings`; `Database:ConnectionName` selects that entry.
+- Set `gnai.endpoint`, `gnai.anthropicEndpoint`, `gnai.primaryModel`, `gnai.fastSummaryModel` and the `gnai.fallbackModels` array in **`App_Data/cmf-assistant-config.json`**. Keep `hsd`, `reports.pythonExecutable`, `ui.syncfusionLicenseKey`, `plugins`, `scoringRules` and `jargonMappings` there too. JSON `gnai.apiKey` is not read; all GNAI features share the XML token.
 
-Inside **`App_Data/cmf-assistant-config.json`**, ensure the following sections are configured:
+The JSON `gnai.fallbackModels` and `hsd.providerOrder` arrays retain their listed order. ASP.NET restarts the application when `Web.config` changes; JSON feature settings retain their existing reload behavior. `ValidationSettings:UnobtrusiveValidationMode` remains in XML because ASP.NET reads it directly.
 
-```json
-{
-  "gnai": {
-    "endpoint": "https://gnai.intel.com/api/providers/anthropic/v1/messages",
-    "anthropicEndpoint": "https://gnai.intel.com/api/providers/anthropic/v1/messages",
-    "apiKey": "YOUR_GNAI_TOKEN",
-    "primaryModel": "claude-4-5-sonnet",
-    "fastSummaryModel": "claude-4-5-haiku",
-    "fallbackModels": [ "claude-4-5-haiku" ]
-  },
-  "hsd": {
-    "enabled": true,
-    "providerOrder": [ "rest", "gnai" ],
-    "articleApiBaseUrl": "https://hsdes-api.intel.com/rest/article"
-  },
-  "database": {
-    "connectionName": "gfxitt",
-    "connectionString": "YOUR_SQL_SERVER_CONNECTION_STRING",
-    "providerName": "System.Data.SqlClient"
-  }
-}
-```
-
-Do not commit real API keys, tokens, passwords, or internal connection strings to public repositories (you can also store local-only credentials in `App_Data/cmf-assistant-config.local.json`, which is git-ignored and automatically overlaid at runtime).
+Do not commit real API keys, tokens, passwords, or internal connection strings. The example contains placeholders only; legacy `cmf-assistant-config.local.json` credential overrides are no longer read.
 
 5. Confirm required assemblies exist in `bin/`.
 
@@ -774,28 +758,37 @@ These fixtures test policy behavior, not real-world accuracy. The earlier six hi
 
 ## Configuration Notes
 
-> **Required Configuration Files:** To run the portal, ensure both **`App_Data/cmf-assistant-config.json`** (single source of truth for SQL database, GNAI `claude-4-5-sonnet` / `claude-4-5-haiku`, HSD-ES API, 4-point scoring rules, 5 gating guardrails, and jargon mappings) and **`Web.config`** (ASP.NET `.NET 4.8` runtime configuration) exist in your workspace.
+> **Required Configuration Files:** Keep **`Web.config`** for SQL, the portal-wide GNAI API key/proxy/timeout and ASP.NET/IIS configuration. Keep **`App_Data/cmf-assistant-config.json`** for GNAI endpoints, primary/fast/fallback models, HSD settings, Reports Python, UI integration settings, scoring rules, guardrails, feedback and jargon.
 
-### Database (`App_Data/cmf-assistant-config.json`)
+### Database (`Web.config`)
 
-The app reads database settings directly from `database.connectionString` in `App_Data/cmf-assistant-config.json` via `CmfAssistantConfigService.ResolveDatabaseConnectionString()`.
+The app reads the named SQL connection from `connectionStrings` via `CmfAssistantConfigService.ResolveDatabaseConnectionString()`. `Database:ConnectionName` selects the entry (default `gfxitt`); its `providerName` remains `System.Data.SqlClient`.
 
 The dashboard and issue views resolve platform tables from the single source in `App_Code/CmfPlatformCatalog.cs`, and runtime UI lists are generated from that source.
 
-### AI (`App_Data/cmf-assistant-config.json`)
+### AI (`App_Data/cmf-assistant-config.json` and `Web.config`)
 
-AI features read their endpoint, token, and model chain directly from the `gnai` section in `App_Data/cmf-assistant-config.json` (using `claude-4-5-sonnet` as primary and `claude-4-5-haiku` as backup):
+AI features use `CmfAssistantConfigService` to read GNAI endpoints and model settings from the JSON `gnai` object:
 
 ```json
 "gnai": {
   "endpoint": "https://gnai.intel.com/api/providers/anthropic/v1/messages",
   "anthropicEndpoint": "https://gnai.intel.com/api/providers/anthropic/v1/messages",
-  "apiKey": "YOUR_GNAI_TOKEN",
   "primaryModel": "claude-4-5-sonnet",
   "fastSummaryModel": "claude-4-5-haiku",
-  "fallbackModels": [ "claude-4-5-haiku" ]
+  "fallbackModels": ["claude-4-5-haiku"]
 }
 ```
+
+The shared GNAI token, proxy and request timeout remain in XML `appSettings`. Dashboard AI, issue summaries, CMF recommendations, Ask CMF Pulse, HSD AI enrichment and Reports all resolve the same token through `CmfAssistantConfigService.ResolveGnaiToken()`:
+
+```xml
+<add key="GNAI:ApiKey" value="REPLACE_WITH_GNAI_TOKEN" />
+<add key="GNAI:Proxy" value="" />
+<add key="GNAI:RequestTimeoutSeconds" value="30" />
+```
+
+The sighting-only fast model is configured separately as `gnai.fastSummaryModel` in `App_Data/cmf-assistant-config.json`; Dashboard model overrides remain in `App_Data/dashboard-ai-config.json`.
 
 AI-powered features include:
 
@@ -839,15 +832,16 @@ Reports Assistant
 
 ### HSD Enrichment (`App_Data/cmf-assistant-config.json`)
 
-HSD-related settings live in the `hsd` section of `App_Data/cmf-assistant-config.json`:
+Assistant enrichment settings live in the JSON `hsd` object. The active Dashboard Insights path does not retrieve HSD articles:
 
 ```json
 "hsd": {
   "enabled": true,
-  "providerOrder": [ "rest", "gnai" ],
+  "providerOrder": ["rest", "gnai"],
   "articleApiBaseUrl": "https://hsdes-api.intel.com/rest/article",
   "timeoutSeconds": 12,
-  "cacheRefreshSeconds": 120
+  "cacheRefreshSeconds": 120,
+  "skipCommentEndpointsWhenHistoryPresent": true
 }
 ```
 
@@ -855,13 +849,15 @@ If HSD access is unavailable, AI features may still work but with less context.
 
 ### Python Reports Assistant
 
-If Reports Assistant needs Python analytics, verify the configured Python executable:
+If Reports Assistant needs Python analytics, verify `reports.pythonExecutable` in `App_Data/cmf-assistant-config.json`:
 
-```xml
-<add key="Python:Executable" value="C:\Program Files\Python314\python.exe" />
+```json
+"reports": {
+  "pythonExecutable": "C:\\Program Files\\Python314\\python.exe"
+}
 ```
 
-Update this path if Python is installed elsewhere.
+Update this path if Python is installed elsewhere. `ui.syncfusionLicenseKey` preserves the unused Syncfusion license placeholder; the portal currently has no reader that registers it with Syncfusion.
 
 ## Common Development Workflow In VS Code
 
@@ -933,9 +929,9 @@ The target platform tables exist
 Check:
 
 ```text
-GNAI:Endpoint is correct
-GNAI:Model is correct
-GNAI:ApiKey is populated
+gnai.endpoint is correct in App_Data/cmf-assistant-config.json
+gnai.primaryModel is correct in the same JSON file
+GNAI:ApiKey is populated in Web.config (shared by all portal GNAI features)
 Network/proxy access is available
 AI:RequestTimeoutSeconds is high enough for your environment
 ```
@@ -945,8 +941,8 @@ AI:RequestTimeoutSeconds is high enough for your environment
 Check:
 
 ```text
-HSD:Enabled is true
-HSD:ProviderOrder is configured
+hsd.enabled is true in App_Data/cmf-assistant-config.json
+hsd.providerOrder is configured in the same JSON file
 HSD:UseDefaultCredentials is correct for your environment
 HSD API or GNAI HSD provider is reachable
 ```

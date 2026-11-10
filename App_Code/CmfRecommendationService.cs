@@ -623,7 +623,7 @@ public static class CmfRecommendationService
         }
         else
         {
-            error = "No AI credentials configured in App_Data/cmf-assistant-config.json (gnai.apiKey and gnai.endpoint).";
+            error = "No AI credentials configured. Set GNAI:ApiKey in Web.config and gnai.endpoint in cmf-assistant-config.json.";
         }
 
         return false;

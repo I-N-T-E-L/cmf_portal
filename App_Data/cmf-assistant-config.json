@@ -3,14 +3,11 @@
   "gnai": {
     "endpoint": "https://gnai.intel.com/api/providers/anthropic/v1/messages",
     "anthropicEndpoint": "https://gnai.intel.com/api/providers/anthropic/v1/messages",
-    "apiKey": "REPLACE_WITH_GNAI_TOKEN",
     "primaryModel": "claude-4-5-sonnet",
     "fastSummaryModel": "claude-4-5-haiku",
     "fallbackModels": [
       "claude-4-5-haiku"
-    ],
-    "proxy": "",
-    "requestTimeoutSeconds": 30
+    ]
   },
   "hsd": {
     "enabled": true,
@@ -23,10 +20,11 @@
     "cacheRefreshSeconds": 120,
     "skipCommentEndpointsWhenHistoryPresent": true
   },
-  "database": {
-    "connectionName": "gfxitt",
-    "connectionString": "REPLACE_WITH_SQL_CONNECTION_STRING",
-    "providerName": "System.Data.SqlClient"
+  "reports": {
+    "pythonExecutable": "C:\\Program Files\\Python314\\python.exe"
+  },
+  "ui": {
+    "syncfusionLicenseKey": "YOUR_SYNCFUSION_LICENSE_KEY"
   },
   "plugins": {
     "feedbackMemory": {

@@ -351,7 +351,7 @@ public static class HsdPortalService
 
         if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(endpoint) || endpoint.StartsWith("REPLACE", StringComparison.OrdinalIgnoreCase))
         {
-            result.FetchError = "GNAI endpoint/token not configured in cmf-assistant-config.json.";
+            result.FetchError = "GNAI endpoint/token not configured. Set GNAI:ApiKey in Web.config and gnai.endpoint in cmf-assistant-config.json.";
             return false;
         }
 
@@ -721,15 +721,8 @@ public static class HsdPortalService
 
     private static int ResolveTimeoutMs()
     {
-        int timeoutMs = 10000;
-        string timeoutStr = ConfigurationManager.AppSettings["HSD:TimeoutSeconds"];
-        int secs;
-        if (!string.IsNullOrWhiteSpace(timeoutStr) && int.TryParse(timeoutStr, out secs) && secs > 0)
-        {
-            timeoutMs = secs * 1000;
-        }
-
-        return timeoutMs;
+        int seconds = CmfAssistantConfigService.GetConfig().HsdTimeoutSeconds;
+        return seconds > 0 ? seconds * 1000 : 10000;
     }
 
     private static IWebProxy BuildGnaiProxy()

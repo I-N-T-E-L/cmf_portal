@@ -17,8 +17,294 @@ public static class DebugSummaryServiceTests
             .Invoke(null, arguments);
     }
 
+    public static void CheckPortalInfrastructureConfiguration()
+    {
+        var flags = BindingFlags.NonPublic | BindingFlags.Static;
+        var service = typeof(CmfAssistantConfigService);
+        var config = (CmfAssistantUnifiedConfig)service.GetMethod("CreateDefaultConfig", flags).Invoke(null, null);
+        var original = new { config.GnaiEndpoint, config.GnaiAnthropicEndpoint, config.PrimaryModel };
+        var settings = new Hashtable {
+            { "GNAI:Endpoint", "https://ai.example.invalid/messages" },
+            { "GNAI:AnthropicEndpoint", "https://ai.example.invalid/anthropic/messages" },
+            { "GNAI:OpenAiEndpoint", "https://ai.example.invalid/openai/chat/completions" },
+            { "GNAI:ApiKey", "unit-test-token" },
+            { "GNAI:Model", "claude-test-primary" },
+            { "GNAI:FastSummaryModel", "claude-test-fast" },
+            { "GNAI:FallbackModels", " claude-test-fast, ,claude-test-backup " },
+            { "GNAI:Proxy", "http://proxy.example.invalid:8080" },
+            { "GNAI:RequestTimeoutSeconds", "47" },
+            { "HSD:Enabled", "false" },
+            { "HSD:ProviderOrder", " gnai, rest " },
+            { "HSD:ArticleApiBaseUrl", "https://hsd.example.invalid/article" },
+            { "HSD:TimeoutSeconds", "19" },
+            { "HSD:CacheRefreshSeconds", "240" },
+            { "HSD:SkipCommentEndpointsWhenHistoryPresent", "false" },
+            { "Database:ConnectionName", "portal-test" }
+        };
+        var connections = new ConnectionStringSettingsCollection();
+        string connectionString = "Data Source=unit-test.invalid;Initial Catalog=portal_test;Integrated Security=True;";
+        connections.Add(new ConnectionStringSettings("portal-test", connectionString, "System.Data.SqlClient"));
+        var apply = service.GetMethod("ApplyPortalInfrastructureSettings", flags);
+        apply.Invoke(null, new object[] { config, settings, connections });
+        Check(config.GnaiEndpoint == original.GnaiEndpoint
+            && config.GnaiAnthropicEndpoint == original.GnaiAnthropicEndpoint
+            && config.GnaiOpenAiEndpoint == (string)settings["GNAI:OpenAiEndpoint"]
+            && config.GnaiApiKey == (string)settings["GNAI:ApiKey"] && config.GnaiProxy == (string)settings["GNAI:Proxy"],
+            "The shared XML token/proxy was not applied independently of JSON-owned endpoints.");
+        Check(config.PrimaryModel == original.PrimaryModel && config.FastSummaryModel == "claude-4-5-haiku"
+            && string.Join(",", config.FallbackModels.ToArray()) == "claude-4-5-haiku"
+            && config.RequestTimeoutSeconds == 47, "XML overrode JSON-owned models or failed to load the shared timeout.");
+        Check(config.HsdEnabled && config.SkipCommentEndpointsWhenHistoryPresent
+            && config.HsdArticleApiBaseUrl != (string)settings["HSD:ArticleApiBaseUrl"]
+            && string.Join(",", config.HsdProviderOrder.ToArray()) == "rest,gnai"
+            && config.HsdTimeoutSeconds == 12 && config.HsdCacheRefreshSeconds == 120,
+            "Assistant-only HSD settings were overridden by XML settings.");
+        Check(config.DatabaseConnectionName == "portal-test" && config.DatabaseConnectionString == connectionString
+            && config.DatabaseProviderName == "System.Data.SqlClient", "The named SQL connection was not resolved.");
+        Check(config.ScaleMax == 4 && config.FeedbackMemoryEnabled && config.PlatformFamilyJargons.ContainsKey("NVL"),
+            "Infrastructure loading changed feature defaults.");
+        settings["GNAI:RequestTimeoutSeconds"] = "invalid";
+        settings["HSD:Enabled"] = "invalid";
+        apply.Invoke(null, new object[] { config, settings, connections });
+        Check(config.RequestTimeoutSeconds == 47 && config.HsdEnabled,
+            "Malformed XML values did not retain safe defaults.");
+        var runtime = CmfAssistantConfigService.GetConfig();
+        string originalToken = runtime.GnaiApiKey;
+        try
+        {
+            runtime.GnaiApiKey = " unit-test-shared-token ";
+            Check(CmfAssistantConfigService.ResolveGnaiToken() == "unit-test-shared-token",
+                "The portal-wide token resolver did not return the shared credential.");
+            foreach (Type consumer in new[] { typeof(AiSummaryService), typeof(CmfRecommendationService),
+                typeof(HsdPortalService), typeof(ReportsAssistantService) })
+            {
+                string token = (string)consumer.GetMethod("ResolveGnaiToken", flags).Invoke(null, null);
+                Check(token == "unit-test-shared-token", consumer.Name + " did not use the shared portal token.");
+            }
+            runtime.GnaiApiKey = "REPLACE_WITH_GNAI_TOKEN";
+            Check(CmfAssistantConfigService.ResolveGnaiToken() == string.Empty,
+                "The placeholder GNAI token was accepted as a real credential.");
+        }
+        finally
+        {
+            runtime.GnaiApiKey = originalToken;
+        }
+    }
+
+    public static void CheckPortalConfigurationSplit()
+    {
+        string root = System.IO.Directory.GetCurrentDirectory();
+        string jsonPath = System.IO.Path.Combine(root, "App_Data", "cmf-assistant-config.json");
+        var json = new System.Web.Script.Serialization.JavaScriptSerializer().DeserializeObject(System.IO.File.ReadAllText(jsonPath)) as IDictionary;
+        Check(json != null && !json.Contains("database"), "Database infrastructure still has a duplicate JSON source.");
+        var gnai = json["gnai"] as IDictionary;
+        var hsd = json["hsd"] as IDictionary;
+        var reports = json["reports"] as IDictionary;
+        var ui = json["ui"] as IDictionary;
+        Check(gnai != null && gnai.Count == 5 && gnai.Contains("endpoint") && gnai.Contains("anthropicEndpoint")
+            && !gnai.Contains("apiKey") && gnai.Contains("primaryModel") && gnai.Contains("fastSummaryModel")
+            && gnai.Contains("fallbackModels") && hsd != null,
+            "Assistant-specific settings were not moved back to JSON.");
+        Check(reports != null && reports.Contains("pythonExecutable") && ui != null && ui.Contains("syncfusionLicenseKey"),
+            "Reports or unused UI integration settings were not preserved in JSON.");
+        Check(json.Contains("plugins") && json.Contains("scoringRules") && json.Contains("jargonMappings"),
+            "Feature configuration was removed from JSON.");
+        var flags = BindingFlags.NonPublic | BindingFlags.Static;
+        var service = typeof(CmfAssistantConfigService);
+        foreach (string file in new[] { "Web.config", "Web.config.example" })
+        {
+            var xml = new System.Xml.XmlDocument();
+            xml.Load(System.IO.Path.Combine(root, file));
+            var settings = new Hashtable();
+            foreach (System.Xml.XmlNode node in xml.SelectNodes("/configuration/appSettings/add"))
+                settings[node.Attributes["key"].Value] = node.Attributes["value"].Value;
+            var connections = new ConnectionStringSettingsCollection();
+            foreach (System.Xml.XmlNode node in xml.SelectNodes("/configuration/connectionStrings/add"))
+                connections.Add(new ConnectionStringSettings(node.Attributes["name"].Value,
+                    node.Attributes["connectionString"].Value, node.Attributes["providerName"].Value));
+            foreach (string key in new[] { "GNAI:ApiKey", "GNAI:Proxy", "GNAI:RequestTimeoutSeconds", "Database:ConnectionName" })
+                Check(settings.Contains(key), file + " is missing infrastructure setting " + key);
+            foreach (string key in new[] { "GNAI:Endpoint", "GNAI:AnthropicEndpoint", "GNAI:Model",
+                "GNAI:FastSummaryModel", "GNAI:FallbackModels", "HSD:Enabled", "HSD:ProviderOrder", "HSD:ArticleApiBaseUrl",
+                "HSD:TimeoutSeconds", "HSD:CacheRefreshSeconds", "HSD:SkipCommentEndpointsWhenHistoryPresent",
+                "Python:Executable", "Syncfusion:LicenseKey" })
+                Check(!settings.Contains(key), file + " still duplicates assistant-specific setting " + key);
+            var config = (CmfAssistantUnifiedConfig)service.GetMethod("LoadConfigFromFile", flags).Invoke(null, new object[] { jsonPath });
+            service.GetMethod("ApplyPortalInfrastructureSettings", flags).Invoke(null, new object[] { config, settings, connections });
+            Check(config.DatabaseConnectionString == connections[(string)settings["Database:ConnectionName"]].ConnectionString
+                && config.GnaiApiKey == (string)settings["GNAI:ApiKey"]
+                && config.GnaiProxy == (string)settings["GNAI:Proxy"]
+                && config.RequestTimeoutSeconds == Convert.ToInt32(settings["GNAI:RequestTimeoutSeconds"]),
+                file + " infrastructure was not applied.");
+            Check(config.ScaleMax == 4 && config.CompiledRulesText.Contains("gating_guardrails:")
+                && config.FeedbackMemoryEnabled && config.PlatformFamilyJargons.ContainsKey("NVL"),
+                "Feature rules, plugin settings or jargon did not survive the split.");
+            Check(config.GnaiEndpoint == (string)gnai["endpoint"]
+                && config.GnaiAnthropicEndpoint == (string)gnai["anthropicEndpoint"]
+                && config.PrimaryModel == (string)gnai["primaryModel"]
+                && config.FastSummaryModel == (string)gnai["fastSummaryModel"]
+                && string.Join(",", config.FallbackModels.ToArray()) == string.Join(",", (object[])gnai["fallbackModels"])
+                && config.HsdEnabled == (bool)hsd["enabled"]
+                && config.HsdArticleApiBaseUrl == (string)hsd["articleApiBaseUrl"]
+                && config.HsdTimeoutSeconds == Convert.ToInt32(hsd["timeoutSeconds"])
+                && config.HsdCacheRefreshSeconds == Convert.ToInt32(hsd["cacheRefreshSeconds"])
+                && config.SkipCommentEndpointsWhenHistoryPresent == (bool)hsd["skipCommentEndpointsWhenHistoryPresent"]
+                && config.PythonExecutable == (string)reports["pythonExecutable"]
+                && config.SyncfusionLicenseKey == (string)ui["syncfusionLicenseKey"],
+                "Assistant-specific settings did not load from JSON.");
+        }
+        string reportsSource = System.IO.File.ReadAllText(System.IO.Path.Combine(root, "App_Code", "ReportsAssistantService.cs"));
+        Check(System.Text.RegularExpressions.Regex.Matches(reportsSource,
+            @"CmfAssistantConfigService.GetConfig\(\).PythonExecutable").Count == 2,
+            "Both Reports execution paths must use the JSON Python setting.");
+        int timeout = (int)typeof(HsdPortalService).GetMethod("ResolveTimeoutMs", flags).Invoke(null, null);
+        Check(timeout == CmfAssistantConfigService.GetConfig().HsdTimeoutSeconds * 1000,
+            "HSD requests are not using the configured JSON timeout.");
+        string dashboardPath = System.IO.Path.Combine(root, "App_Data", "dashboard-ai-config.json");
+        var dashboardJson = new System.Web.Script.Serialization.JavaScriptSerializer()
+            .DeserializeObject(System.IO.File.ReadAllText(dashboardPath)) as IDictionary;
+        object dashboard = typeof(AiSummaryService).GetMethod("ReadDashboardAiConfiguration", flags)
+            .Invoke(null, new object[] { dashboardPath });
+        Check((string)dashboard.GetType().GetProperty("Model").GetValue(dashboard, null) == (string)dashboardJson["gnaiModel"]
+            && (bool)dashboard.GetType().GetProperty("HasOverride").GetValue(dashboard, null),
+            "Dashboard-specific model selection was not preserved.");
+    }
+
+    public static void CheckAssistantFeatureConfiguration()
+    {
+        var flags = BindingFlags.NonPublic | BindingFlags.Static;
+        var service = typeof(CmfAssistantConfigService);
+        var defaults = (CmfAssistantUnifiedConfig)service.GetMethod("CreateDefaultConfig", flags).Invoke(null, null);
+        var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+        string path = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "App_Data",
+            "cmf-config-test-" + Guid.NewGuid().ToString("N") + ".json");
+        var values = new {
+            gnai = new { fastSummaryModel = "claude-test-fast", apiKey = "ignored-json-token", endpoint = "https://ai.example.invalid/messages",
+                anthropicEndpoint = "https://ai.example.invalid/anthropic/messages", primaryModel = "claude-test-primary",
+                fallbackModels = new[] { "claude-test-backup-first", "claude-test-backup-second" } },
+            hsd = new { enabled = false, providerOrder = new[] { "gnai", "rest" },
+                articleApiBaseUrl = "https://hsd.example.invalid/article", timeoutSeconds = 19, cacheRefreshSeconds = 240,
+                skipCommentEndpointsWhenHistoryPresent = false },
+            reports = new { pythonExecutable = @"D:\PythonTest\python.exe" },
+            ui = new { syncfusionLicenseKey = "unit-test-license" },
+            database = new { connectionString = "ignored-json-connection" }
+        };
+        try
+        {
+            System.IO.File.WriteAllText(path, serializer.Serialize(values));
+            var config = (CmfAssistantUnifiedConfig)service.GetMethod("LoadConfigFromFile", flags).Invoke(null, new object[] { path });
+            Check(config.FastSummaryModel == values.gnai.fastSummaryModel && !config.HsdEnabled
+                && config.HsdArticleApiBaseUrl == values.hsd.articleApiBaseUrl
+                && config.HsdTimeoutSeconds == 19 && config.HsdCacheRefreshSeconds == 240
+                && !config.SkipCommentEndpointsWhenHistoryPresent
+                && string.Join(",", config.FallbackModels.ToArray()) == string.Join(",", values.gnai.fallbackModels)
+                && string.Join(",", config.HsdProviderOrder.ToArray()) == "gnai,rest"
+                && config.PythonExecutable == values.reports.pythonExecutable
+                && config.SyncfusionLicenseKey == values.ui.syncfusionLicenseKey,
+                "Non-default assistant settings were not loaded from JSON.");
+            Check(config.GnaiApiKey == defaults.GnaiApiKey && config.GnaiEndpoint == values.gnai.endpoint
+                && config.GnaiAnthropicEndpoint == values.gnai.anthropicEndpoint && config.PrimaryModel == values.gnai.primaryModel,
+                "JSON did not supply endpoints/models independently of the shared XML token.");
+            Check(config.DatabaseConnectionString == defaults.DatabaseConnectionString,
+                "Feature JSON overrode SQL configuration.");
+            var settings = new Hashtable { { "GNAI:FastSummaryModel", "ignored-xml-model" },
+                { "GNAI:Endpoint", "https://ignored.example.invalid" }, { "GNAI:AnthropicEndpoint", "https://ignored.example.invalid" },
+                { "GNAI:ApiKey", "shared-xml-token" }, { "GNAI:Model", "ignored-xml-primary" },
+                { "GNAI:FallbackModels", "ignored-xml-backup" },
+                { "HSD:Enabled", "true" }, { "HSD:TimeoutSeconds", "99" } };
+            service.GetMethod("ApplyPortalInfrastructureSettings", flags).Invoke(null,
+                new object[] { config, settings, new ConnectionStringSettingsCollection() });
+            Check(config.GnaiApiKey == (string)settings["GNAI:ApiKey"] && config.GnaiEndpoint == values.gnai.endpoint
+                && config.GnaiAnthropicEndpoint == values.gnai.anthropicEndpoint && config.PrimaryModel == values.gnai.primaryModel
+                && string.Join(",", config.FallbackModels.ToArray()) == string.Join(",", values.gnai.fallbackModels)
+                && config.FastSummaryModel == values.gnai.fastSummaryModel && !config.HsdEnabled && config.HsdTimeoutSeconds == 19,
+                "The XML token was not applied independently of JSON endpoint/model settings.");
+        }
+        finally
+        {
+            if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+        }
+        var runtime = CmfAssistantConfigService.GetConfig();
+        bool enabled = runtime.HsdEnabled;
+        try
+        {
+            runtime.HsdEnabled = false;
+            HsdArticleData disabled = HsdPortalService.FetchArticle("123");
+            Check(disabled.FetchError == "HSD integration disabled in cmf-assistant-config.json (hsd.enabled=false).",
+                "Disabled HSD enrichment did not honor the assistant configuration.");
+        }
+        finally
+        {
+            runtime.HsdEnabled = enabled;
+        }
+    }
+
+    public static void CheckDebugSummaryRecovery()
+    {
+        string prompt = (string)Invoke("BuildPrompt", "123", "", "Test issue", "open", "", "A driver comparison reproduced the hang.");
+        Check(prompt.Contains("100 words overall") && prompt.Contains("20 words per bullet")
+            && prompt.Contains("Omit lower-priority history or detail"),
+            "The generation prompt lacks a concrete word budget and evidence-prioritization rule.");
+        string valid = "- Engineers reproduced the hang during the driver comparison.\n"
+            + "- [Suggestion] Repeat the documented test with the candidate driver.";
+        int calls = 0;
+        Func<string, string> generate = feedback => { calls++; return valid; };
+        object[] arguments = { generate, null, null };
+        Check((bool)Invoke("TryGenerateValidatedDebugSummary", arguments) && (string)arguments[1] == valid && calls == 1,
+            "A valid debug summary was changed or requested again.");
+
+        foreach (string invalid in new[] { "A paragraph instead of bullets.", "- **Status**: The test still hangs.",
+            "- One.\n- Two.\n- Three.\n- Four.\n- Five.\n- Six.", "- " + string.Join(" ", System.Linq.Enumerable.Repeat("word", 151)) })
+        {
+            Check(!(bool)Invoke("TryNormalizeDebugSummary", new object[] { invalid, null }),
+                "Malformed debug output unexpectedly passed validation.");
+            calls = 0;
+            generate = feedback => {
+                calls++;
+                if (calls == 1)
+                {
+                    Check(feedback == null, "The first generation unexpectedly included correction feedback.");
+                    return invalid;
+                }
+                Check(feedback.Contains("FORMAT CORRECTION") && feedback.Contains("original ticket evidence")
+                    && feedback.Contains("100 words") && feedback.Contains("20 words per bullet") && feedback.Contains("No headings, bold text"),
+                    "The corrective generation lost evidence or formatting requirements.");
+                Check(feedback.Contains("must start with") || feedback.Contains("not allowed")
+                    || feedback.Contains("five bullets") || feedback.Contains("150-word"),
+                    "The corrective generation did not explain the specific validation failure.");
+                return valid;
+            };
+            arguments = new object[] { generate, null, null };
+            Check((bool)Invoke("TryGenerateValidatedDebugSummary", arguments) && (string)arguments[1] == valid && calls == 2,
+                "An invalid first draft did not recover through one validated regeneration.");
+        }
+
+        calls = 0;
+        generate = feedback => { calls++; return "Still not a bullet list."; };
+        arguments = new object[] { generate, null, null };
+        Check(!(bool)Invoke("TryGenerateValidatedDebugSummary", arguments) && calls == 2 && (string)arguments[1] == string.Empty,
+            "Repeated invalid drafts escaped validation or exceeded the retry bound.");
+        Check(((string)arguments[2]).Contains("must start with"), "Failed summaries did not report a controlled format reason.");
+
+        calls = 0;
+        generate = feedback => { calls++; return null; };
+        arguments = new object[] { generate, null, null };
+        Check(!(bool)Invoke("TryGenerateValidatedDebugSummary", arguments) && calls == 1 && (string)arguments[1] == string.Empty,
+            "A provider failure was retried or replaced with a fabricated summary.");
+
+        calls = 0;
+        generate = feedback => { calls++; return calls == 1 ? "Invalid first draft." : null; };
+        arguments = new object[] { generate, null, null };
+        Check(!(bool)Invoke("TryGenerateValidatedDebugSummary", arguments) && calls == 2 && (string)arguments[1] == string.Empty,
+            "A failed correction exposed an invalid draft or exceeded the retry bound.");
+    }
+
     public static void Main()
     {
+        CheckPortalInfrastructureConfiguration();
+        CheckPortalConfigurationSplit();
+        CheckAssistantFeatureConfiguration();
+        CheckDebugSummaryRecovery();
         string bullets = "- Engineers reproduced the screen hang with seven applications open.\n"
             + "- The comparison did not resolve the hang; the cause remains unconfirmed.";
         object[] valid = { "\r\n" + bullets.Replace("\n", "\r\n") + "\r\n", null };
@@ -129,11 +415,9 @@ public static class DebugSummaryServiceTests
         Check(followUpPrompt.Contains("Never combine, merge, or modify first and last names"),
             "Name accuracy instruction missing from follow-up prompt.");
 
-        Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-        config.AppSettings.Settings.Add("HSD:Enabled", "false");
-        config.AppSettings.Settings.Add("GNAI:Endpoint", "REPLACE_TEST_ENDPOINT");
-        config.Save(ConfigurationSaveMode.Modified);
-        ConfigurationManager.RefreshSection("appSettings");
+        var assistantConfig = CmfAssistantConfigService.GetConfig();
+        assistantConfig.HsdEnabled = false;
+        assistantConfig.GnaiEndpoint = "REPLACE_TEST_ENDPOINT";
         string limited = (string)Invoke("EnrichContextWithHsdArticles", "123", "Promoted ID: 456", true);
         Check(limited.Contains("HSD retrieval limitation: The sighting")
             && limited.Contains("Promoted article 456"), "Fetch failures were silently ignored.");
@@ -322,8 +606,6 @@ public static class DebugSummaryServiceTests
         });
         Check(rvpNoReasoning.Contains("**CMF_OK**") && rvpNoReasoning.IndexOf("RVP repro: No", StringComparison.OrdinalIgnoreCase) >= 0, "RVP repro = NA/No was not explicitly noted in CMF_OK reasoning: " + rvpNoReasoning);
 
-        // Verify Database Connection String in cmf-assistant-config.json & Scenario-Based Feedback Log (append without overwrite)
-        Check(!string.IsNullOrWhiteSpace(CmfAssistantConfigService.ResolveDatabaseConnectionString()) && CmfAssistantConfigService.ResolveDatabaseConnectionString().IndexOf("gfxitt_db", StringComparison.OrdinalIgnoreCase) >= 0, "Database connection string was not resolved from cmf-assistant-config.json.");
         CmfFeedbackSubmitResponse fb1 = CmfFeedbackMemoryService.RecordFeedback("9990001", "Display flicker on desktop", "iGFX", "CMF_REVIEW", "CMF_OK", false, "Persistent desktop flicker blocks daily use");
         CmfFeedbackSubmitResponse fb2 = CmfFeedbackMemoryService.RecordFeedback("9990001", "Display flicker on desktop", "iGFX", "CMF_OK", "CMF_OK", true, "Confirmed CMF_OK scenario");
         Check(fb1.Success && fb2.Success && fb2.TotalRecordedCount == fb1.TotalRecordedCount + 1, "Submitting feedback on the same sighting ID overwrote the previous entry instead of appending a new scenario entry.");

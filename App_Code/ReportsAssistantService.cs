@@ -85,7 +85,7 @@ public static class ReportsAssistantService
             conversationContextJson = "{}";
         }
 
-        // Resolve AI credentials from App_Data/cmf-assistant-config.json
+        // Resolve shared AI credentials through CmfAssistantConfigService.
         string resolvedGnaiToken = ResolveGnaiToken();
         string resolvedGnaiEndpoint = CmfAssistantConfigService.ResolveGnaiEndpoint();
         string resolvedGnaiModel = CmfAssistantConfigService.ResolvePrimaryModel();
@@ -143,7 +143,7 @@ public static class ReportsAssistantService
             };
         }
 
-        string pythonExe = ConfigurationManager.AppSettings["Python:Executable"];
+        string pythonExe = CmfAssistantConfigService.GetConfig().PythonExecutable;
         if (string.IsNullOrWhiteSpace(pythonExe))
         {
             pythonExe = "python";
@@ -319,7 +319,7 @@ public static class ReportsAssistantService
             return new ReportsAssistantResponse { Success = false, Message = "Python analytics script not found at Scripts/analytics_chatbot.py." };
         }
 
-        string pythonExe = ConfigurationManager.AppSettings["Python:Executable"];
+        string pythonExe = CmfAssistantConfigService.GetConfig().PythonExecutable;
         if (string.IsNullOrWhiteSpace(pythonExe))
         {
             pythonExe = "python";
@@ -348,7 +348,7 @@ public static class ReportsAssistantService
             WorkingDirectory = Path.GetDirectoryName(pythonScript)
         };
 
-        // Propagate model env from App_Data/cmf-assistant-config.json
+        // Propagate shared model settings from CmfAssistantConfigService.
         string githubEndpoint = CmfAssistantConfigService.ResolveGnaiEndpoint();
         string githubModel = FirstNonEmpty(CmfAssistantConfigService.ResolvePrimaryModel(), "claude-4-5-sonnet");
         string githubApiKey = ResolveGnaiToken();
