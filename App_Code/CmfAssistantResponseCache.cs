@@ -12,7 +12,9 @@ public static class CmfAssistantResponseCache
 
     public static bool HasVerifiedSource(string context)
     {
-        return !string.IsNullOrEmpty(context) && context.IndexOf("HSD Source Fingerprint:", StringComparison.Ordinal) >= 0;
+        if (string.IsNullOrEmpty(context)) return false;
+        return context.IndexOf("HSD Source Fingerprint:", StringComparison.Ordinal) >= 0
+            || context.IndexOf("--- CMF Portal Database ---", StringComparison.Ordinal) >= 0;
     }
 
     public static void ClearRecommendations()

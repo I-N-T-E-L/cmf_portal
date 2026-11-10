@@ -85,21 +85,16 @@ public static class ReportsAssistantService
             conversationContextJson = "{}";
         }
 
-        // Resolve AI credentials: prefer GNAI token (env or config) + configured endpoint over GitHub PAT
+        // Resolve AI credentials from App_Data/cmf-assistant-config.json
         string resolvedGnaiToken = ResolveGnaiToken();
-        string resolvedGnaiEndpoint = FirstNonEmpty(System.Environment.GetEnvironmentVariable("GNAI_ENDPOINT"), GetAppSetting("GNAI:Endpoint"));
-        string resolvedGnaiModel = FirstNonEmpty(System.Environment.GetEnvironmentVariable("GNAI_MODEL"), GetAppSetting("GNAI:Model"));
-        string resolvedGnaiProxy = FirstNonEmpty(System.Environment.GetEnvironmentVariable("GNAI_PROXY"), GetAppSetting("GNAI:Proxy"));
-        bool resolvedUseGnai = !string.IsNullOrWhiteSpace(resolvedGnaiToken)
-            && !string.IsNullOrWhiteSpace(resolvedGnaiEndpoint)
-            && !resolvedGnaiEndpoint.StartsWith("REPLACE");
+        string resolvedGnaiEndpoint = CmfAssistantConfigService.ResolveGnaiEndpoint();
+        string resolvedGnaiModel = CmfAssistantConfigService.ResolvePrimaryModel();
+        string resolvedGnaiProxy = CmfAssistantConfigService.GetConfig().GnaiProxy;
 
-        string githubEndpoint = resolvedUseGnai ? resolvedGnaiEndpoint : ConfigurationManager.AppSettings["GitHubModels:Endpoint"];
-        string githubModel = resolvedUseGnai
-            ? (string.IsNullOrWhiteSpace(resolvedGnaiModel) ? "gpt-5-mini" : resolvedGnaiModel)
-            : ConfigurationManager.AppSettings["GitHubModels:Model"];
-        string githubApiKey = resolvedUseGnai ? resolvedGnaiToken : ConfigurationManager.AppSettings["GitHubModels:ApiKey"];
-        string githubProxy = resolvedUseGnai ? resolvedGnaiProxy : ConfigurationManager.AppSettings["GitHubModels:Proxy"];
+        string githubEndpoint = resolvedGnaiEndpoint;
+        string githubModel = string.IsNullOrWhiteSpace(resolvedGnaiModel) ? "claude-4-5-sonnet" : resolvedGnaiModel;
+        string githubApiKey = resolvedGnaiToken;
+        string githubProxy = resolvedGnaiProxy;
 
         DataTable issues;
 
@@ -353,20 +348,11 @@ public static class ReportsAssistantService
             WorkingDirectory = Path.GetDirectoryName(pythonScript)
         };
 
-        // Propagate model env as in ProcessPrompt
-        string resolvedGnaiToken = ResolveGnaiToken();
-        string resolvedGnaiEndpoint = FirstNonEmpty(System.Environment.GetEnvironmentVariable("GNAI_ENDPOINT"), GetAppSetting("GNAI:Endpoint"));
-        string resolvedGnaiModel = FirstNonEmpty(System.Environment.GetEnvironmentVariable("GNAI_MODEL"), GetAppSetting("GNAI:Model"));
-        bool resolvedUseGnai = !string.IsNullOrWhiteSpace(resolvedGnaiToken)
-            && !string.IsNullOrWhiteSpace(resolvedGnaiEndpoint)
-            && !resolvedGnaiEndpoint.StartsWith("REPLACE");
-
-        string githubEndpoint = resolvedUseGnai ? resolvedGnaiEndpoint : ConfigurationManager.AppSettings["GitHubModels:Endpoint"];
-        string githubModel = resolvedUseGnai
-            ? (string.IsNullOrWhiteSpace(resolvedGnaiModel) ? "gpt-5-mini" : resolvedGnaiModel)
-            : ConfigurationManager.AppSettings["GitHubModels:Model"];
-        string githubApiKey = resolvedUseGnai ? resolvedGnaiToken : ConfigurationManager.AppSettings["GitHubModels:ApiKey"];
-        string githubProxy = resolvedUseGnai ? FirstNonEmpty(System.Environment.GetEnvironmentVariable("GNAI_PROXY"), GetAppSetting("GNAI:Proxy")) : (ConfigurationManager.AppSettings["GitHubModels:Proxy"] ?? string.Empty);
+        // Propagate model env from App_Data/cmf-assistant-config.json
+        string githubEndpoint = CmfAssistantConfigService.ResolveGnaiEndpoint();
+        string githubModel = FirstNonEmpty(CmfAssistantConfigService.ResolvePrimaryModel(), "claude-4-5-sonnet");
+        string githubApiKey = ResolveGnaiToken();
+        string githubProxy = CmfAssistantConfigService.GetConfig().GnaiProxy ?? string.Empty;
 
         psi.EnvironmentVariables["CMF_GITHUB_ENDPOINT"] = githubEndpoint ?? string.Empty;
         psi.EnvironmentVariables["CMF_GITHUB_MODEL"] = githubModel ?? string.Empty;
@@ -783,31 +769,16 @@ public static class ReportsAssistantService
         intent = string.Empty;
 
         string gnaiToken = ResolveGnaiToken();
-        string gnaiCfgEndpoint = FirstNonEmpty(System.Environment.GetEnvironmentVariable("GNAI_ENDPOINT"), GetAppSetting("GNAI:Endpoint"));
-        string gnaiCfgModel = FirstNonEmpty(System.Environment.GetEnvironmentVariable("GNAI_MODEL"), GetAppSetting("GNAI:Model"));
-        bool useGnai = !string.IsNullOrWhiteSpace(gnaiToken)
-            && !string.IsNullOrWhiteSpace(gnaiCfgEndpoint)
-            && !gnaiCfgEndpoint.StartsWith("REPLACE");
+        string gnaiCfgEndpoint = CmfAssistantConfigService.ResolveGnaiEndpoint();
+        string gnaiCfgModel = CmfAssistantConfigService.ResolvePrimaryModel();
+        if (string.IsNullOrWhiteSpace(gnaiToken) || string.IsNullOrWhiteSpace(gnaiCfgEndpoint) || gnaiCfgEndpoint.StartsWith("REPLACE"))
+        {
+            return false;
+        }
 
-        string apiKey, endpoint, model;
-        if (useGnai)
-        {
-            apiKey = gnaiToken;
-            endpoint = gnaiCfgEndpoint;
-            model = string.IsNullOrWhiteSpace(gnaiCfgModel) ? "gpt-5-mini" : gnaiCfgModel;
-        }
-        else
-        {
-            apiKey = ConfigurationManager.AppSettings["GitHubModels:ApiKey"] ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(apiKey))
-                return false;
-            endpoint = ConfigurationManager.AppSettings["GitHubModels:Endpoint"] ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(endpoint))
-                endpoint = "https://models.inference.ai.azure.com/chat/completions";
-            model = ConfigurationManager.AppSettings["GitHubModels:Model"] ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(model))
-                model = "gpt-4o-mini";
-        }
+        string apiKey = gnaiToken;
+        string endpoint = gnaiCfgEndpoint;
+        string model = string.IsNullOrWhiteSpace(gnaiCfgModel) ? "claude-4-5-sonnet" : gnaiCfgModel;
 
         string classificationPrompt =
             "Classify this analytics request into exactly one intent from: " +
@@ -892,56 +863,21 @@ public static class ReportsAssistantService
 
     private static void ConfigureProxy(HttpWebRequest request)
     {
-        // GNAI is internal, so NO proxy needed for it
-        // Only GitHub Models (external) requires the DMZ proxy
-        string gnaiToken = ResolveGnaiToken();
-        string gnaiEndpoint = FirstNonEmpty(System.Environment.GetEnvironmentVariable("GNAI_ENDPOINT"), GetAppSetting("GNAI:Endpoint"));
-        bool usingGnai = !string.IsNullOrWhiteSpace(gnaiToken)
-            && !string.IsNullOrWhiteSpace(gnaiEndpoint)
-            && !gnaiEndpoint.StartsWith("REPLACE");
-        
-        if (usingGnai)
+        string gnaiProxy = CmfAssistantConfigService.GetConfig().GnaiProxy;
+        if (!string.IsNullOrWhiteSpace(gnaiProxy))
         {
-            string gnaiProxy = FirstNonEmpty(System.Environment.GetEnvironmentVariable("GNAI_PROXY"), GetAppSetting("GNAI:Proxy"));
-            if (!string.IsNullOrWhiteSpace(gnaiProxy))
-            {
-                WebProxy explicitGnaiProxy = new WebProxy(gnaiProxy.Trim(), true);
-                explicitGnaiProxy.Credentials = CredentialCache.DefaultNetworkCredentials;
-                request.Proxy = explicitGnaiProxy;
-                return;
-            }
-
-            request.Proxy = null;
-            return;
-        }
-        
-        // GitHub Models is external - needs proxy
-        string proxyAddress = ConfigurationManager.AppSettings["GitHubModels:Proxy"];
-        if (!string.IsNullOrWhiteSpace(proxyAddress))
-        {
-            WebProxy explicitProxy = new WebProxy(proxyAddress.Trim(), true);
-            explicitProxy.Credentials = CredentialCache.DefaultNetworkCredentials;
-            request.Proxy = explicitProxy;
+            WebProxy explicitGnaiProxy = new WebProxy(gnaiProxy.Trim(), true);
+            explicitGnaiProxy.Credentials = CredentialCache.DefaultNetworkCredentials;
+            request.Proxy = explicitGnaiProxy;
             return;
         }
 
-        IWebProxy systemProxy = WebRequest.GetSystemWebProxy();
-        if (systemProxy != null)
-        {
-            systemProxy.Credentials = CredentialCache.DefaultCredentials;
-            request.Proxy = systemProxy;
-        }
+        request.Proxy = null;
     }
 
     private static string ResolveGnaiToken()
     {
-        string token = FirstNonEmpty(System.Environment.GetEnvironmentVariable("GNAI_TOKEN"), System.Environment.GetEnvironmentVariable("GNAI_API_KEY"));
-        if (!string.IsNullOrWhiteSpace(token))
-        {
-            return token;
-        }
-
-        return GetAppSetting("GNAI:ApiKey");
+        return CmfAssistantConfigService.ResolveGnaiToken();
     }
 
     private static string FirstNonEmpty(params string[] values)
@@ -1042,7 +978,7 @@ public static class ReportsAssistantService
 
     private static DataTable LoadIssueData(string platformTable)
     {
-        string connectionString = ConfigurationManager.ConnectionStrings["gfxitt"].ConnectionString;
+        string connectionString = CmfAssistantConfigService.ResolveDatabaseConnectionString();
         DataTable table = new DataTable();
         string platformCode = ResolvePlatformCode(platformTable);
 

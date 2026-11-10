@@ -9,6 +9,7 @@ const source = fs.readFileSync(path.join(__dirname, '..', '..', 'CMF_Web_portal.
 function createDrawer(response) {
     const ids = [
         'cmfRecTitleRow', 'cmfRecSightingRow', 'cmfAssistantSightingDetails',
+        'cmfAssistantFixStatusSection', 'cmfAssistantFixStatus',
         'cmfAssistantQualityAssessment', 'cmfAssistantRecommendationSection',
         'cmfAssistantImpactSection', 'cmfRecQuality', 'cmfRecReasoningSection',
         'cmfRecActions', 'cmfDecisionDetailsBody', 'cmfRecHeading', 'cmfRecDrawerBg',
@@ -400,4 +401,158 @@ test('Pending impact details display their response in the visible detail area',
     assert.equal(elements.get('cmfAssistantRecommendationSection').classList.contains('cmf-rec-hidden'), true);
     assert.equal(requests[0].url, 'CMF_Web_portal.aspx/GetCmfPendingImpactDetails');
     assert.equal(requests[0].body.cpId, '123');
+});
+
+test('AI CMF Assistant formats scores in threshold-safe 0.5 steps, humanizes occurrence, and deduplicates metric cards', () => {
+    const helperContext = vm.createContext({
+        escapeHtml: text => String(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    });
+    for (const name of [
+        'normalizeDimensionScore', 'normalizeWeightedCmfScore', 'formatWeightedCmfScore',
+        'humanizeCmfOccurrenceFactor', 'buildDistinctClientMetricFactor',
+        'extractBriefCmfContributingFactor', 'buildCmfMetricDisplayName',
+        'getCmfMetricScoreClass', 'renderCmfMetricChips', 'renderAssistantRichText'
+    ]) {
+        const definition = source.match(new RegExp(
+            '        function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n        \\}'
+        ));
+        assert.ok(definition, name + ' must be defined');
+        vm.runInContext(definition[0], helperContext);
+    }
+
+    // 3.45 is in CMF_REVIEW (< 3.50 on 4-point scale) so it must snap to '3.25', never '3.5'
+    assert.equal(helperContext.formatWeightedCmfScore(3.45), '3.25');
+    assert.equal(helperContext.formatWeightedCmfScore(3.50), '3.5');
+    assert.equal(helperContext.formatWeightedCmfScore(4.0), '4');
+    assert.equal(helperContext.formatWeightedCmfScore(2.70), '2.5');
+    assert.equal(helperContext.formatWeightedCmfScore(1.0), '1');
+
+    // Raw database occurrence category is humanized
+    assert.equal(
+        helperContext.extractBriefCmfContributingFactor({
+            RuleId: 'O',
+            Score: '2',
+            Evaluation: 'Contributing factor: very_sporadic_<10%. Evidence: very_sporadic_<10%'
+        }),
+        'Rare (<10% of tries)'
+    );
+
+    // Duplicate phrases across S, D, and CX are automatically differentiated
+    const chipsHtml = helperContext.renderCmfMetricChips([
+        { RuleId: 'S', RuleName: 'Severity', Score: '4', Evaluation: 'Contributing factor: System hang on TBT plug. Evidence: hang' },
+        { RuleId: 'D', RuleName: 'Detection', Score: '5', Evaluation: 'Contributing factor: System hang on TBT plug. Evidence: TBT plug' },
+        { RuleId: 'CX', RuleName: 'Customer Experience', Score: '5', Evaluation: 'Contributing factor: System hang on TBT attach. Evidence: hang' }
+    ]);
+    assert.match(chipsHtml, /Normal USB-C \/ TBT plug-in/);
+    assert.match(chipsHtml, /Laptop becomes unusable/);
+
+    // Stray single asterisk on CMF_REVIEW is repaired cleanly
+    assert.equal(
+        helperContext.renderAssistantRichText('CMF_REVIEW* because of balanced factors.'),
+        '<strong>CMF_REVIEW</strong> because of balanced factors.'
+    );
+});
+
+test('AI CMF Assistant supports CMF_DUPLICATE tag and hides SQA category boxes when all fields are complete', () => {
+    const tagNode = { className: '', textContent: '', setAttribute: () => {}, removeAttribute: () => {} };
+    const sqaContext = vm.createContext({
+        window: {},
+        document: { getElementById: id => id === 'cmfAssistantRecTag' ? tagNode : null },
+        escapeHtml: text => String(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    });
+    for (const name of [
+        'normalizeCmfRecommendationLabel', 'updateCmfAssistantTag',
+        'getQualityStateClass', 'formatSqaScoreOutOfTen', 'isSqaCoreField',
+        'buildSqaCategoryItems', 'renderSqaCategoryCard', 'normalizeSqaDimensionScores',
+        'buildIssuesFromQualityFields', 'normalizeSightingQualityAssessment',
+        'renderSightingQualityAssessment'
+    ]) {
+        const definition = source.match(new RegExp(
+            '        function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n        \\}'
+        ));
+        assert.ok(definition, name + ' must be defined');
+        vm.runInContext(definition[0], sqaContext);
+    }
+
+    assert.equal(sqaContext.normalizeCmfRecommendationLabel('cmf_duplicate'), 'CMF_DUPLICATE');
+    sqaContext.updateCmfAssistantTag('cmf_duplicate');
+    assert.equal(tagNode.textContent, 'CMF_DUPLICATE');
+    assert.match(tagNode.className, /\bis-duplicate\b/);
+
+    // Main SQA card shows compact Quality Score + View details button without the 3 category boxes
+    const sqaHtml = sqaContext.renderSightingQualityAssessment({
+        QualityScore: 95,
+        Fields: [{ FieldName: 'SoC Stepping', Status: 'Partial', Characteristic: 'SoC stepping not explicitly called out' }]
+    }, {});
+    assert.doesNotMatch(sqaHtml, /cmf-sqa-category-grid/);
+    assert.match(sqaHtml, /Quality Score: 9\.5\/10/);
+    assert.match(sqaHtml, /showSightingQualityDetails\(\)/);
+
+    // CMF Pending sidebar uses hourglass-half icon instead of clipboard-check
+    assert.match(source, /id="lnkNavPendingList"[\s\S]*?fa-hourglass-half/i);
+
+    // Overall Score includes the click-triggered Score to Tag Guide tooltip on the 'i' button
+    assert.match(source, /cmf-score-band-tooltip/);
+    assert.match(source, /Score to Tag Guide/);
+    assert.match(source, /toggleCmfScoreBandTooltip\(event\)/);
+    assert.doesNotMatch(source, /\.cmf-assistant-overall-score:hover\s+\.cmf-score-band-tooltip/);
+});
+
+test('Impact Summary preserves hyphenated test names and Reasoning preserves bold lead-ins', () => {
+    const textContext = vm.createContext({
+        escapeHtml: text => String(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    });
+    for (const name of [
+        'renderAssistantRichText', 'normalizeImpactFixLine', 'renderImpactSummaryText',
+        'extractCmfReasoningText', 'buildCmfModelReasoningBullets'
+    ]) {
+        const definition = source.match(new RegExp(
+            '        function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n        \\}'
+        ));
+        assert.ok(definition, name + ' must be defined');
+        vm.runInContext(definition[0], textContext);
+    }
+
+    const impactHtml = textContext.renderImpactSummaryText(
+        "- **Validation & customer blockage:** Lenovo's HLK FVT System - PNP (disable/enable) with IO Before/After reliability test is blocked by BSOD 0x50.\n- **Real-world & program risk:** End users could lose unsaved work."
+    );
+    assert.match(impactHtml, /System - PNP \(disable\/enable\)/);
+    assert.equal((impactHtml.match(/<li>/g) || []).length, 2);
+
+    const reasoningBullets = textContext.buildCmfModelReasoningBullets(
+        "**Key risk drivers:** Intel SoundWire driver causes BSOD.\n*Why the score is 4/5:** High severity and 100% repro.",
+        {}
+    );
+    assert.equal(reasoningBullets[0], '**Key risk drivers:** Intel SoundWire driver causes BSOD.');
+    assert.equal(reasoningBullets[1], '**Why the score is 4/5:** High severity and 100% repro.');
+});
+
+test('AI CMF Assistant drawer places Current Status and Impact Summary between Problem Description and CMF Recommendation with consistent typography', () => {
+    const descIdx = source.indexOf('id="cmfAssistantSightingDetails"');
+    const fixIdx = source.indexOf('id="cmfAssistantFixStatusSection"');
+    const impactIdx = source.indexOf('id="cmfAssistantImpactSection"');
+    const recIdx = source.indexOf('id="cmfAssistantRecommendationSection"');
+    const sqaIdx = source.indexOf('id="cmfAssistantQualityAssessment"');
+    assert.ok(descIdx > 0 && fixIdx > descIdx && impactIdx > fixIdx && recIdx > impactIdx && sqaIdx > recIdx);
+    assert.match(source, /<h3>Current Status<\/h3>/);
+    assert.match(source, /id="cmfAssistantPromotedId"/);
+    assert.match(source, /id="cmfAssistantPromotedHsdLink"/);
+    assert.match(source, /\.cmf-assistant-impact-summary\s*\{[\s\S]*?color:\s*#28425c;[\s\S]*?text-align:\s*left;/);
+    assert.match(source, /\.cmf-assistant-impact-summary strong\s*\{[\s\S]*?font-size:\s*inherit;[\s\S]*?font-weight:\s*700;/);
+    assert.match(source, /\.cmf-score-band-tooltip strong\s*\{[\s\S]*?color:\s*#7dd3fc;/);
+});
+
+test('Ask CMF Pulse global assistant includes pulse orb logo, single bottom-right floating launcher with Analyze. Generate. Assist. tooltip, template selector, and feedback controls', () => {
+    assert.doesNotMatch(source, /id="cmfPulseHeaderLauncher"/);
+    assert.match(source, /id="cmfPulseFloatingLauncher"[^>]*title="Analyze\. Generate\. Assist\."/);
+    assert.match(source, /id="cmfPulseDrawer"/);
+    assert.match(source, /class="cmf-pulse-orb"/);
+    assert.match(source, /<span>Ask CMF Pulse<\/span>/);
+    assert.match(source, /id="cmfPulseTemplateSelect"/);
+    assert.match(source, /function submitCmfPulseFeedback\(/);
+    assert.match(source, /function saveCustomCmfPulseTemplate\(/);
+    assert.match(source, /ID="fuScoringExcel"/);
+    assert.match(source, /ID="btnImportScoringExcel"/);
+    assert.match(source, /function openCmfPulseDrawer\(/);
+    assert.match(source, /function sendCmfPulsePrompt\(/);
 });
