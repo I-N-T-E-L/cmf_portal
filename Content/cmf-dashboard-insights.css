@@ -1,5 +1,6 @@
 #homeOverallLayoutV2 > .overall-ai-span-card,
 #homeLegacyAiHealthCard {
+    position: relative;
     contain: size;
     overflow: hidden;
 }
@@ -25,7 +26,6 @@
 .ci-scope { min-width: 0; overflow-wrap: anywhere; font-size: 13px; font-weight: 600; line-height: 1.45; text-transform: none; letter-spacing: 0; }
 .ci-controls { display: grid; flex: 0 0 auto; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--ci-border); }
 .ci-toolbar { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-end; gap: 6px; min-width: 0; }
-.ci-mode { min-height: 24px; padding: 3px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .cmf-insights button { font: inherit; cursor: pointer; }
 .ci-refresh { flex: 0 0 30px; width: 30px; height: 30px; padding: 0; background: #fff; color: #0f5ea8; border: 1px solid #d8e7f5; border-radius: 4px; }
 .ci-refresh:hover:not(:disabled), .ci-pagination button:hover:not(:disabled) { background: #eef6ff; border-color: #b9d8ff; }
@@ -38,13 +38,34 @@
 .cmf-insights :focus-visible { outline: 2px solid #1768b2; outline-offset: 2px; }
 .ci-status { flex: 0 0 auto; min-height: 28px; margin: 6px 0; padding: 5px 8px; border: 1px solid #d8e7f5; border-radius: 4px; background: #f7fbff; font-size: 11px; color: #5c7087; overflow-wrap: anywhere; }
 .ci-status:empty { display: none; }
+.ci-progress { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; overflow: hidden; background: #d8e7f5; pointer-events: none; }
+.ci-progress[hidden] { display: none; }
+.ci-progress span { display: block; height: 100%; width: var(--ci-progress, 0%); background: #1768b2; transition: width .25s ease; }
+.ci-progress-indeterminate span { width: 28%; animation: ci-review-loading 1.3s linear infinite; }
+@keyframes ci-review-loading { from { transform: translateX(-110%); } to { transform: translateX(360%); } }
+@media (prefers-reduced-motion: reduce) {
+    .ci-progress span { transition: none; }
+    .ci-progress-indeterminate span { animation: none; }
+}
 .ci-content { flex: 1 1 0; min-width: 0; min-height: 0; max-height: none; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .ci-findings { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0 2px 6px 0; }
+#homeOverallInsights .ci-content > .ci-findings { padding-top: 6px; }
 .ci-findings > li { min-width: 0; margin: 0; overflow-wrap: anywhere; box-shadow: none; }
 .ci-findings h3 { font-size: 13px; line-height: 1.35; }
 .ci-findings h3::before { flex: 0 0 18px; }
 .ci-findings h3 span { min-width: 0; }
 .ci-findings h3 a { color: #0f5ea8; }
+.ci-briefing-group { margin: 0 0 12px; min-width: 0; }
+.ci-category { margin: 8px 0 6px; padding-bottom: 5px; border-bottom: 1px solid var(--ci-border); color: #535f70; font-size: 11px; font-weight: 700; line-height: 1.4; letter-spacing: 0; }
+.ci-briefing .ci-findings { gap: 10px; }
+.ci-briefing .ci-findings > li:not(.cmf-assistant-text-section) { padding: 0 0 8px; border-bottom: 1px solid #eef1f5; }
+.ci-briefing h3 { margin: 0 0 3px; font-size: 13px; font-weight: 600; }
+.cmf-insights .ci-briefing .cmf-assistant-text-section { padding: 8px 9px; }
+.cmf-insights .ci-briefing .cmf-assistant-text-section h3 { align-items: flex-start; font-weight: 700; line-height: 1.4; }
+.cmf-insights .ci-briefing .cmf-assistant-metrics-section { border-color: #b7dfcb; }
+.cmf-insights .ci-briefing .cmf-assistant-text-section .ci-support { margin-top: 6px; border-top: 1px solid var(--ci-border); }
+.ci-support ul { margin: 4px 0; padding-left: 18px; font-size: 12px; line-height: 1.5; }
+.ci-support li { margin-bottom: 7px; overflow-wrap: anywhere; }
 .ci-findings p { margin: 4px 0; line-height: 1.45; }
 .ci-evidence { color: #28425c; }
 .ci-action { color: #535f70; font-size: 12px; }
@@ -61,12 +82,11 @@
 .ci-links a { color: #1768b2; text-decoration: underline; overflow-wrap: anywhere; font-weight: normal; }
 .ci-links small { color: var(--ci-muted); font-size: 10px; }
 .ci-small, .ci-empty { font-size: 12px; color: var(--ci-muted); line-height: 1.4; margin: 5px 0; overflow-wrap: anywhere; }
+#homeOverallInsights .ci-findings .ci-finding-label { display: inline-block; max-width: 100%; padding: 2px 8px; border: 1px solid #b6ded0; border-radius: 4px; background: #e0f3ed; color: #0f6654; font-size: 10px; font-weight: 800; line-height: 1.2; letter-spacing: 0; vertical-align: top; }
 .ci-empty { padding: 18px 0; }
 .ci-footer { display: flex; flex: 0 0 auto; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; padding-top: 6px; border-top: 1px solid var(--ci-border); font-size: 11px; color: var(--ci-muted); }
 .ci-time { white-space: nowrap; }
 .ci-footer p { margin: 4px 0; overflow-wrap: anywhere; }
-.ci-footer details { min-width: 0; max-height: 110px; overflow: auto; }
-.ci-footer details[open] { flex-basis: 100%; }
 .ci-trend-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .ci-trend-toolbar select { font: inherit; color: inherit; min-height: 30px; max-width: 100%; background: white; border: 1px solid var(--ci-border); border-radius: 4px; padding: 3px 6px; }
 .ci-comparison { padding-bottom: 6px; }

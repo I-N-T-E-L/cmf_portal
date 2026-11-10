@@ -12,6 +12,21 @@ public sealed class CmfSummaryTrend
     public string Tone { get; private set; }
     public string Display { get; private set; }
     public string Tooltip { get; private set; }
+    private string metric;
+    private bool increaseIsGood;
+    private DateTime comparisonDate;
+    private int excludedRecords;
+    private string tptReconstruction;
+
+    public CmfSummaryTrend WithCurrentCount(int current)
+    {
+        return CreateBalanceEstimate(metric, current, PreviousValue, increaseIsGood, comparisonDate, excludedRecords, current);
+    }
+
+    public CmfSummaryTrend WithCurrentTpt(int current)
+    {
+        return CreateTptEstimate(metric, current, PreviousValue, comparisonDate, excludedRecords, tptReconstruction);
+    }
 
     public static CmfSummaryTrend Create(decimal? recent, decimal? previous,
         bool percentage, bool increaseIsGood, DateTime today, string description)
@@ -64,20 +79,53 @@ public sealed class CmfSummaryTrend
     }
 
     public static CmfSummaryTrend CreateBalanceEstimate(string metric, int current, decimal? previous,
-        bool increaseIsGood, DateTime today, int excludedRecords)
+        bool increaseIsGood, DateTime today, int excludedRecords, int? headlineCount = null)
     {
         var culture = CultureInfo.InvariantCulture;
+        current = headlineCount ?? current;
         var trend = Create(current, previous, false, increaseIsGood, today, metric);
+        trend.metric = metric;
+        trend.increaseIsGood = increaseIsGood;
+        trend.comparisonDate = today;
+        trend.excludedRecords = excludedRecords;
         if (!previous.HasValue) trend.Display = string.Empty;
         trend.Tooltip = metric + " today (partial), " + today.Date.ToString("ddd MMM d, yyyy", culture)
             + ": " + current.ToString(culture) + "; estimated " + metric + " at end of "
             + today.Date.AddDays(-7).ToString("ddd MMM d, yyyy", culture) + ": "
             + (previous.HasValue ? previous.Value.ToString("0", culture) : "unavailable")
             + ". Reconstructed from retained acceptance, implementation and closure dates, not saved snapshots. "
-            + "Both trend counts use the same dashboard date scope, reconstruction-eligible records and duplicate-row counting. "
-            + excludedRecords.ToString(culture) + " records excluded from both trend counts for missing or inconsistent dates/status. "
-            + "The headline card count is unchanged and may include these excluded records. "
+            + (headlineCount.HasValue
+                ? "The current value is the displayed card metric; the comparison date is exactly seven days earlier. "
+                    + "Both values use the same dashboard date scope and duplicate-row counting. "
+                    + excludedRecords.ToString(culture) + " records excluded from historical reconstruction for missing or inconsistent dates/status; the current card count retains them. "
+                : "Both trend counts use the same dashboard date scope, reconstruction-eligible records and duplicate-row counting. "
+                    + excludedRecords.ToString(culture) + " records excluded from both trend counts for missing or inconsistent dates/status. "
+                    + "The headline card count is unchanged and may include these excluded records. ")
             + "Removed records, historical eligibility changes and repeated/reopened lifecycles cannot be reconstructed. "
+            + "This is an estimate, not a historical snapshot.";
+        return trend;
+    }
+
+    public static CmfSummaryTrend CreateTptEstimate(string metric, int current, decimal? previous,
+        DateTime today, int excludedRecords, string reconstruction)
+    {
+        var culture = CultureInfo.InvariantCulture;
+        decimal? previousDays = previous.HasValue ? (decimal?)Math.Truncate(previous.Value) : null;
+        var trend = Create(current, previousDays, false, false, today, metric);
+        trend.metric = metric;
+        trend.comparisonDate = today;
+        trend.excludedRecords = excludedRecords;
+        trend.tptReconstruction = reconstruction;
+        if (!previousDays.HasValue) trend.Display = string.Empty;
+        trend.Tooltip = metric + " today (partial), " + today.Date.ToString("ddd MMM d, yyyy", culture)
+            + ": " + current.ToString(culture) + " days; estimated " + metric + " at end of "
+            + today.Date.AddDays(-7).ToString("ddd MMM d, yyyy", culture) + ": "
+            + (previousDays.HasValue ? previousDays.Value.ToString("0", culture) + " days" : "unavailable")
+            + ". The current value is the displayed card metric. Both averages are truncated to whole days before subtraction, not percentages or weekly cohort comparisons. "
+            + "Both values use the same dashboard date scope and duplicate-row counting. "
+            + reconstruction + " " + excludedRecords.ToString(culture)
+            + " records excluded from historical reconstruction for missing or inconsistent dates/durations. "
+            + "Removed records, historical field changes and reopened lifecycles cannot be reconstructed. "
             + "This is an estimate, not a historical snapshot.";
         return trend;
     }
@@ -86,6 +134,7 @@ public sealed class CmfSummaryTrend
         DateTime today, int excludedRecords, int? headlineCount = null)
     {
         var culture = CultureInfo.InvariantCulture;
+        current = headlineCount ?? current;
         var trend = Create(current, previous, false, false, today, "Pending estimate");
         if (!previous.HasValue)
         {
@@ -96,11 +145,9 @@ public sealed class CmfSummaryTrend
             + today.Date.AddDays(-7).ToString("ddd MMM d, yyyy", culture) + ": "
             + (previous.HasValue ? previous.Value.ToString("0", culture) : "unavailable")
             + ". Reconstructed from retained request and decision dates, not saved snapshots. "
-            + "Both trend counts use the same dashboard date scope and reconstruction-eligible requests, deduplicated by platform and HSD ID. "
-            + excludedRecords.ToString(culture) + " records excluded from both trend counts for missing or reversed dates. "
-            + "The headline card count is unchanged"
-            + (headlineCount.HasValue ? " (" + headlineCount.Value.ToString(culture) + ")" : string.Empty)
-            + " and may differ because of exclusions or duplicate rows. "
+            + "The current value is the displayed Pending card metric; the comparison date is exactly seven days earlier. "
+            + "Both values use the same dashboard date scope. Historical requests are deduplicated by platform and HSD ID. "
+            + excludedRecords.ToString(culture) + " records excluded from historical reconstruction for missing or reversed dates; the current card count retains them and its existing duplicate-row semantics. "
             + "Closures without a decision, removed records, and repeated pending/reopened periods cannot be reconstructed. "
             + "This is an estimate, not a historical snapshot.";
         return trend;
@@ -109,6 +156,22 @@ public sealed class CmfSummaryTrend
 
 public static class CmfSummaryTrendService
 {
+    public static string BuildWeeklyClosedPredicate(string alias, string weekOffsetSql)
+    {
+        string prefix = alias + ".";
+        return "LOWER(LTRIM(RTRIM(ISNULL(" + prefix + "status, '')))) IN ('complete', 'rejected')"
+            + " AND TRY_CAST(" + prefix + "closed_date AS DATE) <= CAST(GETDATE() AS DATE)"
+            + " AND DATEDIFF(WEEK, TRY_CAST(" + prefix + "closed_date AS DATE), CAST(GETDATE() AS DATE)) = " + weekOffsetSql;
+    }
+
+    public static string BuildWeeklyOpenPredicate(string alias, string weekOffsetSql)
+    {
+        string prefix = alias + ".";
+        string today = "CAST(GETDATE() AS DATE)";
+        return "TRY_CAST(" + prefix + "date_cmf_ask AS DATE) <= " + today
+            + " AND DATEDIFF(WEEK, TRY_CAST(" + prefix + "date_cmf_ask AS DATE), " + today + ") = " + weekOffsetSql;
+    }
+
     private static string BuildBalanceEvidenceSql(string sourceSql, bool includeMetadata, bool includeInsightFields = false)
     {
         return @"
@@ -270,6 +333,79 @@ FROM requests", connection);
                 candidates > 0 && excluded == candidates ? (decimal?)null : previous,
                 today, excluded, current);
         }
+    }
+
+    public static SqlCommand CreateTptEstimateCommand(SqlConnection connection, string sourceSql, DateTime today)
+    {
+        var command = CmfPlatformCatalog.CreateReadCommand(@"
+WITH base AS (
+    SELECT cmf_request, status,
+        TRY_CAST(date_cmf_ask AS date) AS ask_date,
+        TRY_CAST(date_cmf_decided AS date) AS decided_date,
+        TRY_CAST(implemented_date AS date) AS implemented_date,
+        TRY_CAST(closed_date AS date) AS closed_date,
+        TRY_CAST(days_active AS int) AS days_active
+    FROM " + sourceSql + @"
+    WHERE sysdebug LIKE '%customer_must_fix%'
+), assessed AS (
+    SELECT *, CASE WHEN status IN ('complete','rejected') THEN closed_date ELSE @cmfTptToday END AS duration_end,
+        CASE WHEN decided_date IS NOT NULL AND (ask_date IS NULL OR ask_date <= decided_date)
+            AND (status NOT IN ('complete','rejected') AND closed_date IS NULL
+                OR status IN ('complete','rejected') AND closed_date >= decided_date AND closed_date <= @cmfTptToday)
+            AND days_active >= 0 THEN 1 ELSE 0 END AS valid_duration
+    FROM base
+), historical AS (
+    SELECT *, CASE WHEN duration_end > DATEADD(day,-7,@cmfTptToday)
+        THEN DATEDIFF(day,DATEADD(day,-7,@cmfTptToday),duration_end) ELSE 0 END AS rollback_days
+    FROM assessed
+)
+SELECT
+    AVG(CAST(DATEDIFF(day,ISNULL(ask_date,decided_date),decided_date) AS float)) AS current_disposition,
+    AVG(CAST(CASE WHEN implemented_date < decided_date THEN 0
+        ELSE DATEDIFF(day,ISNULL(decided_date,implemented_date),implemented_date) END AS float)) AS current_resolution,
+    AVG(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') THEN CAST(days_active AS float) END) AS current_overall,
+    AVG(CASE WHEN decided_date < DATEADD(day,-6,@cmfTptToday) AND ask_date <= decided_date
+        THEN CAST(DATEDIFF(day,ask_date,decided_date) AS float) END) AS previous_disposition,
+    AVG(CASE WHEN implemented_date < DATEADD(day,-6,@cmfTptToday) AND decided_date <= implemented_date
+        THEN CAST(DATEDIFF(day,decided_date,implemented_date) AS float) END) AS previous_resolution,
+    AVG(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') AND decided_date < DATEADD(day,-6,@cmfTptToday)
+        AND valid_duration = 1 AND days_active >= rollback_days
+        THEN CAST(days_active - rollback_days AS float) END) AS previous_overall,
+    COUNT(CASE WHEN decided_date IS NULL OR decided_date < DATEADD(day,-6,@cmfTptToday)
+        AND (ask_date IS NULL OR ask_date > decided_date) THEN 1 END) AS excluded_disposition,
+    COUNT(CASE WHEN implemented_date IS NULL OR implemented_date < DATEADD(day,-6,@cmfTptToday)
+        AND (decided_date IS NULL OR decided_date > implemented_date) THEN 1 END) AS excluded_resolution,
+    COUNT(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate')
+        AND (decided_date IS NULL OR decided_date < DATEADD(day,-6,@cmfTptToday)
+            AND (valid_duration = 0 OR days_active < rollback_days)) THEN 1 END) AS excluded_overall
+FROM historical", connection);
+        command.Parameters.Add("@cmfTptToday", SqlDbType.Date).Value = today.Date;
+        return command;
+    }
+
+    public static Dictionary<string, CmfSummaryTrend> LoadTptEstimates(SqlConnection connection, string sourceSql, DateTime today)
+    {
+        string[] labels = { "CMF Disposition TPT", "CMF Resolution TPT", "CMF Overall TPT" };
+        string[] reconstructions = {
+            "Average request-to-decision days for all retained decisions made by the comparison date; missing or reversed pairs excluded.",
+            "Average decision-to-implementation days for all retained implementations made by the comparison date; missing or reversed pairs excluded.",
+            "Average estimated days_active for retained CMFs accepted by the comparison date. Durations already closed by that date are retained; later closures and active records are rolled back by calendar days after that date, assuming one active day per calendar day and no pauses or reopenings. Missing closure dates and rollbacks exceeding recorded durations are excluded." };
+        var trends = new Dictionary<string, CmfSummaryTrend>(StringComparer.OrdinalIgnoreCase);
+        using (SqlCommand command = CreateTptEstimateCommand(connection, sourceSql, today))
+        using (SqlDataReader reader = command.ExecuteReader())
+        {
+            if (!reader.Read()) return trends;
+            for (int index = 0; index < labels.Length; index++)
+            {
+                int current = reader.IsDBNull(index) ? 0
+                    : decimal.ToInt32(Math.Truncate(Convert.ToDecimal(reader.GetValue(index), CultureInfo.InvariantCulture)));
+                decimal? previous = reader.IsDBNull(index + 3) ? (decimal?)null
+                    : Convert.ToDecimal(reader.GetValue(index + 3), CultureInfo.InvariantCulture);
+                trends[labels[index]] = CmfSummaryTrend.CreateTptEstimate(labels[index], current, previous,
+                    today, reader.GetInt32(index + 6), reconstructions[index]);
+            }
+        }
+        return trends;
     }
 
     public static SqlCommand CreateCommand(SqlConnection connection, string sourceSql, DateTime today)

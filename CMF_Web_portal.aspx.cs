@@ -181,6 +181,7 @@ public class SummaryIssueLinksResponse
 
 public class HomeDashboardSnapshot
 {
+    public string InsightsSnapshotKey { get; set; }
     public string PlatformLabel { get; set; }
     public string GeneratedAt { get; set; }
     public int ActiveIssues { get; set; }
@@ -205,6 +206,7 @@ public class HomeDashboardSnapshot
     public HomeDashboardTable MilestoneSummary { get; set; }
     public HomeDashboardTable ComponentSummary { get; set; }
     public HomeDashboardTable PendingSummary { get; set; }
+    public int? PendingSummaryAgeThresholdDays { get; set; }
     public HomeDashboardTable DesignSummary { get; set; }
     public List<HomeDashboardTrendPoint> Trend { get; set; }
     public List<HomeDashboardCategoryPoint> StatusDistribution { get; set; }
@@ -1949,7 +1951,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     }
 
     [WebMethod(EnableSession = true)]
-    public static SummaryIssueLinksResponse GetTrendWeekIssueLinks(string seriesName, string weekLabel, int weekOffset, string dashboardPlatform, string groupBy, bool includeOpen, bool includeClosed, bool includeUnique = true, bool includeDuplicates = true)
+    public static SummaryIssueLinksResponse GetTrendWeekIssueLinks(string seriesName, string weekLabel, int weekOffset, string dashboardPlatform, string groupBy, bool includeOpen, bool includeClosed, bool includeUnique = true, bool includeDuplicates = false)
     {
         string resolvedPlatform = ResolveDashboardPlatformSelectionForWeb(dashboardPlatform);
         bool isOverallScope = string.Equals(resolvedPlatform, OverallDashboardPlatformTable, StringComparison.OrdinalIgnoreCase);
@@ -1986,7 +1988,6 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
 
         string normalizedWeekLabel = string.IsNullOrWhiteSpace(weekLabel) ? "Selected Week" : weekLabel.Trim();
         bool isWeekEndBalance = string.Equals(seriesName, "Open and Implemented", StringComparison.OrdinalIgnoreCase);
-        string completedStatusValues = "'complete', 'rejected'";
         bool metricAllowsOpen = string.Equals(response.MetricKey, "all", StringComparison.OrdinalIgnoreCase)
             || string.Equals(response.MetricKey, "open", StringComparison.OrdinalIgnoreCase);
         bool metricAllowsClosed = string.Equals(response.MetricKey, "all", StringComparison.OrdinalIgnoreCase)
@@ -2017,10 +2018,6 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
                 StringBuilder baseWhere = new StringBuilder();
                 baseWhere.Append(BuildSummaryIssueRecordTypePredicate("src", includeUnique, includeDuplicates));
                 baseWhere.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.sysdebug, '')))) LIKE '%customer_must_fix%'");
-                if (!isWeekEndBalance)
-                {
-                    baseWhere.Append(" AND LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) <> 'rejected'");
-                }
 
                 if (isWeekEndBalance)
                 {
@@ -2032,36 +2029,13 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
                         ? "((" + openPredicate + ") OR (" + implementedPredicate + "))"
                         : (allowOpen ? openPredicate : implementedPredicate);
                 }
-                else if (allowOpen && !allowClosed)
-                {
-                    statusPredicate = "LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) = 'open'";
-                    weekPredicate = "TRY_CAST(src.date_cmf_ask AS DATE) IS NOT NULL AND DATEDIFF(WEEK, TRY_CAST(src.date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) = @week_offset";
-                }
-                else if (!allowOpen && allowClosed)
-                {
-                    statusPredicate = "LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN (" + completedStatusValues + ")";
-                    weekPredicate = "TRY_CAST(src.implemented_date AS DATE) IS NOT NULL AND DATEDIFF(WEEK, TRY_CAST(src.implemented_date AS DATE), CAST(GETDATE() AS DATE)) = @week_offset";
-                }
                 else
                 {
-                    statusPredicate = @"(
-        LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) = 'open'
-                OR LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN (" + completedStatusValues + @")
-    )";
-
-                    weekPredicate = @"(
-        (
-            LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) = 'open'
-            AND TRY_CAST(src.date_cmf_ask AS DATE) IS NOT NULL
-            AND DATEDIFF(WEEK, TRY_CAST(src.date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) = @week_offset
-        )
-        OR
-        (
-            LOWER(LTRIM(RTRIM(ISNULL(src.status, '')))) IN (" + completedStatusValues + @")
-            AND TRY_CAST(src.implemented_date AS DATE) IS NOT NULL
-            AND DATEDIFF(WEEK, TRY_CAST(src.implemented_date AS DATE), CAST(GETDATE() AS DATE)) = @week_offset
-        )
-    )";
+                    string openPredicate = CmfSummaryTrendService.BuildWeeklyOpenPredicate("src", "@week_offset");
+                    string closedPredicate = CmfSummaryTrendService.BuildWeeklyClosedPredicate("src", "@week_offset");
+                    statusPredicate = "1 = 1";
+                    weekPredicate = allowOpen && allowClosed ? "((" + openPredicate + ") OR (" + closedPredicate + "))"
+                        : allowOpen ? openPredicate : closedPredicate;
                 }
 
                 string sql = @"
@@ -3432,7 +3406,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     }
 
     [WebMethod(EnableSession = true)]
-    public static CmfDashboardInsights GetDashboardInsights(string platform)
+    public static CmfDashboardInsights GetDashboardInsights(string platform, string snapshotKey, int trendWeeks, string chartView)
     {
         try
         {
@@ -3441,13 +3415,45 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
             {
                 return new CmfDashboardInsights { Success = false, Message = "Select a valid dashboard platform." };
             }
-            CmfDashboardInsights sourceEvidence = LoadDashboardInsightEvidence(selection);
+            var snapshot = HttpRuntime.Cache[DashboardSnapshotCacheKey(snapshotKey)] as CmfPanelSnapshotCache;
+            if (snapshot == null || snapshot.Platform != selection || snapshot.Configuration != DashboardPanelConfiguration(selection)
+                || snapshot.CapturedAt.Date != DateTime.Today)
+                return new CmfDashboardInsights { Success = false, Message = "The displayed dashboard snapshot expired or its scope changed. Reload the panel." };
+            bool overall = selection == OverallDashboardPlatformTable;
+            var sources = new List<CmfPanelInsightSource>();
+            if (overall)
+            {
+                foreach (string table in GetSummaryIssueSourceTablesForWeb(selection))
+                {
+                    string sourceKey = DashboardPanelSourceKey(table);
+                    var source = HttpRuntime.Cache[sourceKey] as CmfPanelInsightSource;
+                    if (source == null)
+                    {
+                        var panel = HttpRuntime.Cache[DashboardPanelLatestKey(table)] as CmfPanelSnapshotCache;
+                        if (panel == null)
+                        {
+                            new CMF_Web_portal().BuildHomeDashboardSnapshot(table);
+                            panel = HttpRuntime.Cache[DashboardPanelLatestKey(table)] as CmfPanelSnapshotCache;
+                        }
+                        if (panel == null) throw new InvalidOperationException("Platform dashboard data unavailable.");
+                        source = CmfRenderedInsightsService.BuildSource(panel, 6, "line");
+                        HttpRuntime.Cache.Insert(sourceKey, source, null, DateTime.UtcNow.AddMinutes(5), System.Web.Caching.Cache.NoSlidingExpiration);
+                    }
+                    sources.Add(source);
+                }
+            }
+            else
+            {
+                var source = CmfRenderedInsightsService.BuildSource(snapshot, trendWeeks, chartView);
+                sources.Add(source);
+                HttpRuntime.Cache.Insert(DashboardPanelSourceKey(selection), source, null, DateTime.UtcNow.AddMinutes(5), System.Web.Caching.Cache.NoSlidingExpiration);
+            }
+            CmfDashboardInsights sourceEvidence = new CmfDashboardInsights { Pipeline = CmfRenderedInsightsService.Pipeline,
+                Scope = snapshot.Data["PlatformLabel"].ToString(), PanelSources = sources };
             string evidenceKey = Guid.NewGuid().ToString("N");
             HttpRuntime.Cache.Insert("cmf-insight-evidence:" + HttpContext.Current.User.Identity.Name + ":" + evidenceKey,
                 sourceEvidence, null, System.Web.Caching.Cache.NoAbsoluteExpiration, TimeSpan.FromMinutes(30));
-            CmfDashboardInsightsService.AddAi(sourceEvidence, false);
-            CmfDashboardInsightsService.WarmPlatforms(CmfPlatformCatalog.GetAllPlatformTables(), LoadDashboardInsightEvidence);
-            return CmfDashboardInsightsService.CreateView(sourceEvidence, evidenceKey);
+            return RankDashboardInsights(evidenceKey, false);
         }
         catch (Exception ex)
         {
@@ -3456,50 +3462,42 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         }
     }
 
-    private static CmfDashboardInsights LoadDashboardInsightEvidence(string selection)
+    private static string DashboardPanelConfiguration(string selection)
     {
-        string key = "cmf-insight-source:" + selection + ":" + DateTime.Today.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
-        using (CmfAssistantResponseCache.Enter(key))
-        {
-            var cached = HttpRuntime.Cache[key] as CmfDashboardInsights;
-            if (cached != null) return cached;
-            string source = BuildSummaryIssueComponentSourceSql(selection, false, true);
-            var data = new DataTable();
-            using (var connection = new SqlConnection(CmfAssistantConfigService.ResolveDatabaseConnectionString()))
-            using (var command = CmfSummaryTrendService.CreateBalanceEvidenceCommand(connection, "(" + source + ") AS insight_source", DateTime.Today, true))
-            {
-                connection.Open();
-                using (var reader = command.ExecuteReader()) data.Load(reader);
-            }
-            bool overall = string.Equals(selection, OverallDashboardPlatformTable, StringComparison.OrdinalIgnoreCase);
-            var tables = GetSummaryIssueSourceTablesForWeb(selection);
-            var evidence = CmfDashboardInsightsService.Build(data, overall ? "Overall (" + tables.Count + " included platforms)"
-                : CmfDashboardInsightsService.PlatformLabel(selection), DateTime.Today);
-            evidence.SourceHash = CmfAssistantResponseCache.Fingerprint(new { Evidence = evidence.SourceHash, SourceScope = selection });
-            if (overall)
-            {
-                evidence.PlatformEvidence = new List<CmfDashboardInsights>();
-                foreach (string table in tables)
-                {
-                    string platformKey = "cmf-insight-source:" + table + ":" + DateTime.Today.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
-                    using (CmfAssistantResponseCache.Enter(platformKey))
-                    {
-                        var platformEvidence = HttpRuntime.Cache[platformKey] as CmfDashboardInsights;
-                        if (platformEvidence == null)
-                        {
-                            var subset = data.Clone();
-                            foreach (DataRow row in data.Rows) if (string.Equals(Convert.ToString(row["source_platform"]), table, StringComparison.OrdinalIgnoreCase)) subset.ImportRow(row);
-                            platformEvidence = CmfDashboardInsightsService.Build(subset, CmfDashboardInsightsService.PlatformLabel(table), DateTime.Today);
-                            platformEvidence.SourceHash = CmfAssistantResponseCache.Fingerprint(new { Evidence = platformEvidence.SourceHash, SourceScope = table });
-                            HttpRuntime.Cache.Insert(platformKey, platformEvidence, null, DateTime.UtcNow.AddMinutes(5), System.Web.Caching.Cache.NoSlidingExpiration);
-                        }
-                        evidence.PlatformEvidence.Add(platformEvidence);
-                    }
-                }
-            }
-            HttpRuntime.Cache.Insert(key, evidence, null, DateTime.UtcNow.AddMinutes(5), System.Web.Caching.Cache.NoSlidingExpiration);
-            return evidence;
-        }
+        var page = new CMF_Web_portal();
+        return CmfAssistantResponseCache.Fingerprint(new { Day = DateTime.Today, Source = page.BuildHomeDashboardSourceSql(selection),
+            Components = page.BuildDashboardComponentSourceSql(selection, true), Date = GetDashboardDateFilter() });
+    }
+
+    private static string DashboardSnapshotCacheKey(string token)
+    {
+        Guid parsed;
+        return Guid.TryParseExact(token, "N", out parsed) ? "cmf-panel-snapshot:" + HttpContext.Current.User.Identity.Name + ":" + token : "cmf-panel-invalid";
+    }
+
+    private static string DashboardPanelLatestKey(string selection)
+    {
+        return "cmf-panel-latest:" + HttpContext.Current.User.Identity.Name + ":" + selection + ":" + DashboardPanelConfiguration(selection);
+    }
+
+    private static string DashboardPanelSourceKey(string selection)
+    {
+        return "cmf-panel-facts:" + HttpContext.Current.User.Identity.Name + ":" + selection + ":" + DashboardPanelConfiguration(selection);
+    }
+
+    private static void CacheDashboardPanelSnapshot(HomeDashboardSnapshot snapshot, string selection)
+    {
+        snapshot.InsightsSnapshotKey = Guid.NewGuid().ToString("N");
+        var serializer = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+        var filter = GetDashboardDateFilter();
+        var cached = new CmfPanelSnapshotCache { Platform = selection, CapturedAt = DateTime.Now,
+            Configuration = DashboardPanelConfiguration(selection), ShowComparisons = filter.ShowSummaryTrends,
+            DateScope = filter.Mode == "all" ? "all" : filter.Mode + ":" + filter.Basis + ":" + filter.Start + ":" + filter.EndExclusive,
+            Data = serializer.Deserialize<Dictionary<string, object>>(serializer.Serialize(snapshot)) };
+        HttpRuntime.Cache.Insert(DashboardSnapshotCacheKey(snapshot.InsightsSnapshotKey), cached, null,
+            System.Web.Caching.Cache.NoAbsoluteExpiration, TimeSpan.FromMinutes(30));
+        HttpRuntime.Cache.Insert(DashboardPanelLatestKey(selection), cached, null,
+            DateTime.UtcNow.AddMinutes(5), System.Web.Caching.Cache.NoSlidingExpiration);
     }
 
     private static CmfDashboardInsights GetCachedDashboardInsights(string evidenceKey)
@@ -3520,6 +3518,21 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     }
 
     [WebMethod]
+    public static CmfDashboardSummary GetDashboardSummary(string evidenceKey, bool refresh)
+    {
+        var evidence = GetCachedDashboardInsights(evidenceKey);
+        if (evidence == null || evidence.Pipeline != CmfRenderedInsightsService.Pipeline || evidence.PanelSources == null
+            || !evidence.Scope.StartsWith("Overall", StringComparison.OrdinalIgnoreCase))
+            return new CmfDashboardSummary { Success = false, Mode = "ai-unavailable", Claims = new List<CmfDashboardSummaryClaim>() };
+        try { return CmfDashboardSummaryService.Get(evidence.PanelSources, refresh); }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Trace.TraceError("Dashboard summary unavailable: " + exception.GetType().Name);
+            return CmfDashboardSummaryService.WithoutClaims(evidence.PanelSources, "ai-unavailable");
+        }
+    }
+
+    [WebMethod]
     public static CmfDashboardInsights RankDashboardInsights(string evidenceKey, bool refresh)
     {
         CmfDashboardInsights evidence = GetCachedDashboardInsights(evidenceKey);
@@ -3527,11 +3540,13 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
             return new CmfDashboardInsights { Success = false, Message = "Dashboard evidence expired. Refresh to retry." };
         try
         {
-            CmfDashboardInsights result = CmfDashboardInsightsService.AddAi(evidence, refresh);
-            if (result.Mode == "ai")
-                HttpRuntime.Cache.Insert("cmf-insight-result:" + HttpContext.Current.User.Identity.Name + ":" + evidenceKey,
-                    result, null, DateTime.Parse(result.ExpiresAt, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
-                    System.Web.Caching.Cache.NoSlidingExpiration);
+            if (evidence.Pipeline != CmfRenderedInsightsService.Pipeline || evidence.PanelSources == null)
+                return new CmfDashboardInsights { Success = false, Message = "Reload the dashboard for the current Insights pipeline." };
+            var platforms = evidence.PanelSources.Select(source => CmfRenderedInsightsService.AddAi(source, refresh)).ToList();
+            CmfDashboardInsights result = evidence.PanelSources.Count == 1 && !evidence.Scope.StartsWith("Overall", StringComparison.OrdinalIgnoreCase)
+                ? platforms[0] : CmfRenderedInsightsService.Aggregate(evidence.Scope, platforms);
+            HttpRuntime.Cache.Insert("cmf-insight-result:" + HttpContext.Current.User.Identity.Name + ":" + evidenceKey,
+                result, null, System.Web.Caching.Cache.NoAbsoluteExpiration, TimeSpan.FromMinutes(30));
             return CmfDashboardInsightsService.CreateView(result, evidenceKey);
         }
         catch (Exception ex)
@@ -3709,7 +3724,11 @@ FROM " + dashboardSourceSql + @"
 
     private HomeDashboardSnapshot BuildHomeDashboardSnapshot()
     {
-        string dashboardPlatform = ResolveDashboardPlatformSelection();
+        return BuildHomeDashboardSnapshot(ResolveDashboardPlatformSelection());
+    }
+
+    private HomeDashboardSnapshot BuildHomeDashboardSnapshot(string dashboardPlatform)
+    {
         string dashboardSourceSql = BuildHomeDashboardSourceSql(dashboardPlatform);
         HomeDashboardSnapshot snapshot = new HomeDashboardSnapshot();
         snapshot.PlatformLabel = BuildPlatformDisplayName(dashboardPlatform);
@@ -3778,6 +3797,9 @@ FROM " + dashboardSourceSql, con))
             string weekEndSourceSql = "(SELECT * FROM " + BuildDashboardComponentSourceSql(dashboardPlatform, true)
                 + " WHERE cmf_request = 'cmf_ok' AND sysdebug LIKE '%customer_must_fix%') AS platform_cmf_issues";
             string weekEndCutoffSql = BuildTrendWeekEndExclusiveSql("w.week_offset");
+            string weeklyFlowSourceSql = "(" + BuildSummaryIssueComponentSourceSql(dashboardPlatform) + ") AS src";
+            string weeklyFlowPredicate = BuildSummaryIssueRecordTypePredicate("src", true, false)
+                + " AND LOWER(LTRIM(RTRIM(ISNULL(src.sysdebug, '')))) LIKE '%customer_must_fix%'";
             using (SqlCommand trendCommand = CmfPlatformCatalog.CreateReadCommand(@"
 WITH weeks AS (
     SELECT 0 AS week_offset
@@ -3787,20 +3809,18 @@ WITH weeks AS (
     WHERE week_offset < 103
 ),
 new_issues AS (
-    SELECT DATEDIFF(WEEK, TRY_CAST(date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) AS week_offset, COUNT(*) AS count_value
-    FROM " + dashboardSourceSql + @"
-    WHERE TRY_CAST(date_cmf_ask AS DATE) IS NOT NULL
-      AND DATEDIFF(WEEK, TRY_CAST(date_cmf_ask AS DATE), CAST(GETDATE() AS DATE)) BETWEEN 0 AND 103
-            AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) = 'open'
-    GROUP BY DATEDIFF(WEEK, TRY_CAST(date_cmf_ask AS DATE), CAST(GETDATE() AS DATE))
+    SELECT w.week_offset, COUNT(*) AS count_value
+    FROM weeks w
+    INNER JOIN " + weeklyFlowSourceSql + @" ON " + CmfSummaryTrendService.BuildWeeklyOpenPredicate("src", "w.week_offset") + @"
+    WHERE " + weeklyFlowPredicate + @"
+    GROUP BY w.week_offset
 ),
 resolved_issues AS (
-    SELECT DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE)) AS week_offset, COUNT(*) AS count_value
-    FROM " + dashboardSourceSql + @"
-    WHERE TRY_CAST(implemented_date AS DATE) IS NOT NULL
-      AND DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE)) BETWEEN 0 AND 103
-            AND LOWER(LTRIM(RTRIM(ISNULL(status, '')))) IN ('complete', 'rejected')
-    GROUP BY DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE))
+    SELECT w.week_offset, COUNT(*) AS count_value
+    FROM weeks w
+    INNER JOIN " + weeklyFlowSourceSql + @" ON " + CmfSummaryTrendService.BuildWeeklyClosedPredicate("src", "w.week_offset") + @"
+    WHERE " + weeklyFlowPredicate + @"
+    GROUP BY w.week_offset
 ),
 implemented_issues AS (
         SELECT DATEDIFF(WEEK, TRY_CAST(implemented_date AS DATE), CAST(GETDATE() AS DATE)) AS week_offset, COUNT(*) AS count_value
@@ -4012,6 +4032,7 @@ FROM " + dashboardSourceSql, con))
             snapshot.Trend = snapshot.Trend.OrderBy(point => point.WeekStart).ToList();
         }
 
+        CacheDashboardPanelSnapshot(snapshot, dashboardPlatform);
         return snapshot;
     }
 
@@ -4520,8 +4541,8 @@ GROUP BY
         {
             con.Open();
 
-            Dictionary<string, CmfSummaryTrend> weeklyTrends = CmfSummaryTrendService.Load(
-                con, BuildDashboardComponentSourceSql(platformTable), DateTime.Today);
+            Dictionary<string, CmfSummaryTrend> tptTrends = CmfSummaryTrendService.LoadTptEstimates(
+                con, componentSourceSql, DateTime.Today);
             Dictionary<string, CmfSummaryTrend> balanceTrends = CmfSummaryTrendService.LoadBalanceEstimates(
                 con, componentSourceSql, DateTime.Today);
 
@@ -4546,9 +4567,6 @@ WITH base AS (
         TRY_CAST(days_active AS INT) AS days_active_int
     FROM " + componentSourceSql + @"
     WHERE sysdebug LIKE '%customer_must_fix%'
-),
-wk AS (
-    SELECT DATEADD(DAY, 1 - DATEPART(WEEKDAY, CAST(GETDATE() AS DATE)), CAST(GETDATE() AS DATE)) AS current_week_start
 )
 SELECT
     SUM(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') THEN 1 ELSE 0 END) AS TotalCount,
@@ -4562,35 +4580,6 @@ SELECT
     ISNULL(AVG(CAST(DATEDIFF(DAY, ISNULL(ask_date, decided_date), decided_date) AS FLOAT)), 0) AS DispositionTpt,
     ISNULL(AVG(CAST(CASE WHEN implemented_date < decided_date THEN 0 ELSE DATEDIFF(DAY, ISNULL(decided_date, implemented_date), implemented_date) END AS FLOAT)), 0) AS ResolutionTpt,
     ISNULL(AVG(CASE WHEN cmf_request IN ('cmf_ok','cmf_duplicate') THEN CAST(days_active_int AS FLOAT) ELSE NULL END), 0) AS OverallTpt,
-    ISNULL(AVG(CASE
-        WHEN ask_date >= wk.current_week_start
-        THEN CAST(DATEDIFF(DAY, ISNULL(ask_date, decided_date), decided_date) AS FLOAT)
-        ELSE NULL END), 0) AS DispositionThisWeek,
-    ISNULL(AVG(CASE
-        WHEN ask_date >= DATEADD(DAY, -7, wk.current_week_start)
-         AND ask_date < wk.current_week_start
-        THEN CAST(DATEDIFF(DAY, ISNULL(ask_date, decided_date), decided_date) AS FLOAT)
-        ELSE NULL END), 0) AS DispositionLastWeek,
-    ISNULL(AVG(CASE
-        WHEN ask_date >= wk.current_week_start
-        THEN CAST(CASE WHEN implemented_date < decided_date THEN 0 ELSE DATEDIFF(DAY, ISNULL(decided_date, implemented_date), implemented_date) END AS FLOAT)
-        ELSE NULL END), 0) AS ResolutionThisWeek,
-    ISNULL(AVG(CASE
-        WHEN ask_date >= DATEADD(DAY, -7, wk.current_week_start)
-         AND ask_date < wk.current_week_start
-        THEN CAST(CASE WHEN implemented_date < decided_date THEN 0 ELSE DATEDIFF(DAY, ISNULL(decided_date, implemented_date), implemented_date) END AS FLOAT)
-        ELSE NULL END), 0) AS ResolutionLastWeek,
-    ISNULL(AVG(CASE
-        WHEN ask_date >= wk.current_week_start
-         AND cmf_request IN ('cmf_ok','cmf_duplicate')
-        THEN CAST(days_active_int AS FLOAT)
-        ELSE NULL END), 0) AS OverallThisWeek,
-    ISNULL(AVG(CASE
-        WHEN ask_date >= DATEADD(DAY, -7, wk.current_week_start)
-         AND ask_date < wk.current_week_start
-         AND cmf_request IN ('cmf_ok','cmf_duplicate')
-        THEN CAST(days_active_int AS FLOAT)
-        ELSE NULL END), 0) AS OverallLastWeek,
     ISNULL(AVG(CASE
         WHEN cmf_request IN ('cmf_ok','cmf_duplicate')
          AND status IN ('complete','rejected','implemented','verified')
@@ -4606,8 +4595,7 @@ SELECT
          AND implemented_date IS NOT NULL
          AND implemented_date >= decided_date
         THEN 1 ELSE 0 END) AS SummaryAverageResolutionCount
-FROM base
-CROSS JOIN wk", con))
+FROM base", con))
             using (SqlDataReader reader = summaryCommand.ExecuteReader())
             {
                 if (reader.Read())
@@ -4623,41 +4611,35 @@ CROSS JOIN wk", con))
                     int dispositionTpt = ReadLegacyAvgInt(reader, 8);
                     int resolutionTpt = ReadLegacyAvgInt(reader, 9);
                     int overallTpt = ReadLegacyAvgInt(reader, 10);
-                    int dispositionThisWeek = ReadLegacyAvgInt(reader, 11);
-                    int dispositionLastWeek = ReadLegacyAvgInt(reader, 12);
-                    int resolutionThisWeek = ReadLegacyAvgInt(reader, 13);
-                    int resolutionLastWeek = ReadLegacyAvgInt(reader, 14);
-                    int overallThisWeek = ReadLegacyAvgInt(reader, 15);
-                    int overallLastWeek = ReadLegacyAvgInt(reader, 16);
-                    averageResolutionDays = reader.IsDBNull(17)
+                    averageResolutionDays = reader.IsDBNull(11)
                         ? 0m
-                        : Convert.ToDecimal(reader.GetValue(17), CultureInfo.InvariantCulture);
-                    averageResolutionSampleSize = ReadInt(reader, 18);
+                        : Convert.ToDecimal(reader.GetValue(11), CultureInfo.InvariantCulture);
+                    averageResolutionSampleSize = ReadInt(reader, 12);
 
-                    int dispositionTrendDays = dispositionThisWeek - dispositionLastWeek;
-                    int resolutionTrendDays = resolutionThisWeek - resolutionLastWeek;
-                    int overallTrendDays = overallThisWeek - overallLastWeek;
+                    CmfSummaryTrend dispositionTrend = tptTrends["CMF Disposition TPT"].WithCurrentTpt(dispositionTpt);
+                    CmfSummaryTrend resolutionTrend = tptTrends["CMF Resolution TPT"].WithCurrentTpt(resolutionTpt);
+                    CmfSummaryTrend overallTrend = tptTrends["CMF Overall TPT"].WithCurrentTpt(overallTpt);
 
                     snapshot.SummaryFacts.Add(new HomeDashboardFact
                     {
                         Label = "Total CMFs",
                         Value = total.ToString(CultureInfo.InvariantCulture),
                         Note = duplicates + " duplicates",
-                        WeeklyTrend = balanceTrends["Total CMFs"]
+                        WeeklyTrend = balanceTrends["Total CMFs"].WithCurrentCount(total)
                     });
                     snapshot.SummaryFacts.Add(new HomeDashboardFact
                     {
                         Label = "Closed",
                         Value = closed.ToString(CultureInfo.InvariantCulture),
                         Note = closedDup + " duplicates",
-                        WeeklyTrend = balanceTrends["Closed"]
+                        WeeklyTrend = balanceTrends["Closed"].WithCurrentCount(closed)
                     });
                     snapshot.SummaryFacts.Add(new HomeDashboardFact
                     {
                         Label = "Implemented",
                         Value = implemented.ToString(CultureInfo.InvariantCulture),
                         Note = implementedDup + " duplicates",
-                        WeeklyTrend = balanceTrends["Implemented"],
+                        WeeklyTrend = balanceTrends["Implemented"].WithCurrentCount(implemented),
                         ConstituentTooltip = BuildConstituentTooltipFromCounts(
                             implementedConstituents,
                             "No implemented constituent counts in this scope.")
@@ -4667,7 +4649,7 @@ CROSS JOIN wk", con))
                         Label = "Open",
                         Value = pending.ToString(CultureInfo.InvariantCulture),
                         Note = pendingDup + " duplicates",
-                        WeeklyTrend = balanceTrends["Open"],
+                        WeeklyTrend = balanceTrends["Open"].WithCurrentCount(pending),
                         ConstituentTooltip = BuildConstituentTooltipFromCounts(
                             openConstituents,
                             "No open constituent counts in this scope.")
@@ -4677,24 +4659,27 @@ CROSS JOIN wk", con))
                         Label = "CMF Disposition TPT",
                         Value = dispositionTpt.ToString(CultureInfo.InvariantCulture),
                         Note = "days",
-                        TrendNote = FormatTptTrendNote(dispositionTrendDays),
-                        WeeklyTrend = weeklyTrends["CMF Disposition TPT"]
+                        TrendNote = dispositionTrend.PreviousValue.HasValue
+                            ? FormatTptTrendNote(dispositionTpt - decimal.ToInt32(dispositionTrend.PreviousValue.Value)) : string.Empty,
+                        WeeklyTrend = dispositionTrend
                     });
                     snapshot.TptFacts.Add(new HomeDashboardFact
                     {
                         Label = "CMF Resolution TPT",
                         Value = resolutionTpt.ToString(CultureInfo.InvariantCulture),
                         Note = "days",
-                        TrendNote = FormatTptTrendNote(resolutionTrendDays),
-                        WeeklyTrend = weeklyTrends["CMF Resolution TPT"]
+                        TrendNote = resolutionTrend.PreviousValue.HasValue
+                            ? FormatTptTrendNote(resolutionTpt - decimal.ToInt32(resolutionTrend.PreviousValue.Value)) : string.Empty,
+                        WeeklyTrend = resolutionTrend
                     });
                     snapshot.TptFacts.Add(new HomeDashboardFact
                     {
                         Label = "CMF Overall TPT",
                         Value = overallTpt.ToString(CultureInfo.InvariantCulture),
                         Note = "days",
-                        TrendNote = FormatTptTrendNote(overallTrendDays),
-                        WeeklyTrend = weeklyTrends["CMF Overall TPT"]
+                        TrendNote = overallTrend.PreviousValue.HasValue
+                            ? FormatTptTrendNote(overallTpt - decimal.ToInt32(overallTrend.PreviousValue.Value)) : string.Empty,
+                        WeeklyTrend = overallTrend
                     });
                 }
             }
@@ -4891,6 +4876,7 @@ ORDER BY Component, Driver", con))
             if (!string.IsNullOrWhiteSpace(pendingSourceSql))
             {
                 int pendingAgeThresholdDays = GetPendingSummaryAgeThresholdDays();
+                snapshot.PendingSummaryAgeThresholdDays = pendingAgeThresholdDays;
                 int? oldestPendingAgeDays = null;
                 DateTime pendingAgeToday = DateTime.Today;
                 Dictionary<string, List<string>> pendingOpenIdsByRowKey = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
@@ -4900,7 +4886,8 @@ WITH pending_rows AS (
     SELECT
         CASE WHEN pending.component_group IS NULL OR pending.component_group = '' OR pending.component_group = 'no iDST assigned' THEN 'Unassigned' ELSE pending.component_group END AS component_group,
         CASE
-            WHEN src_comp.idst IS NULL OR LTRIM(RTRIM(src_comp.idst)) = '' THEN 'Unassigned'
+                        WHEN src_comp.idst IS NULL OR LTRIM(RTRIM(src_comp.idst)) = ''
+                            OR LOWER(LTRIM(RTRIM(src_comp.idst))) = 'no idst assigned' THEN 'Unassigned'
             ELSE LTRIM(RTRIM(src_comp.idst))
         END AS idst_name,
         CAST(pending.cp_id AS VARCHAR(64)) AS cp_id,
@@ -4989,7 +4976,8 @@ WITH pending_rows AS (
     SELECT
         CASE WHEN pending.component_group IS NULL OR pending.component_group = '' OR pending.component_group = 'no iDST assigned' THEN 'Unassigned' ELSE pending.component_group END AS component_group,
         CASE
-            WHEN src_comp.idst IS NULL OR LTRIM(RTRIM(src_comp.idst)) = '' THEN 'Unassigned'
+                        WHEN src_comp.idst IS NULL OR LTRIM(RTRIM(src_comp.idst)) = ''
+                            OR LOWER(LTRIM(RTRIM(src_comp.idst))) = 'no idst assigned' THEN 'Unassigned'
             ELSE LTRIM(RTRIM(src_comp.idst))
         END AS idst_name,
         CAST(pending.cp_id AS VARCHAR(64)) AS cp_id,
@@ -5100,7 +5088,6 @@ ORDER BY component_group, idst_name", con))
                         WeeklyTrend = pendingEstimate,
                         ConstituentTooltip = pendingConstituentLines.Count > 0
                             ? string.Join("\n", pendingConstituentLines.ToArray())
-                                + "\nOldest is calendar days since the CMF request date, not the last reopening. Missing, invalid and future request dates are excluded."
                             : "No pending constituent counts in this scope."
                     });
                     snapshot.PendingSummary.Rows.Add(new List<string> { "Total", string.Empty, totalPending.ToString(CultureInfo.InvariantCulture) });

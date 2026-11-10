@@ -281,7 +281,6 @@ function makeTableSortable(tableId) {
         (function(col) {
             var th = headerRow.cells[col];
             th.style.cursor = 'pointer';
-            th.title = 'Click to sort';
             th.setAttribute('data-sort-dir', 'asc');
             th.addEventListener('click', function(e) {
                 if (e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') return;

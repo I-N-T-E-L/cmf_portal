@@ -9,8 +9,105 @@ const page = fs.readFileSync(path.join(root, 'CMF_Web_portal.aspx'), 'utf8');
 const server = fs.readFileSync(path.join(root, 'CMF_Web_portal.aspx.cs'), 'utf8');
 const theme = fs.readFileSync(path.join(root, 'Content', 'cmf-portal-theme.css'), 'utf8');
 
+test('collapsed-menu dashboard keeps chart rendering and pointer targets in unscaled CSS coordinates', () => {
+    const compact = page.match(/\.portal-layout-shell\.main-menu-collapsed #homeWelcomePanel \.ccip-dashboard \{([^}]*)\}/);
+    assert.ok(compact);
+    assert.match(compact[1], /zoom: 1;/);
+    assert.doesNotMatch(compact[1], /--ccip-fit-scale-1080|zoom: var\(/);
+    assert.match(compact[1], /transform: none;/);
+    assert.doesNotMatch(compact[1], /transform:\s*scale\(/);
+    assert.match(compact[1], /width: 100%;/);
+    assert.doesNotMatch(compact[1], /width: calc\(100% \/ /);
+});
+
+test('shared dashboard table scrollbars keep their geometry stable on hover', () => {
+    const base = page.match(/#homeLegacyTablesGrid \.ccip-live-table-wrap,[\s\S]*?#homeLegacyOverview \.ccip-inline-side-stack \.ccip-live-table-wrap \{([^}]*)\}/);
+    assert.ok(base);
+    assert.match(base[1], /scrollbar-gutter: stable;/);
+    assert.match(base[1], /scrollbar-width: thin;/);
+    const scrollbar = page.match(/#homeLegacyTablesGrid \.ccip-live-table-wrap::-webkit-scrollbar,[\s\S]*?#homeLegacyOverview \.ccip-inline-side-stack \.ccip-live-table-wrap::-webkit-scrollbar \{([^}]*)\}/);
+    assert.ok(scrollbar);
+    assert.match(scrollbar[1], /width: 8px;/);
+    assert.match(scrollbar[1], /height: 8px;/);
+    const hover = page.match(/#homeLegacyTablesGrid \.ccip-live-table-wrap:hover,[\s\S]*?#homeLegacyOverview \.ccip-inline-side-stack \.ccip-live-table-wrap:hover \{([^}]*)\}/);
+    assert.ok(hover);
+    assert.match(hover[1], /scrollbar-width: thin;/);
+});
+
+test('component summary subheaders use unscaled CSS heights and resize observation instead of scroll corrections', () => {
+    const definition = page.match(/        function applyComponentGroupHeaderSticky\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    function makeTable(height) {
+        const firstCell = { style: {}, getBoundingClientRect: () => ({ width: 92 }) };
+        const group = {
+            style: {}, cssHeight: height, offsetHeight: 50,
+            classList: { contains: () => true },
+            getBoundingClientRect: () => ({ height: 45 })
+        };
+        const subCells = [{ style: {} }, { style: {} }];
+        const rows = [{ querySelectorAll: () => [firstCell, group] }, { querySelectorAll: () => subCells }];
+        const properties = new Map();
+        return {
+            group, subCells, rows,
+            querySelectorAll: () => rows,
+            style: {
+                setProperty: (name, value) => properties.set(name, value),
+                getPropertyValue: name => properties.get(name) || ''
+            }
+        };
+    }
+    let table = makeTable('50px');
+    const observers = [];
+    const host = {
+        querySelector: () => table,
+        addEventListener: () => assert.fail('Sticky headers must not install per-scroll correction handlers.')
+    };
+    const context = vm.createContext({
+        getComputedStyle: cell => ({ height: cell.cssHeight }),
+        ResizeObserver: class {
+            constructor(callback) {
+                this.callback = callback;
+                this.observed = [];
+                this.disconnects = 0;
+                observers.push(this);
+            }
+            observe(row) { this.observed.push(row); }
+            disconnect() { this.disconnects++; }
+        }
+    });
+    vm.runInContext(definition[0], context);
+    context.applyComponentGroupHeaderSticky(host);
+    assert.ok(table.subCells.every(cell => cell.style.top === '50px'), 'CSS height must not be replaced by the 45px zoomed screen height.');
+    assert.equal(table.style.getPropertyValue('--ccip-component-group-header-height'), '50px');
+    assert.equal(observers.length, 1);
+    assert.equal(observers[0].observed[0], table.rows[0]);
+    table.group.cssHeight = '60.5px';
+    observers[0].callback();
+    assert.ok(table.subCells.every(cell => cell.style.top === '60.5px'), 'A real header resize updates the offset in CSS pixels.');
+    assert.equal(observers.length, 1, 'Resize callbacks must reuse the observer rather than creating an observation loop.');
+    assert.equal(observers[0].observed.length, 1);
+    table = makeTable('44px');
+    context.applyComponentGroupHeaderSticky(host);
+    assert.ok(table.subCells.every(cell => cell.style.top === '44px'));
+    assert.equal(observers[0].observed[1], table.rows[0], 'A rerender observes the replacement header row.');
+    table.group.cssHeight = 'auto';
+    observers[0].callback();
+    assert.ok(table.subCells.every(cell => cell.style.top === '50px'), 'Fallback measurements also use layout CSS pixels.');
+    context.applyComponentGroupHeaderSticky(null);
+});
+
 test('ingredient risk heatmap orders platforms by descending total without misaligning cells', () => {
-    const host = { innerHTML: '', querySelectorAll: () => [], querySelector: () => null };
+    let markup = '';
+    let scroll = null;
+    const host = {
+        get innerHTML() { return markup; },
+        set innerHTML(value) {
+            markup = value;
+            scroll = value.includes('component-summary-heatmap-scroll') ? { scrollTop: 0, scrollLeft: 0 } : null;
+        },
+        querySelectorAll: () => [],
+        querySelector: selector => selector === '.component-summary-heatmap-scroll' ? scroll : null
+    };
     const portal = { overallRiskSubtractLos: false };
     const context = vm.createContext({
         document: { getElementById: () => host },
@@ -32,7 +129,11 @@ test('ingredient risk heatmap orders platforms by descending total without misal
     const original = JSON.stringify(snapshot);
     for (const subtractLos of [false, true]) {
         portal.overallRiskSubtractLos = subtractLos;
+        const previousScroll = scroll;
         context.renderOverallHeatmap(snapshot);
+        assert.notEqual(scroll, previousScroll, 'Redraw replaces the heatmap scroll container.');
+        assert.equal(scroll.scrollTop, previousScroll ? 145 : 0, 'LOS redraw must retain vertical scroll.');
+        assert.equal(scroll.scrollLeft, previousScroll ? 92 : 0, 'LOS redraw must retain horizontal scroll.');
         const headers = Array.from(host.innerHTML.matchAll(/class="overall-heatmap-platform">([^<]*)/g), match => match[1]);
         assert.deepEqual(headers, ['Top', 'Alpha', 'Beta', 'Blank', 'Zero']);
         const tiles = Array.from(host.innerHTML.matchAll(/<div class="overall-heatmap-tile ([^"]*)"([^>]*)>([^<]*)<\/div>/g));
@@ -46,7 +147,13 @@ test('ingredient risk heatmap orders platforms by descending total without misal
             assert.ok(tiles[tileIndex][2].includes('title="' + platform + ' ' + ingredient));
         }
         assert.equal(JSON.stringify(snapshot), original);
+        scroll.scrollTop = 145;
+        scroll.scrollLeft = 92;
     }
+    portal.overallRiskSubtractLos = false;
+    context.renderOverallHeatmap(snapshot);
+    assert.equal(scroll.scrollTop, 145, 'Turning LOS off must also preserve vertical scroll.');
+    assert.equal(scroll.scrollLeft, 92, 'Turning LOS off must also preserve horizontal scroll.');
     context.renderOverallHeatmap({ HeatmapPlatforms: [], ComponentRiskHeatmap: [] });
     assert.ok(host.innerHTML.includes('No heatmap data available.'));
 });
@@ -112,14 +219,164 @@ test('left menu uses native sticky positioning without scroll-frame corrections'
     assert.doesNotMatch(mainScript, /function (?:sync|clear)SidebarViewportStickiness|sidebar\.style\.setProperty\('(?:top|position)'/);
 });
 
+test('AI Insights hides pagination for empty views while retaining the empty-state message', () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const context = vm.createContext({});
+    for (const name of ['escape', 'findings', 'pagination']) {
+        const definition = script.match(new RegExp('    function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n    \\}'));
+        assert.ok(definition);
+        vm.runInContext(definition[0], context);
+    }
+    for (const view of ['highlights', 'trends', 'similar']) {
+        const state = { data: { PageSize: 5 }, pages: { [view]: { page: 0, items: [], total: 0 } } };
+        const message = 'No material concentration or directional change in the data.';
+        assert.equal(context.pagination(state, view), '');
+        assert.equal(context.pagination(state, view) + context.findings([], message), '<p class="ci-empty">' + message + '</p>');
+        state.pages[view].total = 1;
+        assert.match(context.pagination(state, view), /<span>1-1 of 1 /);
+        assert.doesNotMatch(context.pagination(state, view), /data-page-step/);
+        state.pages[view].total = 6;
+        assert.match(context.pagination(state, view), /<span>1-5 of 6 /);
+        assert.match(context.pagination(state, view), /data-page-step="1"/);
+        state.pages[view].page = 1;
+        assert.match(context.pagination(state, view), /<span>6-6 of 6 /);
+    }
+});
+
+test('AI Insights Summary renders escaped cited analysis and keeps an Overall-only leading tab', () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const context = vm.createContext({});
+    for (const name of ['escape', 'summaryContent']) {
+        const definition = script.match(new RegExp('    function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n    \\}'));
+        assert.ok(definition);
+        vm.runInContext(definition[0], context);
+    }
+    assert.match(context.summaryContent(null), /Generating AI summary/);
+    assert.match(context.summaryContent({ Mode: 'empty', Claims: [] }), /No material findings/);
+    for (const mode of ['canonical', 'ai-loading', 'ai-review', 'ai-unavailable', 'unknown']) {
+        const hidden = context.summaryContent({ Success: true, Mode: mode, Claims: [{ Summary: 'CANONICAL SENTINEL' }] });
+        assert.doesNotMatch(hidden, /CANONICAL SENTINEL/);
+    }
+    const result = context.summaryContent({ Success: true, Mode: 'ai', Claims: [{ FactIds: ['A:pending'], Summary: 'Platform <A>: <script>\nPlatform <A>: Pending is higher.',
+        ReviewSuggestion: 'Review <contacts>.', Evidence: [{ Source: 'Platform <A>', Text: '10 versus 5 & scope.' }] }] });
+    assert.match(result, /&lt;script&gt;/);
+    assert.doesNotMatch(result, /<script>|<contacts>/);
+    assert.match(result, /Suggested review/);
+    assert.match(result, /Supporting evidence/);
+    assert.match(result, /10 versus 5 &amp; scope/);
+    assert.equal((result.match(/<h4 class="ci-category">Platform &lt;A&gt;<\/h4>/g) || []).length, 1);
+    assert.doesNotMatch(result, /Platform &lt;A&gt;:/);
+
+    const analysis = { Success: true, Mode: 'ai', Claims: [
+        { Summary: 'NVL H Dashboard: First observation.\nNVL H Dashboard: Second observation.',
+            ReviewSuggestion: 'Review contacts.', Evidence: [{ Source: 'NVL H Dashboard', Text: 'First evidence.' }] },
+        { Summary: 'NVL Hx Dashboard: Different platform.\nNVL H Dashboard: Third observation.',
+            ReviewSuggestion: 'Review the cited scopes.', Evidence: [
+                { Source: 'NVL Hx Dashboard', Text: 'Other platform evidence.' },
+                { Source: 'NVL H Dashboard', Text: 'Third evidence.' }] },
+        { Summary: 'NVL H Dashboard: Fourth observation.', ReviewSuggestion: 'Review contacts.',
+            Evidence: [{ Source: 'NVL H Dashboard', Text: 'Fourth evidence.' }] }
+    ] };
+    const original = JSON.stringify(analysis);
+    const grouped = context.summaryContent(analysis);
+    assert.equal((grouped.match(/<h4 class="ci-category">NVL H Dashboard<\/h4>/g) || []).length, 1);
+    assert.equal((grouped.match(/<h4 class="ci-category">NVL Hx Dashboard<\/h4>/g) || []).length, 1);
+    assert.equal((grouped.match(/<li class="cmf-assistant-text-section/g) || []).length, 2);
+    assert.equal((grouped.match(/<details class="ci-support">/g) || []).length, 2);
+    assert.equal((grouped.match(/Review contacts\./g) || []).length, 1);
+    assert.doesNotMatch(grouped, /NVL H(?:x)? Dashboard:/);
+    for (const text of ['First observation.', 'Second observation.', 'Third observation.', 'Fourth observation.',
+        'Different platform.', 'First evidence.', 'Third evidence.', 'Fourth evidence.', 'Other platform evidence.'])
+        assert.ok(grouped.includes(text), text);
+    assert.match(grouped, /Suggested review \(NVL Hx Dashboard, NVL H Dashboard\)/);
+    assert.equal(JSON.stringify(analysis), original);
+    const fluent = context.summaryContent({ Success: true, Mode: 'ai', Claims: [
+        { Scope: 'Platform <A>', FactIds: ['A:pending'],
+            Summary: 'There are 10 pending CMFs, compared with an estimated 5 a week earlier.',
+            ReviewSuggestion: 'Consider reviewing <contacts>.', Evidence: [{ Source: 'Platform <A>', Text: '10 versus 5.' }] },
+        { Scope: 'Platform <A>', FactIds: ['A:age'], Summary: 'Several requests are beyond the cited age threshold.',
+            Evidence: [{ Source: 'Platform <A>', Text: 'Age evidence.' }] }
+    ] });
+    assert.equal((fluent.match(/<h4 class="ci-category">Platform &lt;A&gt;<\/h4>/g) || []).length, 1);
+    assert.equal((fluent.match(/<li class="cmf-assistant-text-section/g) || []).length, 1);
+    assert.match(fluent, /<p class="ci-evidence">There are 10 pending CMFs, compared with an estimated 5 a week earlier\.<\/p>/);
+    assert.match(fluent, /Several requests are beyond the cited age threshold/);
+    assert.match(fluent, /&lt;contacts&gt;/);
+    assert.doesNotMatch(fluent, /Platform &lt;A&gt;:|<contacts>/);
+    assert.match(script, /overall \? \[\['summary', 'Summary', 'file-alt'\]\] : \[\]/);
+    assert.match(script, /tab: overall \? 'summary' : 'highlights'/);
+    assert.match(script, /GetDashboardSummary/);
+    assert.match(script, /serial !== state.serial \|\| evidenceKey !== state.evidenceKey/);
+    assert.doesNotMatch(script, /Mode: 'canonical'|item.Title \+ '\. ' \+ item.Evidence/);
+});
+
+test('AI Insights Summary never substitutes canonical claims during loading, failure or stale responses', async () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const definition = script.match(/    function loadSummary\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0];
+    const state = { overall: true, serial: 1, evidenceKey: 'first', host: { isConnected: true },
+        data: { Mode: 'ai', Highlights: [{ Title: 'Canonical title', Evidence: 'Canonical summary', Reasons: [{ Source: 'A', Text: '10 versus 5' }] }] } };
+    const requests = [], timers = new Map();
+    let timerId = 0, pending;
+    const context = vm.createContext({ active: state, AbortController,
+        setTimeout(callback, delay) { timers.set(++timerId, { callback, delay }); return timerId; },
+        clearTimeout(timer) { timers.delete(timer); }, draw() {}, status() {},
+        fetch(url, options) { requests.push({ url, body: JSON.parse(options.body) }); return new Promise(resolve => { pending = resolve; }); }
+    });
+    vm.runInContext(definition, context);
+    context.loadSummary(state, true);
+    assert.equal(state.analysis.Mode, 'ai-loading');
+    assert.equal(state.analysis.Claims.length, 0);
+    assert.equal(requests[0].body.evidenceKey, 'first');
+    assert.equal(requests[0].body.refresh, true);
+    pending({ ok: true, json: async () => ({ d: { Success: true, Mode: 'ai-loading', Claims: [{ Summary: 'CANONICAL SENTINEL' }] } }) });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(state.analysis.Mode, 'ai-loading');
+    assert.equal(state.analysis.Claims.length, 0);
+    const poll = Array.from(timers.values()).find(timer => timer.delay === 3000);
+    assert.ok(poll);
+    poll.callback();
+    assert.equal(requests[1].body.refresh, false);
+    pending({ ok: false });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(state.analysis.Mode, 'ai-unavailable');
+    assert.equal(state.analysis.Claims.length, 0);
+    context.loadSummary(state, false);
+    pending({ ok: true, json: async () => ({ d: { Success: true, Mode: 'ai-review', Claims: [{ Summary: 'UNVERIFIED DRAFT' }] } }) });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(state.analysis.Mode, 'ai-unavailable');
+    assert.equal(state.analysis.Claims.length, 0);
+    context.loadSummary(state, false);
+    state.serial++;
+    state.evidenceKey = 'second';
+    pending({ ok: true, json: async () => ({ d: { Success: true, Mode: 'ai', Claims: [{ Summary: 'STALE RESPONSE' }] } }) });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(state.analysis.Claims.length, 0);
+    const platform = { overall: false };
+    context.loadSummary(platform, false);
+    assert.equal(requests.length, 4);
+});
+
+test('AI Insights Overall finding labels use compact teal badges with softly rounded rectangular corners', () => {
+    const styles = fs.readFileSync(path.join(root, 'Content', 'cmf-dashboard-insights.css'), 'utf8');
+    const badge = styles.match(/#homeOverallInsights \.ci-findings \.ci-finding-label\s*\{([^}]+)\}/);
+    assert.ok(badge, 'Badge styling must be scoped to Overall finding labels');
+    for (const property of ['display: inline-block;', 'max-width: 100%;', 'padding: 2px 8px;',
+        'border-radius: 4px;', 'background: #e0f3ed;', 'color: #0f6654;', 'font-size: 10px;',
+        'font-weight: 800;', 'line-height: 1.2;', 'letter-spacing: 0;']) assert.ok(badge[1].includes(property), property);
+    assert.doesNotMatch(badge[1], /border-radius: 999px|#f3e8ff|#7e22ce/);
+    assert.match(page, /Content\/cmf-dashboard-insights\.css\?v=14/);
+});
+
 test('AI Insights keeps content-independent card dimensions and internal scrolling', () => {
     const styles = fs.readFileSync(path.join(root, 'Content', 'cmf-dashboard-insights.css'), 'utf8');
-    assert.match(styles, /#homeOverallLayoutV2 > \.overall-ai-span-card,\s*#homeLegacyAiHealthCard\s*\{\s*contain: size;\s*overflow: hidden;/);
+    assert.match(styles, /#homeOverallLayoutV2 > \.overall-ai-span-card,\s*#homeLegacyAiHealthCard\s*\{\s*position: relative;\s*contain: size;\s*overflow: hidden;/);
     assert.match(styles, /#homeLegacyAiHealthCard\s*\{\s*min-height: var\(--ccip-ai-fixed-height\) !important;\s*max-height: var\(--ccip-ai-fixed-height\) !important;/);
     assert.match(styles, /\.cmf-insights\s*\{[^}]*min-width: 0;[^}]*min-height: 0;[^}]*overflow: auto;/);
     assert.match(styles, /\.ci-toolbar\s*\{[^}]*flex: 0 0 auto;/);
     assert.match(styles, /\.ci-content\s*\{\s*flex: 1 1 0;\s*min-width: 0;\s*min-height: 0;\s*max-height: none;\s*overflow: auto;/);
     assert.doesNotMatch(styles, /\.ci-content\s*\{[^}]*max-height:\s*\d/);
+    assert.match(styles, /\.ci-findings\s*\{[^}]*padding: 0 2px 6px 0;/);
+    assert.match(styles, /#homeOverallInsights \.ci-content > \.ci-findings\s*\{\s*padding-top: 6px;\s*\}/);
     assert.match(styles, /@media \(max-width: 900px\)\s*\{\s*#homeOverallLayoutV2 > \.overall-ai-span-card\s*\{\s*height: 503\.85px;/);
 });
 
@@ -136,7 +393,7 @@ test('AI Insights scope sits beside each heading at 13px without the acceptance-
     const states = [];
     const elements = new Map();
     for (const hostId of ['homeOverallInsights', 'homePlatformInsights']) {
-        const parts = new Map(['.ci-content', '.ci-mode', '.ci-metadata', '.ci-time', '.ci-provenance', '.ci-refresh'].map(selector => [selector, {
+        const parts = new Map(['.ci-content', '.ci-metadata', '.ci-time', '.ci-refresh'].map(selector => [selector, {
             textContent: '', innerHTML: '', setAttribute() {}, addEventListener() {}, querySelectorAll: () => []
         }]));
         elements.set(hostId, { id: hostId, isConnected: true, innerHTML: '', querySelector: selector => parts.get(selector), querySelectorAll: () => [] });
@@ -166,7 +423,13 @@ test('AI Insights scope sits beside each heading at 13px without the acceptance-
         assert.equal(elements.get(hostId + 'Scope').textContent, label);
         assert.doesNotMatch(state.host.innerHTML, /ci-scope|All acceptance dates/);
         assert.match(state.host.innerHTML, /^<div class="ci-controls"><div class="ci-tabs"/);
-        assert.match(state.host.innerHTML, /<\/button><\/div><div class="ci-toolbar"><span class="ai-summary-status-value ci-mode">/);
+        assert.match(state.host.innerHTML, /<\/button><\/div><div class="ci-toolbar"><button type="button" class="ci-refresh"/);
+        assert.doesNotMatch(state.host.innerHTML, /ci-mode|AI-ranked|Ranking/);
+        assert.deepEqual(Array.from(state.host.innerHTML.matchAll(/data-view="([^"]+)"/g), match => match[1]),
+            hostId === 'homeOverallInsights' ? ['summary', 'highlights', 'trends'] : ['highlights', 'trends']);
+        assert.doesNotMatch(state.host.innerHTML, /Similar Issues|data-view="similar"/);
+        assert.doesNotMatch(state.host.innerHTML, /Scope &amp; sources|ci-provenance|<details>/);
+        assert.match(state.host.innerHTML, /<div class="ci-footer"><time class="ci-time"><\/time><p class="ci-metadata"><\/p><\/div>/);
         state.pages = { highlights: { items: [] } };
         state.data = { Scope: label, DateRange: 'All acceptance dates', Mode: 'ai', Records: 0, DistinctIssues: 0, DuplicateRecords: 0, ExcludedRecords: 0, GeneratedAt: '2026-11-04T12:00:00Z', ExpiresAt: '2099-01-01T00:00:00Z', SourceStatus: 'All returned text AI-reviewed' };
         context.draw(state);
@@ -174,12 +437,14 @@ test('AI Insights scope sits beside each heading at 13px without the acceptance-
     }
 });
 
-test('AI Insights polls hybrid group review and never presents calculated groups as AI opinions', async () => {
+test('AI Insights progressively renders reviewed groups with blue loading progress and retains completed findings', async () => {
     const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
     function harness(replies) {
-        const parts = new Map(['.ci-content', '.ci-mode', '.ci-time', '.ci-metadata', '.ci-provenance', '.ci-status', '.ci-refresh'].map(selector => [selector, {
+        const parts = new Map(['.ci-content', '.ci-time', '.ci-metadata', '.ci-status', '.ci-refresh', '.ci-progress'].map(selector => [selector, {
             textContent: '', innerHTML: 'old calculated content', attributes: {},
-            setAttribute(name, value) { this.attributes[name] = value; }
+            setAttribute(name, value) { this.attributes[name] = value; },
+            removeAttribute(name) { delete this.attributes[name]; },
+            classList: { toggle() {} }, style: { setProperty(name, value) { this[name] = value; } }
         }]));
         const state = { serial: 0, platform: 'CMF_NVL_H_ALL_COMPONENTS_TABLE', data: { Mode: 'evidence' },
             host: { isConnected: true, querySelector: selector => parts.get(selector) } };
@@ -194,61 +459,144 @@ test('AI Insights polls hybrid group review and never presents calculated groups
                 const reply = replies.shift();
                 if (reply instanceof Error) throw reply;
                 assert.ok(reply, 'Unexpected extra request');
-                return { ok: true, async json() { return { d: reply }; } };
+                return { ok: true, async json() { return { d: JSON.parse(JSON.stringify(reply)) }; } };
             },
-            receive(target, data) { assert.equal(data.Mode, 'ai'); received.push(data); target.data = data; },
-            draw(target) { parts.get('.ci-content').innerHTML = 'AI result: ' + target.data.Highlights[0].Title; }
+            draw(target) {
+                received.push(target.data);
+                parts.get('.ci-content').innerHTML = target.data && (target.data.Highlights || []).length
+                    ? 'AI result: ' + target.data.Highlights.map(item => item.Title).join(', ') : 'Reviewing issue groups...';
+            }
         });
-        for (const name of ['request', 'status', 'load']) {
+        for (const name of ['receive', 'request', 'status', 'load']) {
             const definition = script.match(new RegExp('    function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n    \\}'));
             assert.ok(definition);
             vm.runInContext(definition[0], context);
         }
         return { context, state, parts, requests, received, timers };
     }
-    const source = { Success: true, Mode: 'ai-loading', EvidenceKey: 'opaque', Records: 12, DistinctIssues: 11, CandidateCount: 6, ReviewedCandidates: 0, Highlights: [] };
-    const complete = { Success: true, Mode: 'ai', Message: 'AI review complete.', Highlights: [{ Title: 'Technical pattern' }] };
-    const running = harness([source, { ...source, ReviewedCandidates: 2, Message: 'AI reviewed 2/6 ranked groups.' }, complete]);
+    const source = { Success: true, Mode: 'ai-loading', EvidenceKey: 'opaque', Records: 12, DistinctIssues: 11, CandidateCount: 6, ReviewedCandidates: 0,
+        GeneratedAt: '2026-11-08T12:00:00Z', HighlightCount: 0, GroupCount: 0, Highlights: [], Groups: [] };
+    const partial = { ...source, GeneratedAt: '2026-11-08T12:00:01Z', ReviewedCandidates: 2, HighlightCount: 1,
+        Message: 'AI reviewed 2/6 ranked groups.', Highlights: [{ AiReviewed: true, Title: 'Technical pattern' }] };
+    const complete = { ...partial, Mode: 'ai', Message: 'AI review complete.', ReviewedCandidates: 6 };
+    const running = harness([source, partial, { ...partial }, complete]);
     running.context.load(running.state, true);
     await new Promise(resolve => setImmediate(resolve));
-    assert.equal(running.received.length, 0);
-    assert.equal(running.parts.get('.ci-content').innerHTML, '');
-    assert.equal(running.parts.get('.ci-mode').textContent, 'Analyzing');
-    assert.match(running.parts.get('.ci-metadata').textContent, /6 ranked groups \| 2 reviewed/);
+    assert.match(running.parts.get('.ci-content').innerHTML, /Technical pattern/);
+    assert.equal(running.parts.get('.ci-status').textContent, '');
+    assert.match(running.parts.get('.ci-metadata').textContent, /6 ranked groups \| 2 completed/);
+    assert.equal(running.parts.get('.ci-progress').hidden, false);
+    assert.equal(running.parts.get('.ci-progress').attributes['aria-valuenow'], '2');
+    assert.equal(running.parts.get('.ci-progress').style['--ci-progress'], (100 / 3) + '%');
     assert.equal(running.requests.length, 2, 'An empty pre-AI highlights list must not skip the AI pipeline');
     assert.deepEqual(running.requests[1].body, { evidenceKey: 'opaque', refresh: true });
     const poll = Array.from(running.timers.values()).find(timer => timer.delay === 3000);
     assert.ok(poll, 'Long analysis must poll without a total elapsed-time cutoff');
     poll.callback();
     await new Promise(resolve => setImmediate(resolve));
-    assert.equal(running.received.length, 1);
+    assert.equal(running.received.length, 3, 'Unchanged snapshots must not redraw or reset the current page');
     assert.equal(running.requests[2].body.refresh, false);
+    Array.from(running.timers.values()).filter(timer => timer.delay === 3000).at(-1).callback();
+    await new Promise(resolve => setImmediate(resolve));
     assert.match(running.parts.get('.ci-content').innerHTML, /Technical pattern/);
+    assert.equal(running.parts.get('.ci-progress').hidden, true);
+    assert.equal(running.parts.get('.ci-status').textContent, '');
     for (const failure of [new Error('Network unavailable.'), { Success: false, Mode: 'ai-unavailable', Message: 'AI analysis could not complete.' }]) {
         const unavailable = harness([source, failure]);
         unavailable.context.load(unavailable.state, false);
         await new Promise(resolve => setImmediate(resolve));
-        assert.equal(unavailable.received.length, 0);
-        assert.equal(unavailable.parts.get('.ci-mode').textContent, 'Unavailable');
-        assert.equal(unavailable.parts.get('.ci-content').attributes['aria-busy'], 'false');
+        assert.match(unavailable.parts.get('.ci-status').textContent, /unavailable|could not complete/i);
+        assert.equal(unavailable.parts.get('.ci-progress').hidden, true);
         assert.doesNotMatch(unavailable.parts.get('.ci-content').innerHTML, /old calculated content|Technical pattern/);
         assert.equal(unavailable.parts.get('.ci-refresh').disabled, false);
     }
+    for (const failure of [new Error('Network unavailable.'), { ...partial, Success: false, Mode: 'ai-unavailable', Message: 'Remaining review stopped.' },
+        { ...partial, Mode: 'ai-unavailable', Message: 'Overall priorities use 2/6 platform rankings.' }]) {
+        const interrupted = harness([source, partial, failure]);
+        interrupted.context.load(interrupted.state, false);
+        await new Promise(resolve => setImmediate(resolve));
+        Array.from(interrupted.timers.values()).find(timer => timer.delay === 3000).callback();
+        await new Promise(resolve => setImmediate(resolve));
+        assert.match(interrupted.parts.get('.ci-content').innerHTML, /Technical pattern/);
+        assert.match(interrupted.parts.get('.ci-status').textContent, /unavailable|could not complete/i);
+        assert.doesNotMatch(interrupted.parts.get('.ci-status').textContent, /rankings/i);
+        assert.equal(interrupted.parts.get('.ci-progress').hidden, true);
+        assert.equal(interrupted.parts.get('.ci-refresh').disabled, false);
+    }
+    const styles = fs.readFileSync(path.join(root, 'Content', 'cmf-dashboard-insights.css'), 'utf8');
+    assert.match(styles, /\.ci-progress span\s*\{[^}]*background: #1768b2;/);
+    assert.match(styles, /#homeOverallLayoutV2 > \.overall-ai-span-card,\s*#homeLegacyAiHealthCard\s*\{\s*position: relative;/);
+    assert.match(styles, /\.ci-progress\s*\{[^}]*position: absolute;[^}]*bottom: 0;[^}]*left: 0;[^}]*right: 0;/);
+    assert.doesNotMatch(styles, /\.ci-progress\s*\{[^}]*(?:flex:|margin)/);
+    assert.match(styles, /\.ci-progress-indeterminate span\s*\{[^}]*animation: ci-review-loading/);
+    assert.match(styles, /prefers-reduced-motion: reduce/);
     assert.doesNotMatch(script, /Calculated|Showing calculated|calculated evidence is available/);
 });
 
-test('hybrid Insights warms all platforms, preserves source evidence, and derives Overall without raw HSD analysis', () => {
-    assert.match(server, /WarmPlatforms\(CmfPlatformCatalog\.GetAllPlatformTables\(\), LoadDashboardInsightEvidence\)/);
-    assert.match(server, /GetSummaryIssueSourceTablesForWeb\(selection\)/);
-    assert.match(server, /evidence\.PlatformEvidence\.Add\(platformEvidence\)/);
-    assert.match(server, /cmf-insight-result:/);
-    assert.match(server, /new\[\] \{ "processor", "family", "release", "sysdebug_forum" \}/);
-    const service = fs.readFileSync(path.join(root, 'App_Code', 'CmfDashboardInsightsService.cs'), 'utf8');
-    assert.match(service, /new SemaphoreSlim\(2\)/);
-    assert.match(service, /evidence\.PlatformEvidence == null[\s\S]*?AnalyzeHybrid[\s\S]*?: AnalyzeRollup/);
-    const rollup = service.match(/    public static CmfDashboardInsights AnalyzeRollup\([\s\S]*?\r?\n    \}/)[0];
-    assert.doesNotMatch(rollup, /FetchArticle|AnalyzeHybrid|\.Documents/);
-    assert.match(rollup, /platform\.Highlights/);
+test('AI Insights resets ranking pages when the same dashboard facts finish ranking', () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const definition = script.match(/    function receive\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0];
+    const context = vm.createContext({});
+    vm.runInContext(definition, context);
+    const pending = { Mode: 'ai-loading', GeneratedAt: '2026-11-09T12:00:00Z', SourceHash: 'same-facts',
+        HighlightCount: 2, TrendCount: 2, GroupCount: 0, Highlights: [{ Id: 'unranked' }], TrendFindings: [{ Id: 'current' }] };
+    const state = { pageVersion: 0 };
+    assert.equal(context.receive(state, pending), true);
+    assert.equal(context.receive(state, { ...pending }), false);
+    assert.equal(context.receive(state, { ...pending, Mode: 'ai', Highlights: [{ Id: 'ranked-first' }], TrendFindings: [{ Id: 'ranked-trend' }] }), true);
+    assert.equal(state.pages.highlights.items[0].Id, 'ranked-first');
+    assert.equal(state.pages.trends.items[0].Id, 'ranked-trend');
+});
+
+test('AI Insights keeps its seven-day input independent of calendar-week chart controls', () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const definition = script.match(/    function render\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0];
+    const loads = [];
+    const host = { id: 'homePlatformInsights', querySelector: () => ({ addEventListener() {} }), querySelectorAll: () => [] };
+    const context = vm.createContext({
+        active: null,
+        window: { CMF_PORTAL: { currentDashboardPlatform: 'NVL-H' } },
+        document: { getElementById(id) {
+            if (id === host.id) return host;
+            if (id === host.id + 'Scope') return {};
+            throw new Error('Insights must not read chart controls: ' + id);
+        } },
+        load: state => loads.push(state.key), clearTimeout() {}
+    });
+    vm.runInContext(definition, context);
+    context.render({ InsightsSnapshotKey: 'snapshot-a' });
+    context.render({ InsightsSnapshotKey: 'snapshot-a' });
+    assert.equal(loads.length, 1);
+    context.render({ InsightsSnapshotKey: 'snapshot-b' });
+    assert.equal(loads.length, 2);
+    assert.equal(context.active.key, 'NVL-H|snapshot-b');
+    const service = fs.readFileSync(path.join(root, 'App_Code', 'CmfRenderedInsightsService.cs'), 'utf8');
+    const projection = service.match(/    public static CmfPanelInsightSource BuildSource\([\s\S]*?\r?\n    \}/)[0];
+    assert.doesNotMatch(projection, /Field\(snapshot\.Data, "Trend"\)|WeekEndOpenIssues|NewIssues|ResolvedIssues/);
+    assert.doesNotMatch(service, /current week is partial|current week remains partial|Partial-week flow/);
+    assert.match(service, /Period = "past-7-days"/);
+    assert.match(script, /rendered-dashboard-v4/);
+});
+
+test('AI Insights uses server-owned rendered snapshots and combines platform facts without HSD enrichment', () => {
+    const endpoint = server.match(/    public static CmfDashboardInsights GetDashboardInsights\([\s\S]*?\r?\n    \}/)[0];
+    assert.match(endpoint, /DashboardSnapshotCacheKey\(snapshotKey\)/);
+    assert.match(endpoint, /snapshot\.Platform != selection/);
+    assert.match(endpoint, /GetSummaryIssueSourceTablesForWeb\(selection\)/);
+    assert.match(endpoint, /BuildHomeDashboardSnapshot\(table\)/);
+    assert.doesNotMatch(endpoint, /FetchArticle|AnalyzeHybrid|CreateBalanceEvidenceCommand|WarmPlatforms/);
+    assert.doesNotMatch(server, /LoadDashboardInsightEvidence/);
+    assert.match(server, /CmfRenderedInsightsService\.Aggregate\(evidence\.Scope, platforms\)/);
+    const service = fs.readFileSync(path.join(root, 'App_Code', 'CmfRenderedInsightsService.cs'), 'utf8');
+    assert.doesNotMatch(service, /FetchArticle|AnalyzeHybrid|TryGenerateDashboardInsights/);
+    assert.match(service, /TryRankDashboardFacts/);
+    const aggregate = service.match(/    public static CmfDashboardInsights Aggregate\([\s\S]*?\r?\n    \}/)[0];
+    assert.doesNotMatch(aggregate, /\b(?:TryRank\w*|Generate\w*|SelectFacts|BuildSource)\s*\(/);
+    assert.match(aggregate, /GroupBy\(entry => new \{ entry\.Item\.Topic, entry\.Item\.Category \}\)/);
+    assert.match(aggregate, /GroupBy\(entry => entry\.Item\.Id, StringComparer\.Ordinal\)/);
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    assert.match(script, /snapshotKey: state\.snapshotKey, trendWeeks: state\.trendWeeks, chartView: state\.chartView/);
+    assert.doesNotMatch(script, /snapshotContext:|JSON\.stringify\(snapshot\)/);
 });
 
 test('AI Insights findings reuse the shared assistant sections without changing evidence or links', () => {
@@ -267,7 +615,7 @@ test('AI Insights findings reuse the shared assistant sections without changing 
         Reasons: [{ Text: 'Same explicit link.' }, { Text: 'Shared component.', Source: 'component', IssueIds: ['14012345679'] }],
         Issues: [{ Id: '14012345679', Platform: 'NVL-H', Title: 'Example <title>' }]
     }], 'No findings.');
-    assert.match(markup, /<li class="cmf-assistant-text-section cmf-assistant-description-section"><h3>/);
+    assert.match(markup, /<li data-finding-id="[^"]*" class="cmf-assistant-text-section cmf-assistant-description-section"><h3>/);
     assert.match(markup, /<p class="ci-evidence">2 distinct HSDs &lt;unconfirmed&gt;<\/p>/);
     assert.match(markup, /Why related:[\s\S]*Same explicit link\./);
     assert.match(markup, /Supporting comparisons[\s\S]*Shared component\./);
@@ -282,6 +630,43 @@ test('AI Insights findings reuse the shared assistant sections without changing 
     assert.match(styles, /\.ci-controls\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) auto;/);
     assert.match(styles, /\.ci-status:empty\s*\{\s*display: none;/);
     assert.match(styles, /\.ci-footer\s*\{[^}]*display: flex;[^}]*flex-wrap: wrap;/);
+    const factual = context.findings([{ Id: 'kpi', Kind: 'dashboard', Title: 'Open today', Evidence: '20 <CMFs>',
+        AiReviewed: false, Reasons: [{ Source: 'CMF Summary' }] }], 'No facts.');
+    assert.match(factual, /Verified dashboard facts \| Unranked/);
+    assert.match(factual, /20 &lt;CMFs&gt;/);
+    assert.match(factual, /Source: CMF Summary/);
+    assert.doesNotMatch(factual, /distinct HSDs|Suggested review|AI-reviewed|Why related/);
+    const briefing = context.findings([
+        { Id: 'progress', Kind: 'briefing', Category: 'Progress', Title: 'Backlog is shrinking', Evidence: 'Less unresolved work.',
+            PlatformCount: 1, Reasons: [{ Source: 'Summary', Text: 'Open: 10 versus 20.' }] },
+        { Id: 'mixed', Kind: 'briefing', Category: 'Needs Attention', Label: 'Mixed Signals', Title: 'Closures rose <but> backlog grew', Evidence: 'Measures moved in different directions.',
+            PlatformCount: 2, Reasons: [{ Source: 'NVL-H <source>', Text: 'Open: 20 versus 18 <estimate>.' }] }
+    ], 'No material changes.');
+    assert.ok(briefing.indexOf('Needs Attention') < briefing.indexOf('Progress'));
+    assert.match(briefing, /data-finding-id="mixed" class="cmf-assistant-text-section cmf-assistant-impact-section"><h3><span>/);
+    assert.match(briefing, /data-finding-id="progress" class="cmf-assistant-text-section cmf-assistant-metrics-section"><h3><span>/);
+    assert.match(briefing, /<h4 class="ci-category">Needs Attention<\/h4>/);
+    assert.match(briefing, /<p class="ci-small ci-finding-label">Mixed Signals<\/p>/);
+    assert.doesNotMatch(briefing, /<h4 class="ci-category">(?:Mixed Signals|Concentration|Direction Over Time)<\/h4>/);
+    assert.match(briefing, /Closures rose &lt;but&gt; backlog grew/);
+    assert.match(briefing, /<details class="ci-support"><summary>Evidence from 2 platforms<\/summary>/);
+    assert.match(briefing, /NVL-H &lt;source&gt;[\s\S]*20 versus 18 &lt;estimate&gt;/);
+    assert.doesNotMatch(briefing, /<details[^>]*open|Verified dashboard facts|AI-reviewed|distinct HSDs|Suggested review/);
+    const concentrations = context.findings([
+        { Id: 'component', Kind: 'briefing', Category: 'Concentration', Label: 'Workload', Title: 'HW leads the open workload', Reasons: [] },
+        { Id: 'milestone', Kind: 'briefing', Category: 'Concentration', Label: 'Milestone', Title: 'QS leads the milestone workload', Reasons: [] }
+    ], 'No concentrations.');
+    assert.equal((concentrations.match(/class="cmf-assistant-text-section cmf-assistant-description-section"/g) || []).length, 2);
+    assert.equal((concentrations.match(/<h4 class="ci-category">Concentration<\/h4>/g) || []).length, 1);
+    assert.equal((concentrations.match(/data-finding-id=/g) || []).length, 2);
+    assert.doesNotMatch(concentrations, /<h4 class="ci-category">(?:Needs Attention|Progress|Direction Over Time|Workload|Milestone)<\/h4>/);
+    assert.doesNotMatch(script, /categories\.push|Other Findings/);
+    const platformBriefing = context.findings([{ Id: 'platform', Kind: 'briefing', Category: 'Needs Attention',
+        Title: 'Platform finding', Evidence: 'Shared section layout.', Reasons: [] }], 'No findings.');
+    assert.match(platformBriefing, /class="cmf-assistant-text-section cmf-assistant-impact-section"/);
+    assert.doesNotMatch(script, /assistantSections|state\.host\.id === 'homeOverallInsights'/);
+    assert.match(styles, /\.cmf-insights \.ci-briefing \.cmf-assistant-text-section\s*\{[^}]*padding: 8px 9px;/);
+    assert.doesNotMatch(styles, /#homeOverallInsights \.ci-briefing/);
 });
 
 test('dashboard date controls share the platform row and align to the visible AI card across scales', () => {
@@ -493,24 +878,41 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.equal(options[0].series[1].name, 'Open');
     assert.equal(options[0].series[1].itemStyle.color, '#0369a1');
     assert.equal(options[0].series[1].data[0].value, 46);
-    assert.ok(options[0].series.every(series => series.stack === 'cmf-status'));
+    assert.ok(options[0].series.slice(0, 2).every(series => series.stack === 'cmf-status'));
     assert.equal(options[0].series[0].lineStyle.width, 0);
     assert.equal(options[0].series[0].emphasis.lineStyle.width, 0);
-    assert.equal(options[0].series[1].lineStyle.color, '#0369a1');
-    assert.equal(options[0].series[1].lineStyle.width, 3);
+    assert.equal(options[0].series[1].lineStyle.width, 0);
     assert.equal(options[0].series[0].symbol, 'none');
-    assert.equal(options[0].series[1].symbol, 'circle');
-    assert.equal(options[0].series[1].showAllSymbol, true);
+    assert.equal(options[0].series[1].symbol, 'none');
+    const contour = options[0].series[2];
+    assert.equal(contour.id, 'cmf-backlog-contour');
+    assert.equal(contour.stack, undefined);
+    assert.equal(contour.lineStyle.color, '#0369a1');
+    assert.equal(contour.lineStyle.width, 3);
+    assert.equal(contour.symbol, 'circle');
+    assert.equal(contour.showAllSymbol, true);
+    assert.equal(contour.silent, true);
+    assert.equal(contour.tooltip.show, false);
+    assert.equal(contour.data[0].value, 132);
+    assert.equal(contour.data[0].weekOffset, 5);
+    assert.equal(JSON.stringify(options[0].legend.data), JSON.stringify(['Open', 'Implemented']));
     assert.ok(options[0].series.every(series => !series.label));
     assert.equal(options[0].grid.top, 30);
+    assert.equal(options[0].grid.left, 10, 'Let containLabel reserve the Y-axis width without a redundant left gutter.');
+    assert.equal(options[0].grid.right, 28, 'Reserve space for the last WW label.');
+    assert.equal(options[0].xAxis.axisLabel.showMinLabel, true);
+    assert.equal(options[0].xAxis.axisLabel.showMaxLabel, true);
+    assert.equal(options[0].xAxis.axisLabel.hideOverlap, true);
     assert.equal(options[0].series[0].areaStyle.color, 'rgba(128,0,0,0.12)');
     assert.equal(options[0].series[1].areaStyle.color, 'rgba(3,105,161,0.12)');
     const tooltip = options[0].tooltip.formatter([
         { seriesName: 'Open', value: 46, axisValueLabel: 'WW6', marker: '[blue]' },
-        { seriesName: 'Implemented', value: 86, axisValueLabel: 'WW6', marker: '[maroon]' }
+        { seriesName: 'Implemented', value: 86, axisValueLabel: 'WW6', marker: '[maroon]' },
+        { seriesName: 'Backlog contour', value: 132, axisValueLabel: 'WW6' }
     ]);
     assert.match(tooltip, /WW6<\/span><span style="font-weight:900">Total: 132/);
     assert.match(tooltip, /\[blue\]Open[\s\S]*46[\s\S]*\[maroon\]Implemented[\s\S]*86/);
+    assert.doesNotMatch(tooltip, /Backlog contour|264/);
     assert.equal(options[0].tooltip.formatter([]), '');
     chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
     assert.deepEqual(popups[0], ['Open and Implemented', 'WW6', 5]);
@@ -528,6 +930,8 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.equal(bars.series[1].itemStyle.color, '#dcfce7');
     assert.equal(bars.series[1].itemStyle.borderColor, '#16a34a');
     assert.equal(bars.grid.top, 40);
+    assert.equal(bars.grid.left, 10);
+    assert.equal(bars.grid.right, 24);
     for (const series of bars.series) {
         assert.equal(series.label.show, true);
         assert.equal(series.label.position, 'top');
@@ -565,12 +969,30 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.equal(JSON.stringify(options[4].legend), JSON.stringify(options[0].legend));
     assert.equal(JSON.stringify(options[4].xAxis), JSON.stringify(options[0].xAxis));
     assert.equal(JSON.stringify(options[4].yAxis), JSON.stringify(options[0].yAxis));
-    assert.equal(options[4].series[1].lineStyle.color, '#0369a1');
-    assert.ok(options[4].series.every(series => series.stack === 'cmf-status'));
+    assert.equal(options[4].series[2].lineStyle.color, '#0369a1');
+    assert.ok(options[4].series.slice(0, 2).every(series => series.stack === 'cmf-status'));
+    const legendHandler = chart.__cmfTrendLegendHandler;
+    legendHandler({ selected: { Open: false, Implemented: true } });
+    const implementedOption = options.pop();
+    assert.equal(implementedOption.grid.left, 10);
+    const implementedOnly = implementedOption.series[0];
+    assert.equal(implementedOnly.id, 'cmf-backlog-contour');
+    assert.equal(implementedOnly.data[0].value, 86);
+    legendHandler({ selected: { Open: true, Implemented: false } });
+    assert.equal(options.pop().series[0].data[0].value, 46);
+    legendHandler({ selected: { Open: false, Implemented: false } });
+    const hiddenOption = options.pop();
+    assert.equal(hiddenOption.grid.left, 28, 'Retain first-WW clearance when the empty chart has no Y-axis labels.');
+    assert.equal(hiddenOption.series[0].data.length, 0, 'No contour or baseline remains when both areas are deselected.');
+    legendHandler({ selected: { Open: true, Implemented: true } });
+    const restoredOption = options.pop();
+    assert.equal(restoredOption.grid.left, 10);
+    assert.equal(restoredOption.series[0].data[0].value, 132);
     chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
     assert.deepEqual(popups[2], ['Open and Implemented', 'WW6', 5]);
     specificView.value = 'bar';
     context.renderHomeTrendChart(snapshot, 'homeTrendChart', 'specificChart', 6);
+    assert.equal(chart.__cmfTrendLegendHandler, null, 'Weekly bars remove the contour legend listener.');
     assert.equal(options[5].series[0].type, 'bar');
     assert.equal(options[5].series[1].name, 'Closed');
     assert.equal(options[5].series[0].data[0].value, 7);
@@ -717,7 +1139,9 @@ test('dashboard activity and weekly-flow drilldowns cannot inherit Issue List se
     assert.match(source[0], /sysdebug LIKE \('%customer_must_fix%'\) AND cmf_request IN \('cmf_ok'\)/);
     assert.match(drilldown[0], /BuildSummaryIssueComponentSourceSql\(resolvedPlatform\)/);
     assert.match(drilldown[0], /BuildSummaryIssueRecordTypePredicate\("src", includeUnique, includeDuplicates\)/);
-    assert.match(drilldown[0], /if \(!isWeekEndBalance\)\s*\{\s*baseWhere.Append\(" AND LOWER\(LTRIM\(RTRIM\(ISNULL\(src.status, ''\)\)\)\) <> 'rejected'"\);/);
+    assert.match(drilldown[0], /CmfSummaryTrendService\.BuildWeeklyOpenPredicate\("src", "@week_offset"\)/);
+    assert.match(drilldown[0], /CmfSummaryTrendService\.BuildWeeklyClosedPredicate\("src", "@week_offset"\)/);
+    assert.doesNotMatch(drilldown[0], /baseWhere\.Append\([^\r\n]*rejected/);
 });
 
 test('all record-type drilldowns show the CMF request field separately from issue status', () => {
@@ -773,12 +1197,12 @@ test('the Component column displays only the component and preserves component-g
     assert.doesNotMatch(item, /component_group/);
     assert.match(column[0], /ID="ddlComponentHeader"[\s\S]*?OnSelectedIndexChanged="ddlComponentHeader_SelectedIndexChanged"/);
     assert.match(page, /<span>Component Group<\/span><asp:DropDownList ID="ddlComponentTop"/);
-    assert.match(server, /case "Component":\s*clauses\.Add\(" AND LTRIM\(RTRIM\(" \+ prefix \+ "component_group\)\) = @ComponentFilter "\)/);
+    assert.match(server, /case "Component":\s*if \(filter.Value.Contains\(","\)\)\s*AppendInOrEqualClause\(clauses, null, "LTRIM\(RTRIM\(" \+ prefix \+ "component_group\)\)", "@ComponentFilter", filter.Value\);\s*else\s*clauses\.Add\(" AND LTRIM\(RTRIM\(" \+ prefix \+ "component_group\)\) = @ComponentFilter "\)/);
 });
 
 test('both customer column headers use Customer Detail', () => {
     assert.match(page, /HeaderText="Customer Detail" ItemStyle-CssClass="field-customer_detail"/);
-    assert.match(page, /DataField="customer_detail" HeaderText="Customer Detail" ItemStyle-CssClass="pending-field-customer"/);
+    assert.match(page, /<asp:TemplateField HeaderText="Customer Detail" ItemStyle-CssClass="pending-field-customer"/);
 });
 
 test('12px typography is scoped to Issue List table headers, cells, and descendants', () => {

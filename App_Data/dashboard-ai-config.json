@@ -1,0 +1,7 @@
+{
+  "gnaiModel": "claude-sonnet-5-5",
+  "gnaiEndpoints": {
+    "openai": "https://gnai.intel.com/api/providers/openai/v1/chat/completions",
+    "anthropic": "https://gnai.intel.com/api/providers/anthropic/v1/messages"
+  }
+}
