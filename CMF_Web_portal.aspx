@@ -4039,7 +4039,8 @@ body {
 #homeLegacyOverview .ccip-inline-side-stack .ccip-live-table-wrap {
     border-radius: 0;
     background: #ffffff;
-    scrollbar-width: none;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
     scrollbar-color: transparent transparent;
 }
 
@@ -4055,8 +4056,8 @@ body {
 #homeCmfSummaryPanel .ccip-live-table-wrap::-webkit-scrollbar,
 #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table-wrap::-webkit-scrollbar,
 #homeLegacyOverview .ccip-inline-side-stack .ccip-live-table-wrap::-webkit-scrollbar {
-    width: 0;
-    height: 0;
+    width: 8px;
+    height: 8px;
 }
 
 #homeLegacyTablesGrid .ccip-live-table-wrap:hover::-webkit-scrollbar,
@@ -5681,6 +5682,23 @@ body .overall-quick-links .overall-quick-link-btn:active {
     font-size: 16px;
     line-height: 1;
     font-weight: 800;
+}
+
+#homeOverallSummaryTptInline .overall-tpt-value {
+    font-size: 30px;
+    line-height: 1.05;
+}
+
+#homeOverallSummaryTptInline .overall-tpt-legend {
+    font-size: 10px;
+    line-height: 1.2;
+}
+
+#homeOverallSummaryTptInline .overall-tpt-trend {
+    display: flex;
+    justify-content: center;
+    align-self: end;
+    min-height: 14px;
 }
 
 .overall-tpt-note {
@@ -15540,8 +15558,8 @@ td:nth-child(odd), th:nth-child(odd) {
         }
     }
 
-    /* Keep Home dashboard behavior uniform across browser zoom levels
-       when menu is collapsed: fixed visual scale with reachable overflow. */
+     /* Keep collapsed-menu charts and pointer targets in the same CSS coordinates
+         while retaining reachable dashboard overflow. */
     .portal-layout-shell.main-menu-collapsed #homeWelcomePanel.ccip-dashboard-host {
         height: auto !important;
         min-height: calc(100vh - 112px) !important;
@@ -15551,10 +15569,9 @@ td:nth-child(odd), th:nth-child(odd) {
     }
 
     .portal-layout-shell.main-menu-collapsed #homeWelcomePanel .ccip-dashboard {
-        --ccip-fit-scale-1080: 0.90;
-        transform: scale(var(--ccip-fit-scale-1080));
-        transform-origin: top left;
-        width: calc(100% / var(--ccip-fit-scale-1080));
+        zoom: 1;
+        transform: none;
+        width: 100%;
         max-height: none;
         overflow: visible;
     }
@@ -15917,8 +15934,8 @@ td:nth-child(odd), th:nth-child(odd) {
                 chip.classList.add(excluded ? 'is-platform-excluded' : 'is-platform-included');
                 state.textContent = excluded ? 'x' : '✓';
                 state.title = excluded
-                    ? 'Excluded from Overall metrics. Click to include.'
-                    : 'Included in Overall metrics. Click to exclude.';
+                    ? 'Excluded from Overall metrics.'
+                    : 'Included in Overall metrics.';
                 state.setAttribute('aria-label', state.title);
                 state.style.visibility = 'visible';
             }
@@ -18232,6 +18249,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     }
 
                     renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'homeOverallTrendChartRef', getOverallTrendRangeWeeks());
+                    if (window.CmfDashboardInsights) window.CmfDashboardInsights.render(snapshot);
                 });
 
                 selector.dataset.boundChange = '1';
@@ -18256,6 +18274,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     }
 
                     renderHomeTrendChart(snapshot, 'homeTrendChart', 'homeTrendChartRef', getSpecificTrendRangeWeeks());
+                    if (window.CmfDashboardInsights) window.CmfDashboardInsights.render(snapshot);
                 });
 
                 selector.dataset.boundChange = '1';
@@ -18371,13 +18390,22 @@ td:nth-child(odd), th:nth-child(odd) {
                     itemHeight: 8,
                     textStyle: { color: '#24354e', fontSize: 11 }
                 },
-                grid: { left: 10, right: 24, top: isClusteredBar ? 40 : 30, bottom: 10, containLabel: true },
+                grid: {
+                    left: isStackedLine && !visibleTrendPoints.some(function (point) { return point.openValue > 0 || point.closedValue > 0; }) ? 28 : 10,
+                    right: isStackedLine ? 28 : 24,
+                    top: isClusteredBar ? 40 : 30, bottom: 10, containLabel: true
+                },
                 xAxis: {
                     type: 'category',
                     data: trend.map(function (item) { return item.WeekLabel; }),
                     boundaryGap: isClusteredBar,
                     axisLine: { lineStyle: { color: '#e4e7ec' } },
-                    axisLabel: { color: '#24354e', fontSize: 11, margin: 8 }
+                    axisLabel: {
+                        color: '#24354e', fontSize: 11, margin: 8,
+                        showMinLabel: isStackedLine ? true : undefined,
+                        showMaxLabel: isStackedLine ? true : undefined,
+                        hideOverlap: isStackedLine ? true : undefined
+                    }
                 },
                 yAxis: {
                     type: 'value',
@@ -18438,6 +18466,34 @@ td:nth-child(odd), th:nth-child(odd) {
                     implementedSeries[property] = openStyle;
                 });
                 trendOptions.series.reverse();
+                trendOptions.series.forEach(function (series) {
+                    series.lineStyle = { width: 0 };
+                    series.emphasis = { lineStyle: { width: 0 } };
+                    series.symbol = 'none';
+                    series.showAllSymbol = false;
+                });
+                var buildTrendContourData = function (selected) {
+                    if (selected.Open === false && selected.Implemented === false) return [];
+                    return toTrendSeriesData(trend, function (item) {
+                        return (selected.Open === false ? 0 : Number(item.WeekEndOpenIssues || 0))
+                            + (selected.Implemented === false ? 0 : Number(item.WeekEndImplementedIssues || 0));
+                    });
+                };
+                trendOptions.series.push({
+                    id: 'cmf-backlog-contour',
+                    name: 'Backlog contour',
+                    type: 'line',
+                    smooth: true,
+                    data: buildTrendContourData({}),
+                    lineStyle: { width: 3, color: '#0369a1' },
+                    itemStyle: { color: '#0369a1' },
+                    symbol: 'circle',
+                    showAllSymbol: true,
+                    symbolSize: 6,
+                    silent: true,
+                    tooltip: { show: false },
+                    z: 3
+                });
                 trendOptions.tooltip.formatter = function (params) {
                     var points = params || [];
                     if (!points.length) return '';
@@ -18466,6 +18522,22 @@ td:nth-child(odd), th:nth-child(odd) {
 
             var trendChart = window.CMF_PORTAL[chartRefKey];
             if (trendChart) {
+                if (trendChart.__cmfTrendLegendHandler) {
+                    trendChart.off('legendselectchanged', trendChart.__cmfTrendLegendHandler);
+                }
+                trendChart.__cmfTrendLegendHandler = null;
+                if (isStackedLine) {
+                    trendChart.__cmfTrendLegendHandler = function (params) {
+                        var contourData = buildTrendContourData(params.selected || {});
+                        trendChart.setOption({ grid: {
+                            left: contourData.some(function (point) { return point.value > 0; }) ? 10 : 28
+                        }, series: [{
+                            id: 'cmf-backlog-contour',
+                            data: contourData
+                        }] });
+                    };
+                    trendChart.on('legendselectchanged', trendChart.__cmfTrendLegendHandler);
+                }
                 if (trendChart.__cmfTrendClickHandler) {
                     trendChart.off('click', trendChart.__cmfTrendClickHandler);
                 }
@@ -18589,7 +18661,6 @@ td:nth-child(odd), th:nth-child(odd) {
             if (legacyAiHealth) legacyAiHealth.style.display = isOverall ? 'none' : '';
             if (legacyTables) legacyTables.style.display = isOverall ? 'none' : '';
             syncDashboardPlatformToolbarWidth();
-            if (window.CmfDashboardInsights) window.CmfDashboardInsights.render(snapshot);
 
             if (isOverall) {
                 renderOverallCombinedSummaryFacts(snapshot);
@@ -18597,6 +18668,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 renderOverallHeatmap(snapshot);
                 renderOverallPendingSummary(snapshot);
                 renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'homeOverallTrendChartRef', getOverallTrendRangeWeeks());
+                if (window.CmfDashboardInsights) window.CmfDashboardInsights.render(snapshot);
                 syncQuickLinkPopupLockGeometry(true);
                 return;
             }
@@ -18611,6 +18683,7 @@ td:nth-child(odd), th:nth-child(odd) {
             renderPlatformPendingSummaryThresholdLegends();
             renderDashboardLiveTable('homeDesignSummaryTable', snapshot.DesignSummary);
             renderHomeTrendChart(snapshot, 'homeTrendChart', 'homeTrendChartRef', getSpecificTrendRangeWeeks());
+            if (window.CmfDashboardInsights) window.CmfDashboardInsights.render(snapshot);
             syncQuickLinkPopupLockGeometry(true);
         }
 
@@ -19553,7 +19626,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 : direction === 'up' || direction === 'down'
                     ? '<i class="fa-solid fa-arrow-' + direction + '" aria-hidden="true"></i>' : '';
             return '<span class="cmf-weekly-trend trend-' + tone + '" data-direction="' + direction +
-                '" role="img" title="' + escapeHtml(trend.Tooltip || '') + '" aria-label="' +
+                '" role="img" title="" aria-label="' +
                 escapeHtml(trend.Tooltip || '') + '">' + icon + '<span>' +
                 escapeHtml(trend.Display || 'N/A') + '</span></span>';
         }
@@ -19593,8 +19666,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     card.className += ' ccip-summary-clickable';
                     card.setAttribute('role', 'button');
                     card.setAttribute('tabindex', '0');
-                    card.setAttribute('title', tooltip + '\nClick to view issue counts by group.');
-                    card.setAttribute('aria-label', (fact.Label || 'Summary metric') + '. ' + tooltip + '. Click to view issue counts grouped by selection.');
+                    card.setAttribute('aria-label', (fact.Label || 'Summary metric') + '. ' + tooltip);
                 }
 
                 var valueHtml = '<div class="ccip-summary-fact-value">' + renderValueWithDaysSuffix(formattedFact.valueText, 'ccip-days-suffix') + '</div>';
@@ -20125,29 +20197,31 @@ td:nth-child(odd), th:nth-child(odd) {
             var resolutionDays = toDayValue(resolutionFact);
             var overallDays = toDayValue(overallFact);
 
+            function renderMetricContent(kind, fact, days) {
+                var valueHtml = '<div class="overall-tpt-value ' + getLegacyTptValueToneClass(kind, days) + '">' + escapeHtml(String(days)) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>';
+                var trendHtml = fact && fact.WeeklyTrend ? renderSummaryWeeklyTrend(fact.WeeklyTrend) : '';
+                var legendHtml = buildTptColorLegend(kind);
+                if (renderHostId === 'homeOverallSummaryTptInline') {
+                    return '<div class="cmf-summary-value-stack">' + valueHtml + legendHtml + '</div>' +
+                        '<div class="overall-tpt-trend">' + trendHtml + '</div>';
+                }
+                return (fact && fact.WeeklyTrend ? '<div class="cmf-summary-value-stack">' + valueHtml + trendHtml + '</div>' : valueHtml) + legendHtml;
+            }
+
             var html = '';
             html += '<div class="overall-tpt-box" data-tpt-kind="disposition">' +
                 '<div class="overall-tpt-label">DISPOSITION TPT</div>' +
-                (dispositionFact && dispositionFact.WeeklyTrend ? '<div class="cmf-summary-value-stack">' : '') +
-                '<div class="overall-tpt-value ' + getLegacyTptValueToneClass('disposition', dispositionDays) + '">' + escapeHtml(String(dispositionDays)) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
-                (dispositionFact && dispositionFact.WeeklyTrend ? renderSummaryWeeklyTrend(dispositionFact.WeeklyTrend) + '</div>' : '') +
-                buildTptColorLegend('disposition') +
+                renderMetricContent('disposition', dispositionFact, dispositionDays) +
                 '</div>';
 
             html += '<div class="overall-tpt-box" data-tpt-kind="resolution">' +
                 '<div class="overall-tpt-label">RESOLUTION TPT</div>' +
-                (resolutionFact && resolutionFact.WeeklyTrend ? '<div class="cmf-summary-value-stack">' : '') +
-                '<div class="overall-tpt-value ' + getLegacyTptValueToneClass('resolution', resolutionDays) + '">' + escapeHtml(String(resolutionDays)) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
-                (resolutionFact && resolutionFact.WeeklyTrend ? renderSummaryWeeklyTrend(resolutionFact.WeeklyTrend) + '</div>' : '') +
-                buildTptColorLegend('resolution') +
+                renderMetricContent('resolution', resolutionFact, resolutionDays) +
                 '</div>';
 
             html += '<div class="overall-tpt-box" data-tpt-kind="overall">' +
                 '<div class="overall-tpt-label">OVERALL TPT</div>' +
-                (overallFact && overallFact.WeeklyTrend ? '<div class="cmf-summary-value-stack">' : '') +
-                '<div class="overall-tpt-value ' + getLegacyTptValueToneClass('overall', overallDays) + '">' + escapeHtml(String(overallDays)) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>' +
-                (overallFact && overallFact.WeeklyTrend ? renderSummaryWeeklyTrend(overallFact.WeeklyTrend) + '</div>' : '') +
-                buildTptColorLegend('overall') +
+                renderMetricContent('overall', overallFact, overallDays) +
                 '</div>';
 
             host.innerHTML = html;
@@ -20167,6 +20241,10 @@ td:nth-child(odd), th:nth-child(odd) {
             if (!host) {
                 return;
             }
+
+            var previousScroll = host.querySelector('.component-summary-heatmap-scroll');
+            var scrollTop = previousScroll ? previousScroll.scrollTop : 0;
+            var scrollLeft = previousScroll ? previousScroll.scrollLeft : 0;
 
             function parseOverallHeatmapLosCount(statusTooltipText) {
                 var tooltip = String(statusTooltipText || '');
@@ -20240,9 +20318,6 @@ td:nth-child(odd), th:nth-child(odd) {
                     }
                     var isClickable = normalizedValue > 0 && !!platformLabel;
                     var tooltipText = statusTooltip || ('Open Unique: ' + String(normalizedValue));
-                    if (isClickable) {
-                        tooltipText += '\nClick to view issue counts by group.';
-                    }
 
                     var extraAttrs = ' title="' + escapeHtml(tooltipText) + '" aria-label="' + escapeHtml(tooltipText) + '"';
                     if (isClickable) {
@@ -20286,6 +20361,12 @@ td:nth-child(odd), th:nth-child(odd) {
                 + '<div class="component-summary-warning-popup" role="alert" aria-live="assertive"></div>'
                 + '</div>';
             host.innerHTML = html;
+
+            var heatmapScroll = host.querySelector('.component-summary-heatmap-scroll');
+            if (heatmapScroll) {
+                heatmapScroll.scrollTop = scrollTop;
+                heatmapScroll.scrollLeft = scrollLeft;
+            }
 
             var clickableTiles = host.querySelectorAll('.overall-heatmap-tile[data-heatmap-clickable="1"]');
             for (var tileIndex = 0; tileIndex < clickableTiles.length; tileIndex++) {
@@ -21578,7 +21659,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 groupCell.style.background = '#f2f4f7';
 
                 if (!groupHeaderHeight) {
-                    var measuredHeight = groupCell.getBoundingClientRect().height;
+                    var measuredHeight = parseFloat(getComputedStyle(groupCell).height) || groupCell.offsetHeight;
                     if (measuredHeight && isFinite(measuredHeight) && measuredHeight > 0) {
                         groupHeaderHeight = measuredHeight;
                     }
@@ -21590,41 +21671,30 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             var topOffsetPx = groupHeaderHeight + 'px';
-            table.style.setProperty('--ccip-component-group-header-height', topOffsetPx);
+            if (table.style.getPropertyValue('--ccip-component-group-header-height') !== topOffsetPx) {
+                table.style.setProperty('--ccip-component-group-header-height', topOffsetPx);
+            }
 
             var subCells = headerRows[1].querySelectorAll('th.ccip-component-sub-header');
             for (var j = 0; j < subCells.length; j++) {
                 var subCell = subCells[j];
                 subCell.style.position = 'sticky';
-                subCell.style.top = topOffsetPx;
+                if (subCell.style.top !== topOffsetPx) subCell.style.top = topOffsetPx;
                 subCell.style.zIndex = '3';
                 subCell.style.background = '#f2f4f7';
             }
 
-            if (!host._hasComponentSubHeaderStickySync) {
-                host._hasComponentSubHeaderStickySync = true;
-                host.addEventListener('scroll', function () {
-                    var currentTable = host.querySelector('table.ccip-component-summary-table');
-                    if (!currentTable) {
-                        return;
-                    }
-                    var currentGroupCell = currentTable.querySelector('thead tr:first-child th.ccip-component-group-header');
-                    if (!currentGroupCell) {
-                        return;
-                    }
-                    var liveHeight = currentGroupCell.getBoundingClientRect().height;
-                    if (!liveHeight || !isFinite(liveHeight) || liveHeight <= 0) {
-                        return;
-                    }
-                    var liveTopPx = liveHeight + 'px';
-                    if (currentTable.style.getPropertyValue('--ccip-component-group-header-height') !== liveTopPx) {
-                        currentTable.style.setProperty('--ccip-component-group-header-height', liveTopPx);
-                        var currentSubCells = currentTable.querySelectorAll('thead tr:nth-child(2) th.ccip-component-sub-header');
-                        for (var k = 0; k < currentSubCells.length; k++) {
-                            currentSubCells[k].style.top = liveTopPx;
-                        }
-                    }
-                }, { passive: true });
+            if (typeof ResizeObserver !== 'undefined') {
+                if (!host._componentHeaderResizeObserver) {
+                    host._componentHeaderResizeObserver = new ResizeObserver(function () {
+                        applyComponentGroupHeaderSticky(host);
+                    });
+                }
+                if (host._componentHeaderObservedRow !== headerRows[0]) {
+                    host._componentHeaderResizeObserver.disconnect();
+                    host._componentHeaderObservedRow = headerRows[0];
+                    host._componentHeaderResizeObserver.observe(headerRows[0]);
+                }
             }
         }
 
@@ -25747,10 +25817,10 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 </script>
     <script src="Scripts/cmf-portal-main.js?v=20261103-title-actions"></script>
-    <script src="Scripts/cmf-dashboard-insights.js?v=8"></script>
+    <script src="Scripts/cmf-dashboard-insights.js?v=26"></script>
 
     <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261104-vertical-actions" />
-    <link rel="stylesheet" href="Content/cmf-dashboard-insights.css?v=5" />
+    <link rel="stylesheet" href="Content/cmf-dashboard-insights.css?v=14" />
 
 </head>
 

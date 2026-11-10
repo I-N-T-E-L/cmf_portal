@@ -85,71 +85,210 @@ read-time only: it does not delete database rows, alter imports, or update HSD.
 
 ### Dashboard AI Insights
 
-Overall and individual platform dashboards share an Insights panel with Highlights,
-Trends, and Similar Issues views. Evidence comes from the canonical Summary source
-across all acceptance dates, independent of the dashboard date filter. Platform
-selection and Overall platform exclusions still apply.
-Only accepted CMFs are included; pending requests retain their separate summaries.
+Overall and individual platform dashboards share an Insights panel. Overall adds
+a Summary tab before Highlights and Trends; individual platforms retain Highlights
+and Trends. The active fact pipeline is `CmfRenderedInsightsService`: inputs are
+projected from the same server-owned `HomeDashboardSnapshot` that supplies the
+selected panel's KPI cards, component/ingredient summary, pending summary,
+and milestone tables. Calendar-week chart buckets are not Insights inputs. Platform selection,
+dashboard date filters and Overall exclusions apply. Hidden fields, raw HSD text,
+forum enrichment and categorical issue grouping are not inputs.
 
-Component (`component_group`), ingredient (`component`), and platform views compare
-reconstructed open balances with the same weekday seven days earlier. They reuse
-Summary eligibility rules and retain duplicate rows. Weekly comparisons always use
-the all-date Insights scope, including when the dashboard displays a short date
-range. Aging is measured from acceptance. Counts of
-excluded records are shown; historical reopenings cannot be recovered.
+Highlights is a short briefing grouped into Needs Attention and Progress.
+Mixed Signals is a finding label within Needs Attention, not a separate group.
+Current pending age and iDST coverage findings also belong in Needs Attention,
+without claiming a proven bottleneck. Related measures become one conclusion,
+such as Closed totals and Open backlog both being higher. Open, Pending and Closed changes require
+both at least two requests and a 10% change (at least two requests when the
+previous count is zero). Both components must qualify for a combined closure/backlog finding.
+The rule applies before ranking and Overall aggregation; one-request changes are
+omitted even when their percentage is large. Flat comparisons, routine totals and redundant
+individual signals are suppressed. Each conclusion has a short implication;
+numbers and source labels sit in expandable Supporting evidence. Summary
+comparisons use only a rolling seven-day lookback: current snapshot values versus
+reconstructed end-of-day estimates exactly seven dates earlier. Evidence names
+both dates. These are balance/average changes, not event counts or averages for
+only cases handled during the last seven days. Short date scopes that hide KPI
+comparisons do not supply them.
 
-Insights uses a hybrid pipeline. All distinct accepted issues participate in local
-categorical grouping: Closed (`complete`, `rejected`), Implemented (`implemented`,
-`future`), and Open (the Summary complement). Pending requests are excluded.
-Duplicate occurrences remain distinct from HSD membership. Invalid historical
-dates affect balance metrics, not grouping eligibility.
+TPT metrics moving in the same direction share one finding per category in both
+platform and Overall Insights. Improvements and degradations remain separate.
+Only changes of at least two days and 10% are included (two days when the
+previous value is zero). Small or unchanged metrics are omitted before grouping.
+Each grouped finding retains the individual
+metric comparisons in Supporting evidence. Grouping happens before ranking and
+pagination, and Overall preserves the per-platform comparisons without averaging
+the different TPT metrics together.
 
-Each platform is grouped independently using exact categorical tokens from
-processor, component group, component/ingredient, family and release. A candidate
-requires at least two matching fields and two distinct HSDs. Platform-wide groups,
-unknown placeholder values and equivalent memberships are excluded. Candidates
-are ranked by categorical specificity, group size and open-issue share; these are
-calculated ranks, not model confidence scores. No top-three or total issue/group
-limit is applied.
+Trends uses Direction Over Time and Concentration. Workload, pending-queue and
+milestone distributions are labeled subtypes of Concentration, not extra groups.
+Direction Over Time requires supported rolling-window history; two KPI endpoints
+alone do not establish a sustained daily trend or reversal.
+Only populated groups are rendered. This small, server-owned vocabulary changes
+only when a finding represents a genuinely different decision; the ranker cannot
+create categories. Concentration shares use the same table's
+row population, exclude its Total row and do not count parenthesized LOS subsets
+again. Unrecognized cell notation is not guessed. Pending findings can identify
+missing iDST contacts and the displayed age-marked portion, without asserting a
+cause or a fixed SLA. Missing-contact findings require at least two affected
+requests. Age findings require at least two aged requests, at least half the queue,
+and a known positive age threshold; zero-day and missing/invalid thresholds do
+not produce delay highlights. Titles use actual counts, not "many" or "doubled".
+Comparison titles say higher/lower than a week earlier rather than claiming a
+sustained trend, acceleration or proven throughput improvement.
+Component distributions are current, not historical trends.
+Calendar-week flow, week-end snapshots and multi-week chart directions are not
+used to infer seven-day findings. The dashboard charts themselves are unchanged.
+There is no partial-calendar-week caveat or separate missing-history card.
 
-AI reviews every qualifying ranked group using shared classifications, calculated
-counts, member titles, dates and available local forum text. It may reject a weak
-group, support a useful shared trait, or request rich HSD details for that group.
-Only requested group members are fetched, once per platform analysis. Enrichment
-selects useful descriptions, summaries, comments, forum, reproduction steps,
-investigation and fix text rather than sending the entire provider field/schema
-tree. Long selected fields are split into overlapping chunks without dropping
-their tails. Requests are batched by size rather than a total issue-count cap;
-there is no exhaustive all-pairs observation comparison.
+Each platform makes one short ranking request per changed input/configuration,
+plus bounded retries if throttled. The model may return only arrays of known
+fact IDs; the server rejects unknown, duplicate or wrong-view IDs and unexpected
+response fields. Every Highlights/Trends title, count, explanation and source label comes from
+canonical server-generated facts, never model-written prose. No HSD retrieval,
+technical-similarity analysis, reasoning, predictions or generated root causes
+are performed by the active pipeline. Five findings are shown per page; remaining
+findings stay accessible through pagination. Empty briefings skip the model call.
+The ranking request includes compact finding summaries rather than full tables.
+
+Overall Summary uses `CmfDashboardSummaryService` and the user-bound
+`GetDashboardSummary` endpoint. A background LLM generation request receives only
+eligible findings, including titles, summaries, scores, platform/date scope,
+current/prior values, dates, units, population denominators where available and
+the reconstructed-history flag. Missing denominators remain null, not zero.
+The model writes up to three natural-language claims, each with a separate
+verified platform scope, one to three cited fact IDs and an optional cautious
+review suggestion. There are no C# sentence alternatives or exact prose matches.
+Server checks enforce schema, citations, single-platform scope, text limits,
+supported dates, numeric values and directly associated units. AI Insights never
+shows percentages: Summary prose, review suggestions, Highlights, Trends and
+supporting evidence use counts, count differences and days instead. Generation
+and verification prompts prohibit percentages; server validation rejects percent
+symbols and percentage wording, including written-out values and percentage-point
+changes. Internal materiality and ranking thresholds remain unchanged.
+A draft remains unpublished in `ai-review`.
+A second, separate LLM request checks every assertion against the cited evidence:
+factual support, numeric roles (not just matching values), platform scope, units,
+comparison direction, estimated-history qualifiers, citation relevance and review
+suggestions. One clear history qualifier per paragraph can cover all reconstructed
+prior values and their derived changes; it need not repeat "estimated" beside
+each number. Summary uses "estimated", never "reconstructed"; server validation
+rejects the latter in generated summaries and review suggestions. Unqualified
+historical comparisons remain invalid. The verifier
+must approve every check; missing, uncertain or negative checks
+reject the whole draft. A validation rejection allows one corrected LLM draft
+using the same source facts and safe rejection feedback, followed by fresh
+verification. Repeated rejection remains unavailable; no draft or C# fallback is
+rendered. Provider-level retry and cancellation policies remain unchanged.
+Only controlled failure-stage and reason codes are exposed for diagnostics,
+never drafts, provider errors or configuration values. Review results are bound to the exact claim text,
+citations and source hash, preventing stale approvals. This semantic review is
+model-based, not a formal proof; the numeric guards do not attempt to parse all
+English. Unsupported causes, sustained trends, ownership bottlenecks and
+cross-platform totals must be rejected. Evidence remains canonical source data,
+not model-authored prose. Platform subheadings come from verified scope metadata.
+Summary never substitutes canonical C# text. During generation it shows a loading
+state; invalid or unavailable model output produces an unavailable state with no
+claims. Only validated LLM responses can render summary claims. Empty inputs skip
+the model call and show an empty state. Successful Summary results are
+cached for 30 minutes per source/provider signature; failed results expire after
+one minute so reloads do not remain stuck on a long-lived cached failure. Refresh
+can retry immediately. Summary requests share the existing
+provider pacing, retry and cancellation behavior. Each uncached Summary uses a
+generation request followed by a verification request. Only opening Overall Summary
+starts this analysis; Highlights and Trends keep their existing behavior.
+
+The browser submits a user-bound snapshot token, not
+raw DOM text or client-written metric values. The server validates token expiry,
+platform, date and current scope before using its cached data. Legacy chart
+arguments remain accepted for API compatibility but do not select weekly data.
+Changing chart range/view does not restart or change Insights. Verified briefings are visible
+while ranking runs and remain available if ranking fails; only completed rankings
+receive the shared AI-ranked label. They are server-derived dashboard findings,
+not fallback AI opinions. Caveats appear once under Scope & sources.
 Each Insights model request defaults to a 120-second timeout, independently of
 other assistants. `AI:InsightsRequestTimeoutSeconds` can set it between 15 and 300
 seconds; this is a per-request timeout, not an issue-count or whole-job limit.
 
-Shared classification traits appear in Highlights and are not presented as proof
-of common symptoms or cause. Similar Issues contains only AI-supported technical
-comparisons citing specific text from at least two distinct HSDs. The server checks
-group coverage and in-scope evidence keys, and supplies source text itself rather
-than trusting model-written quotations. This validates provenance, not the truth
-of every model interpretation. All counts remain server-derived; no HSD is changed.
-Ungrouped issues are not individually reviewed. A scope without qualifying groups
-shows that fact without claiming an AI review occurred.
+Insights model calls share one paced request slot across platform jobs, with a
+three-second minimum gap between request chains. HTTP 429 triggers up to three
+automatic retries, honoring numeric/date `Retry-After` or otherwise waiting
+15, 30 and 60 seconds. Cooldown is shown in the status while the blue loading
+strip and validated findings remain visible. Shutdown cancels waits, and a model
+change stops old-config requests before retries. A cooldown longer than five
+minutes or persistent throttling stops with a quota/rate-limit message rather
+than retrying forever. Refresh cannot bypass the shared cooldown. Non-429 errors
+and other assistants keep their previous behavior; provider quota exhaustion
+still requires a quota reset or administrator action.
 
-Loading the dashboard automatically queues all catalog platforms, not just the
-selected tab. The selected scope starts first; at most two analysis jobs execute
-concurrently. Platform tabs share cached jobs with the warm-up path. Overall waits
-for all included platform reviews, then feeds their cached findings to AI for
-individual and cross-platform shared-trait interpretation; it does not fetch raw
-HSDs again. Overall exclusions still apply. A failed platform is reported explicitly
-rather than silently omitted from a supposedly complete Overall result.
+Dashboard GNAI model selection is stored in `App_Data/dashboard-ai-config.json`:
+
+```json
+{
+  "gnaiModel": "claude-sonnet-5-5",
+  "gnaiEndpoints": {
+    "openai": "https://gnai.intel.com/api/providers/openai/v1/chat/completions",
+    "anthropic": "https://gnai.intel.com/api/providers/anthropic/v1/messages"
+  }
+}
+```
+
+Changing only `gnaiModel` to a supported GNAI chat model changes the next backend
+AI request without restarting IIS. Claude names select the Anthropic endpoint,
+Messages payload and text-block parser. Other supported chat models (GPT,
+DeepSeek and Grok) select the OpenAI-compatible endpoint and payload. Endpoint URLs
+can be changed in the same JSON; HTTPS is required, and credentials stay in the
+existing protected settings. With this JSON present, dashboard requests require
+GNAI credentials and never silently substitute a GitHub model. Missing JSON retains
+the previous shared provider settings. Malformed JSON and invalid values are rejected.
+
+The override applies to dashboard Insights, executive summaries and blocker
+forecasts, not issue assistants. The Claude Sonnet ID above is verified against
+the GNAI catalog (`/meta?section=models`). Anthropic's required `max_tokens` is
+16384 per request, an output budget rather than an issue/group analysis cap.
+Model, endpoint and credential changes invalidate dashboard AI cache keys and
+platform warm-up. Already-running Insights jobs stop further work when their
+configuration changes; an already-sent provider call may finish, but its changed-
+configuration result is discarded. If the panel has finished and stopped polling,
+use its Refresh button to request new findings with the saved model.
+
+Platform ranking results are cached by fact content, scope, date and provider
+configuration. Polling preserves unchanged pages and updates the ordering when
+ranking completes. A thin blue progress bar sits on the bottom edge of Insights
+while work is running, takes no layout space and disappears on completion.
+There is no normal-state ranking status box or badge. Failures retain the
+unranked verified facts and show a notice with Refresh available.
+
+Overall groups compatible findings by topic and direction/category across its
+included platforms, with expandable platform-specific evidence. Repeated inputs
+from the same platform are deduplicated; opposite directions remain separate.
+Within Highlights and Trends, each completed platform ranking contributes the
+reciprocal of a finding's position to its grouped topic's rank score. Overall
+sorts by the combined rank scores, then fixed priority scores and finding IDs.
+Before any ranking completes, the fixed scores provide the preliminary order;
+pending or failed rankings contribute no AI rank votes and their findings remain
+available. As platform rankings complete, Overall updates its priorities and
+pagination without changing the verified finding text or evidence. Unchanged
+ordering is possible when AI agrees with the preliminary priorities.
+Platform issue totals are not added as unique HSD counts. It reuses cached
+platform snapshot inputs/results; missing
+inputs are built by the same dashboard snapshot builder used by that platform,
+with the same seven-day comparison basis for unvisited panels. Ranking is only
+queued for missing or changed platform inputs. Overall Highlights/Trends make no
+additional LLM synthesis request; the separate Summary tab uses the bounded,
+validated analysis described above. Neither path infers cross-platform root causes or deduplicates
+aggregate counts as if they were unique HSD memberships. Pending platform rankings
+are visible in its progress, and unranked facts remain available if one fails.
+Opening an individual platform no longer warms unrelated platform analyses.
 
 ASP.NET background work runs outside the polling request/session lock. The panel
-shows calculated group counts and AI-review progress separately; calculated
-patterns are never substituted for AI opinions on model failure. Source preparation
+shows briefing counts and AI-ranking progress separately; the model prioritizes
+approved findings but does not write their text. Source preparation
 is cached for five minutes and completed analysis for thirty minutes, keyed by
 source, platform, prompt version and provider. Refresh bypasses completed AI results
 but may reuse the five-minute source cache. Evidence tokens and paginated result
 access are bound to the authenticated user. All findings remain accessible through
-pages of eight; pagination is display-only, not an analysis limit.
+pages of five; pagination is display-only, not an analysis limit.
 
 ### Dashboard Date Filter
 
@@ -203,11 +342,12 @@ Stored status values, duplicate eligibility, Pending-request counts, Total, Clos
 and TPT calculations are not rewritten by this grouping policy.
 
 Overall and platform-specific Summaries use the server's local date; today is partial.
-Count cards compare today's reconstruction-eligible balance with an estimated balance
-at the end of the same weekday seven days earlier. Records excluded from historical
-reconstruction are also excluded from today's trend count. Headline card counts and
-detail tables remain unchanged, so a trend's current count can be lower than its headline;
-the tooltip explains the matching exclusions. TPT cards retain their rolling-week average comparisons.
+Count cards compare their displayed current metric with an estimated balance
+at the end of the date exactly seven days earlier, not a previous calendar-week total.
+Historical reconstruction exclusions do not replace the current value with a lower
+eligible-only count. Headline counts and detail tables remain unchanged; accessible
+comparison labels disclose historical exclusions. TPT cards also compare today's displayed metric with
+its estimated value at the end of the date exactly seven days earlier, in whole days.
 Platform-specific indicators use only that platform's records, while Overall respects
 the platforms included in its scope.
 
@@ -222,43 +362,49 @@ historical balances, not weekly activity totals. Both sides use the selected acc
 cohort and retain existing duplicate-row counting. Previous Total uses acceptances by
 `date_cmf_decided`; implementation and closure dates place those accepted rows in their
 estimated earlier states. A now-closed CMF can therefore count as Implemented or Open in
-the earlier balance. Missing or inconsistent dates/status exclude a record from both
-trend counts for that metric and are reported in the tooltip. Rows accepted after the
+the earlier balance. Missing or inconsistent dates/status exclude a record from the
+historical estimate for that metric and are reported in the accessible comparison label; the current
+value remains the card's actual count. Rows accepted after the
 historical cutoff remain eligible when their acceptance date establishes a zero earlier
 balance, even if later lifecycle dates are incomplete. If all history is unusable, the indicator is blank. Empty cohorts retain
 a valid zero change. Removed records, historical eligibility changes, and reopened or
 repeated lifecycles cannot be recovered, so these are estimates, not saved snapshots.
 Total and Open decreases are green and increases red; Closed and Implemented use the reverse.
 
-TPT compares the seven calendar days ending today with the preceding seven days,
-independently of the dashboard date filter. Disposition TPT compares average
-request-to-decision days for decisions in each window.
-Resolution TPT compares average decision-to-implementation days for implementations in
-each window. Missing or reversed date pairs are excluded from these averages.
-Overall TPT compares average current recorded `days_active` for accepted unique and
-duplicate CMFs in each window, grouped by `date_cmf_decided`. Missing, nonnumeric or
-negative durations are excluded. This compares two acceptance cohorts using today's
-recorded durations; it does not reconstruct last week's headline or infer historical
-`days_active`, reopenings, or paused time. Its headline remains the existing scoped
-average, independent of the trend's cohorts.
-TPT indicators show percentage change against the previous average, with the decimal
-part truncated for display. Underlying averages and tooltip precision are unchanged.
-Changes below 1% display as 0% but retain their actual direction and color: decreases
-green, increases red. All equal comparisons use a flat blue bar. Missing TPT cohorts and
-undefined percentages against a zero baseline leave the trend indicator blank.
-Valid zero-percent changes remain visible, and the headline TPT day values are unchanged.
-Hovering an indicator shows the compared dates and their counts or average days.
+TPT compares the displayed current headline with its estimated headline at the end of
+the date seven days earlier, using the same selected dashboard scope. It does not
+compare weekly cohorts, previous changes, or percentages. Disposition history averages
+request-to-decision days for retained decisions made by that date. Resolution history
+averages decision-to-implementation days for retained implementations made by that date.
+Their existing headline formulas remain unchanged; missing or reversed historical date
+pairs are excluded and disclosed. Disposition and Resolution retain their headline's
+record eligibility, rather than inheriting Overall's accepted-only population.
+Overall history averages estimated `days_active` for accepted unique and duplicate CMFs
+already accepted by the comparison date. Rows already closed by that date retain their
+recorded durations. For later closures or active rows, subtract the calendar days between
+the comparison date and closure or today respectively. This assumes one active day per
+calendar day with no pauses or reopenings; it is not an exact historical snapshot and
+does not replace recorded durations with ask-to-close intervals. Missing closure dates,
+nonnumeric/negative durations, inconsistent dates, and rollbacks exceeding recorded
+durations are excluded and disclosed. Actual historical field updates cannot be recovered.
+Both TPT averages are truncated to whole days like the headline before subtraction.
+Indicators show the absolute integer day difference with a direction arrow: decreases
+green, increases red, equal whole-day values a flat blue bar. Valid zero baselines support
+integer differences. Missing historical samples leave the indicator blank, not zero.
+The headline TPT day values remain unchanged.
+Trend indicators do not show hover tooltips. Compared dates, counts, average days,
+and estimation caveats remain in their accessible labels.
 Avg Resolution has no trend indicator.
 
 The Overall and platform-specific Pending cards also show a count change
-between today's eligible pending count (partial day) and the reconstructed pending count
-at the end of the same weekday seven days earlier. Both use the selected dashboard
-date scope and the same reconstruction-eligible requests. The previous estimate includes still-pending requests made by that date
+between today's displayed pending count (partial day) and the reconstructed pending count
+at the end of the date exactly seven days earlier. Both use the selected dashboard
+date scope. The previous estimate includes still-pending requests made by that date
 and retained accepted, duplicate, or rejected requests decided after that date.
-Requests are deduplicated by platform and HSD ID on both sides; current pending records take
+Historical requests are deduplicated by platform and HSD ID; current pending records take
 precedence over their component-table copies. Missing or reversed dates exclude the request
-from both trend counts and are reported in the tooltip. The headline Pending count retains
-its existing row counting, and the tooltip shows that unchanged headline separately.
+from historical reconstruction and are reported in the accessible comparison label. The current side of
+the comparison uses the displayed Pending count with its existing row counting.
 Removed records, closures without decision dates, and
 reopened/repeated pending periods cannot be reconstructed, so this is not an exact
 historical balance. No snapshots or recording tables are created. Increases are red,
@@ -298,6 +444,23 @@ Weekly drilldowns use the same cutoff and lifecycle predicates as the line chart
 Each dashboard's title dropdown selects **OPEN BACKLOG TREND BY WORK WEEK**
 (line) or **WEEKLY ISSUE FLOW** (clustered bars). Both support 6- and 12-week
 ranges. Clustered bars retain their weekly activity counts.
+Weekly Closed bars and their click-through details group complete/rejected CMFs
+by `closed_date`, not `implemented_date`. Both bar series count unique accepted
+CMFs only (`cmf_ok`), excluding duplicate CMFs. Open remains grouped by request
+week and counts all requests in that week, including those implemented or closed
+within the same week or later. It is an intake count, not the current Open status
+or the entire week-end backlog. Missing, invalid and future request dates are
+excluded. A same-week opened/closed CMF contributes to both bars but is listed
+only once in combined details. The chart and details share these date rules;
+details default to unique CMFs only,
+with duplicate records available only through the explicit popup filter.
+Missing or invalid implementation/closure dates do not suppress a valid Open
+intake entry. Missing or invalid closure dates are
+excluded from Closed rather than assigned to an implementation week. Summary seven-day
+balance comparisons and the Implemented series are unchanged.
+The backlog chart's dark-blue contour is independent of the Open and Implemented
+legend entries. It follows the sum of the selected areas and disappears when both
+are deselected; it does not add a legend item or tooltip total.
 
 Balances are reconstructed from `date_cmf_ask`, `implemented_date`, and
 `closed_date`, assuming a single request-to-implementation-to-closure lifecycle.
