@@ -6,7 +6,7 @@
 others/
 
 # Local secrets
-Web.config
+App_Data/cmf-assistant-config.local.json
 *.user
 *.suo
 command.txt

@@ -855,23 +855,40 @@ body .portal-date-filter legend {
     color: #536985;
 }
 
+body .portal-date-filter {
+    margin: 0;
+    padding: 2px 10px 4px 10px;
+    border: 1px solid #d8e2ee;
+    border-radius: 6px;
+    background: #fff;
+}
+
+body .portal-date-filter legend {
+    font-size: 11px;
+    font-weight: 600;
+    color: #475569;
+    padding: 0 4px;
+    margin-bottom: 2px;
+    width: auto;
+}
+
 body .portal-date-filter > div {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
 }
 
 body .portal-date-filter input {
-    flex: 1 1 0;
-    width: 0;
-    min-width: 0;
-    height: 34px;
-    padding: 3px;
-    border: 1px solid #d5dfeb;
+    flex: 0 0 auto;
+    width: 140px;
+    min-width: 135px;
+    height: 30px;
+    padding: 2px 8px;
+    border: 1px solid #cbd5e1;
     border-radius: 4px;
-    color: #304760;
+    color: #1e293b;
     background: #fff;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 body .portal-table-footer {
@@ -1712,59 +1729,28 @@ body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td 
     word-break: normal !important;
 }
 
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-actions {
-    --issue-column-width: 46px;
-    width: 46px !important;
-    min-width: 46px !important;
-    max-width: 46px !important;
-    padding: 6px 2px !important;
-}
-
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary th.field-actions {
-    position: sticky !important;
-    top: 0 !important;
-    left: 0 !important;
-    z-index: 40 !important;
-    background: #edf1f7 !important;
-    border-right: 1px solid #cbd5e1 !important;
-    font-size: 10px !important;
-}
-
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.field-actions {
-    position: sticky !important;
-    left: 0 !important;
-    z-index: 25 !important;
-    background-color: #ffffff !important;
-    border-right: 1px solid #cbd5e1 !important;
-}
-
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary tr:nth-child(even) td.field-actions {
-    background-color: #fafbfe !important;
-}
-
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary tr:hover td.field-actions {
-    background-color: #f0f4f9 !important;
-}
-
-body #issueTabShell .issue-grid-inner #overall_request_details.table-primary :is(th, td).field-actions::after {
-    content: "" !important;
-    position: absolute !important;
-    top: -1px !important;
-    bottom: -1px !important;
-    right: 0 !important;
-    width: 2px !important;
-    background: #cbd5e1 !important;
-    box-shadow: 2px 0 5px rgba(15, 23, 42, 0.08) !important;
-    pointer-events: none !important;
-}
-
-body #issueTabShell #overall_request_details .issue-actions-cell {
-    display: inline-flex !important;
+body #issueTabShell #overall_request_details .issue-sno-cell {
+    display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 4px !important;
-    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100%;
+}
+
+body #issueTabShell #overall_request_details .issue-sno-num {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #31445e !important;
+    line-height: 1.2 !important;
+}
+
+body #issueTabShell #overall_request_details .issue-sno-edit-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 3px !important;
 }
 
 body #issueTabShell #overall_request_details .issue-action-btn {
@@ -1784,18 +1770,6 @@ body #issueTabShell #overall_request_details .issue-action-btn {
     font-size: 11px !important;
     line-height: 1 !important;
     transition: background .12s, color .12s, border-color .12s;
-}
-
-body #issueTabShell #overall_request_details .issue-action-btn.action-debug:hover {
-    background: #eef6ff !important;
-    color: #0071c5 !important;
-    border-color: #7cb5ec !important;
-}
-
-body #issueTabShell #overall_request_details .issue-action-btn.action-details:hover {
-    background: #f0fdf4 !important;
-    color: #15803d !important;
-    border-color: #86efac !important;
 }
 
 body #issueTabShell #overall_request_details .issue-action-btn.action-edit:hover {
@@ -1943,6 +1917,22 @@ body #issueTabShell #overall_request_details :is(.field-title, .field-status) :i
     -webkit-line-clamp: unset !important;
     line-clamp: unset !important;
     text-overflow: clip !important;
+}
+
+body #issueTabShell #overall_request_details :is(.field-impact, .field-impact_processor) :is(.pending-cell-text, .impact-text, .impact-column) {
+    display: block !important;
+    white-space: pre-wrap !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    -webkit-line-clamp: unset !important;
+    line-clamp: unset !important;
+    text-overflow: clip !important;
+}
+
+body #issueTabShell #overall_request_details td:is(.field-impact, .field-impact_processor) {
+    overflow: visible !important;
+    cursor: default !important;
 }
 
 body #issueTabShell .issue-grid-inner #overall_request_details.table-primary td.field-progress {
@@ -2206,16 +2196,36 @@ body #issueTabShell #overall_request_details :is(.field-sightingid, .field-statu
 }
 
 body #issueTabShell #overall_request_details td.field-title {
-    vertical-align: middle !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    align-items: center !important;
     text-align: center !important;
+    height: 100% !important;
+    box-sizing: border-box !important;
+    vertical-align: middle !important;
 }
 
 body #issueTabShell #overall_request_details .issue-title-text {
     display: block;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+    flex-grow: 0;
+    margin: auto 0;
     text-align: center;
     width: 100%;
+}
+
+body #issueTabShell #overall_request_details .issue-title-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    border-top: none !important;
+    width: 100% !important;
 }
 
 body #issueTabShell #overall_request_details .issue-title-action {

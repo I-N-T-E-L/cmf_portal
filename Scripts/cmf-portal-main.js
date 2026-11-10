@@ -15,7 +15,7 @@ function toggleSidebar() {
     sidebar.style.right = (sidebar.style.right === '0px' || sidebar.style.right === '0') ? '-250px' : '0px';
 }
 (function () {
-    var selector = '#issueTabShell .issue-top-filter-grid select, #pendingTabShell .cmf-pending-filter-select, #ddlSharedPlatform';
+    var selector = '#overall_request_details th select.header-dropdown, #GridView_cmf_pending th select.cmf-pending-filter-select, #pendingTabShell select.cmf-pending-filter-select, select.header-dropdown, #ddlSharedPlatform';
     var controls = new Map();
     var active = null;
     var refreshQueued = false;
@@ -30,11 +30,16 @@ function toggleSidebar() {
     function closeMenu(restoreFocus) {
         if (!active) return;
         var trigger = active.control.trigger;
+        var dirty = active.dirty;
+        var select = active.control.select;
         active.popup.remove();
         active = null;
         trigger.setAttribute('aria-expanded', 'false');
         trigger.removeAttribute('aria-controls');
         if (restoreFocus && trigger.isConnected) trigger.focus();
+        if (dirty && !select.matches('#pendingTabShell select, #GridView_cmf_pending select')) {
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
     }
 
     function sync(control) {
@@ -51,18 +56,25 @@ function toggleSidebar() {
         if (control.select.multiple && toggleSelection) {
             var option = control.select.options[index];
             option.selected = !option.selected;
-            if (!option.value) {
-                Array.from(control.select.options).forEach(function (item) { item.selected = !item.value; });
-            } else if (control.select.options[0] && !control.select.options[0].value) {
-                control.select.options[0].selected = !Array.from(control.select.selectedOptions).some(function (item) { return item.value; });
+            if (!option.value || option.value.toLowerCase() === 'all') {
+                Array.from(control.select.options).forEach(function (item) { item.selected = (!item.value || item.value.toLowerCase() === 'all'); });
+            } else if (control.select.options[0] && (!control.select.options[0].value || control.select.options[0].value.toLowerCase() === 'all')) {
+                control.select.options[0].selected = !Array.from(control.select.selectedOptions).some(function (item) { return item.value && item.value.toLowerCase() !== 'all'; });
+            }
+            sync(control);
+            if (active && active.control === control) {
+                active.dirty = true;
+                active.renderOptions();
+            }
+            if (control.select.matches('#pendingTabShell select, #GridView_cmf_pending select')) {
+                control.select.dispatchEvent(new Event('change', { bubbles: true }));
             }
         } else {
             closeMenu(true);
             control.select.selectedIndex = index;
+            sync(control);
+            control.select.dispatchEvent(new Event('change', { bubbles: true }));
         }
-        sync(control);
-        control.select.dispatchEvent(new Event('change', { bubbles: true }));
-        if (active && active.control === control) active.renderOptions();
     }
 
     function openMenu(control) {
@@ -99,9 +111,23 @@ function toggleSidebar() {
                 control.select.dispatchEvent(new Event('change', { bubbles: true }));
                 return;
             }
+            if (control.select.multiple) {
+                Array.from(control.select.options).forEach(function (item, idx) { item.selected = (idx === 0); });
+                sync(control);
+                if (active && active.control === control) {
+                    active.dirty = true;
+                    active.renderOptions();
+                }
+                if (control.select.matches('#pendingTabShell select, #GridView_cmf_pending select')) {
+                    control.select.dispatchEvent(new Event('change', { bubbles: true }));
+                } else {
+                    closeMenu(true);
+                    control.select.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                return;
+            }
             choose(control, 0);
         });
-        summary.appendChild(reset);
         var list = document.createElement('div');
         list.className = 'portal-filter-menu-options';
         list.id = control.select.id + '_filterOptions';
@@ -137,7 +163,7 @@ function toggleSidebar() {
                 button.addEventListener('click', function (event) {
                     event.preventDefault();
                     if (control.select.multiple) event.stopPropagation();
-                    choose(control, index, check.contains(event.target));
+                    choose(control, index, control.select.multiple ? true : check.contains(event.target));
                 });
                 list.appendChild(button);
                 if (String(index) === focusedIndex) button.focus();
@@ -193,7 +219,7 @@ function toggleSidebar() {
             if (!select.isConnected) controls.delete(select);
         });
         document.querySelectorAll(selector).forEach(function (select) {
-            if (select.matches('#pendingTabShell .cmf-pending-filter-select') && !select.multiple) {
+            if ((select.matches('#pendingTabShell select.cmf-pending-filter-select, #GridView_cmf_pending select.cmf-pending-filter-select, #overall_request_details th select.header-dropdown')) && !select.multiple) {
                 var previousIndex = select.selectedIndex;
                 select.multiple = true;
                 if (previousIndex >= 0) select.options[previousIndex].selected = true;
@@ -202,9 +228,11 @@ function toggleSidebar() {
                 sync(controls.get(select));
                 return;
             }
-            var field = select.closest('.issue-top-filter-item, .portal-filter-field, .overview-platform-filter') || select.parentElement;
-            var label = select.labels.length ? select.labels[0] : field.querySelector('label, :scope > span');
-            var name = label ? Array.from(label.childNodes).filter(function (node) { return node.nodeType === 3; }).map(function (node) { return node.textContent; }).join(' ').trim().replace(/:$/, '') : 'Filter';
+            var th = select.closest('th');
+            var field = select.closest('.issue-top-filter-item, .portal-filter-field, .overview-platform-filter, .filter-container') || th || select.parentElement;
+            var label = select.labels && select.labels.length ? select.labels[0] : (th ? th.querySelector('.filter-header-text') : field.querySelector('label, :scope > span'));
+            var name = label ? Array.from(label.childNodes).filter(function (node) { return node.nodeType === 3; }).map(function (node) { return node.textContent; }).join(' ').trim().replace(/:$/, '') : '';
+            if (!name && label) name = (label.innerText || label.textContent || '').trim().replace(/:$/, '');
             var wrapper = document.createElement('div');
             wrapper.className = 'portal-filter-dropdown';
             var trigger = document.createElement('button');

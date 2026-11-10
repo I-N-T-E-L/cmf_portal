@@ -1,45 +1,22 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
-  Copy this file to Web.config for local development and fill in environment-specific values.
-  Do not commit real API keys, tokens, passwords, or internal connection strings.
+  CMF Web Portal – Web.config
+  Note: All AI (GNAI claude-4-5-sonnet / claude-4-5-haiku), HSD-ES API, SQL Database,
+  Scoring Rules, Guardrails, and Jargon settings are configured in and fetched directly from:
+    App_Data/cmf-assistant-config.json
+  Web.config is kept strictly for ASP.NET .NET 4.8 runtime, IIS pipeline, and UI framework settings.
 -->
 <configuration>
   <appSettings>
     <add key="ValidationSettings:UnobtrusiveValidationMode" value="None" />
     <add key="Syncfusion:LicenseKey" value="YOUR_SYNCFUSION_LICENSE_KEY" />
     <add key="DashboardRefreshSeconds" value="600" />
-
-    <add key="GitHubModels:Endpoint" value="https://models.inference.ai.azure.com/chat/completions" />
-    <add key="GitHubModels:Model" value="gpt-4o-mini" />
-    <add key="GitHubModels:ApiKey" value="YOUR_GITHUB_MODELS_PAT" />
-    <add key="GitHubModels:Proxy" value="http://proxy-chain.intel.com:911" />
-
-    <add key="GNAI:Endpoint" value="https://gnai.intel.com/api/providers/openai/v1/chat/completions" />
-    <add key="GNAI:Model" value="gpt-5-mini" />
-    <add key="GNAI:ApiKey" value="YOUR_GNAI_TOKEN" />
-    <add key="GNAI:Proxy" value="" />
-
-    <add key="Python:Executable" value="C:\\Program Files\\Python314\\python.exe" />
-
-    <!-- HSD enrichment for AI summaries. ProviderOrder supports gnai, mcp, rest.
-      Set HSD:McpEndpoint and HSD:McpToolName if running the HSDES MCP server behind an HTTP/streamable endpoint. -->
-    <add key="HSD:Enabled" value="true" />
-    <add key="HSD:ProviderOrder" value="rest,gnai" />
-    <add key="HSD:GnaiEnabled" value="true" />
-    <add key="HSD:McpEndpoint" value="" />
-    <add key="HSD:McpToolName" value="hsdes_get_article" />
-    <add key="HSD:McpAuthorization" value="" />
-    <add key="HSD:ArticleApiBaseUrl" value="https://hsdes-api.intel.com/rest/article" />
-    <add key="HSD:TimeoutSeconds" value="20" />
-    <add key="CMF:AssistantHsdRefreshSeconds" value="60" />
-    <add key="HSD:UseDefaultCredentials" value="true" />
-    <add key="HSD:Proxy" value="" />
+    <add key="Python:Executable" value="C:\Program Files\Python314\python.exe" />
   </appSettings>
 
-  <connectionStrings>
-    <add name="gfxitt" connectionString="YOUR_DATABASE_CONNECTION_STRING" providerName="System.Data.SqlClient" />
-  </connectionStrings>
-
+  <!-- ================================================================
+       SYSTEM.WEB
+  ================================================================ -->
   <system.web>
     <compilation debug="true" targetFramework="4.8">
       <assemblies>
@@ -50,5 +27,35 @@
     </compilation>
     <httpRuntime targetFramework="4.8" maxRequestLength="102400" executionTimeout="3600" />
     <pages validateRequest="false" />
+    <authentication mode="Windows" />
+    <authorization>
+      <allow users="*" />
+    </authorization>
   </system.web>
+
+  <!-- ================================================================
+       SYSTEM.WEBSERVER (IIS 7+)
+  ================================================================ -->
+  <system.webServer>
+    <validation validateIntegratedModeConfiguration="false" />
+    <modules runAllManagedModulesForAllRequests="true" />
+    <defaultDocument>
+      <files>
+        <add value="CMF_Web_portal.aspx" />
+      </files>
+    </defaultDocument>
+  </system.webServer>
+
+  <!-- ================================================================
+       RUNTIME
+  ================================================================ -->
+  <runtime>
+    <assemblyBinding xmlns="urn:schemas-microsoft-com:asm.v1">
+      <!-- Redirect older OfficeOpenXml versions to whichever is installed -->
+      <dependentAssembly>
+        <assemblyIdentity name="EPPlus" publicKeyToken="ea159fdaa78159a1" culture="neutral" />
+        <bindingRedirect oldVersion="0.0.0.0-4.5.3.3" newVersion="4.5.3.3" />
+      </dependentAssembly>
+    </assemblyBinding>
+  </runtime>
 </configuration>
