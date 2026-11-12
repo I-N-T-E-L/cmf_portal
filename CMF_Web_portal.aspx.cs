@@ -19397,6 +19397,12 @@ ORDER BY Total_CMF_Approved DESC";
     /// </summary>
     protected void ddlSharedPlatform_SelectedIndexChanged(object sender, EventArgs e)
     {
+        string eventTarget = Request["__EVENTTARGET"] ?? string.Empty;
+        if (!string.Equals(eventTarget, ddlSharedPlatform.UniqueID, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         try
         {
             if (string.Equals(GetActiveFocusedTab(), "pending", StringComparison.OrdinalIgnoreCase))

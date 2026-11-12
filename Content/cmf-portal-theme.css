@@ -298,10 +298,15 @@ body .portal-app-header {
     gap: 12px;
     flex: 0 0 auto;
     color: #fff !important;
-    font-size: 18px;
+    font-size: 22px;
+    line-height: 1;
     font-weight: 600;
     text-decoration: none !important;
     white-space: nowrap;
+}
+
+.portal-brand > span:last-child {
+    transform: translateY(0.15em);
 }
 
 .portal-brand-logo {
@@ -322,9 +327,17 @@ body .portal-app-header {
 
 .portal-work-week {
     color: #d2dfed;
-    font-size: 12px;
+    font-size: 20px;
+    line-height: 1;
+    margin-left: -6px;
+    transform: translateY(0.2em);
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
+}
+
+.portal-work-week-parenthesis {
+    font-size: 0.8em;
+    vertical-align: 0.1em;
 }
 
 body .portal-app-header .header-title {
@@ -377,7 +390,7 @@ body .portal-app-header .portal-header-updated {
     align-items: center;
     gap: 4px;
     color: #dce5f0;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 400;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
@@ -407,7 +420,7 @@ body .portal-app-header .dashboard-header-tools .ccip-dash-updated {
 
 body .header-user-mode label {
     margin: 0;
-    font-size: 11px;
+    font-size: 14px;
 }
 
 body #homeWelcomePanel .dashboard-platform-toolbar {
@@ -2513,7 +2526,7 @@ body a:focus-visible {
 @media (max-width: 480px) {
     body .portal-brand {
         gap: 8px;
-        font-size: 15px;
+        font-size: 18px;
     }
 
     body .portal-brand-logo {

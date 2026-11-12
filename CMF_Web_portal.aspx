@@ -18908,6 +18908,9 @@ td:nth-child(odd), th:nth-child(odd) {
                     closedValue: Number((isStackedLine ? visibleItem.WeekEndImplementedIssues : visibleItem.ResolvedIssues) || 0)
                 });
             }
+            var hasTrendData = visibleTrendPoints.some(function (point) {
+                return point.openValue > 0 || point.closedValue > 0;
+            });
 
             function toTrendSeriesData(items, valueSelector) {
                 var points = [];
@@ -18944,6 +18947,9 @@ td:nth-child(odd), th:nth-child(odd) {
                 window.CMF_PORTAL[chartRefKey] = echarts.init(trendHost, { textStyle: { fontFamily: getComputedStyle(document.body).fontFamily } }, { renderer: 'svg' });
             }
 
+            var previousTrendOptions = window.CMF_PORTAL[chartRefKey].getOption() || {};
+            var selectedTrendLegends = previousTrendOptions.legend && previousTrendOptions.legend.length
+                ? (previousTrendOptions.legend[0].selected || {}) : {};
             var trendOptions = {
                 animation: false,
                 color: isStackedLine ? ['#800000', '#0369a1'] : [isClusteredBar ? '#0369a1' : '#ef4444', '#16a34a'],
@@ -18951,15 +18957,19 @@ td:nth-child(odd), th:nth-child(odd) {
                 legend: {
                     top: 0,
                     right: 8,
+                    selected: selectedTrendLegends,
+                    formatter: function (name) {
+                        return isClusteredBar && name === 'Open' ? 'Opened' : name;
+                    },
                     icon: isClusteredBar ? 'rect' : 'circle',
                     itemWidth: 8,
                     itemHeight: 8,
                     textStyle: { color: '#24354e', fontSize: 11 }
                 },
                 grid: {
-                    left: isStackedLine && !visibleTrendPoints.some(function (point) { return point.openValue > 0 || point.closedValue > 0; }) ? 28 : 10,
-                    right: isStackedLine ? 28 : 24,
-                    top: isClusteredBar ? 40 : 30, bottom: 10, containLabel: true
+                    left: 30,
+                    right: isStackedLine ? 20 : 12,
+                    top: isClusteredBar ? 40 : 30, bottom: 29, containLabel: false
                 },
                 xAxis: {
                     type: 'category',
@@ -18974,10 +18984,12 @@ td:nth-child(odd), th:nth-child(odd) {
                     }
                 },
                 yAxis: {
+                    show: hasTrendData,
                     type: 'value',
+                    minInterval: 1,
                     axisLine: { show: false },
                     splitLine: { lineStyle: { color: '#eef2f7' } },
-                    axisLabel: { color: '#24354e', fontSize: 11, margin: 8 }
+                    axisLabel: { show: hasTrendData, color: '#24354e', fontSize: 11, margin: 8 }
                 },
                 series: [
                     {
@@ -19039,7 +19051,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     series.showAllSymbol = false;
                 });
                 var buildTrendContourData = function (selected) {
-                    if (selected.Open === false && selected.Implemented === false) return [];
+                    if (!hasTrendData) return [];
                     return toTrendSeriesData(trend, function (item) {
                         return (selected.Open === false ? 0 : Number(item.WeekEndOpenIssues || 0))
                             + (selected.Implemented === false ? 0 : Number(item.WeekEndImplementedIssues || 0));
@@ -19050,7 +19062,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     name: 'Backlog contour',
                     type: 'line',
                     smooth: true,
-                    data: buildTrendContourData({}),
+                    data: buildTrendContourData(selectedTrendLegends),
                     lineStyle: { width: 3, color: '#0369a1' },
                     itemStyle: { color: '#0369a1' },
                     symbol: 'circle',
@@ -19096,7 +19108,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     trendChart.__cmfTrendLegendHandler = function (params) {
                         var contourData = buildTrendContourData(params.selected || {});
                         trendChart.setOption({ grid: {
-                            left: contourData.some(function (point) { return point.value > 0; }) ? 10 : 28
+                            left: trendOptions.grid.left
                         }, series: [{
                             id: 'cmf-backlog-contour',
                             data: contourData
@@ -20193,7 +20205,7 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 
         function renderSummaryWeeklyTrend(trend) {
-            var showTrends = <%= ShowSummaryTrends ? "true" : "false" %>;
+            var showTrends = '<%= ShowSummaryTrends ? "true" : "false" %>' === 'true';
             if (!showTrends || !trend || trend.Display === '') return '';
             var tone = /^(good|bad|neutral)$/.test(trend.Tone) ? trend.Tone : 'unavailable';
             var direction = /^(up|down|flat)$/.test(trend.Direction) ? trend.Direction : 'unavailable';
@@ -27025,7 +27037,7 @@ td:nth-child(odd), th:nth-child(odd) {
     <script src="Scripts/cmf-portal-main.js?v=20261103-title-actions"></script>
     <script src="Scripts/cmf-dashboard-insights.js?v=26"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261112-platform-chip-spacing" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261112-header-gap-v7" />
     <link rel="stylesheet" href="Content/cmf-dashboard-insights.css?v=14" />
 
 </head>
@@ -27075,8 +27087,8 @@ td:nth-child(odd), th:nth-child(odd) {
     <header class="portal-app-header">
         <!-- Convert to ASP.NET DropDownList -->
 
-        <a class="portal-brand" href="CMF_Web_portal.aspx" aria-label="CMF Portal home"><span class="portal-brand-mark"><img src="others/images/design-diagrams/intel%20logo.png" alt="Intel" class="portal-brand-logo" /></span><span>CMF Portal</span></a>
-        <span class="portal-work-week" title="Current work week">WW'<%= System.Globalization.CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(DateTime.Now, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday).ToString("00") %></span>
+        <a class="portal-brand" href="CMF_Web_portal.aspx" aria-label="CMF Portal home"><span class="portal-brand-mark"><img src="https://www.intel.com/content/dam/logos/intel-header-logo.svg" alt="Intel" class="portal-brand-logo" /></span><span>CMF Portal</span></a>
+        <span class="portal-work-week" title="Current work week"><span class="portal-work-week-parenthesis">(</span>WW'<%= System.Globalization.CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(DateTime.Now, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday).ToString("00") %>.<%= (((int)DateTime.Now.DayOfWeek + 6) % 7) + 1 %><span class="portal-work-week-parenthesis">)</span></span>
         <div class="header-title" runat="server" id="headerTitle">CMF Live Dashboard</div>
         <div class="global-search-shell" role="search" style="display:none;">
             <i class="fas fa-search" aria-hidden="true"></i>
@@ -27266,7 +27278,7 @@ Submit
                                                         <option value="bar">WEEKLY ISSUE FLOW</option>
                                                     </select>
                                                 </h4>
-                                                <div class="overall-trend-range" style="<%= ddlDashboardDateMode.SelectedValue == "all" ? string.Empty : "display:none;" %>">
+                                                <div class='overall-trend-range<%= ddlDashboardDateMode.SelectedValue == "all" ? string.Empty : " d-none" %>'>
                                                     <select id="homeOverallTrendRange" class="overall-trend-range-select" aria-label="Issue trend time range" <%= ddlDashboardDateMode.SelectedValue == "all" ? string.Empty : "disabled=\"disabled\"" %>>
                                                         <option value="6" selected="selected">Last 6 Weeks</option>
                                                         <option value="12">Last 12 Weeks</option>
@@ -27370,7 +27382,7 @@ Submit
                                                             <option value="bar">WEEKLY ISSUE FLOW</option>
                                                         </select>
                                                     </h4>
-                                                    <div class="overall-trend-range" style="<%= ddlDashboardDateMode.SelectedValue == "all" ? string.Empty : "display:none;" %>">
+                                                    <div class='overall-trend-range<%= ddlDashboardDateMode.SelectedValue == "all" ? string.Empty : " d-none" %>'>
                                                         <select id="homeSpecificTrendRange" class="overall-trend-range-select" aria-label="Issue trend time range" <%= ddlDashboardDateMode.SelectedValue == "all" ? string.Empty : "disabled=\"disabled\"" %>>
                                                             <option value="6" selected="selected">Last 6 Weeks</option>
                                                             <option value="12">Last 12 Weeks</option>
