@@ -151,6 +151,10 @@ public class HomeDashboardOemRow
     public int TrendCount { get; set; }
     public int RecentRequestCount { get; set; }
     public int PreviousRequestCount { get; set; }
+    public int DuplicateTotalIssues { get; set; }
+    public int DuplicateOpenIssues { get; set; }
+    public int DuplicateImplemented { get; set; }
+    public int DuplicateClosed { get; set; }
 }
 
 public class HomeDashboardHeatmapRow
@@ -158,6 +162,8 @@ public class HomeDashboardHeatmapRow
     public string Ingredient { get; set; }
     public List<int> Values { get; set; }
     public List<string> StatusBreakdowns { get; set; }
+    public List<int> DuplicateValues { get; set; }
+    public List<string> DuplicateStatusBreakdowns { get; set; }
 }
 
 public class SummaryIssueLinksGroup
@@ -4072,6 +4078,7 @@ WITH issue_base AS (
     SELECT
         CASE WHEN ISNULL(LTRIM(RTRIM(customer_company)), '') = '' THEN 'Unassigned' ELSE LTRIM(RTRIM(customer_company)) END AS oem,
         LOWER(LTRIM(RTRIM(ISNULL(status, '')))) AS status_norm,
+        LOWER(LTRIM(RTRIM(ISNULL(cmf_request, '')))) AS request_norm,
         LOWER(LTRIM(RTRIM(ISNULL(priority, '')))) AS priority_norm,
         LOWER(LTRIM(RTRIM(ISNULL(customer_impact, '')))) AS impact_norm,
         TRY_CAST(date_cmf_ask AS DATE) AS ask_date,
@@ -4079,7 +4086,7 @@ WITH issue_base AS (
         TRY_CAST(implemented_date AS DATE) AS implemented_date
     FROM " + overallComponentSourceSql + @"
     WHERE LOWER(LTRIM(RTRIM(ISNULL(sysdebug, '')))) LIKE '%customer_must_fix%'
-      AND LOWER(LTRIM(RTRIM(ISNULL(cmf_request, '')))) = 'cmf_ok'
+            AND LOWER(LTRIM(RTRIM(ISNULL(cmf_request, '')))) IN ('cmf_ok', 'cmf_duplicate')
 ),
 issue_agg AS (
     SELECT
@@ -4094,6 +4101,18 @@ issue_agg AS (
             ELSE NULL END AS DECIMAL(10, 2))), 0) AS avg_resolution_days,
         SUM(CASE WHEN priority_norm IN ('p0-blocker', 'p1-showstopper') OR impact_norm IN ('1-critical', '2-high') THEN 1 ELSE 0 END) AS high_risk_signals
     FROM issue_base
+    WHERE request_norm = 'cmf_ok'
+    GROUP BY oem
+),
+duplicate_agg AS (
+    SELECT
+        oem,
+        COUNT(1) AS duplicate_total_issues,
+        SUM(CASE WHEN status_norm NOT IN ('complete', 'rejected', 'implemented', 'future') THEN 1 ELSE 0 END) AS duplicate_open_issues,
+        SUM(CASE WHEN status_norm IN ('implemented', 'future') THEN 1 ELSE 0 END) AS duplicate_implemented,
+        SUM(CASE WHEN status_norm IN ('complete', 'rejected') THEN 1 ELSE 0 END) AS duplicate_closed
+    FROM issue_base
+    WHERE request_norm = 'cmf_duplicate'
     GROUP BY oem
 ),
 trend_base AS (
@@ -4132,17 +4151,23 @@ pending_agg AS (
 ),
 combined AS (
     SELECT
-        COALESCE(i.oem, p.oem) AS oem,
+        COALESCE(i.oem, p.oem, d.oem) AS oem,
         ISNULL(i.total_issues, 0) AS total_issues,
         ISNULL(i.open_issues, 0) AS open_issues,
         ISNULL(p.cmf_pending, 0) AS cmf_pending,
         ISNULL(i.implemented_issues, 0) AS implemented_issues,
         ISNULL(i.closed_issues, 0) AS closed_issues,
         ISNULL(i.avg_resolution_days, 0) AS avg_resolution_days,
-        ISNULL(i.high_risk_signals, 0) AS high_risk_signals
+                ISNULL(i.high_risk_signals, 0) AS high_risk_signals,
+                ISNULL(d.duplicate_total_issues, 0) AS duplicate_total_issues,
+                ISNULL(d.duplicate_open_issues, 0) AS duplicate_open_issues,
+                ISNULL(d.duplicate_implemented, 0) AS duplicate_implemented,
+                ISNULL(d.duplicate_closed, 0) AS duplicate_closed
     FROM issue_agg i
     FULL OUTER JOIN pending_agg p
       ON p.oem = i.oem
+        FULL OUTER JOIN duplicate_agg d
+            ON d.oem = COALESCE(i.oem, p.oem)
 )
 SELECT
     c.oem,
@@ -4160,9 +4185,14 @@ SELECT
     END AS risk_level,
     ISNULL(t.recent_requests, 0) - ISNULL(t.previous_requests, 0) AS trend_count,
     ISNULL(t.recent_requests, 0) AS recent_requests,
-    ISNULL(t.previous_requests, 0) AS previous_requests
+    ISNULL(t.previous_requests, 0) AS previous_requests,
+    duplicate_total_issues,
+    duplicate_open_issues,
+    duplicate_implemented,
+    duplicate_closed
 FROM combined c
 LEFT JOIN trend_agg t ON t.oem = c.oem
+    AND (c.total_issues > 0 OR c.cmf_pending > 0)
 ORDER BY total_issues DESC, c.oem";
 
         using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
@@ -4185,6 +4215,10 @@ ORDER BY total_issues DESC, c.oem";
                     row.TrendCount = ReadInt(reader, 9);
                     row.RecentRequestCount = ReadInt(reader, 10);
                     row.PreviousRequestCount = ReadInt(reader, 11);
+                    row.DuplicateTotalIssues = ReadInt(reader, 12);
+                    row.DuplicateOpenIssues = ReadInt(reader, 13);
+                    row.DuplicateImplemented = ReadInt(reader, 14);
+                    row.DuplicateClosed = ReadInt(reader, 15);
                     snapshot.OemSummary.Add(row);
                 }
             }
@@ -4201,6 +4235,8 @@ ORDER BY total_issues DESC, c.oem";
         List<string> platformLabels = new List<string>();
         List<Dictionary<string, int>> platformIngredientCounts = new List<Dictionary<string, int>>();
         List<Dictionary<string, int>> platformIngredientLosCounts = new List<Dictionary<string, int>>();
+        List<Dictionary<string, int>> platformIngredientDuplicateCounts = new List<Dictionary<string, int>>();
+        List<Dictionary<string, int>> platformIngredientDuplicateLosCounts = new List<Dictionary<string, int>>();
         Dictionary<string, int> ingredientTotals = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         List<string> sourceTables = GetOverallAggregateSourceTables();
@@ -4222,11 +4258,13 @@ ORDER BY total_issues DESC, c.oem";
                         string sql = @"
 SELECT
         CASE WHEN ISNULL(LTRIM(RTRIM(component_group)), '') = '' THEN 'Unassigned' ELSE LTRIM(RTRIM(component_group)) END AS ingredient,
-        COUNT(1) AS open_unique_count,
-        SUM(CASE WHEN LOWER(LTRIM(RTRIM(ISNULL(los, '')))) = 'yes' THEN 1 ELSE 0 END) AS open_unique_los_count
+        SUM(CASE WHEN cmf_request = 'cmf_ok' THEN 1 ELSE 0 END) AS open_unique_count,
+        SUM(CASE WHEN cmf_request = 'cmf_ok' AND LOWER(LTRIM(RTRIM(ISNULL(los, '')))) = 'yes' THEN 1 ELSE 0 END) AS open_unique_los_count,
+        SUM(CASE WHEN cmf_request = 'cmf_duplicate' THEN 1 ELSE 0 END) AS open_duplicate_count,
+        SUM(CASE WHEN cmf_request = 'cmf_duplicate' AND LOWER(LTRIM(RTRIM(ISNULL(los, '')))) = 'yes' THEN 1 ELSE 0 END) AS open_duplicate_los_count
 FROM " + tableName + @"
 WHERE status = 'open'
-    AND cmf_request = 'cmf_ok'
+    AND cmf_request IN ('cmf_ok', 'cmf_duplicate')
     AND ISNULL(LTRIM(RTRIM(drivers)), '') <> ''
     AND sysdebug LIKE '%customer_must_fix%'
     AND " + GetDashboardDateFilter().BuildPredicate(null) + @"
@@ -4235,6 +4273,8 @@ GROUP BY
 
             Dictionary<string, int> ingredientCountsForPlatform = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                         Dictionary<string, int> ingredientLosCountsForPlatform = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, int> ingredientDuplicateCountsForPlatform = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, int> ingredientDuplicateLosCountsForPlatform = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
             using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
             using (SqlDataReader reader = command.ExecuteReader())
@@ -4248,7 +4288,8 @@ GROUP BY
                     }
 
                     int count = ReadInt(reader, 1);
-                    if (count <= 0)
+                    int duplicateCount = ReadInt(reader, 3);
+                    if (count <= 0 && duplicateCount <= 0)
                     {
                         continue;
                     }
@@ -4271,14 +4312,25 @@ GROUP BY
                     ingredientLosCountsForPlatform.TryGetValue(ingredient, out existingLosCount);
                     ingredientLosCountsForPlatform[ingredient] = existingLosCount + losCount;
 
+                    int duplicateLosCount = Math.Max(0, Math.Min(duplicateCount, ReadInt(reader, 4)));
+                    int existingDuplicateCount;
+                    ingredientDuplicateCountsForPlatform.TryGetValue(ingredient, out existingDuplicateCount);
+                    ingredientDuplicateCountsForPlatform[ingredient] = existingDuplicateCount + duplicateCount;
+
+                    int existingDuplicateLosCount;
+                    ingredientDuplicateLosCountsForPlatform.TryGetValue(ingredient, out existingDuplicateLosCount);
+                    ingredientDuplicateLosCountsForPlatform[ingredient] = existingDuplicateLosCount + duplicateLosCount;
+
                     int existingTotal;
                     ingredientTotals.TryGetValue(ingredient, out existingTotal);
-                    ingredientTotals[ingredient] = existingTotal + count;
+                    ingredientTotals[ingredient] = existingTotal + count + duplicateCount;
                 }
             }
 
             platformIngredientCounts.Add(ingredientCountsForPlatform);
             platformIngredientLosCounts.Add(ingredientLosCountsForPlatform);
+            platformIngredientDuplicateCounts.Add(ingredientDuplicateCountsForPlatform);
+            platformIngredientDuplicateLosCounts.Add(ingredientDuplicateLosCountsForPlatform);
         }
 
         List<HomeDashboardHeatmapRow> heatmapRows = new List<HomeDashboardHeatmapRow>();
@@ -4295,7 +4347,9 @@ GROUP BY
             {
                 Ingredient = ingredient,
                 Values = new List<int>(),
-                StatusBreakdowns = new List<string>()
+                StatusBreakdowns = new List<string>(),
+                DuplicateValues = new List<int>(),
+                DuplicateStatusBreakdowns = new List<string>()
             };
 
             for (int platformIndex = 0; platformIndex < platformIngredientCounts.Count; platformIndex++)
@@ -4308,6 +4362,14 @@ GROUP BY
                 Dictionary<string, int> platformLosCounts = platformIngredientLosCounts[platformIndex];
                 int losValue = platformLosCounts.TryGetValue(ingredient, out losValue) ? losValue : 0;
                 row.StatusBreakdowns.Add(BuildHeatmapOpenUniqueTooltip(value, losValue));
+
+                Dictionary<string, int> platformDuplicateCounts = platformIngredientDuplicateCounts[platformIndex];
+                int duplicateValue = platformDuplicateCounts.TryGetValue(ingredient, out duplicateValue) ? duplicateValue : 0;
+                row.DuplicateValues.Add(duplicateValue);
+
+                Dictionary<string, int> platformDuplicateLosCounts = platformIngredientDuplicateLosCounts[platformIndex];
+                int duplicateLosValue = platformDuplicateLosCounts.TryGetValue(ingredient, out duplicateLosValue) ? duplicateLosValue : 0;
+                row.DuplicateStatusBreakdowns.Add(BuildHeatmapOpenUniqueTooltip(duplicateValue, duplicateLosValue, true));
             }
 
             heatmapRows.Add(row);
@@ -4317,7 +4379,7 @@ GROUP BY
         snapshot.ComponentRiskHeatmap = heatmapRows;
     }
 
-    private static string BuildHeatmapOpenUniqueTooltip(int openUniqueCount, int losCount)
+    private static string BuildHeatmapOpenUniqueTooltip(int openUniqueCount, int losCount, bool duplicates = false)
     {
         if (openUniqueCount <= 0)
         {
@@ -4334,7 +4396,7 @@ GROUP BY
             normalizedLos = openUniqueCount;
         }
 
-        return "Open Unique: " + openUniqueCount.ToString(CultureInfo.InvariantCulture)
+        return (duplicates ? "Open Duplicates: " : "Open Unique: ") + openUniqueCount.ToString(CultureInfo.InvariantCulture)
             + "\nLOS: " + normalizedLos.ToString(CultureInfo.InvariantCulture);
     }
 
@@ -15376,6 +15438,10 @@ ORDER BY cp_id";
         string parsedMetric;
         ParseOemSummaryModalArgument(oem, out parsedOem, out parsedMetric);
         bool includeAllOems = string.Equals(parsedOem, OverallOemAllToken, StringComparison.OrdinalIgnoreCase);
+        string[] recordTypeParts = (oem ?? string.Empty).Split(new[] { "||" }, StringSplitOptions.None);
+        bool uniqueOnly = recordTypeParts.Length >= 3 && string.Equals(recordTypeParts[2], "unique", StringComparison.OrdinalIgnoreCase);
+        bool duplicatesOnly = recordTypeParts.Length >= 3 && string.Equals(recordTypeParts[2], "duplicates", StringComparison.OrdinalIgnoreCase);
+        bool noRecordTypes = recordTypeParts.Length >= 3 && string.Equals(recordTypeParts[2], "none", StringComparison.OrdinalIgnoreCase);
 
         // Keep drilldown source aligned with the Overall OEM table aggregation source.
         string issueSourceSql = BuildIssueDataSourceSql(OverallDashboardPlatformTable, "issue_src");
@@ -15396,7 +15462,13 @@ ORDER BY cp_id";
         else
         {
             whereClause.Append("LOWER(LTRIM(RTRIM(ISNULL(issue_src.sysdebug, '')))) LIKE '%customer_must_fix%' ");
-            whereClause.Append("AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.cmf_request, '')))) IN ('cmf_ok', 'cmf_duplicate') ");
+            whereClause.Append(uniqueOnly
+                ? "AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.cmf_request, '')))) = 'cmf_ok' "
+                : duplicatesOnly
+                    ? "AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.cmf_request, '')))) = 'cmf_duplicate' "
+                    : noRecordTypes
+                        ? "AND 1 = 0 "
+                        : "AND LOWER(LTRIM(RTRIM(ISNULL(issue_src.cmf_request, '')))) IN ('cmf_ok', 'cmf_duplicate') ");
 
             if (string.Equals(normalizedMetric, "open", StringComparison.OrdinalIgnoreCase))
             {

@@ -47,6 +47,26 @@ public static class PlatformDiscoveryTests
             Check(ranked[index].TableName == expected[index], "Descending Open, Implemented, Pending, Total ordering with alphabetical final ties.");
         }
         Check(rankedPlatforms[0].TableName == "low", "Ranking must not mutate discovery order or platform defaults.");
+        CmfPlatformDefinition[] shuffledPlatforms = (CmfPlatformDefinition[])rankedPlatforms.Clone();
+        Array.Reverse(shuffledPlatforms);
+        List<CmfPlatformDefinition> shuffledRanking = CmfPlatformCatalog.OrderBySummaryCounts(shuffledPlatforms, rankingCounts);
+        for (int index = 0; index < expected.Length; index++)
+        {
+            Check(shuffledRanking[index].TableName == expected[index], "Input order must not affect platform ranking.");
+        }
+
+        CmfPlatformDefinition knownPlatform = new CmfPlatformDefinition("NVL-H", "CMF_NVL_H_ALL_COMPONENTS_TABLE", "", "", null);
+        CmfPlatformDefinition unknownPlatform = new CmfPlatformDefinition("FUTURE-99", "CMF_FUTURE_99_ALL_COMPONENTS_TABLE", "", "", null);
+        CmfPlatformDefinition[] changingPlatforms = new[] { knownPlatform, unknownPlatform };
+        Dictionary<string, CmfPlatformSummaryCounts> changingCounts = new Dictionary<string, CmfPlatformSummaryCounts> {
+            { knownPlatform.TableName, new CmfPlatformSummaryCounts(1, 0, 0, 1) },
+            { unknownPlatform.TableName, new CmfPlatformSummaryCounts(2, 0, 0, 2) }
+        };
+        Check(CmfPlatformCatalog.OrderBySummaryCounts(changingPlatforms, changingCounts)[0] == unknownPlatform,
+            "An unknown platform with higher counts must rank ahead of a predefined platform.");
+        changingCounts[knownPlatform.TableName] = new CmfPlatformSummaryCounts(3, 0, 0, 3);
+        Check(CmfPlatformCatalog.OrderBySummaryCounts(changingPlatforms, changingCounts)[0] == knownPlatform,
+            "Changed counts must change platform order without modifying platform metadata.");
         Check(CmfPlatformCatalog.OrderBySummaryCounts(new CmfPlatformDefinition[0], rankingCounts).Count == 0, "Empty platform rankings must remain empty.");
 
         Check(CmfPlatformCatalog.IsDiscoverablePlatformTable("CMF_FUTURE_9_ALL_COMPONENTS_TABLE"), "Unknown platforms must be eligible without a catalog entry.");

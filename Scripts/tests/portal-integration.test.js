@@ -367,9 +367,44 @@ test('Pending summary tooltips omit oldest-age explanations while retaining the 
     assert.match(pending[0], /ConstituentTooltip = pendingConstituentLines\.Count > 0\s*\? string\.Join\("\\n", pendingConstituentLines\.ToArray\(\)\)\s*: "No pending constituent counts in this scope\."/);
 });
 
+test('Overall and platform quick links open the old CMF portal in a new tab', () => {
+    const menus = Array.from(source.matchAll(/<div class="overall-quick-links" aria-label="(?:Overall|Platform) quick links">([\s\S]*?)<\/div>/g));
+    assert.equal(menus.length, 3);
+    for (const menu of menus) {
+        assert.match(menu[1], /<a class="modern-button overall-quick-link-btn" href="https:\/\/gfxeet\.intel\.com\/CMF_Web_portal\.aspx" target="_blank" rel="noopener noreferrer">Old CMF Portal<\/a>/);
+    }
+});
+
+test('summary cards parenthesize duplicate notes and omit zero duplicates when the main count is zero', () => {
+    const definition = source.match(/        function formatSummaryFactValueAndNote\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    const context = vm.createContext({});
+    vm.runInContext(definition[0], context);
+    for (const [value, note, expectedValue, expectedNote] of [
+        [0, '0 duplicates', '0', ''],
+        ['0', '0 duplicates', '0', ''],
+        [' 0 ', ' 0 duplicates ', ' 0 ', ''],
+        ['1', '0 duplicates', '1', '(0 duplicates)'],
+        ['21', '9 duplicates', '21', '(9 duplicates)'],
+        ['0', '2 duplicates', '0', '(2 duplicates)'],
+        ['2', '1 duplicate', '2', '(1 duplicate)'],
+        ['1,001', '1,000 duplicates', '1,001', '(1,000 duplicates)'],
+        ['21', '(9 duplicates)', '21', '(9 duplicates)'],
+        ['0', 'Oldest: 18 days', '0', 'Oldest: 18 days'],
+        ['0', 'days | No completed records', '0 days', 'No completed records'],
+        ['0', '', '0', '']
+    ]) {
+        const result = context.formatSummaryFactValueAndNote(value, note);
+        assert.equal(result.valueText, expectedValue);
+        assert.equal(result.noteText, expectedNote);
+    }
+});
+
 test('non-TPT summary cards place duplicate notes beneath values and trends in the footer', () => {
     const definition = source.match(/        function renderOverallSummaryFacts\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    const formatter = source.match(/        function formatSummaryFactValueAndNote\([^)]*\) \{[\s\S]*?\r?\n        \}/);
     assert.ok(definition);
+    assert.ok(formatter);
     for (const hostId of ['homeOverallSummaryFactsCore', 'homeSpecificSummaryFactsDashboardCore', 'homeSpecificSummaryFactsCmfCore']) {
         for (const display of ['1', '0', '']) {
             const cards = [];
@@ -381,7 +416,6 @@ test('non-TPT summary cards place duplicate notes beneath values and trends in t
                         setAttribute(name, value) { this.attributes[name] = value; }, addEventListener() {} })
                 },
                 shouldRenderOverallSummaryFact: () => true,
-                formatSummaryFactValueAndNote: (value, note) => ({ valueText: value, noteText: note || '' }),
                 renderValueWithDaysSuffix: value => String(value),
                 escapeHtml: value => String(value),
                 getOverallSummaryToneClass: () => 'tone',
@@ -389,6 +423,7 @@ test('non-TPT summary cards place duplicate notes beneath values and trends in t
                 normalizeSummaryIssueMetricKey: label => label.toLowerCase(),
                 renderSummaryWeeklyTrend: trend => trend && trend.Display ? '<span class="cmf-weekly-trend">' + trend.Display + '</span>' : ''
             });
+            vm.runInContext(formatter[0], context);
             vm.runInContext(definition[0], context);
             context.renderOverallSummaryFacts({ SummaryFacts: [
                 { Label: 'Open', Value: '21', Note: '9 duplicates', WeeklyTrend: { Display: display } },
@@ -396,7 +431,7 @@ test('non-TPT summary cards place duplicate notes beneath values and trends in t
                 { Label: 'Pending', Value: '6', Note: '', WeeklyTrend: { Display: display } }
             ] }, hostId);
             assert.equal(cards.length, 3);
-            assert.match(cards[0].innerHTML, /class="cmf-summary-value-stack"><div class="ccip-summary-fact-value">21<\/div><div class="ccip-summary-fact-note">9 duplicates<\/div><\/div>/);
+            assert.match(cards[0].innerHTML, /class="cmf-summary-value-stack"><div class="ccip-summary-fact-value">21<\/div><div class="ccip-summary-fact-note">\(9 duplicates\)<\/div><\/div>/);
             assert.match(cards[1].innerHTML, /class="cmf-summary-value-stack"><div class="ccip-summary-fact-value">6<\/div><div class="ccip-summary-fact-note">Oldest: 18 days<\/div><\/div>/);
             assert.match(cards[2].innerHTML, /class="ccip-summary-fact-value">6<\/div>/);
             assert.doesNotMatch(cards[2].innerHTML, /cmf-summary-value-stack|CMF pending table/);
@@ -412,13 +447,77 @@ test('non-TPT summary cards place duplicate notes beneath values and trends in t
     }
 });
 
-test('Overall TPT aligns legends and footer trends with summary cards without changing platform layouts', () => {
+test('Overall and platform summary cards are interactive and show tooltips only for positive counts', () => {
+    const definition = source.match(/        function renderOverallSummaryFacts\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    const formatter = source.match(/        function formatSummaryFactValueAndNote\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    assert.ok(formatter);
+    for (const hostId of ['homeOverallSummaryFactsCore', 'homeSpecificSummaryFactsDashboardCore', 'homeSpecificSummaryFactsCmfCore']) {
+        const cards = [];
+        const opened = [];
+        const host = { set innerHTML(value) { cards.length = 0; }, appendChild: card => cards.push(card) };
+        const context = vm.createContext({
+            document: {
+                getElementById: id => id === hostId ? host : null,
+                createElement: () => ({ innerHTML: '', attributes: {}, listeners: {},
+                    setAttribute(name, value) { this.attributes[name] = value; },
+                    addEventListener(name, callback) { this.listeners[name] = callback; } })
+            },
+            shouldRenderOverallSummaryFact: () => true,
+            renderValueWithDaysSuffix: value => String(value),
+            escapeHtml: value => String(value),
+            getOverallSummaryToneClass: () => 'tone-total',
+            buildOverallSummaryFactTooltip: () => 'Summary details',
+            normalizeSummaryIssueMetricKey: label => label.toLowerCase(),
+            renderSummaryWeeklyTrend: () => '<span>0</span>',
+            openSummaryIssueLinksPopup: (key, label) => opened.push([key, label])
+        });
+        vm.runInContext(formatter[0], context);
+        vm.runInContext(definition[0], context);
+        for (const value of [0, '0', ' 0 ', '0,000', 1, '1,234', 0]) {
+            const positive = Number(String(value).replace(/,/g, '').trim()) > 0;
+            const labels = ['Total CMFs', 'Closed', 'Implemented', 'Open', 'CMF Pending'];
+            context.renderOverallSummaryFacts({ SummaryFacts: labels.map(Label => ({ Label, Value: value, Note: '2 duplicates' })) }, hostId);
+            assert.equal(cards.length, labels.length);
+            cards.forEach((card, index) => {
+                assert.equal(card.attributes.title, positive ? 'Summary details' : undefined);
+                assert.match(card.className, /tone-total/);
+                assert.equal(card.className.includes('ccip-summary-zero'), !positive);
+                assert.equal(card.className.includes('ccip-summary-clickable'), positive);
+                if (positive) {
+                    assert.equal(card.attributes.role, 'button');
+                    assert.equal(card.attributes.tabindex, '0');
+                    for (const event of [
+                        { type: 'click' }, { type: 'keydown', key: 'Enter' },
+                        { type: 'keydown', key: ' ' }, { type: 'keydown', key: 'Spacebar' }
+                    ]) {
+                        let prevented = false;
+                        card.listeners[event.type]({ key: event.key, preventDefault() { prevented = true; } });
+                        assert.ok(prevented);
+                        assert.deepEqual(opened.pop(), [labels[index].toLowerCase(), labels[index]]);
+                    }
+                    card.listeners.keydown({ key: 'Escape' });
+                    assert.equal(opened.length, 0);
+                } else {
+                    assert.equal(card.attributes.role, undefined);
+                    assert.equal(card.attributes.tabindex, undefined);
+                    assert.equal(card.attributes['aria-label'], 'Summary details');
+                    assert.deepEqual(Object.keys(card.listeners), []);
+                }
+            });
+        }
+    }
+    assert.match(source, /\.overall-summary-facts \.overall-summary-fact\.ccip-summary-clickable:hover/);
+    assert.match(source, /\.overall-summary-facts \.overall-summary-fact\.ccip-summary-zero \{\s*cursor: default;/);
+});
+
+test('Overall and platform TPT cards align legends beneath values and trends in the footer', () => {
     const definition = source.match(/        function renderOverallTptBoxes\([^)]*\) \{[\s\S]*?\r?\n        \}/);
     assert.ok(definition);
-    assert.match(source, /#homeOverallSummaryTptInline \.overall-tpt-value\s*\{\s*font-size: 30px;\s*line-height: 1\.05;/);
-    assert.match(source, /#homeOverallSummaryTptInline \.overall-tpt-legend\s*\{\s*font-size: 10px;\s*line-height: 1\.2;/);
-    assert.match(source, /#homeOverallSummaryTptInline \.overall-tpt-trend\s*\{\s*display: flex;\s*justify-content: center;\s*align-self: end;\s*min-height: 14px;/);
     for (const hostId of ['homeOverallSummaryTptInline', 'homeSpecificSummaryFactsDashboardTptInline', 'homeSpecificSummaryFactsCmfTptInline']) {
+        assert.match(source, new RegExp('#' + hostId + ' \\.overall-tpt-value[^{}]*\\{\\s*font-size: 30px;\\s*line-height: 1\\.05;'));
+        assert.match(source, new RegExp('#' + hostId + ' \\.overall-tpt-legend[^{}]*\\{\\s*font-size: 10px;\\s*line-height: 1\\.2;'));
+        assert.match(source, new RegExp('#' + hostId + ' \\.overall-tpt-trend[^{}]*\\{\\s*display: flex;\\s*justify-content: center;\\s*align-self: end;\\s*min-height: 14px;'));
         const host = { id: hostId, innerHTML: '', querySelectorAll: () => [] };
         const context = vm.createContext({
             document: { getElementById: () => host },
@@ -440,13 +539,8 @@ test('Overall TPT aligns legends and footer trends with summary cards without ch
                 const legend = '<div class="overall-tpt-legend">' + kind + ' legend</div>';
                 const trend = display ? '<span class="cmf-weekly-trend">' + display + '</span>' : '';
                 assert.ok(card.includes('>' + value + ' <span'));
-                if (hostId === 'homeOverallSummaryTptInline') {
-                    assert.ok(card.includes(legend + '</div><div class="overall-tpt-trend">' + trend + '</div>'));
-                    assert.match(card, /cmf-summary-value-stack/);
-                } else {
-                    assert.doesNotMatch(card, /overall-tpt-trend/);
-                    assert.ok(card.endsWith((display === null ? '' : trend + '</div>') + legend + '</div>'));
-                }
+                assert.ok(card.includes(legend + '</div><div class="overall-tpt-trend">' + trend + '</div>'));
+                assert.match(card, /cmf-summary-value-stack/);
                 if (!display) assert.doesNotMatch(card, /cmf-weekly-trend|N\/A/);
             }
         }
