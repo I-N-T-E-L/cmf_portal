@@ -561,8 +561,27 @@ public static class DashboardInsightsTests
                 && !fact.Evidence.Contains("%") && !fact.Evidence.Contains("SLA") && !fact.Summary.Contains("age setting")
                 && fact.Title.StartsWith("4 pending requests") && fact.Label == "Pending age review",
                 "Pending age wording omitted actual counts/thresholds or overstated the observation.");
+            Check(fact.Summary.StartsWith("All pending CMFs have been waiting "),
+                "A fully aged pending queue must be described as all, not merely at least half.");
         }
         snapshot.Data["PendingSummaryAgeThresholdDays"] = 2;
+        var pendingTable = (Dictionary<string, object>)snapshot.Data["PendingSummary"];
+        foreach (var scenario in new[] {
+            Tuple.Create(2, 2, "All pending CMFs"),
+            Tuple.Create(4, 2, "Half of pending CMFs"),
+            Tuple.Create(4, 3, "Most pending CMFs"),
+            Tuple.Create(20, 19, "Most pending CMFs") })
+        {
+            pendingTable["Rows"] = new[] { new[] { "HW", "Named contact",
+                scenario.Item1 + ":::OVER_TWO_DAYS:::" + scenario.Item2 } };
+            var scenarioSource = CmfRenderedInsightsService.BuildSource(snapshot, 6, "line");
+            var scenarioFact = scenarioSource.Facts.Single(item => item.Topic == "pending-age-review");
+            Check(scenarioFact.Summary.StartsWith(scenario.Item3 + " have been waiting ")
+                && scenarioFact.Evidence.Contains(scenario.Item2 + " of " + scenario.Item1)
+                && !scenarioFact.Summary.Contains("%"),
+                "Pending age wording must reflect the actual affected share without changing its evidence.");
+        }
+        pendingTable["Rows"] = new[] { new[] { "HW", "Named contact", "4:::OVER_TWO_DAYS:::4" } };
         var firstSource = CmfRenderedInsightsService.BuildSource(snapshot, 6, "line");
         var first = CmfRenderedInsightsService.BuildResult(firstSource, firstSource.Facts, false);
         snapshot.Platform = "B";
@@ -838,8 +857,13 @@ public static class DashboardInsightsTests
             var leader = project(section, new[] { 2, 1 }).Facts.Single(fact => fact.Category == CmfRenderedInsightsService.Concentration);
             Check(leader.Title.StartsWith("CSME") && leader.Evidence.Contains("2 of 3"),
                 section + " lost a genuinely leading cluster or its evidence.");
+            string subject = section == "PendingSummary" ? "pending queue" : section == "MilestoneSummary" ? "milestone workload" : "open workload";
+            Check(leader.Summary == "More than half of the " + subject + " sits in CSME. PnP is the next-largest cluster.",
+                section + " did not explicitly name the leading cluster in the majority description.");
             var tiedRunners = project(section, new[] { 4, 3, 3 }).Facts.Single(fact => fact.Category == CmfRenderedInsightsService.Concentration);
             Check(!tiedRunners.Summary.Contains("next-largest"), section + " arbitrarily selected one of two equal runners-up.");
+            Check(tiedRunners.Summary == "A large share of the " + subject + " sits in CSME.",
+                section + " did not explicitly name the leading cluster in the large-share description.");
             var tiedLeaders = project(section, new[] { 4, 4, 2 }).Facts;
             Check(!tiedLeaders.Any(fact => fact.Title.Contains("is the largest cluster")),
                 section + " incorrectly described one tied leader as uniquely largest.");

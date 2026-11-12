@@ -286,7 +286,7 @@ public static class CmfRenderedInsightsService
                     Category = Concentration, Label = label, Score = 50 + (double)share / 4,
                     Title = top.Key + (share > 50 ? " carries most of the " : " is the largest cluster in the ") + subject,
                     Summary = (share > 50 ? "More than half" : "A large share") + " of the " + subject
-                        + " sits in one " + (milestone ? "milestone" : "component/ingredient") + "."
+                        + " sits in " + top.Key + "."
                         + (uniqueRunnerUp ? " " + ordered[1].Key + " is the next-largest cluster." : ""),
                     Evidence = top.Key + ": " + Number(top.Value) + " of " + Number(population) + ". " + string.Join(" | ", evidence),
                     Measurements = ordered.Select(pair => MeasurePopulation(pair.Key, pair.Value, population, snapshot)).ToList() });
@@ -315,10 +315,12 @@ public static class CmfRenderedInsightsService
                     NumberStyles.Integer, CultureInfo.InvariantCulture, out ageThresholdDays) && ageThresholdDays > 0;
                 if (!thresholdAvailable) continue;
                 string ageLimit = "more than " + Number(ageThresholdDays) + (ageThresholdDays == 1 ? " day" : " days") + " since the CMF request date";
+                string pendingShare = ageMarked == population ? "All pending CMFs"
+                    : ageMarked * 2 == population ? "Half of pending CMFs" : "Most pending CMFs";
                 result.Add(new CmfPanelInsightFact { Id = "pending-age-review", Topic = "pending-age-review", View = "highlights", Period = "current",
                     Source = section, Category = NeedsAttention, Label = "Pending age review", Score = 85,
                     Title = Number(ageMarked) + " pending requests have waited more than " + Number(ageThresholdDays) + (ageThresholdDays == 1 ? " day" : " days"),
-                    Summary = "At least half of pending CMFs have been waiting " + ageLimit + ".",
+                    Summary = pendingShare + " have been waiting " + ageLimit + ".",
                     Evidence = Number(ageMarked) + " of " + Number(population) + " pending CMFs are included in the age review. Current age threshold: " + ageLimit + ".",
                     Measurements = new List<CmfFactMeasurement> { MeasurePopulation("Aged pending", ageMarked, population, snapshot),
                         new CmfFactMeasurement { Name = "Age threshold", Current = ageThresholdDays, Unit = "days",
