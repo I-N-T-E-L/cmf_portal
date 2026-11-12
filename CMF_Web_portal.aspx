@@ -3429,6 +3429,7 @@ body {
     grid-template-rows: auto auto;
     gap: var(--ccip-outer-match-gap);
     align-items: start;
+    position: relative;
 }
 
 #homeLegacyTopLayout #homeLegacySummarySection {
@@ -3441,18 +3442,20 @@ body {
     flex-direction: row;
     gap: var(--ccip-outer-match-gap);
     align-items: stretch;
-    position: relative;
+    position: static;
     overflow: visible;
 }
 
 #homeLegacyTopLayout #homeLegacySummarySection .overall-summary-side-card {
     flex: 0 0 var(--cmf-summary-side-card-width);
+    grid-column: 1;
+    grid-row: 1 / span 2;
     width: var(--cmf-summary-side-card-width) !important;
     min-width: var(--cmf-summary-side-card-width) !important;
     max-width: var(--cmf-summary-side-card-width) !important;
-    min-height: 503.85px;
-    height: 503.85px;
-    max-height: 503.85px;
+    min-height: 0;
+    height: 100%;
+    max-height: none;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -3608,10 +3611,10 @@ body {
     gap: var(--ccip-third-grid-gap);
     width: 100%;
     min-width: 0;
-    border: 1px solid #e4e9f2;
-    border-radius: 10px;
+    border: 1px solid #d8e2f0;
+    border-radius: 12px;
     background: #ffffff;
-    box-shadow: 0 8px 20px rgba(16, 24, 40, 0.04);
+    box-shadow: 0 8px 20px rgba(16, 24, 40, 0.05);
     padding: 10px;
 }
 
@@ -3713,7 +3716,7 @@ body {
 }
 
 #homeLegacyTablesGrid .ccip-inline-side-stack .ccip-inline-summary-card .ccip-live-table-wrap {
-    width: max-content;
+    width: 100%;
     min-width: 0;
     max-width: 100%;
     flex: 1 1 auto;
@@ -3732,10 +3735,12 @@ body {
 #homeLegacyTablesGrid .ccip-pending-summary-card .pending-summary-threshold-legend {
     flex-shrink: 0;
     min-height: 15px;
+    margin-left: auto;
+    margin-right: var(--ccip-pending-scrollbar-width, 0px);
 }
 
 #homeLegacyTablesGrid .ccip-inline-side-stack #homePendingSummaryTable .ccip-live-table {
-    width: max-content;
+    width: 100%;
     min-width: max-content;
     table-layout: auto;
 }
@@ -3787,7 +3792,7 @@ body {
 
 #homeLegacyAiHealthCard {
     --ccip-ai-left-extend: 0px;
-    --ccip-ai-fixed-height: 503.85px;
+    --ccip-ai-fixed-height: 100%;
     grid-column: 2;
     grid-row: 1 / span 2;
     margin-left: calc(-1 * var(--ccip-ai-left-extend));
@@ -3799,6 +3804,12 @@ body {
     max-height: var(--ccip-ai-fixed-height);
     overflow-y: auto;
     overflow-x: hidden;
+}
+
+@media (max-width: 900px) {
+    #homeLegacyAiHealthCard {
+        --ccip-ai-fixed-height: 503.85px;
+    }
 }
 
 .ccip-trend-card-inline {
@@ -4044,16 +4055,16 @@ body {
     border-radius: 0;
     background: #ffffff;
     scrollbar-gutter: stable;
-    scrollbar-width: thin;
-    scrollbar-color: transparent transparent;
+    scrollbar-width: auto;
+    scrollbar-color: auto;
 }
 
 #homeLegacyTablesGrid .ccip-live-table-wrap:hover,
 #homeCmfSummaryPanel .ccip-live-table-wrap:hover,
 #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table-wrap:hover,
 #homeLegacyOverview .ccip-inline-side-stack .ccip-live-table-wrap:hover {
-    scrollbar-width: thin;
-    scrollbar-color: #cbd3dd transparent;
+    scrollbar-width: auto;
+    scrollbar-color: auto;
 }
 
 #homeLegacyTablesGrid .ccip-live-table-wrap::-webkit-scrollbar,
@@ -4083,7 +4094,7 @@ body {
 #homeCmfSummaryPanel .ccip-live-table-wrap::-webkit-scrollbar-thumb,
 #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table-wrap::-webkit-scrollbar-thumb,
 #homeLegacyOverview .ccip-inline-side-stack .ccip-live-table-wrap::-webkit-scrollbar-thumb {
-    background: transparent;
+    background: #cbd3dd;
     border-radius: 999px;
 }
 
@@ -4104,13 +4115,13 @@ body {
 /* Keep component summary scroll geometry stable to avoid sticky-header jitter on scroll. */
 #homeComponentSummaryTable.ccip-live-table-wrap {
     scrollbar-gutter: stable;
-    scrollbar-width: thin !important;
-    scrollbar-color: #cbd3dd transparent !important;
+    scrollbar-width: auto !important;
+    scrollbar-color: auto !important;
 }
 
 #homeComponentSummaryTable.ccip-live-table-wrap:hover {
-    scrollbar-width: thin !important;
-    scrollbar-color: #cbd3dd transparent !important;
+    scrollbar-width: auto !important;
+    scrollbar-color: auto !important;
 }
 
 #homeComponentSummaryTable.ccip-live-table-wrap::-webkit-scrollbar {
@@ -4132,13 +4143,17 @@ body {
     background: #aeb8c5;
 }
 
-#homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card #homeDesignSummaryTable.ccip-hover-width-lock {
-    overflow-x: hidden;
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card #homeDesignSummaryTable {
+    scrollbar-gutter: auto;
 }
 
-#homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card #homeDesignSummaryTable.ccip-hover-width-lock .ccip-live-table {
-    width: calc(100% + var(--ccip-hover-comp, 0px));
-    min-width: calc(100% + var(--ccip-hover-comp, 0px));
+#homeLegacyTablesGrid #homeComponentSummaryTable,
+#homeLegacyTablesGrid #homePendingSummaryTable {
+    scrollbar-gutter: auto;
+}
+
+#homeLegacyTablesGrid .ccip-summary-canvas .ccip-design-summary-card #homeDesignSummaryTable.ccip-hover-width-lock {
+    overflow-x: auto;
 }
 
 .ccip-live-table {
@@ -4216,7 +4231,6 @@ body {
 #homeLegacyTopLayout #homeLegacyOverview .ccip-component-slot .ccip-live-table.ccip-design-summary-table td.ccip-design-edit-col {
     width: 72px;
     min-width: 72px;
-    max-width: 72px;
     text-align: center;
     white-space: nowrap;
 }
@@ -4243,10 +4257,13 @@ body {
     color: #1d4ed8;
     font-weight: 700;
     text-decoration: none;
+}
+
+a.ccip-design-metric-link {
     cursor: pointer;
 }
 
-.ccip-design-metric-link:hover {
+a.ccip-design-metric-link:hover {
     color: #1e40af;
     text-decoration: underline;
 }
@@ -4528,6 +4545,18 @@ body {
     padding-bottom: 0;
     line-height: 21px;
     vertical-align: middle;
+}
+
+#homeLegacyTablesGrid .ccip-live-table.ccip-component-summary-table {
+    table-layout: auto;
+}
+
+#homeLegacyTablesGrid .ccip-live-table.ccip-component-summary-table tr > *:first-child:not(.ccip-component-sub-header) {
+    max-width: none;
+}
+
+#homeLegacyTablesGrid .ccip-live-table.ccip-component-summary-table .ccip-component-sub-header {
+    text-align: center;
 }
 
 #homeLegacyTablesGrid .ccip-live-table.ccip-component-summary-table tbody td:first-child,
@@ -5099,6 +5128,10 @@ body {
     padding: 10px 8px;
 }
 
+.overall-summary-facts .overall-summary-fact.ccip-summary-zero {
+    cursor: default;
+}
+
 .overall-summary-facts .overall-summary-fact.ccip-summary-clickable {
     cursor: pointer;
     transition: border-color 140ms ease;
@@ -5412,6 +5445,38 @@ body .overall-quick-links .overall-quick-link-btn:active {
     overflow-y: auto;
     overflow-x: hidden;
     max-height: 226px;
+    scrollbar-gutter: stable;
+}
+
+.overall-oem-card .overall-card-head,
+.overall-heatmap-card .overall-card-head {
+    flex-wrap: wrap;
+    gap: 6px 12px;
+}
+
+.overall-oem-record-type-toggles {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    margin-left: auto;
+    margin-right: 8px;
+}
+
+.overall-oem-duplicates-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+    margin: 0;
+    font-size: 12px;
+    font-weight: 400;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.overall-oem-duplicates-toggle input {
+    margin: 0;
 }
 
 /* Overall tab: remove outer section chrome around OEM table. */
@@ -5443,7 +5508,9 @@ body .overall-quick-links .overall-quick-link-btn:active {
 
 .overall-oem-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 0;
     font-size: 12px;
 }
 
@@ -5460,6 +5527,8 @@ body .overall-quick-links .overall-quick-link-btn:active {
     letter-spacing: 0.02em;
     text-transform: uppercase;
     border: 1px solid #d9dde5;
+    border-left: 0;
+    background-clip: padding-box;
 }
 
 .overall-oem-table th:nth-child(1),
@@ -5488,6 +5557,8 @@ body .overall-quick-links .overall-quick-link-btn:active {
 
 .overall-oem-table td {
     border: 1px solid #d9dde5;
+    border-top: 0;
+    border-left: 0;
     padding: 7px;
     color: #1f2937;
     background: #ffffff;
@@ -5531,9 +5602,13 @@ body .overall-quick-links .overall-quick-link-btn:active {
     cursor: pointer;
 }
 
-.overall-oem-metric-link:hover {
+a.overall-oem-metric-link:hover {
     color: #1e40af !important;
     text-decoration: underline;
+}
+
+span.overall-oem-metric-link {
+    cursor: default;
 }
 
 .overall-oem-name-cell {
@@ -5688,17 +5763,23 @@ body .overall-quick-links .overall-quick-link-btn:active {
     font-weight: 800;
 }
 
-#homeOverallSummaryTptInline .overall-tpt-value {
+#homeOverallSummaryTptInline .overall-tpt-value,
+#homeSpecificSummaryFactsDashboardTptInline .overall-tpt-value,
+#homeSpecificSummaryFactsCmfTptInline .overall-tpt-value {
     font-size: 30px;
     line-height: 1.05;
 }
 
-#homeOverallSummaryTptInline .overall-tpt-legend {
+#homeOverallSummaryTptInline .overall-tpt-legend,
+#homeSpecificSummaryFactsDashboardTptInline .overall-tpt-legend,
+#homeSpecificSummaryFactsCmfTptInline .overall-tpt-legend {
     font-size: 10px;
     line-height: 1.2;
 }
 
-#homeOverallSummaryTptInline .overall-tpt-trend {
+#homeOverallSummaryTptInline .overall-tpt-trend,
+#homeSpecificSummaryFactsDashboardTptInline .overall-tpt-trend,
+#homeSpecificSummaryFactsCmfTptInline .overall-tpt-trend {
     display: flex;
     justify-content: center;
     align-self: end;
@@ -6143,7 +6224,7 @@ body .overall-quick-links .overall-quick-link-btn:active {
 
 .overall-pending-bottom {
     display: grid;
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr);
     gap: 8px;
     min-width: 0;
     min-height: 0;
@@ -6262,6 +6343,10 @@ body .overall-quick-links .overall-quick-link-btn:active {
 .overall-pending-legend {
     margin-top: 0;
     padding-right: 0;
+}
+
+#homeOverallPendingLegend {
+    justify-self: end;
 }
 
 .overall-pending-legend .component-summary-legend-row {
@@ -6418,8 +6503,8 @@ body .overall-quick-links .overall-quick-link-btn:active {
     font-weight: 800;
 }
 
-.ccip-component-summary-link:hover,
-.ccip-component-summary-link:focus {
+a.ccip-component-summary-link:hover,
+a.ccip-component-summary-link:focus {
     color: #1e40af;
     text-decoration: underline;
 }
@@ -6439,6 +6524,11 @@ body .overall-quick-links .overall-quick-link-btn:active {
 .overall-break-pct {
     color: #667085;
     font-weight: 700;
+}
+
+.milestone-pie-breakdown .overall-break-pct {
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .overall-break-over-two-days {
@@ -7860,12 +7950,9 @@ td:nth-child(odd), th:nth-child(odd) {
 }
 
 /* Keep Overall OEM table borders thin/open despite global nth-child table border rules above. */
-.overall-oem-table th {
-    border-left: 1px solid #d9dde5 !important;
-}
-
+.overall-oem-table th,
 .overall-oem-table td {
-    border-left: 1px solid #d9dde5 !important;
+    border-left: 0 !important;
 }
 
 .overall-oem-table th:first-child,
@@ -7885,8 +7972,6 @@ td:nth-child(odd), th:nth-child(odd) {
 .overall-oem-table tbody tr.overall-oem-total-row td {
     background: #f8fafc;
     font-weight: 800;
-    border-top: 2px solid #cbd5e1;
-    border-bottom: 1px solid #d9dde5 !important;
 }
 
 .overall-oem-total-label {
@@ -15738,6 +15823,28 @@ td:nth-child(odd), th:nth-child(odd) {
         font-family: var(--portal-font-body) !important;
     }
 
+    #homeOverallLayoutV2 > .overall-ai-span-card,
+    #homeOverallLayoutV2 > .overall-row-second,
+    #homeOverallLayoutV2 > .overall-row-summary > .overall-summary-card,
+    #homeOverallLayoutV2 > .overall-summary-side-card.overall-summary-side-span,
+    #homeOverallLayoutV2 > .overall-row-third {
+        padding: 9px !important;
+        border: 1px solid #d8e2f0 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 8px 20px rgba(16, 24, 40, 0.05) !important;
+    }
+
+    #homeLegacyTopLayout #homeLegacySummarySection .overall-summary-side-card,
+    #homeLegacyTopLayout #homeLegacySummarySection .overall-summary-card,
+    #homeLegacyTopLayout #homeLegacyOverview .ccip-dashboard-left,
+    #homeLegacyTopLayout #homeLegacyAiHealthCard,
+    #homeLegacyTablesGrid .ccip-summary-canvas {
+        padding: 9px !important;
+        border: 1px solid #d8e2f0 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 8px 20px rgba(16, 24, 40, 0.05) !important;
+    }
+
     #homeOverallLayoutV2 .overall-pending-card {
         padding: 14px !important;
     }
@@ -19336,6 +19443,12 @@ td:nth-child(odd), th:nth-child(odd) {
             var valueText = String(value == null ? '0' : value);
             var noteText = String(note == null ? '' : note);
 
+            if (valueText.trim() === '0' && /^\s*0\s+duplicates?\s*$/i.test(noteText)) {
+                noteText = '';
+            } else if (/^\s*[\d,]+\s+duplicates?\s*$/i.test(noteText)) {
+                noteText = '(' + noteText.trim() + ')';
+            }
+
             var daysPrefixMatch = noteText.match(/^\s*days?\s*\|\s*(.*)$/i);
             if (!daysPrefixMatch) {
                 return {
@@ -19966,8 +20079,8 @@ td:nth-child(odd), th:nth-child(odd) {
                 sortBy: initialSortBy,
                 showOpen: initialTrendStatus.showOpen,
                 showClosed: initialTrendStatus.showClosed,
-                includeUnique: true,
-                includeDuplicates: sourceType !== 'trend-week' && sourceType !== 'overall-heatmap',
+                includeUnique: sourceType === 'overall-heatmap' ? popupOptions.includeUnique !== false : true,
+                includeDuplicates: sourceType === 'overall-heatmap' ? popupOptions.includeDuplicates === true : sourceType !== 'trend-week',
                 sourceType: sourceType,
                 ingredient: popupOptions && popupOptions.ingredient ? String(popupOptions.ingredient || '').trim() : '',
                 platformLabel: popupOptions && popupOptions.platformLabel ? String(popupOptions.platformLabel || '').trim() : '',
@@ -20043,6 +20156,8 @@ td:nth-child(odd), th:nth-child(odd) {
         function openOverallHeatmapIssueLinksPopup(ingredient, platformLabel) {
             var normalizedIngredient = String(ingredient || '').trim() || 'Unassigned';
             var normalizedPlatform = String(platformLabel || '').trim();
+            var uniqueToggle = document.getElementById('homeOverallHeatmapUnique');
+            var duplicateToggle = document.getElementById('homeOverallHeatmapDuplicates');
             var labelParts = ['Overall Heatmap'];
             if (normalizedPlatform) {
                 labelParts.push(normalizedPlatform);
@@ -20054,7 +20169,9 @@ td:nth-child(odd), th:nth-child(odd) {
             openSummaryIssueLinksPopup('open', labelParts.join(' • '), {
                 sourceType: 'overall-heatmap',
                 ingredient: normalizedIngredient,
-                platformLabel: normalizedPlatform
+                platformLabel: normalizedPlatform,
+                includeUnique: !uniqueToggle || uniqueToggle.checked !== false,
+                includeDuplicates: !!(duplicateToggle && duplicateToggle.checked === true)
             });
         }
 
@@ -20118,10 +20235,16 @@ td:nth-child(odd), th:nth-child(odd) {
                 card.className = 'ccip-summary-fact overall-summary-fact ' + getOverallSummaryToneClass(fact.Label);
                 var tooltip = buildOverallSummaryFactTooltip(fact);
                 var metricKey = normalizeSummaryIssueMetricKey(fact.Label);
-                card.setAttribute('title', tooltip);
+                var metricValue = Number(String(formattedFact.valueText).replace(/,/g, '').trim());
+                var isClickableMetric = metricKey && metricValue > 0;
+                if (metricKey && metricValue === 0) {
+                    card.className += ' ccip-summary-zero';
+                } else {
+                    card.setAttribute('title', tooltip);
+                }
                 card.setAttribute('aria-label', tooltip);
 
-                if (metricKey) {
+                if (isClickableMetric) {
                     card.className += ' ccip-summary-clickable';
                     card.setAttribute('role', 'button');
                     card.setAttribute('tabindex', '0');
@@ -20136,7 +20259,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 card.innerHTML = '<div class="ccip-summary-fact-label">' + escapeHtml(fact.Label || '-') + '</div>' +
                     valueHtml + '<div class="ccip-summary-fact-note">' + renderSummaryWeeklyTrend(fact.WeeklyTrend) + '</div>';
 
-                if (metricKey) {
+                if (isClickableMetric) {
                     (function (boundMetricKey, boundLabel, boundCard) {
                         boundCard.addEventListener('click', function (event) {
                             if (event) {
@@ -20380,6 +20503,10 @@ td:nth-child(odd), th:nth-child(odd) {
             var totalClass = /^total$/i.test(normalizedDesign) ? ' is-total' : '';
             var baseClass = 'ccip-design-metric-link' + totalClass;
 
+            if (normalizedValue === '0') {
+                return '<span class="' + baseClass + '">' + escapeHtml(normalizedValue) + '</span>';
+            }
+
             if (/^impl\s*\/\s*verified$/i.test(normalizedColumn)) {
                 return '<a href="javascript:void(0);" class="' + baseClass + '" onclick="return showImplementedVerifiedDetailsModal(decodeURIComponent(\'' + encodedDesign + '\'));">' + escapeHtml(normalizedValue) + '</a>';
             }
@@ -20393,14 +20520,30 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
-            var source = rows || [];
+            var uniqueToggle = document.getElementById('homeOverallOemUnique');
+            var showUnique = !uniqueToggle || uniqueToggle.checked !== false;
+            var duplicateToggle = document.getElementById('homeOverallOemDuplicates');
+            var showDuplicates = !!(duplicateToggle && duplicateToggle.checked);
+            var recordType = showUnique ? (showDuplicates ? 'all' : 'unique') : (showDuplicates ? 'duplicates' : 'none');
+            if (uniqueToggle) {
+                uniqueToggle.onchange = function () { renderOverallOemTable(rows); };
+            }
+            if (duplicateToggle) {
+                duplicateToggle.onchange = function () { renderOverallOemTable(rows); };
+            }
+            var scrollTop = host.scrollTop;
+            var source = (rows || []).filter(function (row) {
+                return showDuplicates || !row.DuplicateTotalIssues || row.TotalIssues > 0 || row.CmfPending > 0;
+            });
             if (!source.length) {
                 host.innerHTML = '<div class="ccip-empty-state">No OEM/customer summary data available.</div>';
                 return;
             }
 
             source.sort(function (left, right) {
-                return (right.OpenIssues || 0) - (left.OpenIssues || 0);
+                var leftOpen = (showUnique ? (parseInt(left.OpenIssues, 10) || 0) : 0) + (showDuplicates ? Math.max(0, parseInt(left.DuplicateOpenIssues, 10) || 0) : 0);
+                var rightOpen = (showUnique ? (parseInt(right.OpenIssues, 10) || 0) : 0) + (showDuplicates ? Math.max(0, parseInt(right.DuplicateOpenIssues, 10) || 0) : 0);
+                return rightOpen - leftOpen;
             });
 
             var html = '<table class="overall-oem-table"><thead><tr>' +
@@ -20414,18 +20557,39 @@ td:nth-child(odd), th:nth-child(odd) {
                 '<th>Trend<br><span style="display:block;font-size:9px;font-weight:700;letter-spacing:0.01em;opacity:0.95;">(7d vs Previous 7d)</span></th>' +
                 '</tr></thead><tbody>';
 
-            function buildOverallOemMetricLinkHtml(oemName, metricKey, metricClass, value) {
+            function buildOverallOemMetricLinkHtml(oemName, metricKey, metricClass, value, duplicateValue) {
                 var safeOem = String(oemName || 'Unassigned');
                 var safeMetric = String(metricKey || 'total');
-                var safeValue = String(value == null ? '' : value);
-                var encodedToken = encodeURIComponent(safeOem + '||' + safeMetric);
+                var duplicateCount = showDuplicates ? Math.max(0, parseInt(duplicateValue, 10) || 0) : 0;
+                var uniqueCount = showUnique || safeMetric === 'pending' ? (parseInt(value, 10) || 0) : 0;
+                var safeValue = String(uniqueCount + duplicateCount);
+                if (safeValue === '0') {
+                    return '<span class="overall-oem-metric-link ' + metricClass + '">0</span>';
+                }
+                var encodedToken = encodeURIComponent(safeOem + '||' + safeMetric + '||' + recordType);
                 return '<a href="javascript:void(0);" class="overall-oem-metric-link ' + metricClass + '" onclick="return showDetailsModal3(decodeURIComponent(\'' + encodedToken + '\'));">' + escapeHtml(safeValue) + '</a>';
             }
 
             function buildOverallOemNameLinkHtml(oemName) {
                 var safeOem = String(oemName || 'Unassigned');
-                var encodedToken = encodeURIComponent(safeOem + '||total');
+                if (recordType === 'none') {
+                    return renderOverallOemNameCell(safeOem);
+                }
+                var encodedToken = encodeURIComponent(safeOem + '||total||' + recordType);
                 return '<a href="javascript:void(0);" class="overall-oem-name-link" onclick="return showDetailsModal3(decodeURIComponent(\'' + encodedToken + '\'));">' + renderOverallOemNameCell(safeOem) + '</a>';
+            }
+
+            function buildOverallOemTrendHtml(trendSafe, recentRequests, previousRequests) {
+                var trendClass = trendSafe > 0 ? 'overall-trend-up' : (trendSafe < 0 ? 'overall-trend-down' : 'overall-trend-flat');
+                var trendAbs = Math.abs(trendSafe);
+                var trendArrow = trendSafe > 0 ? '↑' : (trendSafe < 0 ? '↓' : '');
+                var trendValue = trendSafe > 0
+                    ? ('+' + trendAbs)
+                    : (trendSafe < 0 ? ('-' + trendAbs) : '0');
+                var trendDisplayValue = trendSafe < 0 ? String(trendAbs) : trendValue;
+                var trendTooltip = 'CMF requests in last 7 days (including today): ' + recentRequests
+                    + '; previous 7 days: ' + previousRequests + '; change: ' + trendValue + '.';
+                return '<span class="overall-oem-trend ' + trendClass + '" title="' + escapeHtml(trendTooltip) + '"><span class="overall-oem-trend-arrow">' + escapeHtml(trendArrow) + '</span><span class="overall-oem-trend-value">' + escapeHtml(trendDisplayValue) + '</span></span>';
             }
 
             var totals = {
@@ -20434,7 +20598,13 @@ td:nth-child(odd), th:nth-child(odd) {
                 cmfPending: 0,
                 implemented: 0,
                 closed: 0,
-                weightedResolutionNumerator: 0
+                weightedResolutionNumerator: 0,
+                recentRequests: 0,
+                previousRequests: 0,
+                duplicateTotalIssues: 0,
+                duplicateOpenIssues: 0,
+                duplicateImplemented: 0,
+                duplicateClosed: 0
             };
 
             for (var i = 0; i < source.length; i++) {
@@ -20448,16 +20618,12 @@ td:nth-child(odd), th:nth-child(odd) {
                 var avgResolution = parseFloat(row.AvgResolutionDays || 0);
                 var trendCount = parseInt(row.TrendCount || 0, 10);
                 var trendSafe = isNaN(trendCount) ? 0 : trendCount;
-                var trendClass = trendSafe > 0 ? 'overall-trend-up' : (trendSafe < 0 ? 'overall-trend-down' : 'overall-trend-flat');
-                var trendAbs = Math.abs(trendSafe);
-                var trendArrow = trendSafe > 0 ? '↑' : (trendSafe < 0 ? '↓' : '');
-                var trendValue = trendSafe > 0
-                    ? ('+' + trendAbs)
-                    : (trendSafe < 0 ? ('-' + trendAbs) : '0');
                 var recentRequests = parseInt(row.RecentRequestCount || 0, 10) || 0;
                 var previousRequests = parseInt(row.PreviousRequestCount || 0, 10) || 0;
-                var trendTooltip = 'CMF requests in last 7 days (including today): ' + recentRequests
-                    + '; previous 7 days: ' + previousRequests + '; change: ' + trendValue + '.';
+                var duplicateTotalIssues = Math.max(0, parseInt(row.DuplicateTotalIssues || 0, 10) || 0);
+                var duplicateOpenIssues = Math.max(0, parseInt(row.DuplicateOpenIssues || 0, 10) || 0);
+                var duplicateImplemented = Math.max(0, parseInt(row.DuplicateImplemented || 0, 10) || 0);
+                var duplicateClosed = Math.max(0, parseInt(row.DuplicateClosed || 0, 10) || 0);
 
                 var safeTotalIssues = isNaN(totalIssues) ? 0 : totalIssues;
                 var safeOpenIssues = isNaN(openIssues) ? 0 : openIssues;
@@ -20472,16 +20638,22 @@ td:nth-child(odd), th:nth-child(odd) {
                 totals.implemented += safeImplemented;
                 totals.closed += safeClosed;
                 totals.weightedResolutionNumerator += (safeAvgResolution * safeTotalIssues);
+                totals.recentRequests += recentRequests;
+                totals.previousRequests += previousRequests;
+                totals.duplicateTotalIssues += duplicateTotalIssues;
+                totals.duplicateOpenIssues += duplicateOpenIssues;
+                totals.duplicateImplemented += duplicateImplemented;
+                totals.duplicateClosed += duplicateClosed;
 
                 html += '<tr>' +
                     '<td>' + buildOverallOemNameLinkHtml(oemName) + '</td>' +
-                    '<td>' + buildOverallOemMetricLinkHtml(oemName, 'total', 'overall-oem-metric-total', safeTotalIssues) + '</td>' +
-                    '<td>' + buildOverallOemMetricLinkHtml(oemName, 'closed', 'overall-oem-metric-closed', safeClosed) + '</td>' +
-                    '<td>' + buildOverallOemMetricLinkHtml(oemName, 'implemented', 'overall-oem-metric-implemented', safeImplemented) + '</td>' +
-                    '<td>' + buildOverallOemMetricLinkHtml(oemName, 'open', 'overall-oem-metric-open', safeOpenIssues) + '</td>' +
+                    '<td>' + buildOverallOemMetricLinkHtml(oemName, 'total', 'overall-oem-metric-total', safeTotalIssues, duplicateTotalIssues) + '</td>' +
+                    '<td>' + buildOverallOemMetricLinkHtml(oemName, 'closed', 'overall-oem-metric-closed', safeClosed, duplicateClosed) + '</td>' +
+                    '<td>' + buildOverallOemMetricLinkHtml(oemName, 'implemented', 'overall-oem-metric-implemented', safeImplemented, duplicateImplemented) + '</td>' +
+                    '<td>' + buildOverallOemMetricLinkHtml(oemName, 'open', 'overall-oem-metric-open', safeOpenIssues, duplicateOpenIssues) + '</td>' +
                     '<td>' + buildOverallOemMetricLinkHtml(oemName, 'pending', 'overall-oem-metric-pending', safeCmfPending) + '</td>' +
                     '<td>' + escapeHtml(safeAvgResolution.toFixed(1)) + '</td>' +
-                        '<td><span class="overall-oem-trend ' + trendClass + '" title="' + escapeHtml(trendTooltip) + '"><span class="overall-oem-trend-arrow">' + escapeHtml(trendArrow) + '</span><span class="overall-oem-trend-value">' + escapeHtml(trendValue) + '</span></span></td>' +
+                    '<td>' + buildOverallOemTrendHtml(trendSafe, recentRequests, previousRequests) + '</td>' +
                     '</tr>';
             }
 
@@ -20493,17 +20665,18 @@ td:nth-child(odd), th:nth-child(odd) {
 
             html += '<tr class="overall-oem-total-row">' +
                 '<td><span class="overall-oem-total-label">Total</span></td>' +
-                '<td>' + buildOverallOemMetricLinkHtml(overallOemTotalToken, 'total', 'overall-oem-metric-total', totals.totalIssues) + '</td>' +
-                '<td>' + buildOverallOemMetricLinkHtml(overallOemTotalToken, 'closed', 'overall-oem-metric-closed', totals.closed) + '</td>' +
-                '<td>' + buildOverallOemMetricLinkHtml(overallOemTotalToken, 'implemented', 'overall-oem-metric-implemented', totals.implemented) + '</td>' +
-                '<td>' + buildOverallOemMetricLinkHtml(overallOemTotalToken, 'open', 'overall-oem-metric-open', totals.openIssues) + '</td>' +
+                '<td>' + buildOverallOemMetricLinkHtml(overallOemTotalToken, 'total', 'overall-oem-metric-total', totals.totalIssues, totals.duplicateTotalIssues) + '</td>' +
+                '<td>' + buildOverallOemMetricLinkHtml(overallOemTotalToken, 'closed', 'overall-oem-metric-closed', totals.closed, totals.duplicateClosed) + '</td>' +
+                '<td>' + buildOverallOemMetricLinkHtml(overallOemTotalToken, 'implemented', 'overall-oem-metric-implemented', totals.implemented, totals.duplicateImplemented) + '</td>' +
+                '<td>' + buildOverallOemMetricLinkHtml(overallOemTotalToken, 'open', 'overall-oem-metric-open', totals.openIssues, totals.duplicateOpenIssues) + '</td>' +
                 '<td>' + buildOverallOemMetricLinkHtml(overallOemTotalToken, 'pending', 'overall-oem-metric-pending', totals.cmfPending) + '</td>' +
                 '<td>' + escapeHtml(totalAvgResolution.toFixed(1)) + '</td>' +
-                '<td><span class="overall-oem-total-trend">-</span></td>' +
+                '<td><span class="overall-oem-total-trend">' + buildOverallOemTrendHtml(totals.recentRequests - totals.previousRequests, totals.recentRequests, totals.previousRequests) + '</span></td>' +
                 '</tr>';
 
             html += '</tbody></table>';
             host.innerHTML = html;
+            host.scrollTop = scrollTop;
         }
 
         function readOverallFactNumber(facts, pattern) {
@@ -20660,7 +20833,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 var valueHtml = '<div class="overall-tpt-value ' + getLegacyTptValueToneClass(kind, days) + '">' + escapeHtml(String(days)) + ' <span class="overall-tpt-value-unit ccip-days-suffix">days</span></div>';
                 var trendHtml = fact && fact.WeeklyTrend ? renderSummaryWeeklyTrend(fact.WeeklyTrend) : '';
                 var legendHtml = buildTptColorLegend(kind);
-                if (renderHostId === 'homeOverallSummaryTptInline') {
+                if (renderHostId === 'homeOverallSummaryTptInline' || isSpecificPlatformTpt) {
                     return '<div class="cmf-summary-value-stack">' + valueHtml + legendHtml + '</div>' +
                         '<div class="overall-tpt-trend">' + trendHtml + '</div>';
                 }
@@ -20701,6 +20874,17 @@ td:nth-child(odd), th:nth-child(odd) {
                 return;
             }
 
+            var uniqueToggle = document.getElementById('homeOverallHeatmapUnique');
+            var duplicateToggle = document.getElementById('homeOverallHeatmapDuplicates');
+            var showUnique = !uniqueToggle || uniqueToggle.checked !== false;
+            var showDuplicates = !!(duplicateToggle && duplicateToggle.checked === true);
+            if (uniqueToggle) {
+                uniqueToggle.onchange = function () { renderOverallHeatmap(snapshot); };
+            }
+            if (duplicateToggle) {
+                duplicateToggle.onchange = function () { renderOverallHeatmap(snapshot); };
+            }
+
             var previousScroll = host.querySelector('.component-summary-heatmap-scroll');
             var scrollTop = previousScroll ? previousScroll.scrollTop : 0;
             var scrollLeft = previousScroll ? previousScroll.scrollLeft : 0;
@@ -20717,7 +20901,27 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             var platforms = snapshot && snapshot.HeatmapPlatforms ? snapshot.HeatmapPlatforms : [];
-            var rows = snapshot && snapshot.ComponentRiskHeatmap ? snapshot.ComponentRiskHeatmap : [];
+            var rows = (snapshot && snapshot.ComponentRiskHeatmap ? snapshot.ComponentRiskHeatmap : []).filter(function (row) {
+                return showDuplicates || !(row.DuplicateValues || []).some(function (value) { return value > 0; })
+                    || (row.Values || []).some(function (value) { return value > 0; });
+            });
+
+            function selectedHeatmapValue(row, platformIndex) {
+                var uniqueCount = showUnique ? Math.max(0, parseInt((row.Values || [])[platformIndex], 10) || 0) : 0;
+                var duplicateCount = showDuplicates ? Math.max(0, parseInt((row.DuplicateValues || [])[platformIndex], 10) || 0) : 0;
+                return uniqueCount + duplicateCount;
+            }
+
+            function selectedHeatmapRowTotal(row) {
+                return platforms.reduce(function (sum, platformLabel, platformIndex) {
+                    return sum + selectedHeatmapValue(row, platformIndex);
+                }, 0);
+            }
+
+            rows.sort(function (first, second) {
+                return selectedHeatmapRowTotal(second) - selectedHeatmapRowTotal(first)
+                    || String(first.Ingredient || '').localeCompare(String(second.Ingredient || ''));
+            });
 
             if (!platforms.length || !rows.length) {
                 host.innerHTML = '<div class="ccip-empty-state">No heatmap data available.</div>';
@@ -20726,9 +20930,7 @@ td:nth-child(odd), th:nth-child(odd) {
 
             var platformColumns = platforms.map(function (platformLabel, platformIndex) {
                 var total = rows.reduce(function (sum, row) {
-                    var values = row && row.Values ? row.Values : [];
-                    var value = parseInt(values[platformIndex] || 0, 10);
-                    return sum + (isNaN(value) ? 0 : value);
+                    return sum + selectedHeatmapValue(row, platformIndex);
                 }, 0);
                 return { index: platformIndex, label: String(platformLabel || ''), total: total };
             }).sort(function (first, second) {
@@ -20754,18 +20956,20 @@ td:nth-child(odd), th:nth-child(odd) {
 
             for (var r = 0; r < rows.length; r++) {
                 var row = rows[r] || {};
-                var values = row.Values || [];
                 var statusBreakdowns = row.StatusBreakdowns || [];
+                var duplicateStatusBreakdowns = row.DuplicateStatusBreakdowns || [];
                 var ingredientLabel = String(row.Ingredient || 'Unassigned');
                 html += '<div class="overall-heatmap-ingredient">' + escapeHtml(ingredientLabel) + '</div>';
 
                 for (var col = 0; col < platforms.length; col++) {
                     var sourceIndex = platformColumns[col].index;
                     var platformLabel = String(platforms[sourceIndex] || '');
-                    var value = parseInt(values[sourceIndex] || 0, 10);
-                    var normalizedValue = isNaN(value) ? 0 : value;
-                    var statusTooltip = statusBreakdowns.length > sourceIndex ? String(statusBreakdowns[sourceIndex] || '') : '';
-                    var losCount = parseOverallHeatmapLosCount(statusTooltip);
+                    var normalizedValue = selectedHeatmapValue(row, sourceIndex);
+                    var uniqueTooltip = String(statusBreakdowns[sourceIndex] || '');
+                    var duplicateTooltip = String(duplicateStatusBreakdowns[sourceIndex] || '');
+                    var statusTooltip = showUnique && !showDuplicates ? uniqueTooltip : (!showUnique && showDuplicates ? duplicateTooltip : '');
+                    var losCount = Math.min(normalizedValue, (showUnique ? parseOverallHeatmapLosCount(uniqueTooltip) : 0)
+                        + (showDuplicates ? parseOverallHeatmapLosCount(duplicateTooltip) : 0));
                     var colorBasisValue = applyLosSubtraction ? (normalizedValue - losCount) : normalizedValue;
                     if (isNaN(colorBasisValue) || colorBasisValue < 0) {
                         colorBasisValue = 0;
@@ -20776,7 +20980,10 @@ td:nth-child(odd), th:nth-child(odd) {
                         displayValue += ' (' + String(losCount) + ')';
                     }
                     var isClickable = normalizedValue > 0 && !!platformLabel;
-                    var tooltipText = statusTooltip || ('Open Unique: ' + String(normalizedValue));
+                    var tooltipText = statusTooltip || (normalizedValue > 0
+                        ? (showUnique && showDuplicates ? 'Open Issues: ' : (showDuplicates ? 'Open Duplicates: ' : 'Open Unique: '))
+                            + String(normalizedValue) + '\nLOS: ' + String(losCount)
+                        : 'No issues');
 
                     var extraAttrs = ' title="' + escapeHtml(tooltipText) + '" aria-label="' + escapeHtml(tooltipText) + '"';
                     if (isClickable) {
@@ -21482,6 +21689,22 @@ td:nth-child(odd), th:nth-child(odd) {
             });
         }
 
+        function applyPendingSummaryLegendGutter(host) {
+            var card = host && host.closest('.ccip-pending-summary-card');
+            if (!card) return;
+
+            function updatePendingLegendGutter() {
+                var gutterWidth = Math.max(0, host.offsetWidth - host.clientWidth);
+                card.style.setProperty('--ccip-pending-scrollbar-width', gutterWidth + 'px');
+            }
+
+            updatePendingLegendGutter();
+            if (typeof ResizeObserver === 'function' && !host._pendingLegendGutterObserver) {
+                host._pendingLegendGutterObserver = new ResizeObserver(updatePendingLegendGutter);
+                host._pendingLegendGutterObserver.observe(host);
+            }
+        }
+
         function parseComponentOpenUniqueMetrics(value) {
             var text = String(value == null ? '' : value).trim();
             var fullMatch = text.match(/^(\d+)\s*\(\s*(\d+)\s*\)/);
@@ -21978,10 +22201,10 @@ td:nth-child(odd), th:nth-child(odd) {
                     '<span class="overall-break-left">' +
                         '<span class="overall-break-dot" style="background:' + dot + ';"></span>' +
                         '<span class="overall-break-name">' + escapeHtml(item.name) + '</span>' +
+                        '<span class="overall-break-pct">(' + escapeHtml(String(Math.round(pct))) + '%)</span>' +
                     '</span>' +
                     '<span class="overall-break-metrics">' +
                         '<strong class="overall-break-count">' + buildMilestoneBreakCountLinkHtml(item.name, item.value) + '</strong>' +
-                        '<span class="overall-break-pct">(' + escapeHtml(pct.toFixed(1)) + '%)</span>' +
                     '</span>' +
                     '</div>';
             }
@@ -22512,7 +22735,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 var valueText = formatComponentMetricDisplay(safeIssueType, rawValueText);
 
                 if (!safeComponent || !safeMilestone || !safeIssueType || !hasPositiveComponentMetricValue(rawValueText)) {
-                    return escapeHtml(valueText);
+                    return '<span class="ccip-component-summary-link">' + escapeHtml(valueText) + '</span>';
                 }
 
                 var encodedComponent = encodeURIComponent(safeComponent);
@@ -22653,7 +22876,9 @@ td:nth-child(odd), th:nth-child(odd) {
                 host.classList.remove('ccip-component-riskmap-wrap');
             }
 
-            var renderColumns = columns.slice();
+            var renderColumns = columns.map(function (column) {
+                return (isComponentSummary || isDesignSummary) ? String(column || '').replace(/Impl\/Verified/g, 'Impl/Vrf\'d') : column;
+            });
             var renderRows = rows.slice();
             var componentSummaryColumnMeta = null;
 
@@ -22690,14 +22915,14 @@ td:nth-child(odd), th:nth-child(odd) {
 
                     headingText = headingText.trim();
                     if (!headingText) {
-                        headingText = (h % 2 === 1) ? 'Open' : 'Impl/Verified';
+                        headingText = (h % 2 === 1) ? 'Open' : 'Impl/Vrf\'d';
                     }
 
                     maxSecondRowHeadingChars = Math.max(maxSecondRowHeadingChars, headingText.length);
                 }
 
                 if (maxSecondRowHeadingChars <= 0) {
-                    maxSecondRowHeadingChars = 'Impl/Verified'.length;
+                    maxSecondRowHeadingChars = 'Impl/Vrf\'d'.length;
                 }
 
                 // Size all metric columns identically to fit the longest second-row heading.
@@ -22708,9 +22933,9 @@ td:nth-child(odd), th:nth-child(odd) {
                 }
 
                 var componentTableDataCh = componentDataWidthCh.toFixed(1);
-                html = '<table class="' + tableClasses + '" style="width:calc(' + firstColPx + 'px + ' + componentTableDataCh + 'ch); min-width:calc(' + firstColPx + 'px + ' + componentTableDataCh + 'ch);">';
+                html = '<table class="' + tableClasses + '" style="width:100%; min-width:calc(' + firstColPx + 'px + ' + componentTableDataCh + 'ch);">';
                 html += '<colgroup>';
-                html += '<col style="width:' + firstColPx + 'px; min-width:' + firstColPx + 'px; max-width:' + firstColPx + 'px;">';
+                html += '<col style="width:' + firstColPx + 'px; min-width:' + firstColPx + 'px;">';
                 for (var cg = 1; cg < renderColumns.length; cg++) {
                     html += '<col style="width:' + uniformDataColCh + 'ch; min-width:' + uniformDataColCh + 'ch;">';
                 }
@@ -22749,7 +22974,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 }
 
                 var pendingTableWidth = 'calc(' + pendingFirstColPx + 'px + ' + pendingIdstColCh + 'ch + ' + pendingColWidthCh + 'ch)';
-                html = '<table class="' + tableClasses + '" style="width:' + pendingTableWidth + '; min-width:' + pendingTableWidth + '; table-layout:auto;">';
+                html = '<table class="' + tableClasses + '" style="width:100%; min-width:' + pendingTableWidth + '; table-layout:auto;">';
                 html += '<colgroup>';
                 html += '<col style="width:' + pendingFirstColPx + 'px; min-width:' + pendingFirstColPx + 'px;">';
                 html += '<col style="width:' + pendingColWidthCh + 'ch; min-width:' + pendingColWidthCh + 'ch;">';
@@ -22801,14 +23026,14 @@ td:nth-child(odd), th:nth-child(odd) {
                     : 220;
                 var designTableWidthPx = designFirstColPx + designHeadingsTotalPx + designEditColPx;
 
-                html = '<table class="' + tableClasses + '" style="width:' + designTableWidthPx + 'px; min-width:' + designTableWidthPx + 'px; table-layout:fixed;">';
+                html = '<table class="' + tableClasses + '" style="width:100%; min-width:' + designTableWidthPx + 'px; table-layout:fixed;">';
                 html += '<colgroup>';
                 html += '<col style="width:' + designFirstColPx.toFixed(3) + 'px; min-width:' + designFirstColPx.toFixed(3) + 'px;">';
                 for (var dg = 0; dg < designOtherColCount; dg++) {
                     var colPx = Math.max(64, designHeadingWidthsPx[dg]);
                     html += '<col style="width:' + colPx.toFixed(3) + 'px; min-width:' + colPx.toFixed(3) + 'px;">';
                 }
-                html += '<col style="width:' + designEditColPx.toFixed(3) + 'px; min-width:' + designEditColPx.toFixed(3) + 'px; max-width:' + designEditColPx.toFixed(3) + 'px;">';
+                html += '<col style="width:' + designEditColPx.toFixed(3) + 'px; min-width:' + designEditColPx.toFixed(3) + 'px;">';
                 html += '</colgroup>';
             }
 
@@ -22823,7 +23048,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     var milestoneName = (openMeta.length > 1 ? openMeta[0] : openMeta[0]) || ('Milestone ' + Math.floor((m + 1) / 2));
                     html += '<th class="ccip-component-group-header" colspan="2">'
                         + escapeHtml(milestoneName)
-                        + '<span class="ccip-header-format">Unique(LOS)+Duplicate(LOS)</span>'
+                        + '<span class="ccip-header-format">Unique(LOS)+Duplicate</span>'
                         + '</th>';
                 }
 
@@ -22832,7 +23057,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     var openParts = String(renderColumns[m2] || '').split(':::');
                     var implParts = String(renderColumns[m2 + 1] || '').split(':::');
                     var openTitle = openParts.length > 1 ? openParts[1] : 'Open';
-                    var implTitle = implParts.length > 1 ? implParts[1] : 'Impl/Verified';
+                    var implTitle = implParts.length > 1 ? implParts[1] : 'Impl/Vrf\'d';
                     html += '<th class="ccip-component-sub-header">' + escapeHtml(openTitle) + '</th>';
                     html += '<th class="ccip-component-sub-header">' + escapeHtml(implTitle) + '</th>';
                 }
@@ -22840,8 +23065,8 @@ td:nth-child(odd), th:nth-child(odd) {
             } else if (isComponentSummary) {
                 html += '<tr>' +
                     '<th>' + escapeHtml(renderColumns[0] || 'Ingredient') + '</th>' +
-                    '<th>Open<span class="ccip-header-format">Unique(LOS)+Duplicate(LOS)</span></th>' +
-                    '<th>Impl/Verified<span class="ccip-header-format">Unique+Duplicate</span></th>' +
+                    '<th>Open<span class="ccip-header-format">Unique(LOS)+Duplicate</span></th>' +
+                    '<th>Impl/Vrf\'d<span class="ccip-header-format">Unique+Duplicate</span></th>' +
                     '</tr>';
             } else if (isDesignSummary) {
                 html += '<tr>';
@@ -22929,6 +23154,10 @@ td:nth-child(odd), th:nth-child(odd) {
 
             if (isComponentSummary && hasMilestoneColumns) {
                 applyComponentGroupHeaderSticky(host);
+            }
+
+            if (isPendingSummary) {
+                applyPendingSummaryLegendGutter(host);
             }
 
             if (hostId === 'homeDesignSummaryTable') {
@@ -26796,7 +27025,7 @@ td:nth-child(odd), th:nth-child(odd) {
     <script src="Scripts/cmf-portal-main.js?v=20261103-title-actions"></script>
     <script src="Scripts/cmf-dashboard-insights.js?v=26"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261104-vertical-actions" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261112-platform-chip-spacing" />
     <link rel="stylesheet" href="Content/cmf-dashboard-insights.css?v=14" />
 
 </head>
@@ -26996,6 +27225,7 @@ Submit
                                                     <asp:LinkButton ID="lnkQuickOverallDesign" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showDesignIndicatorSummaryModal(); return false;">Design Indicator</asp:LinkButton>
                                                     <asp:LinkButton ID="lnkQuickOverallIngredient" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showIngredientIndicatorSummaryModal(); return false;">Ingredient Indicator</asp:LinkButton>
                                                     <asp:LinkButton ID="lnkQuickOverallOem" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showOemIndicatorSummaryModal(); return false;">OEM Indicator</asp:LinkButton>
+                                                    <a class="modern-button overall-quick-link-btn" href="https://gfxeet.intel.com/CMF_Web_portal.aspx" target="_blank" rel="noopener noreferrer">Old CMF Portal</a>
                                                 </div>
                                             </div>
                                         </div>
@@ -27012,6 +27242,7 @@ Submit
                                                         <asp:LinkButton ID="lnkQuickPlatformDesign" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showDesignIndicatorSummaryModal(); return false;">Design Indicator</asp:LinkButton>
                                                         <asp:LinkButton ID="lnkQuickPlatformIngredient" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showIngredientIndicatorSummaryModal(); return false;">Ingredient Indicator</asp:LinkButton>
                                                         <asp:LinkButton ID="lnkQuickPlatformOem" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showOemIndicatorSummaryModal(); return false;">OEM Indicator</asp:LinkButton>
+                                                        <a class="modern-button overall-quick-link-btn" href="https://gfxeet.intel.com/CMF_Web_portal.aspx" target="_blank" rel="noopener noreferrer">Old CMF Portal</a>
                                                     </div>
                                                 </div>
                                             </div>
@@ -27055,8 +27286,8 @@ Submit
                                                     <div id="homeOverallPendingPie" class="overall-pending-pie"></div>
                                                 </div>
                                                 <div class="overall-pending-bottom">
-                                                    <div id="homeOverallPendingBreakdown" class="overall-pending-breakdown"></div>
                                                     <div id="homeOverallPendingLegend" class="component-summary-legend overall-pending-legend" aria-label="Pending age threshold legend"></div>
+                                                    <div id="homeOverallPendingBreakdown" class="overall-pending-breakdown"></div>
                                                 </div>
                                             </div>
                                         </article>
@@ -27074,6 +27305,10 @@ Submit
                                         <article class="overall-card overall-oem-card">
                                             <div class="overall-card-head">
                                                 <h4 class="overall-card-title"><i class="fas fa-building" aria-hidden="true" style="margin-right:6px;"></i>Overall OEM Specific Data</h4>
+                                                <div class="overall-oem-record-type-toggles" role="group" aria-label="OEM issue record types">
+                                                    <label class="overall-oem-duplicates-toggle" for="homeOverallOemUnique"><input type="checkbox" id="homeOverallOemUnique" checked="checked" autocomplete="off" aria-controls="homeOverallOemTable" />Unique</label>
+                                                    <label class="overall-oem-duplicates-toggle" for="homeOverallOemDuplicates"><input type="checkbox" id="homeOverallOemDuplicates" autocomplete="off" aria-controls="homeOverallOemTable" />Duplicates</label>
+                                                </div>
                                             </div>
                                             <div id="homeOverallOemTable" class="overall-oem-table-wrap"></div>
                                         </article>
@@ -27081,6 +27316,10 @@ Submit
                                         <article class="overall-card overall-heatmap-card">
                                             <div class="overall-card-head">
                                                 <h4 class="overall-card-title"><i class="fas fa-th-large" aria-hidden="true" style="margin-right:6px;"></i>Ingredient Risk Heatmap</h4>
+                                                <div class="overall-oem-record-type-toggles" role="group" aria-label="Heatmap issue record types">
+                                                    <label class="overall-oem-duplicates-toggle" for="homeOverallHeatmapUnique"><input type="checkbox" id="homeOverallHeatmapUnique" checked="checked" autocomplete="off" aria-controls="homeOverallHeatmap" />Unique</label>
+                                                    <label class="overall-oem-duplicates-toggle" for="homeOverallHeatmapDuplicates"><input type="checkbox" id="homeOverallHeatmapDuplicates" autocomplete="off" aria-controls="homeOverallHeatmap" />Duplicates</label>
+                                                </div>
                                             </div>
                                             <div id="homeOverallHeatmap" class="overall-heatmap-wrap"></div>
                                         </article>
@@ -27099,6 +27338,7 @@ Submit
                                                         <asp:LinkButton ID="lnkQuickLegacyDesign" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showDesignIndicatorSummaryModal(); return false;">Design Indicator</asp:LinkButton>
                                                         <asp:LinkButton ID="lnkQuickLegacyIngredient" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showIngredientIndicatorSummaryModal(); return false;">Ingredient Indicator</asp:LinkButton>
                                                         <asp:LinkButton ID="lnkQuickLegacyOem" runat="server" CssClass="modern-button overall-quick-link-btn" OnClientClick="showOemIndicatorSummaryModal(); return false;">OEM Indicator</asp:LinkButton>
+                                                        <a class="modern-button overall-quick-link-btn" href="https://gfxeet.intel.com/CMF_Web_portal.aspx" target="_blank" rel="noopener noreferrer">Old CMF Portal</a>
                                                     </div>
                                                 </div>
                                             </div>
@@ -27173,9 +27413,9 @@ Submit
                                                 <section class="ccip-card ccip-inline-summary-card ccip-pending-summary-card">
                                                     <div class="ccip-card-head">
                                                         <h3 class="ccip-card-mini-title"><i class="fas fa-clipboard-list" aria-hidden="true" style="color:#0f766e; margin-right:6px;"></i>CMF Pending Count</h3>
+                                                        <div class="component-summary-legend overall-pending-legend pending-summary-threshold-legend" aria-label="Pending age threshold legend"></div>
                                                     </div>
                                                     <div id="homePendingSummaryTable" class="ccip-live-table-wrap"></div>
-                                                    <div class="component-summary-legend overall-pending-legend pending-summary-threshold-legend" aria-label="Pending age threshold legend"></div>
                                                 </section>
                                             </div>
 
