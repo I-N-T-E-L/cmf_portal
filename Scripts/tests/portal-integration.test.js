@@ -138,6 +138,14 @@ test('accepted date filtering is fixed for saved sessions and range changes with
     assert.doesNotMatch(server, /FROM " \+ pendingTable \+ " WHERE " \+ GetDashboardDateFilter\(\)\.BuildPredicate/);
 });
 
+test('shared platform changes ignore unrelated postbacks before updating dashboard selection', () => {
+    const server = fs.readFileSync(path.join(__dirname, '..', '..', 'CMF_Web_portal.aspx.cs'), 'utf8');
+    const handler = server.match(/    protected void ddlSharedPlatform_SelectedIndexChanged\([^)]*\)\s*\{([\s\S]*?)\r?\n    \}/);
+    assert.ok(handler);
+    assert.match(handler[1], /^\s*string eventTarget = Request\["__EVENTTARGET"\] \?\? string.Empty;\s*if \(!string.Equals\(eventTarget, ddlSharedPlatform.UniqueID, StringComparison.OrdinalIgnoreCase\)\)\s*\{\s*return;\s*\}\s*try\s*\{/);
+    assert.match(handler[1], /SetDashboardPlatformSelection\(selectedPlatformTable\)/);
+});
+
 test('Summary trends obey date visibility and suppress hover tooltips while preserving accessible comparisons', () => {
     const definition = source.match(/        function renderSummaryWeeklyTrend\([^)]*\) \{[\s\S]*?\r?\n        \}/);
     assert.ok(definition);

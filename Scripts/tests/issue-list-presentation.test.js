@@ -1495,6 +1495,7 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     const specificView = { value: 'line' };
     const chart = {
         setOption: option => options.push(option),
+        getOption: () => undefined,
         on() {}, off() {}, resize() {},
         getZr: () => ({ on() {}, off() {} }),
         containPixel: () => true,
@@ -1542,10 +1543,14 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.equal(contour.data[0].value, 132);
     assert.equal(contour.data[0].weekOffset, 5);
     assert.equal(JSON.stringify(options[0].legend.data), JSON.stringify(['Open', 'Implemented']));
+    assert.deepEqual(Array.from(options[0].legend.data, options[0].legend.formatter), ['Open', 'Implemented']);
     assert.ok(options[0].series.every(series => !series.label));
     assert.equal(options[0].grid.top, 30);
-    assert.equal(options[0].grid.left, 10, 'Let containLabel reserve the Y-axis width without a redundant left gutter.');
-    assert.equal(options[0].grid.right, 28, 'Reserve space for the last WW label.');
+    assert.equal(options[0].grid.left, 30, 'Reserve a compact stable gutter with room for two-digit issue counts.');
+    assert.equal(options[0].grid.containLabel, false, 'Automatic label sizing must not shift work-week positions.');
+    assert.equal(options[0].grid.bottom, 29, 'Reserve space for work-week labels explicitly.');
+    assert.equal(options[0].grid.right, 20, 'Reserve only the space needed for the last WW label.');
+    assert.equal(options[0].yAxis.minInterval, 1, 'Overall backlog uses whole-number issue ticks.');
     assert.equal(options[0].xAxis.axisLabel.showMinLabel, true);
     assert.equal(options[0].xAxis.axisLabel.showMaxLabel, true);
     assert.equal(options[0].xAxis.axisLabel.hideOverlap, true);
@@ -1567,6 +1572,7 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     const bars = options[1];
     assert.equal(bars.series[0].type, 'bar');
     assert.equal(bars.series[1].type, 'bar');
+    assert.deepEqual(Array.from(bars.series, series => bars.legend.formatter(series.name)), ['Opened', 'Closed']);
     assert.equal(bars.tooltip.formatter, undefined);
     assert.equal(bars.color[0], '#0369a1');
     assert.equal(bars.color[1], '#16a34a');
@@ -1576,8 +1582,11 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.equal(bars.series[1].itemStyle.color, '#dcfce7');
     assert.equal(bars.series[1].itemStyle.borderColor, '#16a34a');
     assert.equal(bars.grid.top, 40);
-    assert.equal(bars.grid.left, 10);
-    assert.equal(bars.grid.right, 24);
+    assert.equal(bars.grid.left, 30);
+    assert.equal(bars.grid.containLabel, false);
+    assert.equal(bars.grid.bottom, 29);
+    assert.equal(bars.grid.right, 12);
+    assert.equal(bars.yAxis.minInterval, 1, 'Overall weekly flow uses whole-number issue ticks.');
     for (const series of bars.series) {
         assert.equal(series.label.show, true);
         assert.equal(series.label.position, 'top');
@@ -1600,11 +1609,14 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.equal(options[3].series[0].type, 'line');
     assert.equal(options[3].series[0].data[0].value, 80);
     assert.equal(options[3].series[1].data[0].value, 40);
+    assert.deepEqual(Array.from(options[3].legend.data, options[3].legend.formatter), ['Open', 'Implemented']);
     view.value = 'bar';
     context.renderHomeTrendChart(snapshot, 'homeTrendChart', 'specificChart', 6);
     assert.equal(options[4].series[0].type, 'line');
     assert.equal(options[4].series[0].name, 'Implemented');
     assert.equal(options[4].series[1].name, 'Open');
+    assert.deepEqual(Array.from(options[4].legend.data, options[4].legend.formatter), ['Open', 'Implemented']);
+    assert.equal(options[4].yAxis.minInterval, 1, 'Platform backlog uses whole-number issue ticks.');
     assert.equal(options[4].series[0].data[0].value, 86);
     assert.equal(options[4].series[1].data[0].value, 46);
     assert.equal(options[4].tooltip.formatter([
@@ -1620,7 +1632,7 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     const legendHandler = chart.__cmfTrendLegendHandler;
     legendHandler({ selected: { Open: false, Implemented: true } });
     const implementedOption = options.pop();
-    assert.equal(implementedOption.grid.left, 10);
+    assert.equal(implementedOption.grid.left, 30);
     const implementedOnly = implementedOption.series[0];
     assert.equal(implementedOnly.id, 'cmf-backlog-contour');
     assert.equal(implementedOnly.data[0].value, 86);
@@ -1628,11 +1640,12 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.equal(options.pop().series[0].data[0].value, 46);
     legendHandler({ selected: { Open: false, Implemented: false } });
     const hiddenOption = options.pop();
-    assert.equal(hiddenOption.grid.left, 28, 'Retain first-WW clearance when the empty chart has no Y-axis labels.');
-    assert.equal(hiddenOption.series[0].data.length, 0, 'No contour or baseline remains when both areas are deselected.');
+    assert.equal(hiddenOption.grid.left, 30, 'Retain the two-digit gutter for the zero-level contour.');
+    assert.equal(hiddenOption.series[0].data.length, 6, 'Keep a contour point for each week when both areas are deselected.');
+    assert.ok(hiddenOption.series[0].data.every(point => point.value === 0));
     legendHandler({ selected: { Open: true, Implemented: true } });
     const restoredOption = options.pop();
-    assert.equal(restoredOption.grid.left, 10);
+    assert.equal(restoredOption.grid.left, 30);
     assert.equal(restoredOption.series[0].data[0].value, 132);
     chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
     assert.deepEqual(popups[2], ['Open and Implemented', 'WW6', 5]);
@@ -1641,6 +1654,8 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.equal(chart.__cmfTrendLegendHandler, null, 'Weekly bars remove the contour legend listener.');
     assert.equal(options[5].series[0].type, 'bar');
     assert.equal(options[5].series[1].name, 'Closed');
+    assert.deepEqual(Array.from(options[5].series, series => options[5].legend.formatter(series.name)), ['Opened', 'Closed']);
+    assert.equal(options[5].yAxis.minInterval, 1, 'Platform weekly flow uses whole-number issue ticks.');
     assert.equal(options[5].series[0].data[0].value, 7);
     assert.equal(options[5].series[1].data[0].value, 6);
     assert.ok(options[5].series.every(series => !series.stack && series.barMaxWidth === 18));
@@ -1651,6 +1666,7 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
 
 ['homeOverallTrendChart', 'homeTrendChart'].forEach(hostId => test('filtered ' + hostId + ' trends disable the week selector and preserve the full filtered timeline and week offsets', () => {
     let option;
+    let legendSelected = {};
     const popups = [];
     const view = { value: 'line' };
     const dateMode = { value: '7days' };
@@ -1659,6 +1675,7 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     const rangeSelectorId = hostId === 'homeOverallTrendChart' ? 'homeOverallTrendRange' : 'homeSpecificTrendRange';
     const chart = {
         setOption: value => { option = value; },
+        getOption: () => ({ legend: [{ selected: legendSelected }] }),
         on() {}, off() {}, resize() {},
         getZr: () => ({ on() {}, off() {} }),
         containPixel: () => true,
@@ -1754,6 +1771,79 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
         context.renderHomeTrendChart({ Trend: trend }, hostId, 'trendChart', 6);
         const expected = trend.length === 12 ? ['WW11'] : trend.map(item => item.WeekLabel);
         assert.deepEqual(Array.from(option.xAxis.data), expected);
+    }
+    dateMode.value = 'all';
+    for (const chartType of ['line', 'bar']) {
+        view.value = chartType;
+        for (const trend of [[], emptySnapshot.Trend, [{ WeekLabel: 'Zero', WeekEndOpenIssues: 0, WeekEndImplementedIssues: 0, NewIssues: 0, ResolvedIssues: 0 }]]) {
+            delete context.window.CMF_PORTAL['lastHomeDashboardKey_' + hostId];
+            context.renderHomeTrendChart({ Trend: trend }, hostId, 'trendChart', 6);
+            assert.equal(option.yAxis.show, false, 'Raw empty data hides the vertical axis in either view.');
+            assert.equal(option.yAxis.axisLabel.show, false, 'Hidden vertical-axis labels must not change the plotting width.');
+            const emptyLeft = 30;
+            assert.equal(option.grid.left, emptyLeft, 'Reserve the same two-digit gutter for empty charts.');
+            assert.equal(option.grid.containLabel, false);
+            assert.deepEqual(Array.from(option.xAxis.data), trend.slice(-6).map(item => item.WeekLabel));
+            if (chartType === 'line') {
+                assert.equal(option.series[2].data.length, 0, 'Raw empty data has no zero-level contour or markers.');
+                for (const selected of [
+                    { Open: false, Implemented: true },
+                    { Open: false, Implemented: false },
+                    { Open: true, Implemented: false },
+                    { Open: true, Implemented: true }
+                ]) {
+                    chart.__cmfTrendLegendHandler({ selected });
+                    assert.equal(option.grid.left, emptyLeft, 'Legend changes preserve the empty chart gutter.');
+                    assert.equal(option.series[0].data.length, 0, 'Legend changes cannot restore a contour for raw empty data.');
+                }
+            }
+        }
+        delete context.window.CMF_PORTAL['lastHomeDashboardKey_' + hostId];
+        context.renderHomeTrendChart({ Trend: [{
+            WeekLabel: 'Populated', WeekEndOpenIssues: 0, WeekEndImplementedIssues: 2, NewIssues: 0, ResolvedIssues: 2
+        }] }, hostId, 'trendChart', 6);
+        const populatedOption = option;
+        assert.equal(populatedOption.yAxis.show, true, 'A chart with issues retains its vertical axis.');
+        assert.equal(populatedOption.yAxis.axisLabel.show, true);
+        assert.equal(populatedOption.yAxis.minInterval, 1);
+        if (chartType === 'line') {
+            for (const selected of [
+                { Open: true, Implemented: false },
+                { Open: false, Implemented: true },
+                { Open: false, Implemented: false },
+                { Open: true, Implemented: true }
+            ]) {
+                chart.__cmfTrendLegendHandler({ selected });
+                assert.equal(option.yAxis, undefined, 'Legend filtering must not change vertical-axis visibility.');
+                const expected = selected.Implemented ? 2 : 0;
+                assert.equal(option.series[0].data.length, 1, 'Legend filtering retains the contour even when both areas are deselected.');
+                assert.equal(option.series[0].data[0].value, expected);
+            }
+            assert.equal(populatedOption.yAxis.show, true);
+        }
+    }
+    const rangeSnapshot = { Trend: Array.from({ length: 12 }, (_, index) => ({
+        WeekLabel: 'WW' + index, WeekEndOpenIssues: 2, WeekEndImplementedIssues: 3, NewIssues: 2, ResolvedIssues: 3
+    })) };
+    for (const chartType of ['line', 'bar']) {
+        view.value = chartType;
+        for (const openSelected of [false, true]) {
+            for (const secondSelected of [false, true]) {
+                legendSelected = { Open: openSelected, [chartType === 'line' ? 'Implemented' : 'Closed']: secondSelected };
+                delete context.window.CMF_PORTAL['lastHomeDashboardKey_' + hostId];
+                for (const weeks of [6, 12, 6]) {
+                    context.renderHomeTrendChart(rangeSnapshot, hostId, 'trendChart', weeks);
+                    assert.equal(JSON.stringify(option.legend.selected), JSON.stringify(legendSelected), 'Week-range changes retain every legend selection combination.');
+                    assert.equal(option.xAxis.data.length, weeks);
+                    if (chartType === 'line') {
+                        const contour = option.series.find(series => series.id === 'cmf-backlog-contour');
+                        const expected = (openSelected ? 2 : 0) + (secondSelected ? 3 : 0);
+                        assert.equal(contour.data.length, weeks);
+                        assert.ok(contour.data.every(point => point.value === expected), 'The rebuilt contour reflects the preserved legend selections.');
+                    }
+                }
+            }
+        }
     }
 }));
 
