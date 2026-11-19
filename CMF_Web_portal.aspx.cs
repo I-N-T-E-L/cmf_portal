@@ -3068,7 +3068,8 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
             value = DefaultIssuePendingPlatformTable;
         }
 
-        return ResolveIssuePendingPlatformSelection(value);
+        string platform = ResolveIssuePendingPlatformSelection(value);
+        return IsOverallDashboardPlatform(platform) ? DefaultIssuePendingPlatformTable : platform;
     }
 
     private List<string> GetPendingPlatformSelections()
@@ -3077,6 +3078,7 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         List<string> platforms = (selections ?? new string[0])
             .Where(value => AllowedPlatformTables.Contains(value) && !IsOverallDashboardPlatform(value))
             .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(1)
             .ToList();
         if (platforms.Count == 0) platforms.Add(GetIssuePendingPlatform());
         return platforms;
@@ -19328,9 +19330,8 @@ ORDER BY Total_CMF_Approved DESC";
                 StringComparer.OrdinalIgnoreCase);
 
             bool pendingActive = string.Equals(GetActiveFocusedTab(), "pending", StringComparison.OrdinalIgnoreCase);
-            ddlSharedPlatform.SelectionMode = pendingActive ? ListSelectionMode.Multiple : ListSelectionMode.Single;
+            ddlSharedPlatform.SelectionMode = ListSelectionMode.Single;
             ddlSharedPlatform.Items.Clear();
-            ddlSharedPlatform.Items.Add(new ListItem("Select All", OverallDashboardPlatformTable));
             if (availablePlatforms.Count > 0)
             {
                 foreach (CmfPlatformDefinition option in availablePlatforms)
@@ -19339,30 +19340,7 @@ ORDER BY Total_CMF_Approved DESC";
                 }
             }
 
-            if (pendingActive)
-            {
-                HashSet<string> pendingSelections = new HashSet<string>(GetPendingPlatformSelections(), StringComparer.OrdinalIgnoreCase);
-                ddlSharedPlatform.ClearSelection();
-                bool allSelected = availablePlatforms.All(p => pendingSelections.Contains(p.TableName));
-                foreach (ListItem option in ddlSharedPlatform.Items)
-                {
-                    if (string.Equals(option.Value, OverallDashboardPlatformTable, StringComparison.OrdinalIgnoreCase))
-                    {
-                        option.Selected = allSelected;
-                    }
-                    else
-                    {
-                        option.Selected = pendingSelections.Contains(option.Value);
-                    }
-                }
-                if (ddlSharedPlatform.SelectedIndex < 0 && ddlSharedPlatform.Items.Count > 0)
-                {
-                    ddlSharedPlatform.Items[0].Selected = true;
-                }
-                return;
-            }
-
-            string currentSelection = GetIssuePendingPlatform();
+            string currentSelection = pendingActive ? GetPendingPlatformSelections()[0] : GetIssuePendingPlatform();
             ddlSharedPlatform.ClearSelection();
             if (IsOverallDashboardPlatform(currentSelection))
             {
@@ -19410,18 +19388,10 @@ ORDER BY Total_CMF_Approved DESC";
                 HashSet<string> available = new HashSet<string>(
                     GetAvailableIndividualPlatforms().Select(option => option.TableName), StringComparer.OrdinalIgnoreCase);
                 string[] rawSelections = Request.Form.GetValues(ddlSharedPlatform.UniqueID) ?? new string[0];
-                string[] selections;
-                if (rawSelections.Any(s => string.Equals(s, OverallDashboardPlatformTable, StringComparison.OrdinalIgnoreCase)))
-                {
-                    selections = available.ToArray();
-                }
-                else
-                {
-                    selections = rawSelections
-                        .Where(available.Contains)
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .ToArray();
-                }
+                string[] selections = rawSelections
+                    .Where(available.Contains)
+                    .Take(1)
+                    .ToArray();
                 Session[PendingPlatformsSessionKey] = selections.Length > 0
                     ? selections : new[] { DefaultIssuePendingPlatformTable };
                 EnsurePendingTabVisibleForPostback();
@@ -19433,6 +19403,7 @@ ORDER BY Total_CMF_Approved DESC";
             string postedPlatform = Request.Form[ddlSharedPlatform.UniqueID];
             string selectedPlatformTable = ResolveIssuePendingPlatformSelection(
                 string.IsNullOrWhiteSpace(postedPlatform) ? ddlSharedPlatform.SelectedValue : postedPlatform);
+            if (IsOverallDashboardPlatform(selectedPlatformTable)) selectedPlatformTable = DefaultIssuePendingPlatformTable;
 
             if (!string.IsNullOrEmpty(selectedPlatformTable))
             {
