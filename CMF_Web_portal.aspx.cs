@@ -1351,6 +1351,32 @@ FROM " + tableName + (applyDashboardDateFilter ? " WHERE " + GetDashboardDateFil
         return unionParts.Count == 0 ? string.Empty : string.Join(" UNION ALL ", unionParts);
     }
 
+    private static string BuildDeduplicatedDesignTableSql(string designTable, bool includeSupportModel = false)
+    {
+        if (string.IsNullOrWhiteSpace(designTable))
+        {
+            return "(SELECT CAST(NULL AS NVARCHAR(4000)) AS customer_detail, CAST(NULL AS DATETIME) AS sw_image_freeze"
+                + (includeSupportModel ? ", CAST(NULL AS NVARCHAR(400)) AS support_model" : string.Empty)
+                + " WHERE 1 = 0)";
+        }
+
+        string trimmed = designTable.Trim();
+        if (trimmed.StartsWith("(", StringComparison.Ordinal))
+        {
+            return trimmed;
+        }
+
+        return @"(SELECT
+    LTRIM(RTRIM(customer_detail)) AS customer_detail,
+    MAX(CASE WHEN LTRIM(RTRIM(ISNULL(CAST(sw_image_freeze AS NVARCHAR(100)), ''))) IN ('', 'NA', 'N/A') THEN NULL ELSE sw_image_freeze END) AS sw_image_freeze"
+            + (includeSupportModel
+                ? @",
+    MAX(CASE WHEN LTRIM(RTRIM(ISNULL(CAST(support_model AS NVARCHAR(200)), ''))) IN ('', 'NA', 'N/A') THEN NULL ELSE support_model END) AS support_model"
+                : string.Empty) + @"
+FROM " + trimmed + @"
+GROUP BY LTRIM(RTRIM(customer_detail)))";
+    }
+
     private static string BuildSummaryIssuePendingSourceSql(SqlConnection connection, string dashboardPlatform)
     {
         if (connection == null)
@@ -5374,7 +5400,7 @@ SELECT
     LOWER(LTRIM(RTRIM(ISNULL(A.status, '')))) AS status_norm,
     LTRIM(RTRIM(ISNULL(A.drivers, ''))) AS driver_name
 FROM " + datedPlatformSource + @" A
-INNER JOIN " + designTable + @" B ON A.customer_detail = B.customer_detail
+INNER JOIN " + BuildDeduplicatedDesignTableSql(designTable, includeSupportModel: true) + @" B ON LTRIM(RTRIM(A.customer_detail)) = B.customer_detail
 WHERE LOWER(LTRIM(RTRIM(ISNULL(A.sysdebug, '')))) LIKE '%customer_must_fix%'
     AND LOWER(LTRIM(RTRIM(ISNULL(A.status, '')))) IN ('open', 'implemented', 'verified', 'future')
   AND LOWER(LTRIM(RTRIM(ISNULL(A.cmf_request, '')))) <> 'cmf_reject'";
@@ -8618,6 +8644,7 @@ FROM issue_source AS main";
             }
             else
             {
+                string deduplicatedDesignTableSql = BuildDeduplicatedDesignTableSql(designTable);
                 base_master_query = @"
 SELECT 
     main.progress, 
@@ -8651,20 +8678,20 @@ SELECT
 
     -- Duplicate Details: HSD|CustomerDetail|ImageFreezeDate
     STUFF((
-        SELECT ', '
+        SELECT DISTINCT ', '
              + CAST(dup.cp_id AS VARCHAR)
              + '|' + ISNULL(dup.customer_detail, 'Unknown')
              + '|' + ISNULL(CONVERT(VARCHAR(10), d2.sw_image_freeze, 120), 'Unknown')
         FROM " + platformTable + @" dup
-        LEFT JOIN " + designTable + @" AS d2
-               ON d2.customer_detail = dup.customer_detail
+        LEFT JOIN " + deduplicatedDesignTableSql + @" AS d2
+               ON d2.customer_detail = LTRIM(RTRIM(dup.customer_detail))
         WHERE dup.cmf_request = 'cmf_duplicate'
           AND dup.merge_id = main.cp_id
         FOR XML PATH('')
     ), 1, 2, '') AS DuplicateDetails
 FROM " + platformTable + @" AS main
-LEFT JOIN " + designTable + @" AS d
-    ON d.customer_detail = main.customer_detail";
+LEFT JOIN " + deduplicatedDesignTableSql + @" AS d
+    ON d.customer_detail = LTRIM(RTRIM(main.customer_detail))";
             }
 
             // ownerMap is populated after the filtered query (see below)
@@ -8820,6 +8847,25 @@ LEFT JOIN " + designTable + @" AS d
 
                     DataTable dt = new DataTable();
                     sda.Fill(dt);
+
+                    // Defensive single-platform deduplication: ensure no SightingID is rendered twice within the same platform
+                    if (!isOverallSelection && dt.Columns.Contains("SightingID") && dt.Rows.Count > 1)
+                    {
+                        HashSet<string> seenSightingIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        List<DataRow> duplicateRows = new List<DataRow>();
+                        foreach (DataRow row in dt.Rows)
+                        {
+                            string sightingId = Convert.ToString(row["SightingID"] ?? string.Empty).Trim();
+                            if (!string.IsNullOrEmpty(sightingId) && !seenSightingIds.Add(sightingId))
+                            {
+                                duplicateRows.Add(row);
+                            }
+                        }
+                        foreach (DataRow dupRow in duplicateRows)
+                        {
+                            dt.Rows.Remove(dupRow);
+                        }
+                    }
 
                     ownerMap = ResolveOwnerDisplayNamesWithCache(dt, new[] { "Owner", "owners_name" });
 
@@ -12156,7 +12202,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 main_query = "SELECT A.customer_detail AS Design, B.sw_image_freeze AS SWImageFreeze, B.support_model AS SupportModel " +
                              driverCaseStatements +
                              ", SUM(CASE WHEN A.status IN ('implemented', 'verified', 'future') AND A.drivers in " + driverList + " THEN 1 ELSE 0 END) AS Implemented_Verified " +
-                             "FROM " + selectedPlatform + " A INNER JOIN " + designTable + " B ON A.customer_detail = B.customer_detail " +
+                             "FROM " + selectedPlatform + " A INNER JOIN " + BuildDeduplicatedDesignTableSql(designTable, includeSupportModel: true) + " B ON LTRIM(RTRIM(A.customer_detail)) = B.customer_detail " +
                              "Where sysdebug Like ('%customer_must_fix%') AND status in ('open','implemented','verified','future') and cmf_request not in ('cmf_reject') GROUP BY A.customer_detail, B.sw_image_freeze, B.support_model " +
                              "ORDER BY Implemented_Verified DESC  ";
             }
@@ -12224,7 +12270,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 main_query = "SELECT A.customer_detail AS Design, B.sw_image_freeze AS SWImageFreeze, B.support_model AS SupportModel " +
                              driverCaseStatements +
                              ", SUM(CASE WHEN " + implementedVerifiedCondition + " THEN 1 ELSE 0 END) AS Implemented_Verified " +
-                             "FROM " + selectedPlatform + " A INNER JOIN " + designTable + " B ON A.customer_detail = B.customer_detail " +
+                             "FROM " + selectedPlatform + " A INNER JOIN " + BuildDeduplicatedDesignTableSql(designTable, includeSupportModel: true) + " B ON LTRIM(RTRIM(A.customer_detail)) = B.customer_detail " +
                              "Where sysdebug Like ('%customer_must_fix%') AND status in ('open','implemented','verified','future') and cmf_request not in ('cmf_reject') GROUP BY A.customer_detail, B.sw_image_freeze, B.support_model " +
                              "ORDER BY Implemented_Verified DESC ";
             }
@@ -14097,7 +14143,7 @@ ORDER BY Total_CMF_Approved DESC";
         string basePlatform = summaryPlatform.Replace("_ALL_COMPONENTS_TABLE", "");
         string designTable = basePlatform + "_DESIGN_TABLE";
         string swImageFreezeSelect = "B.sw_image_freeze AS SWImageFreeze,";
-        string designFromClause = FilterDashboardTableSource(summaryPlatform) + " A INNER JOIN " + designTable + " B ON A.customer_detail = B.customer_detail";
+        string designFromClause = FilterDashboardTableSource(summaryPlatform) + " A INNER JOIN " + BuildDeduplicatedDesignTableSql(designTable) + " B ON LTRIM(RTRIM(A.customer_detail)) = B.customer_detail";
         string designGroupByClause = "A.customer_detail, B.sw_image_freeze";
 
         string main_query = @"SELECT
@@ -14551,13 +14597,14 @@ ORDER BY Total_CMF_Approved DESC";
             {
                 string resolvedPlatform = ResolvePlatformTable(dashboardPlatform);
                 string basePlatform = resolvedPlatform.Replace("_ALL_COMPONENTS_TABLE", string.Empty);
-                designTable = basePlatform + "_DESIGN_TABLE";
-                includeDesignTable = SqlTableExists(con, designTable);
+                string rawDesignTable = basePlatform + "_DESIGN_TABLE";
+                includeDesignTable = SqlTableExists(con, rawDesignTable);
+                designTable = includeDesignTable ? BuildDeduplicatedDesignTableSql(rawDesignTable) : string.Empty;
             }
 
             StringBuilder duplicateDetailsBuilder = new StringBuilder();
             duplicateDetailsBuilder.Append("STUFF((\n");
-            duplicateDetailsBuilder.Append("    SELECT ', ' + CAST(dup_src.cp_id AS VARCHAR(64))\n");
+            duplicateDetailsBuilder.Append("    SELECT DISTINCT ', ' + CAST(dup_src.cp_id AS VARCHAR(64))\n");
             duplicateDetailsBuilder.Append("         + ' | ' + ISNULL(NULLIF(LTRIM(RTRIM(dup_src.customer_detail)), ''), 'Unknown')\n");
             if (includeDesignTable)
             {
@@ -14571,7 +14618,7 @@ ORDER BY Total_CMF_Approved DESC";
             duplicateDetailsBuilder.Append("    FROM " + issueSourceSql + " AS dup_src\n");
             if (includeDesignTable)
             {
-                duplicateDetailsBuilder.Append("    LEFT JOIN " + designTable + " AS dup_design ON dup_design.customer_detail = dup_src.customer_detail"
+                duplicateDetailsBuilder.Append("    LEFT JOIN " + designTable + " AS dup_design ON dup_design.customer_detail = LTRIM(RTRIM(dup_src.customer_detail))"
                     + (isOverallSelection ? " AND dup_design.source_platform = dup_src.source_platform" : string.Empty) + "\n");
             }
 
@@ -14622,7 +14669,7 @@ SELECT
             ELSE ISNULL(NULLIF(LTRIM(RTRIM(issue_src.fixed_in_version)), ''), 'N/A')
           END AS ClosedDetails
 FROM " + issueSourceSql + @" AS issue_src
-" + (includeDesignTable ? ("LEFT JOIN " + designTable + " AS design_src ON design_src.customer_detail = issue_src.customer_detail"
+" + (includeDesignTable ? ("LEFT JOIN " + designTable + " AS design_src ON design_src.customer_detail = LTRIM(RTRIM(issue_src.customer_detail))"
     + (isOverallSelection ? " AND design_src.source_platform = issue_src.source_platform" : string.Empty)) : string.Empty) + @"
 INNER JOIN (
     SELECT DISTINCT LTRIM(RTRIM(value)) AS cp_id
@@ -14639,6 +14686,24 @@ ORDER BY
             {
                 cmd.Parameters.AddWithValue("@cpIds", cpIdsCsv);
                 da.Fill(dt);
+            }
+
+            if (!isOverallSelection && dt.Columns.Contains("SightingID") && dt.Rows.Count > 1)
+            {
+                HashSet<string> seenModalIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                List<DataRow> duplicateModalRows = new List<DataRow>();
+                foreach (DataRow row in dt.Rows)
+                {
+                    string sightingId = Convert.ToString(row["SightingID"] ?? string.Empty).Trim();
+                    if (!string.IsNullOrEmpty(sightingId) && !seenModalIds.Add(sightingId))
+                    {
+                        duplicateModalRows.Add(row);
+                    }
+                }
+                foreach (DataRow dupRow in duplicateModalRows)
+                {
+                    dt.Rows.Remove(dupRow);
+                }
             }
         }
 
