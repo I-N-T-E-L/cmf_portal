@@ -780,6 +780,20 @@ test('header stays outside native workspace horizontal scrolling without JavaScr
     assert.doesNotMatch(mainScript, /syncHeaderHorizontalPosition|header\.style\.setProperty\('left'/);
 });
 
+test('header shows the existing total visits label below the updated timestamp', () => {
+    const header = page.match(/<header class="portal-app-header">[\s\S]*?<\/header>/);
+    assert.ok(header);
+    assert.match(header[0], /<div class="portal-header-metadata">\s*<div class="portal-header-updated">Updated <asp:Label ID="lblHomeDashboardGeneratedAt"[^>]*\/><\/div>\s*<asp:Label ID="session_count"[^>]*CssClass="portal-header-visits"[^>]*\/>\s*<\/div>/);
+    assert.equal((page.match(/ID="session_count"/g) || []).length, 1);
+    assert.doesNotMatch(header[0].match(/<div id="updateinfo"[\s\S]*?<\/div>\s*<\/header>/)[0], /session_count/);
+    assert.match(theme, /body \.portal-app-header \.portal-header-metadata \{\s*display: flex;\s*flex-direction: column;\s*align-items: flex-start;/);
+    assert.match(theme, /body \.portal-app-header \.portal-header-visits \{[^}]*font-size: 12px;[^}]*font-variant-numeric: tabular-nums;/);
+    assert.match(page, /cmf-portal-theme\.css\?v=20261120-header-visits-v8/);
+    assert.match(server, /string session_count_table = "CMFUserVisitCounts_Final";/);
+    assert.match(server, /SET SessionCount = SessionCount \+ 1 WHERE Username = @username/);
+    assert.match(server, /SELECT ISNULL\(SUM\(SessionCount\), 0\) FROM/);
+});
+
 test('left menu uses native sticky positioning without scroll-frame corrections', () => {
     const mainScript = fs.readFileSync(path.join(root, 'Scripts', 'cmf-portal-main.js'), 'utf8');
     assert.match(theme, /body #mainMenuSidebar \{\s*position: sticky !important;/);
@@ -811,7 +825,7 @@ test('AI Insights hides pagination for empty views while retaining the empty-sta
     }
 });
 
-test('AI Insights Summary renders escaped cited analysis and keeps an Overall-only leading tab', () => {
+test('AI Insights Summary retains escaping while the active panel uses reviewed snapshot briefings', () => {
     const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
     const context = vm.createContext({});
     for (const name of ['escape', 'summaryContent']) {
@@ -871,8 +885,9 @@ test('AI Insights Summary renders escaped cited analysis and keeps an Overall-on
     assert.match(fluent, /Several requests are beyond the cited age threshold/);
     assert.match(fluent, /&lt;contacts&gt;/);
     assert.doesNotMatch(fluent, /Platform &lt;A&gt;:|<contacts>/);
-    assert.match(script, /overall \? \[\['summary', 'Summary', 'file-alt'\]\] : \[\]/);
-    assert.match(script, /tab: overall \? 'summary' : 'highlights'/);
+    const render = script.match(/    function render\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0];
+    assert.match(render, /loadPlatform\(state, false\)/);
+    assert.doesNotMatch(render, /role="tab"|loadSummary\(|load\(state/);
     assert.match(script, /GetDashboardSummary/);
     assert.match(script, /serial !== state.serial \|\| evidenceKey !== state.evidenceKey/);
     assert.doesNotMatch(script, /Mode: 'canonical'|item.Title \+ '\. ' \+ item.Evidence/);
@@ -932,7 +947,7 @@ test('AI Insights Overall finding labels use compact teal badges with softly rou
         'border-radius: 4px;', 'background: #e0f3ed;', 'color: #0f6654;', 'font-size: 10px;',
         'font-weight: 800;', 'line-height: 1.2;', 'letter-spacing: 0;']) assert.ok(badge[1].includes(property), property);
     assert.doesNotMatch(badge[1], /border-radius: 999px|#f3e8ff|#7e22ce/);
-    assert.match(page, /Content\/cmf-dashboard-insights\.css\?v=14/);
+    assert.match(page, /Content\/cmf-dashboard-insights\.css\?v=39/);
 });
 
 test('all Overall sections use 9px padding and matching border corners and shadow', () => {
@@ -1015,6 +1030,8 @@ test('AI Insights keeps content-independent card dimensions and internal scrolli
     assert.match(styles, /\.ci-findings\s*\{[^}]*padding: 0 2px 6px 0;/);
     assert.match(styles, /#homeOverallInsights \.ci-content > \.ci-findings\s*\{\s*padding-top: 6px;\s*\}/);
     assert.match(styles, /@media \(max-width: 900px\)\s*\{\s*#homeOverallLayoutV2 > \.overall-ai-span-card\s*\{\s*height: 503\.85px;/);
+    assert.match(styles, /#homeWelcomePanel \.ccip-dashboard\s*\{\s*container-type: inline-size;/);
+    assert.match(styles, /#homeLegacyTopLayout > #homeLegacyAiHealthCard\s*\{\s*max-width: min\(100cqw, calc\(100vw - 40px\)\);/);
 });
 
 test('AI Insights scope sits beside each heading at 13px without the acceptance-date label', () => {
@@ -1042,6 +1059,7 @@ test('AI Insights scope sits beside each heading at 13px without the acceptance-
         window: { CMF_PORTAL: portal },
         document: { getElementById: id => elements.get(id) },
         load: state => states.push(state),
+        loadPlatform: state => states.push(state),
         clearTimeout() {}, setTimeout() {},
         pagination: () => '', findings: () => '', escape: value => String(value)
     });
@@ -1059,11 +1077,10 @@ test('AI Insights scope sits beside each heading at 13px without the acceptance-
         const state = states.at(-1);
         assert.equal(elements.get(hostId + 'Scope').textContent, label);
         assert.doesNotMatch(state.host.innerHTML, /ci-scope|All acceptance dates/);
-        assert.match(state.host.innerHTML, /^<div class="ci-controls"><div class="ci-tabs"/);
-        assert.match(state.host.innerHTML, /<\/button><\/div><div class="ci-toolbar"><button type="button" class="ci-refresh"/);
+        assert.match(state.host.innerHTML, /ci-platform-title/);
+        assert.match(state.host.innerHTML, new RegExp('aria-label="Ranked ' + (hostId === 'homeOverallInsights' ? 'Overall' : 'platform') + ' findings"'));
         assert.doesNotMatch(state.host.innerHTML, /ci-mode|AI-ranked|Ranking/);
-        assert.deepEqual(Array.from(state.host.innerHTML.matchAll(/data-view="([^"]+)"/g), match => match[1]),
-            hostId === 'homeOverallInsights' ? ['summary', 'highlights', 'trends'] : ['highlights', 'trends']);
+        assert.deepEqual(Array.from(state.host.innerHTML.matchAll(/data-view="([^"]+)"/g), match => match[1]), []);
         assert.doesNotMatch(state.host.innerHTML, /Similar Issues|data-view="similar"/);
         assert.doesNotMatch(state.host.innerHTML, /Scope &amp; sources|ci-provenance|<details>/);
         assert.match(state.host.innerHTML, /<div class="ci-footer"><time class="ci-time"><\/time><p class="ci-metadata"><\/p><\/div>/);
@@ -1071,6 +1088,10 @@ test('AI Insights scope sits beside each heading at 13px without the acceptance-
         state.data = { Scope: label, DateRange: 'All acceptance dates', Mode: 'ai', Records: 0, DistinctIssues: 0, DuplicateRecords: 0, ExcludedRecords: 0, GeneratedAt: '2026-11-04T12:00:00Z', ExpiresAt: '2099-01-01T00:00:00Z', SourceStatus: 'All returned text AI-reviewed' };
         context.draw(state);
         assert.equal(elements.get(hostId + 'Scope').textContent, label);
+    }
+    for (const label of ['NVL S Dashboard', 'NVL S', 'NVL S dAsHbOaRd ']) {
+        context.render({ InsightsSnapshotKey: label, PlatformLabel: label });
+        assert.equal(elements.get('homePlatformInsightsScope').textContent, 'NVL S');
     }
 });
 
@@ -1198,7 +1219,8 @@ test('AI Insights keeps its seven-day input independent of calendar-week chart c
             if (id === host.id + 'Scope') return {};
             throw new Error('Insights must not read chart controls: ' + id);
         } },
-        load: state => loads.push(state.key), clearTimeout() {}
+        load: state => loads.push(state.key), clearTimeout() {},
+        loadPlatform: state => loads.push(state.key)
     });
     vm.runInContext(definition, context);
     context.render({ InsightsSnapshotKey: 'snapshot-a' });
@@ -1213,6 +1235,497 @@ test('AI Insights keeps its seven-day input independent of calendar-week chart c
     assert.doesNotMatch(service, /current week is partial|current week remains partial|Partial-week flow/);
     assert.match(service, /Period = "past-7-days"/);
     assert.match(script, /rendered-dashboard-v4/);
+});
+
+test('platform briefing separates Summary and Customer Issues panels with conditional Open and Pending boxes', () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const context = vm.createContext({});
+    for (const name of ['escape', 'platformFindings']) {
+        const definition = script.match(new RegExp('    function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n    \\}'));
+        assert.ok(definition);
+        vm.runInContext(definition[0], context);
+    }
+    const sections = ['highlights', 'focus'];
+    const findings = Array.from({ length: 19 }, (_, index) => ({ Id: 'f' + index, Title: 'Observation <' + index + '>',
+        Summary: 'Evidence & analysis ' + index, Kind: index % 2 ? 'cluster' : 'change', Tone: index % 2 ? 'progress' : 'attention',
+        Section: sections[index % sections.length],
+        Evidence: [{ Source: 'Table <A>', Text: 'Why: this ingredient holds most open CMFs.\nField Open: Count 12 of 20. <script>untrusted</script>' }] }));
+    const html = context.platformFindings({ Mode: 'ai', Findings: findings });
+    assert.equal((html.match(/data-finding-id=/g) || []).length, 19);
+    assert.equal((html.match(/<details class="ci-support"/g) || []).length, 19);
+    assert.equal((html.match(/<button type="button" class="ci-source-link"/g) || []).length, 19);
+    assert.equal((html.match(/<section class="cmf-assistant-text-section/g) || []).length, 2);
+    assert.equal((html.match(/<ul class="ci-platform-bullets">/g) || []).length, 2);
+    for (let index = 0; index < 17; index++) {
+        assert.ok(html.indexOf('Observation &lt;' + index + '&gt;') < html.indexOf('Observation &lt;' + (index + 2) + '&gt;'), 'Within-section LLM order changed.');
+    }
+    assert.match(html, /<strong>Observation &lt;0&gt;:<\/strong>/);
+    assert.match(html, /Highlights[\s\S]*Lowlights/);
+    assert.doesNotMatch(html, /Changes Over Time|Concentrations &amp; Exposure|Assessment Queue|Lowlights \/ Focus Areas/);
+    assert.match(html, /Evidence &amp; analysis 0 <button[^>]+aria-expanded="false"[^>]+aria-controls="platform-insight-source-f0"/);
+    assert.match(html, /<i class="fas fa-link" aria-hidden="true"><\/i><\/button><\/p><details class="ci-support" id="platform-insight-source-f0"/);
+    assert.equal((html.match(/title="Source and justification for Observation &lt;/g) || []).length, 19);
+    assert.doesNotMatch(html, />\s*Source<\/button>/);
+    const styles = fs.readFileSync(path.join(root, 'Content', 'cmf-dashboard-insights.css'), 'utf8');
+    assert.match(styles, /:is\(#homePlatformInsights, #homeOverallInsights\) \.ci-platform-bullets \{[^}]*padding-left: 48px/);
+    assert.match(styles, /:is\(#homePlatformInsights, #homeOverallInsights\) \.ci-source-summary \{ display: none; \}/);
+    assert.match(styles, /:is\(#homePlatformInsights, #homeOverallInsights\) \.ci-support \{ border-top: 0; margin-top: 0; \}/);
+    assert.match(styles, /:is\(#homePlatformInsights, #homeOverallInsights\) \.ci-support\[open\] \{ margin-top: 4px; \}/);
+    assert.match(styles, /:is\(#homePlatformInsights, #homeOverallInsights\) \.ci-platform-bullets > li \{[^}]*margin: 0 0 6px/);
+    assert.match(styles, /:is\(#homePlatformInsights, #homeOverallInsights\) \.ci-source-link \{[^}]*display: inline-block;[^}]*width: 16px; height: 12px; margin-left: 0;[^}]*vertical-align: baseline/);
+    assert.match(html, /Evidence &amp; analysis/);
+    assert.match(html, /Table &lt;A&gt;/);
+    assert.equal((html.match(/<p class="ci-source-detail">/g) || []).length, 38);
+    assert.match(html, /<p class="ci-source-detail">Why: this ingredient holds most open CMFs\.<\/p><p class="ci-source-detail">Field Open:/);
+    assert.match(html, /&lt;script&gt;untrusted&lt;\/script&gt;/);
+    assert.doesNotMatch(html, /<A>|<0>|<script>|ci-rank|ci-finding-label|ci-pagination|data-page-step|<li[^>]+class="cmf-assistant/);
+    const customerFindings = ['Pending', 'Open', 'Pending', 'Open'].map((population, index) => ({
+        Id: 'customer-' + index, Title: 'Customer pattern <' + index + '>', Summary: population + ' reported symptom & detail.',
+        Section: index % 2 ? 'highlights' : 'focus',
+        Evidence: [{ Source: 'CustomerIssues - ' + population + ' reported customer issue',
+            Text: 'Issue population: ' + population + '\nReported issue title: <script>source title</script>' }]
+    }));
+    const operational = { ...findings[1], Id: 'pending-queue', Title: 'Pending assessment aging',
+        Evidence: [{ Source: 'Pending Assessments - Pending queue coverage', Text: 'Oldest pending age: 17 days' }] };
+    for (const pipeline of ['platform-page-briefing-v3', 'overall-page-briefing-v1']) {
+        const enriched = context.platformFindings({ Mode: 'ai', Pipeline: pipeline,
+            Findings: [...findings, ...customerFindings, operational] });
+        const boxes = enriched.match(/<section class="cmf-assistant-text-section[\s\S]*?<\/section>/g);
+        assert.equal(boxes.length, pipeline === 'overall-page-briefing-v1' ? 2 : 4);
+        assert.match(boxes[0], /Highlights/);
+        assert.match(boxes[1], /Lowlights[\s\S]*Pending assessment aging/);
+        if (pipeline === 'overall-page-briefing-v1') {
+            assert.doesNotMatch(enriched, /data-briefing-panel="customers"|Customer pattern|Reported issue title/);
+            assert.equal((enriched.match(/data-finding-id=/g) || []).length, 20);
+            assert.equal((enriched.match(/<button type="button" class="ci-source-link"/g) || []).length, 20);
+            continue;
+        }
+        assert.match(boxes[2], /<h3><span>Open<\/span><\/h3>/);
+        assert.match(boxes[3], /<h3><span>Pending<\/span><\/h3>/);
+        assert.match(enriched, /data-briefing-panel="summary"[\s\S]*Highlights[\s\S]*Lowlights[\s\S]*data-briefing-panel="customers"/);
+        assert.doesNotMatch(boxes[2] + boxes[3], /Pending assessment aging|Observation &lt;/);
+        assert.doesNotMatch(boxes[0] + boxes[1], /Customer pattern/);
+        assert.equal((enriched.match(/data-finding-id=/g) || []).length, 24);
+        assert.equal((enriched.match(/<button type="button" class="ci-source-link"/g) || []).length, 24);
+        for (const finding of customerFindings) {
+            assert.equal((enriched.match(new RegExp('data-finding-id="' + finding.Id + '"', 'g')) || []).length, 1);
+        }
+        assert.ok(boxes[2].indexOf('customer-1') < boxes[2].indexOf('customer-3'), 'Open finding order changed.');
+        assert.ok(boxes[3].indexOf('customer-0') < boxes[3].indexOf('customer-2'), 'Pending finding order changed.');
+        assert.match(boxes[2], /&lt;script&gt;source title&lt;\/script&gt;/);
+        assert.doesNotMatch(boxes[2], /<script>/);
+    }
+    const customerOnly = context.platformFindings({ Mode: 'ai', Findings: [customerFindings[1]] });
+    assert.equal((customerOnly.match(/<section /g) || []).length, 1);
+    assert.match(customerOnly, /data-briefing-panel="customers"[\s\S]*>Open<\/span>/);
+    assert.doesNotMatch(customerOnly, /data-briefing-panel="summary"|Highlights|Lowlights|>Pending<\/span>/);
+    const overallCustomerOnly = context.platformFindings({ Mode: 'ai', Pipeline: 'overall-page-briefing-v1', Findings: customerFindings });
+    assert.match(overallCustomerOnly, /No significant patterns/);
+    assert.doesNotMatch(overallCustomerOnly, /data-briefing-panel="customers"|Customer pattern|Reported issue title/);
+    const pendingOnly = context.platformFindings({ Mode: 'ai', Findings: [customerFindings[0]] });
+    assert.equal((pendingOnly.match(/<section /g) || []).length, 1);
+    assert.match(pendingOnly, /data-briefing-panel="customers"[\s\S]*>Pending<\/span>/);
+    assert.doesNotMatch(pendingOnly, /data-briefing-panel="summary"|>Open<\/span>/);
+    const sparse = context.platformFindings({ Mode: 'ai', Findings: findings.filter(finding => finding.Section === 'highlights') });
+    assert.equal((sparse.match(/<section /g) || []).length, 1);
+    assert.doesNotMatch(sparse, /data-briefing-panel="customers"|Lowlights|Changes Over Time|Concentrations|Assessment Queue/);
+    for (const section of [undefined, 'unknown', '<script>', 'changes', 'exposure', 'assessment']) {
+        const invalid = context.platformFindings({ Mode: 'ai', Findings: [{ ...findings[0], Section: section }] });
+        assert.match(invalid, /Insights aren't available right now\. Try again\./);
+        assert.doesNotMatch(invalid, /Observation|<section|<script>/);
+    }
+    assert.match(context.platformFindings({ Mode: 'ai', Findings: [] }), /No significant patterns/);
+    for (const mode of ['ai-loading', 'ai-review', 'ai-unavailable', 'unknown']) {
+        assert.doesNotMatch(context.platformFindings({ Mode: mode, Findings: findings }), /Observation|Count 12/);
+    }
+});
+
+test('platform briefing view tabs preserve scroll, support keyboard switching and omit empty views', () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const panels = ['summary', 'customers'].map((view, index) => ({
+        id: 'platform-briefing-' + view, dataset: { briefingPanel: view }, hidden: false,
+        getAttribute: () => 'platform-briefing-tab-' + view,
+        querySelectorAll: () => Array.from({ length: index ? 1 : 2 }, () => ({}))
+    }));
+    const buttons = ['summary', 'customers'].map(view => ({
+        dataset: { briefingView: view }, attributes: {},
+        setAttribute(name, value) { this.attributes[name] = value; },
+        addEventListener(name, callback) { this[name] = callback; }, focus() { this.focused = true; }
+    }));
+    let availablePanels = panels, availableButtons = buttons;
+    const parts = new Map(['.ci-content', '.ci-metadata', '.ci-time', '.ci-refresh', '.ci-progress', '.ci-status', '.ci-panel-tabs'].map(selector => [selector, {
+        textContent: '', innerHTML: '', scrollTop: 0, attributes: {}, style: { setProperty() {} },
+        setAttribute(name, value) { this.attributes[name] = value; },
+        querySelectorAll: query => query === '[data-briefing-panel]' ? availablePanels
+            : query === '[data-briefing-view]' ? availableButtons : []
+    }]));
+    const state = { host: { isConnected: true, querySelector: selector => parts.get(selector), querySelectorAll: () => availableButtons },
+        data: { Mode: 'ai', Findings: [{}, {}, {}], GeneratedAt: '2026-11-23T03:00:00Z' } };
+    const context = vm.createContext({ active: state, platformFindings: () => 'Approved panels', fetch() { throw new Error('View switches must not request AI.'); } });
+    for (const name of ['selectPlatformView', 'drawPlatform'])
+        vm.runInContext(script.match(new RegExp('    function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n    \\}'))[0], context);
+    context.drawPlatform(state);
+    assert.equal(state.briefingView, 'summary');
+    assert.equal(panels[0].hidden, false);
+    assert.equal(panels[1].hidden, true);
+    assert.equal(parts.get('.ci-metadata').textContent, '2 findings');
+    assert.match(parts.get('.ci-panel-tabs').innerHTML, /aria-controls="platform-briefing-customers"[\s\S]*Customer Issues/);
+    const content = parts.get('.ci-content');
+    content.scrollTop = 25;
+    buttons[1].click();
+    assert.equal(state.briefingView, 'customers');
+    assert.equal(content.scrollTop, 0);
+    assert.equal(panels[0].hidden, true);
+    assert.equal(buttons[1].attributes['aria-selected'], 'true');
+    assert.equal(buttons[1].tabIndex, 0);
+    assert.equal(buttons[0].tabIndex, -1);
+    assert.equal(parts.get('.ci-metadata').textContent, '1 finding');
+    content.scrollTop = 12;
+    let prevented = false;
+    buttons[1].keydown({ key: 'ArrowLeft', preventDefault() { prevented = true; } });
+    assert.equal(prevented, true);
+    assert.equal(buttons[0].focused, true);
+    assert.equal(content.scrollTop, 25);
+    buttons[0].keydown({ key: 'End', preventDefault() {} });
+    assert.equal(content.scrollTop, 12);
+    buttons[1].keydown({ key: 'Home', preventDefault() {} });
+    assert.equal(content.scrollTop, 25);
+    context.drawPlatform(state);
+    assert.equal(content.scrollTop, 25);
+    availablePanels = [panels[1]];
+    availableButtons = [buttons[1]];
+    context.drawPlatform(state);
+    assert.equal(state.briefingView, 'customers');
+    assert.doesNotMatch(parts.get('.ci-panel-tabs').innerHTML, />Summary</);
+    availablePanels = [];
+    availableButtons = [];
+    state.data = null;
+    context.drawPlatform(state);
+    assert.equal(parts.get('.ci-panel-tabs').hidden, true);
+    assert.equal(parts.get('.ci-panel-tabs').innerHTML, '');
+    assert.match(page, /cmf-dashboard-insights\.js\?v=41/);
+    assert.match(page, /cmf-dashboard-insights\.css\?v=39/);
+    const styles = fs.readFileSync(path.join(root, 'Content', 'cmf-dashboard-insights.css'), 'utf8');
+    assert.match(styles, /\.ci-panel-tabs \{[^}]*gap: 0;[^}]*padding: 0 8px/);
+    assert.match(styles, /\.ci-controls:has\(\.ci-panel-tabs\) \{[^}]*position: relative; isolation: isolate/);
+    assert.match(styles, /\.ci-controls:has\(\.ci-panel-tabs\) \{[^}]*border-bottom-color: transparent/);
+    assert.match(styles, /\.ci-controls:has\(\.ci-panel-tabs\)::after \{[^}]*left: 0; right: 0; bottom: -1\.625px; height: 8px;[^}]*d='M0 35 H120'[^}]*stroke='%23cad7e4' stroke-width='1\.25'[^}]*border-image-slice: 0 0 8 0;[^}]*border-image-width: 0 0 8px 0;[^}]*z-index: 1; pointer-events: none/);
+    assert.match(styles, /\.ci-panel-tabs \{[^}]*isolation: auto/);
+    assert.match(styles, /\.ci-panel-tabs \[role="tab"\] \{[^}]*position: relative; z-index: 0/);
+    assert.match(styles, /\.ci-panel-tabs \[role="tab"\]\[aria-selected="true"\] \{[^}]*z-index: 2/);
+    assert.match(styles, /\.ci-panel-tabs \[role="tab"\] \+ \[role="tab"\] \{ margin-left: -1px; \}/);
+    assert.match(styles, /\.ci-panel-tabs \[role="tab"\]::before \{[^}]*inset: -1px; bottom: -1\.875px;[^}]*border-image-source:[^}]*stroke='%23cad7e4' stroke-width='1\.25'[^}]*border-image-slice: 12 16 8 16;[^}]*border-image-outset: 0 8px/);
+    assert.match(styles, /\.ci-panel-tabs \[role="tab"\]::after \{[^}]*inset: -1px; bottom: -1\.875px; z-index: -1;[^}]*border-image-source: var\(--ci-tab-fill\);[^}]*border-image-slice: 12 16 8 16 fill;[^}]*border-image-outset: 0 8px/);
+    const tabImages = Array.from(styles.matchAll(/%3Csvg[^"]+/g)).filter(match => match[0].includes("viewBox='0 0 120 36'") && match[0].includes("d='M0 35 C"));
+    assert.equal(tabImages.length, 4);
+    const tabPaths = tabImages.map(match => decodeURIComponent(match[0]).match(/\sd='([^']+)'/)[1]);
+    assert.equal(new Set(tabPaths).size, 1, 'every tab fill follows the exact outline path');
+    assert.match(styles, /\.ci-panel-tabs \[role="tab"\] \{[^}]*fill='%23eaf0f6'/);
+    assert.match(styles, /\.ci-panel-tabs \[role="tab"\]:hover \{[^}]*fill='%23e1eaf3'/);
+    assert.match(styles, /\.ci-panel-tabs \[role="tab"\]\[aria-selected="true"\] \{[^}]*fill='%23fff'/);
+    assert.match(styles, /\.ci-panel-tabs \[role="tab"\] \{[^}]*min-height: 34px;[^}]*margin-bottom: -1px;[^}]*border-radius: 8px 8px 0 0/);
+    assert.match(styles, /\.ci-panel-tabs \[role="tab"\] \{[^}]*border: 1px solid transparent;[^}]*background-clip: border-box/);
+    assert.match(styles, /\.ci-panel-tabs \[role="tab"\]\[aria-selected="true"\] \{[^}]*--ci-tab-surface: #fff;[^}]*background-clip: border-box; box-shadow: 0 1px 0 #fff/);
+    assert.match(styles, /\.ci-panel-tabs \[role="tab"\]\[aria-selected="true"\]::before \{ left: -9px; right: -9px; border-image-outset: 0; background: linear-gradient\(#fff, #fff\) left bottom \/ 100% 1\.25px no-repeat; background-origin: border-box; \}/);
+    assert.match(styles, /\.cmf-insights \.ci-panel-tabs \[role="tab"\]:focus:not\(:focus-visible\) \{ outline: none; \}/);
+    assert.match(styles, /\.cmf-insights :focus-visible \{ outline: 2px solid #1768b2; outline-offset: 2px; \}/);
+});
+
+test('platform briefing Source toggles only its backing data and preserves open state on redraw', () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const items = ['f1', 'f2'].map(id => {
+        const detail = { open: false };
+        const trigger = { attributes: {}, setAttribute(name, value) { this.attributes[name] = value; },
+            addEventListener(name, callback) { this[name] = callback; } };
+        return { dataset: { findingId: id }, detail, trigger, querySelector(selector) { return selector === 'details' ? detail : trigger; } };
+    });
+    const parts = new Map(['.ci-content', '.ci-metadata', '.ci-time', '.ci-refresh', '.ci-progress', '.ci-status'].map(selector => [selector, {
+        textContent: '', innerHTML: '', scrollTop: 25, style: { setProperty() {} }, setAttribute() {}, querySelectorAll: () => items
+    }]));
+    const state = { host: { isConnected: true, querySelector: selector => parts.get(selector) },
+        data: { Mode: 'ai', Findings: items, GeneratedAt: '2026-11-20T05:00:00Z' } };
+    const context = vm.createContext({ active: state, platformFindings: () => 'Rendered bullets' });
+    vm.runInContext(script.match(/    function drawPlatform\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0], context);
+    context.drawPlatform(state);
+    items[0].trigger.click();
+    assert.equal(items[0].detail.open, true);
+    assert.equal(items[0].trigger.attributes['aria-expanded'], 'true');
+    assert.equal(items[1].detail.open, false);
+    context.drawPlatform(state);
+    assert.equal(items[0].detail.open, true);
+    assert.equal(items[0].trigger.attributes['aria-expanded'], 'true');
+    assert.equal(parts.get('.ci-content').scrollTop, 25);
+    items[0].trigger.click();
+    assert.equal(items[0].detail.open, false);
+    assert.equal(items[0].trigger.attributes['aria-expanded'], 'false');
+});
+
+test('platform briefing fills the existing bar from real stages without looping or visible numeric labels', () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const parts = new Map(['.ci-content', '.ci-metadata', '.ci-time', '.ci-refresh', '.ci-progress', '.ci-status'].map(selector => [selector, {
+        textContent: '', innerHTML: '', scrollTop: 0, attributes: {},
+        style: { setProperty(name, value) { this[name] = value; } },
+        setAttribute(name, value) { this.attributes[name] = value; }, querySelectorAll: () => []
+    }]));
+    const state = { host: { isConnected: true, querySelector: selector => parts.get(selector) }, data: null };
+    const context = vm.createContext({ active: state, platformFindings: () => '<p>Analyzing dashboard data...</p>' });
+    vm.runInContext(script.match(/    function drawPlatform\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0], context);
+    const loader = parts.get('.ci-progress');
+    for (const stage of [5, 25, 45, 65, 85, 90, 98]) {
+        state.data = { Mode: 'ai-loading', Progress: stage, Findings: [] };
+        context.drawPlatform(state);
+        assert.equal(loader.style['--ci-progress'], stage + '%');
+        assert.equal(loader.attributes['aria-valuenow'], String(stage));
+        assert.equal(loader.hidden, false);
+        assert.equal(loader.textContent, '');
+        assert.equal(parts.get('.ci-metadata').textContent, '');
+        assert.equal(parts.get('.ci-status').textContent, '');
+    }
+    for (const invalid of [-20, 200, 'not-a-stage']) {
+        state.data.Progress = invalid;
+        context.drawPlatform(state);
+        assert.equal(loader.style['--ci-progress'], (invalid === 200 ? 98 : 2) + '%');
+    }
+    state.data = { Mode: 'ai', Progress: 100, Findings: [], GeneratedAt: '2026-11-19T13:00:00Z' };
+    context.drawPlatform(state);
+    assert.equal(loader.hidden, true);
+    assert.equal(loader.style['--ci-progress'], '100%');
+    state.data = { Mode: 'ai-unavailable', Findings: [] };
+    context.drawPlatform(state);
+    assert.equal(loader.hidden, true);
+    assert.equal(loader.style['--ci-progress'], '0%');
+    state.data = null;
+    context.drawPlatform(state);
+    assert.equal(loader.hidden, false);
+    assert.equal(loader.style['--ci-progress'], '2%');
+    const platformMarkup = script.match(/    function render\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0];
+    assert.doesNotMatch(platformMarkup, /ci-progress-indeterminate|aria-valuetext/);
+    assert.match(platformMarkup, /class="ci-progress"[^>]*><span><\/span>/);
+    assert.match(page, /Scripts\/cmf-dashboard-insights\.js\?v=41/);
+});
+
+test('Overall briefing uses only its own snapshot endpoint and isolated reviewed Source controls', async () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const state = { overall: true, serial: 0, platform: 'CMF_OVERALL_ALL_COMPONENTS_TABLE', snapshotKey: 'overall-snapshot',
+        host: { isConnected: true, querySelector: () => ({ scrollTop: 0 }) } };
+    const requests = [];
+    let pending;
+    const context = vm.createContext({ active: state, AbortController, setTimeout: () => 1, clearTimeout() {}, drawPlatform() {},
+        fetch(url, options) { requests.push({ url, body: JSON.parse(options.body) }); return new Promise(resolve => { pending = resolve; }); }
+    });
+    for (const name of ['escape', 'platformFindings', 'loadPlatform'])
+        vm.runInContext(script.match(new RegExp('    function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n    \\}'))[0], context);
+    const settle = () => new Promise(resolve => setImmediate(resolve));
+    context.loadPlatform(state, true);
+    assert.deepEqual(requests[0], { url: 'CMF_Web_portal.aspx/GetOverallDashboardBriefing',
+        body: { platform: state.platform, snapshotKey: state.snapshotKey, refresh: true } });
+    pending({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-page-briefing-v3', Mode: 'ai', Findings: [{ Title: 'WRONG SCOPE' }] } }) });
+    await settle();
+    assert.equal(state.data.Mode, 'ai-unavailable');
+    assert.equal(state.data.Findings.length, 0);
+    context.loadPlatform(state, false);
+    pending({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'overall-page-briefing-v1', Mode: 'ai-loading', Findings: [{ Title: 'DRAFT' }] } }) });
+    await settle();
+    assert.equal(state.data.Findings.length, 0);
+    const findings = [{ Id: 'f1', Title: 'Leading OEM volume', Summary: 'OEM A has 20 of 30 unique CMFs.', Section: 'highlights',
+        Evidence: [{ Source: 'OEM Summary', Text: 'Evidence <A>' }] }];
+    const overall = context.platformFindings({ Mode: 'ai', Pipeline: 'overall-page-briefing-v1', Findings: findings });
+    const platform = context.platformFindings({ Mode: 'ai', Pipeline: 'platform-page-briefing-v3', Findings: findings });
+    assert.match(overall, /aria-controls="overall-insight-source-f1"/);
+    assert.doesNotMatch(overall, /platform-insight-source|ci-pagination|role="tab"|<A>/);
+    assert.match(platform, /aria-controls="platform-insight-source-f1"/);
+    const endpoint = server.match(/    public static CmfPlatformBriefing GetOverallDashboardBriefing\([\s\S]*?\r?\n    \}/)[0];
+    assert.match(endpoint, /selection != OverallDashboardPlatformTable/);
+    assert.match(endpoint, /DashboardSnapshotCacheKey\(snapshotKey\)/);
+    assert.match(endpoint, /snapshot\.Platform != selection/);
+    assert.match(endpoint, /snapshot\.Configuration != DashboardPanelConfiguration\(selection\)/);
+    assert.match(endpoint, /snapshot\.CapturedAt\.Date != DateTime\.Today/);
+    assert.match(endpoint, /CmfPlatformBriefingService\.CaptureSource\(snapshot\)/);
+    assert.doesNotMatch(endpoint, /BuildHomeDashboardSnapshot|CmfRenderedInsightsService|GetSummaryIssueSourceTables|RankDashboardInsights/);
+});
+
+test('platform briefing sends only snapshot scope and rejects stale or unapproved responses', async () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const definition = script.match(/    function loadPlatform\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0];
+    const state = { serial: 0, platform: 'CMF_NVL_H_ALL_COMPONENTS_TABLE', snapshotKey: 'opaque-snapshot',
+        host: { isConnected: true, querySelector: () => ({ scrollTop: 0 }) } };
+    const requests = [], timers = new Map();
+    let timerId = 0, pending;
+    const context = vm.createContext({ active: state, AbortController,
+        setTimeout(callback, delay) { timers.set(++timerId, { callback, delay }); return timerId; },
+        clearTimeout(timer) { timers.delete(timer); }, drawPlatform() {},
+        fetch(url, options) { requests.push({ url, body: JSON.parse(options.body) }); return new Promise(resolve => { pending = resolve; }); }
+    });
+    vm.runInContext(definition, context);
+    context.loadPlatform(state, true);
+    assert.deepEqual(requests[0], { url: 'CMF_Web_portal.aspx/GetPlatformDashboardBriefing',
+        body: { platform: state.platform, snapshotKey: 'opaque-snapshot', refresh: true } });
+    pending({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-page-briefing-v3', Mode: 'ai-loading', Progress: 45, Findings: [{ Title: 'UNAPPROVED' }] } }) });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(state.data.Mode, 'ai-loading');
+    assert.equal(state.data.Progress, 45);
+    assert.equal(state.data.Findings.length, 0);
+    Array.from(timers.values()).find(timer => timer.delay === 3000).callback();
+    assert.equal(requests[1].body.refresh, false);
+    pending({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-page-briefing-v3', Mode: 'ai-review', Findings: [{ Title: 'DRAFT' }] } }) });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(state.data.Mode, 'ai-unavailable');
+    assert.equal(state.data.Findings.length, 0);
+    context.loadPlatform(state, false);
+    state.serial++;
+    pending({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-page-briefing-v3', Mode: 'ai', Findings: [{ Title: 'STALE' }] } }) });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(state.data, null);
+    const endpoint = server.match(/    public static CmfPlatformBriefing GetPlatformDashboardBriefing\([\s\S]*?\r?\n    \}/)[0];
+    assert.match(endpoint, /selection == OverallDashboardPlatformTable/);
+    assert.match(endpoint, /DashboardSnapshotCacheKey\(snapshotKey\)/);
+    assert.match(endpoint, /snapshot\.Platform != selection/);
+    assert.match(endpoint, /snapshot\.Configuration != DashboardPanelConfiguration\(selection\)/);
+    assert.doesNotMatch(endpoint, /snapshotContext|FetchArticle|CmfRenderedInsightsService/);
+});
+
+test('platform briefing retries transient polls without restarting generation and bounds repeated failures', async () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const definition = script.match(/    function loadPlatform\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0];
+    const state = { serial: 0, platform: 'NVL-S', snapshotKey: 'snapshot', host: { isConnected: true, querySelector: () => ({ scrollTop: 0 }) } };
+    const requests = [], timers = new Map();
+    let timerId = 0;
+    const context = vm.createContext({ active: state, AbortController,
+        setTimeout(callback, delay) { timers.set(++timerId, { callback, delay }); return timerId; },
+        clearTimeout(timer) { timers.delete(timer); }, drawPlatform() {},
+        fetch(url, options) { return new Promise((resolve, reject) => requests.push({ options, resolve, reject })); }
+    });
+    vm.runInContext(definition, context);
+    const settle = () => new Promise(resolve => setImmediate(resolve));
+    const fire = delay => {
+        const entry = Array.from(timers.entries()).find(([, timer]) => timer.delay === delay);
+        assert.ok(entry, 'Expected retry or poll timer at ' + delay);
+        timers.delete(entry[0]);
+        entry[1].callback();
+    };
+    context.loadPlatform(state, true);
+    const oldDeadline = Array.from(timers.values()).find(timer => timer.delay === 45000).callback;
+    requests[0].resolve({ ok: false, status: 503 });
+    await settle();
+    assert.equal(state.data, null, 'A temporary server failure should leave the analysis loading.');
+    fire(1000);
+    oldDeadline();
+    assert.equal(requests[1].options.signal.aborted, false, 'An old request deadline aborted the replacement request.');
+    assert.equal(JSON.parse(requests[1].options.body).refresh, false, 'Transport retry restarted model generation.');
+    requests[1].resolve({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-page-briefing-v3', Mode: 'ai-loading', Progress: 45, Findings: [] } }) });
+    await settle();
+    fire(3000);
+    requests[2].reject(new TypeError('Network interrupted'));
+    await settle();
+    assert.equal(state.data.Progress, 45, 'A transient failed poll reset completed analysis progress.');
+    fire(1000);
+    requests[3].resolve({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-page-briefing-v3', Mode: 'ai', Findings: [], ExpiresAt: new Date(Date.now() + 60000).toISOString() } }) });
+    await settle();
+    assert.equal(state.data.Mode, 'ai');
+    assert.equal(state.notice, '');
+    assert.equal(timers.size, 0, 'Completed insights scheduled an unwanted latest-update reminder.');
+    context.loadPlatform(state, false);
+    for (let attempt = 0; attempt < 3; attempt++) {
+        requests[4 + attempt].reject(new TypeError('Offline'));
+        await settle();
+        if (attempt < 2) fire((attempt + 1) * 1000);
+    }
+    assert.equal(state.data.Mode, 'ai-unavailable');
+    assert.equal(timers.size, 0, 'Transport failures retried without a bound.');
+    context.loadPlatform(state, true);
+    requests[7].resolve({ ok: true, json: async () => ({ d: { Success: false, ReloadRequired: true, Message: 'Dashboard data expired.' } }) });
+    await settle();
+    assert.equal(state.reloadRequired, true);
+    assert.equal(state.notice, 'Refresh the dashboard to load insights.');
+    assert.equal(timers.size, 0, 'An invalid snapshot must not be retried automatically.');
+    assert.match(script, /if \(state\.reloadRequired\) window\.location\.reload\(\)/);
+    assert.match(server, /Mode = "ai-unavailable", ReloadRequired = true/);
+});
+
+test('platform briefing retries recoverable generation once for each host and publishes only approved findings', async () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const definition = script.match(/    function loadPlatform\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0];
+    for (const overall of [false, true]) {
+        const pipeline = overall ? 'overall-page-briefing-v1' : 'platform-page-briefing-v3';
+        const state = { overall, serial: 0, platform: overall ? 'CMF_OVERALL_ALL_COMPONENTS_TABLE' : 'NVL-H', snapshotKey: 'snapshot',
+            host: { isConnected: true, querySelector: () => ({ scrollTop: 0 }) } };
+        const requests = [], timers = new Map();
+        let timerId = 0;
+        const context = vm.createContext({ active: state, AbortController,
+            setTimeout(callback, delay) { timers.set(++timerId, { callback, delay }); return timerId; },
+            clearTimeout(timer) { timers.delete(timer); }, drawPlatform() {},
+            fetch(url, options) { return new Promise(resolve => requests.push({ url, body: JSON.parse(options.body), resolve })); }
+        });
+        vm.runInContext(definition, context);
+        const settle = () => new Promise(resolve => setImmediate(resolve));
+        const respond = async data => {
+            requests[requests.length - 1].resolve({ ok: true, json: async () => ({ d: { Success: true, Pipeline: pipeline, ...data } }) });
+            await settle();
+        };
+        const fire = () => {
+            const entry = Array.from(timers.entries()).find(([, timer]) => timer.delay === 3000);
+            assert.ok(entry);
+            timers.delete(entry[0]);
+            entry[1].callback();
+        };
+        context.loadPlatform(state, false);
+        await respond({ Mode: 'ai-unavailable', FailureCode: 'unsupported-number', Message: 'Technical verification details', Findings: [{ Title: 'REJECTED' }] });
+        assert.equal(state.data.Mode, 'ai-loading');
+        assert.equal(state.data.Findings.length, 0);
+        assert.equal(state.notice, 'Preparing insights...');
+        fire();
+        assert.deepEqual(requests[1].body, { platform: state.platform, snapshotKey: 'snapshot', refresh: true });
+        await respond({ Mode: 'ai-loading', Progress: 65, Findings: [{ Title: 'DRAFT' }] });
+        assert.equal(state.data.Findings.length, 0);
+        fire();
+        assert.equal(requests[2].body.refresh, false);
+        await respond({ Mode: 'ai', Findings: [{ Title: 'APPROVED' }], ExpiresAt: new Date(Date.now() + 60000).toISOString() });
+        assert.equal(state.data.Findings[0].Title, 'APPROVED');
+        assert.equal(state.notice, '');
+        assert.ok(requests.every(request => request.url.endsWith(overall ? 'GetOverallDashboardBriefing' : 'GetPlatformDashboardBriefing')));
+
+        context.loadPlatform(state, true);
+        await respond({ Mode: 'ai-unavailable', FailureCode: 'grounding-rejected', Findings: [] });
+        fire();
+        await respond({ Mode: 'ai-unavailable', FailureCode: 'grounding-rejected', Message: 'Evidence verification failed', Findings: [{ Title: 'REJECTED AGAIN' }] });
+        assert.equal(state.data.Mode, 'ai-unavailable');
+        assert.equal(state.data.Findings.length, 0);
+        assert.equal(state.notice, "Insights aren't available right now. Try again.");
+        assert.equal(timers.size, 0, 'Generation retried more than once.');
+
+        context.loadPlatform(state, false);
+        await respond({ Mode: 'ai-unavailable', FailureCode: 'unsupported-number', Findings: [] });
+        const beforeSwitch = requests.length;
+        state.serial++;
+        fire();
+        assert.equal(requests.length, beforeSwitch, 'A stale automatic retry started new work.');
+    }
+});
+
+test('platform briefing stops permanent or unknown failures and keeps technical details out of user messages', async () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const definition = script.match(/    function loadPlatform\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0];
+    for (const failureCode of ['provider-authorization', 'provider-rate-limited', 'cancelled', 'unexpected-error', 'unknown', undefined]) {
+        const state = { serial: 0, platform: 'NVL-H', snapshotKey: 'snapshot', host: { isConnected: true, querySelector: () => ({ scrollTop: 0 }) } };
+        const timers = new Map();
+        let timerId = 0, respond;
+        const context = vm.createContext({ active: state, AbortController,
+            setTimeout(callback, delay) { timers.set(++timerId, { callback, delay }); return timerId; },
+            clearTimeout(timer) { timers.delete(timer); }, drawPlatform() {},
+            fetch() { return new Promise(resolve => { respond = resolve; }); }
+        });
+        vm.runInContext(definition, context);
+        context.loadPlatform(state, false);
+        respond({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-page-briefing-v3',
+            Mode: 'ai-unavailable', FailureCode: failureCode, Message: 'The generated insights did not pass evidence verification.', Findings: [] } }) });
+        await new Promise(resolve => setImmediate(resolve));
+        assert.equal(state.data.Mode, 'ai-unavailable');
+        assert.equal(timers.size, 0);
+        assert.equal(state.notice, failureCode === 'provider-rate-limited' ? 'Insights are busy. Try again shortly.'
+            : "Insights aren't available right now. Try again.");
+        vm.runInContext(script.match(/    function platformFindings\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0], context);
+        assert.equal(context.platformFindings(state.data), '', 'Failure message appeared twice.');
+    }
 });
 
 test('AI Insights uses server-owned rendered snapshots and combines platform facts without HSD enrichment', () => {

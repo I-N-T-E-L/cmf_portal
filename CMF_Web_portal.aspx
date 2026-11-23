@@ -3854,6 +3854,7 @@ body {
 
 .overall-ai-card .ccip-ai-beta {
     font-family: Outfit, Manrope, "Segoe UI", sans-serif;
+    padding: 2.75px 8px 1.25px;
     line-height: 12px;
     letter-spacing: -0.16px;
     text-transform: uppercase;
@@ -27060,10 +27061,10 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 </script>
     <script src="Scripts/cmf-portal-main.js?v=20261103-title-actions"></script>
-    <script src="Scripts/cmf-dashboard-insights.js?v=26"></script>
+    <script src="Scripts/cmf-dashboard-insights.js?v=41"></script>
 
-    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261112-header-gap-v7" />
-    <link rel="stylesheet" href="Content/cmf-dashboard-insights.css?v=14" />
+    <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261120-header-visits-v8" />
+    <link rel="stylesheet" href="Content/cmf-dashboard-insights.css?v=39" />
 
 </head>
 
@@ -27127,7 +27128,10 @@ td:nth-child(odd), th:nth-child(odd) {
                 <asp:ListItem Text="Program Manager" Value="program_manager" />
                 <asp:ListItem Text="Admin" Value="admin" />
             </asp:DropDownList>
-            <div class="portal-header-updated">Updated <asp:Label ID="lblHomeDashboardGeneratedAt" runat="server" /></div>
+            <div class="portal-header-metadata">
+                <div class="portal-header-updated">Updated <asp:Label ID="lblHomeDashboardGeneratedAt" runat="server" /></div>
+                <asp:Label ID="session_count" runat="server" CssClass="portal-header-visits" Text="Total Visits: " />
+            </div>
         </div>
         <div class="sidebar-toggle-div">
             <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
@@ -27140,7 +27144,6 @@ td:nth-child(odd), th:nth-child(odd) {
               <div id="updateinfo" runat="server">
   <div id="last-update">Last Updated: </div>
   <div id="next-update">Next Update: </div>
-   <asp:Label ID="session_count" runat="server" Text="Total Visits: " />
 </div>
     </header>
     <div class="container-scroller">
@@ -27429,7 +27432,7 @@ Submit
 
                                     <aside id="homeLegacyAiHealthCard" class="overall-card overall-ai-card overall-ai-span-card">
                                         <div class="overall-card-head ccip-ai-health-head">
-                                            <span class="ci-heading"><span><i class="fas fa-wand-magic-sparkles" aria-hidden="true" style="margin-right:6px;"></i>AI INSIGHTS</span><span id="homePlatformInsightsScope" class="ci-scope"></span></span>
+                                            <span class="ci-heading"><span><i class="fas fa-wand-magic-sparkles" aria-hidden="true" style="margin-right:6px;"></i>AI SUMMARY</span><span id="homePlatformInsightsScope" class="ci-scope"></span></span>
                                             <span class="ccip-ai-beta">Beta</span>
                                         </div>
                                         <div id="homePlatformInsights" class="cmf-insights"></div>
