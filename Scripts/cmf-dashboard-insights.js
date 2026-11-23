@@ -408,6 +408,229 @@
         }).catch(unavailable);
     }
 
+    function platformFindings(data) {
+        if (!data || data.Mode === 'ai-loading') return '<p class="ci-empty">Analyzing dashboard data...</p>';
+        if (data.Mode === 'ai-unavailable') return '';
+        if (data.Mode !== 'ai') return '<p class="ci-empty">Insights aren\'t available right now. Try again.</p>';
+        if (!data.Findings.length) return '<p class="ci-empty">No significant patterns or changes in this scope.</p>';
+        var sections = [
+            { key: 'highlights', title: 'Highlights', style: 'metrics' },
+            { key: 'focus', title: 'Lowlights', style: 'impact' }
+        ];
+        if (data.Findings.some(function (finding) {
+            return !finding || !sections.some(function (section) { return section.key === finding.Section; });
+        })) return '<p class="ci-empty">Insights aren\'t available right now. Try again.</p>';
+        function customerPopulation(finding) {
+            var populations = (finding.Evidence || []).map(function (evidence) {
+                var match = String(evidence.Source || '').match(/^CustomerIssues - (Open|Pending) reported customer issue$/);
+                return match ? match[1] : '';
+            }).filter(Boolean);
+            return populations.length && populations.every(function (population) { return population === populations[0]; })
+                ? populations[0] : '';
+        }
+        function bullets(group) {
+            return '<ul class="ci-platform-bullets">' + group.map(function (finding) {
+                    var sourceId = (data.Pipeline === 'overall-page-briefing-v1' ? 'overall' : 'platform') + '-insight-source-' + finding.Id;
+                    return '<li data-finding-id="' + escape(finding.Id) + '"><p class="ci-evidence"><strong>'
+                        + escape(finding.Title) + ':</strong> ' + escape(finding.Summary)
+                        + ' <button type="button" class="ci-source-link" id="' + escape(sourceId + '-toggle') + '" aria-expanded="false" aria-controls="'
+                        + escape(sourceId) + '" aria-label="Source and justification for ' + escape(finding.Title) + '" title="Source and justification for '
+                        + escape(finding.Title) + '"><i class="fas fa-link" aria-hidden="true"></i></button></p>'
+                        + '<details class="ci-support" id="' + escape(sourceId) + '" aria-labelledby="' + escape(sourceId + '-toggle')
+                        + '"><summary class="ci-source-summary">Backing data</summary><ul>' + (finding.Evidence || []).map(function (evidence) {
+                            return '<li><strong>' + escape(evidence.Source) + ':</strong>' + String(evidence.Text || '').split('\n').map(function (line) {
+                                return '<p class="ci-source-detail">' + escape(line) + '</p>';
+                            }).join('') + '</li>';
+                        }).join('') + '</ul></details></li>';
+                }).join('') + '</ul>';
+        }
+        var operational = sections.map(function (section) {
+            var group = data.Findings.filter(function (finding) {
+                return finding.Section === section.key && !customerPopulation(finding);
+            });
+            if (!group.length) return '';
+            return '<section class="cmf-assistant-text-section cmf-assistant-' + section.style + '-section ci-platform-section">'
+                + '<h3><span>' + escape(section.title) + '</span></h3>' + bullets(group) + '</section>';
+        }).join('');
+        var customer = data.Pipeline === 'overall-page-briefing-v1' ? '' : ['Open', 'Pending'].map(function (population) {
+            var group = data.Findings.filter(function (finding) { return customerPopulation(finding) === population; });
+            return group.length ? '<section class="cmf-assistant-text-section cmf-assistant-'
+                + (population === 'Open' ? 'description' : 'impact') + '-section ci-platform-section">'
+                + '<h3><span>' + population + '</span></h3>' + bullets(group) + '</section>' : '';
+        }).join('');
+        var prefix = data.Pipeline === 'overall-page-briefing-v1' ? 'overall' : 'platform';
+        function panel(view, html) {
+            return html ? '<div class="ci-briefing-panel" id="' + prefix + '-briefing-' + view
+                + '" role="tabpanel" data-briefing-panel="' + view + '" aria-labelledby="' + prefix + '-briefing-tab-' + view
+                + '"><div class="ci-briefing ci-platform-briefing">' + html + '</div></div>' : '';
+        }
+        return panel('summary', operational) + panel('customers', customer)
+            || '<p class="ci-empty">No significant patterns or changes in this scope.</p>';
+    }
+
+    function selectPlatformView(state, view, focus) {
+        if (active !== state || !state.host.isConnected) return;
+        var content = state.host.querySelector('.ci-content');
+        var panels = Array.from(content.querySelectorAll('[data-briefing-panel]'));
+        var selected = panels.find(function (panel) { return panel.dataset.briefingPanel === view; }) || panels[0];
+        if (!selected) return;
+        state.viewScrolls = state.viewScrolls || {};
+        if (state.briefingView) state.viewScrolls[state.briefingView] = content.scrollTop;
+        state.briefingView = selected.dataset.briefingPanel;
+        panels.forEach(function (panel) { panel.hidden = panel !== selected; });
+        state.host.querySelectorAll('[data-briefing-view]').forEach(function (button) {
+            var current = button.dataset.briefingView === state.briefingView;
+            button.setAttribute('aria-selected', String(current));
+            button.tabIndex = current ? 0 : -1;
+            if (current && focus) button.focus();
+        });
+        content.scrollTop = state.viewScrolls[state.briefingView] || 0;
+        content.setAttribute('aria-label', state.briefingView === 'customers' ? 'Customer issue findings' : 'Summary findings');
+        var count = selected.querySelectorAll('[data-finding-id]').length;
+        state.host.querySelector('.ci-metadata').textContent = count + (count === 1 ? ' finding' : ' findings');
+    }
+
+    function drawPlatform(state) {
+        if (active !== state || !state.host.isConnected) return;
+        var content = state.host.querySelector('.ci-content');
+        var scroll = content.scrollTop;
+        var opened = {};
+        content.querySelectorAll('[data-finding-id]').forEach(function (item) {
+            var detail = item.querySelector('details');
+            opened[item.dataset.findingId] = !!(detail && detail.open);
+        });
+        content.innerHTML = platformFindings(state.data);
+        content.querySelectorAll('[data-finding-id]').forEach(function (item) {
+            var detail = item.querySelector('details');
+            var trigger = item.querySelector('.ci-source-link');
+            detail.open = !!opened[item.dataset.findingId];
+            trigger.setAttribute('aria-expanded', String(detail.open));
+            trigger.addEventListener('click', function () {
+                detail.open = !detail.open;
+                trigger.setAttribute('aria-expanded', String(detail.open));
+            });
+        });
+        content.scrollTop = scroll;
+        var busy = !state.data || state.data.Mode === 'ai-loading';
+        content.setAttribute('aria-busy', String(busy));
+        var complete = state.data && state.data.Mode === 'ai';
+        state.host.querySelector('.ci-metadata').textContent = complete
+            ? state.data.Findings.length + (state.data.Findings.length === 1 ? ' finding' : ' findings') : '';
+        var time = state.host.querySelector('.ci-time');
+        time.textContent = complete ? 'Updated ' + new Date(state.data.GeneratedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        time.dateTime = complete ? state.data.GeneratedAt : '';
+        state.host.querySelector('.ci-refresh').disabled = busy;
+        var loader = state.host.querySelector('.ci-progress');
+        var progress = complete ? 100 : busy ? Number(state.data && state.data.Progress) : 0;
+        if (!isFinite(progress)) progress = 2;
+        if (busy) progress = Math.max(2, Math.min(98, progress));
+        loader.style.setProperty('--ci-progress', progress + '%');
+        loader.setAttribute('aria-valuenow', String(progress));
+        loader.hidden = !busy;
+        state.host.querySelector('.ci-status').textContent = state.notice || '';
+        var tabs = state.host.querySelector('.ci-panel-tabs');
+        if (tabs) {
+            var panels = Array.from(content.querySelectorAll('[data-briefing-panel]'));
+            tabs.hidden = !panels.length;
+            tabs.innerHTML = panels.map(function (panel) {
+                var view = panel.dataset.briefingPanel;
+                var customer = view === 'customers';
+                return '<button type="button" role="tab" id="' + panel.getAttribute('aria-labelledby')
+                    + '" data-briefing-view="' + view + '" aria-controls="' + panel.id + '" aria-selected="false" tabindex="-1">'
+                    + '<i class="fas ' + (customer ? 'fa-users' : 'fa-file-alt') + '" aria-hidden="true"></i>'
+                    + '<span>' + (customer ? 'Customer Issues' : 'Summary') + '</span></button>';
+            }).join('');
+            var buttons = Array.from(tabs.querySelectorAll('[data-briefing-view]'));
+            buttons.forEach(function (button, index) {
+                button.addEventListener('click', function () { selectPlatformView(state, button.dataset.briefingView, false); });
+                button.addEventListener('keydown', function (event) {
+                    var next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1
+                        : event.key === 'ArrowRight' ? (index + 1) % buttons.length
+                        : event.key === 'ArrowLeft' ? (index + buttons.length - 1) % buttons.length : -1;
+                    if (next < 0) return;
+                    event.preventDefault();
+                    selectPlatformView(state, buttons[next].dataset.briefingView, true);
+                });
+            });
+            selectPlatformView(state, state.briefingView || 'summary', false);
+        }
+    }
+
+    function loadPlatform(state, refresh) {
+        if (state.controller) state.controller.abort();
+        clearTimeout(state.pollTimer);
+        clearTimeout(state.expiryTimer);
+        var serial = ++state.serial;
+        var consecutiveErrors = 0;
+        var generationRetries = 0;
+        state.reloadRequired = false;
+        state.data = null;
+        state.notice = '';
+        state.viewScrolls = {};
+        state.host.querySelector('.ci-content').scrollTop = 0;
+        drawPlatform(state);
+        function current() { return active === state && state.serial === serial && state.host.isConnected; }
+        function poll(forceRefresh) {
+            if (!current()) return;
+            var controller = new AbortController();
+            state.controller = controller;
+            var deadline = setTimeout(function () { controller.abort(); }, 45000);
+            fetch('CMF_Web_portal.aspx/' + (state.overall ? 'GetOverallDashboardBriefing' : 'GetPlatformDashboardBriefing'), {
+                method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                signal: controller.signal,
+                body: JSON.stringify({ platform: state.platform, snapshotKey: state.snapshotKey, refresh: !!forceRefresh })
+            }).then(function (response) {
+                if (!response.ok) {
+                    var failure = new Error('Insights are unavailable.');
+                    failure.retryable = response.status >= 500 || response.status === 408 || response.status === 429;
+                    throw failure;
+                }
+                return response.json();
+            }).then(function (payload) {
+                if (!current()) return;
+                var data = payload && (payload.d || payload);
+                if (!data || data.Success !== true) {
+                    state.reloadRequired = !!(data && data.ReloadRequired === true);
+                    throw new Error('Insights are unavailable.');
+                }
+                if (data.Pipeline !== (state.overall ? 'overall-page-briefing-v1' : 'platform-page-briefing-v3') || !Array.isArray(data.Findings)
+                    || ['ai', 'ai-loading', 'ai-unavailable'].indexOf(data.Mode) < 0) throw new Error('Insights are unavailable.');
+                consecutiveErrors = 0;
+                if (data.Mode === 'ai-unavailable' && generationRetries < 1 && [
+                    'invalid-text', 'unsupported-date', 'unsupported-number', 'invalid-schema', 'invalid-finding',
+                    'unsupported-trend', 'incomplete-verification', 'invalid-verification', 'stale-verification',
+                    'grounding-rejected', 'incomplete-ranking', 'provider-timeout', 'provider-empty', 'provider-unavailable'
+                ].indexOf(data.FailureCode) >= 0) {
+                    generationRetries++;
+                    state.data = { Mode: 'ai-loading', Progress: 2, Findings: [] };
+                    state.notice = 'Preparing insights...';
+                    drawPlatform(state);
+                    state.pollTimer = setTimeout(function () { poll(true); }, 3000);
+                    return;
+                }
+                state.data = data.Mode === 'ai' ? data : { Mode: data.Mode, Progress: data.Progress, Findings: [] };
+                state.notice = data.Mode === 'ai-unavailable'
+                    ? data.FailureCode === 'provider-rate-limited' ? 'Insights are busy. Try again shortly.'
+                        : 'Insights aren\'t available right now. Try again.' : '';
+                drawPlatform(state);
+                if (data.Mode === 'ai-loading') state.pollTimer = setTimeout(function () { poll(false); }, 3000);
+            }).catch(function (error) {
+                if (!current()) return;
+                var transient = error.retryable === true || ['AbortError', 'TypeError', 'SyntaxError'].indexOf(error.name) >= 0;
+                if (transient && consecutiveErrors < 2) {
+                    consecutiveErrors++;
+                    state.pollTimer = setTimeout(function () { poll(false); }, 1000 * consecutiveErrors);
+                    return;
+                }
+                state.data = { Mode: 'ai-unavailable', Findings: [] };
+                state.notice = state.reloadRequired ? 'Refresh the dashboard to load insights.'
+                    : 'Insights aren\'t available right now. Try again.';
+                drawPlatform(state);
+            }).finally(function () { clearTimeout(deadline); });
+        }
+        poll(refresh);
+    }
+
     function render(snapshot) {
         var platform = window.CMF_PORTAL.currentDashboardPlatform;
         var overall = platform === 'CMF_OVERALL_ALL_COMPONENTS_TABLE';
@@ -426,38 +649,20 @@
         var state = active = { host: host, scope: document.getElementById(host.id + 'Scope'), key: key, platform: platform,
             snapshotKey: snapshot.InsightsSnapshotKey, trendWeeks: 6, chartView: 'line',
             tab: overall ? 'summary' : 'highlights', overall: overall, dimension: 'Component', serial: 0 };
-        if (state.scope) state.scope.textContent = snapshot.PlatformLabel || (overall ? 'Overall' : '');
-        host.innerHTML = '<div class="ci-controls"><div class="ci-tabs" role="tablist" aria-label="Insight views">'
-            + (overall ? [['summary', 'Summary', 'file-alt']] : []).concat([['highlights', 'Highlights', 'lightbulb'], ['trends', 'Trends', 'chart-line']]).map(function (tab) {
-                return '<button type="button" role="tab" id="' + host.id + '-' + tab[0] + '" data-view="' + tab[0]
-                    + '" aria-controls="' + host.id + '-content" aria-selected="' + (tab[0] === state.tab) + '">'
-                    + '<i class="fas fa-' + tab[2] + '" aria-hidden="true"></i> ' + tab[1] + '</button>';
-            }).join('') + '</div><div class="ci-toolbar">'
-            + '<button type="button" class="ci-refresh" title="Refresh insights" aria-label="Refresh insights"><i class="fas fa-sync-alt" aria-hidden="true"></i></button></div></div>'
-            + '<div class="ci-status" role="status" aria-live="polite"></div>'
-            + '<div class="ci-content" role="tabpanel" tabindex="0" id="' + host.id + '-content"></div>'
-            + '<div class="ci-footer"><time class="ci-time"></time><p class="ci-metadata"></p></div>'
-            + '<div class="ci-progress ci-progress-indeterminate" role="progressbar" aria-label="Insights progress" hidden><span></span></div>';
-        host.querySelector('.ci-refresh').addEventListener('click', function () { load(state, true); });
-        host.querySelectorAll('[role="tab"]').forEach(function (tab) {
-            tab.addEventListener('click', function () {
-                state.tab = tab.dataset.view;
-                if (state.tab === 'summary' && !state.summaryStarted) loadSummary(state, state.summaryRefresh);
-                draw(state);
-                if (state.data) status(state, '', state.data.Mode === 'ai-loading');
-            });
-            tab.addEventListener('keydown', function (event) {
-                if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].indexOf(event.key) < 0) return;
-                event.preventDefault();
-                var tabs = Array.from(host.querySelectorAll('[role="tab"]'));
-                var index = tabs.indexOf(tab);
-                index = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
-                    : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
-                tabs[index].focus();
-                tabs[index].click();
-            });
+        var scopeLabel = overall ? snapshot.PlatformLabel || 'Overall'
+            : (snapshot.PlatformLabel || '').replace(/\s+Dashboard\s*$/i, '').trim();
+        if (state.scope) state.scope.textContent = overall || !scopeLabel ? scopeLabel : '(' + scopeLabel + ')';
+        host.innerHTML = '<div class="ci-controls"><div class="ci-tabs ci-panel-tabs" role="tablist" aria-label="AI Insights views" hidden></div>'
+                + '<div class="ci-toolbar"><button type="button" class="ci-refresh" title="Refresh insights" aria-label="Refresh insights"><i class="fas fa-sync-alt" aria-hidden="true"></i></button></div></div>'
+                + '<div class="ci-status" role="status" aria-live="polite"></div>'
+                + '<div class="ci-content" role="region" aria-label="Ranked ' + (overall ? 'Overall' : 'platform') + ' findings" tabindex="0"></div>'
+                + '<div class="ci-footer"><time class="ci-time"></time><p class="ci-metadata"></p></div>'
+                + '<div class="ci-progress" role="progressbar" aria-label="Insights progress" aria-valuemin="0" aria-valuemax="100" hidden><span></span></div>';
+        host.querySelector('.ci-refresh').addEventListener('click', function () {
+            if (state.reloadRequired) window.location.reload();
+            else loadPlatform(state, true);
         });
-        load(state, false);
+        loadPlatform(state, false);
     }
 
     window.CmfDashboardInsights = { render: render };

@@ -185,6 +185,16 @@ public class SummaryIssueLinksResponse
     public List<string> IdstNames { get; set; }
 }
 
+public class HomeDashboardIssueFact
+{
+    public string RecordKey { get; set; }
+    public string Population { get; set; }
+    public string SourcePlatform { get; set; }
+    public string Customer { get; set; }
+    public string Design { get; set; }
+    public string Title { get; set; }
+}
+
 public class HomeDashboardSnapshot
 {
     public string InsightsSnapshotKey { get; set; }
@@ -213,6 +223,8 @@ public class HomeDashboardSnapshot
     public HomeDashboardTable ComponentSummary { get; set; }
     public HomeDashboardTable PendingSummary { get; set; }
     public int? PendingSummaryAgeThresholdDays { get; set; }
+    public int? OldestPendingAgeDays { get; set; }
+    public List<HomeDashboardIssueFact> CustomerIssueFacts { get; set; }
     public HomeDashboardTable DesignSummary { get; set; }
     public List<HomeDashboardTrendPoint> Trend { get; set; }
     public List<HomeDashboardCategoryPoint> StatusDistribution { get; set; }
@@ -1258,7 +1270,7 @@ FROM " + pendingTable);
         return new List<string> { dashboardPlatform };
     }
 
-    private static string BuildSummaryIssueComponentSourceSql(string dashboardPlatform, bool applyDashboardDateFilter = true, bool includeInsightsMetadata = false)
+    private static string BuildSummaryIssueComponentSourceSql(string dashboardPlatform, bool applyDashboardDateFilter = true, bool includeInsightsMetadata = false, bool includeIssueTitle = false)
     {
         List<string> sourceTables = GetSummaryIssueSourceTablesForWeb(dashboardPlatform);
         List<string> unionParts = new List<string>();
@@ -1267,7 +1279,7 @@ FROM " + pendingTable);
         {
             string tableName = sourceTables[index];
                 unionParts.Add(@"SELECT
-            " + (includeInsightsMetadata ? "title, promoted_id, merge_id, " + BuildInsightOptionalFieldsSql(tableName) : string.Empty) + @"cp_id,
+            " + (includeInsightsMetadata ? "title, promoted_id, merge_id, " + BuildInsightOptionalFieldsSql(tableName) : includeIssueTitle ? "title, " : string.Empty) + @"cp_id,
     status,
     cmf_request,
     sysdebug,
@@ -3414,6 +3426,51 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     }
 
     [WebMethod(EnableSession = true)]
+    public static CmfPlatformBriefing GetPlatformDashboardBriefing(string platform, string snapshotKey, bool refresh)
+    {
+        try
+        {
+            string selection = ResolveDashboardPlatformSelectionForWeb(platform);
+            if (string.IsNullOrWhiteSpace(platform) || selection == OverallDashboardPlatformTable
+                || !string.Equals(platform, selection, StringComparison.OrdinalIgnoreCase))
+                return new CmfPlatformBriefing { Success = false, Mode = "ai-unavailable", Message = "Select a valid individual dashboard platform." };
+            var snapshot = HttpRuntime.Cache[DashboardSnapshotCacheKey(snapshotKey)] as CmfPanelSnapshotCache;
+            if (snapshot == null || snapshot.Platform != selection || snapshot.Configuration != DashboardPanelConfiguration(selection)
+                || snapshot.CapturedAt.Date != DateTime.Today)
+                return new CmfPlatformBriefing { Success = false, Mode = "ai-unavailable", ReloadRequired = true,
+                    Message = "Dashboard data expired or its scope changed. Reload the dashboard." };
+            return CmfPlatformBriefingService.Get(CmfPlatformBriefingService.CaptureSource(snapshot), refresh);
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Trace.TraceError("Platform page briefing failed: " + exception.GetType().Name);
+            return new CmfPlatformBriefing { Success = false, Mode = "ai-unavailable", Message = "AI insights unavailable. Refresh to retry." };
+        }
+    }
+
+    [WebMethod(EnableSession = true)]
+    public static CmfPlatformBriefing GetOverallDashboardBriefing(string platform, string snapshotKey, bool refresh)
+    {
+        try
+        {
+            string selection = ResolveDashboardPlatformSelectionForWeb(platform);
+            if (selection != OverallDashboardPlatformTable || !string.Equals(platform, selection, StringComparison.OrdinalIgnoreCase))
+                return new CmfPlatformBriefing { Success = false, Mode = "ai-unavailable", Message = "Select the Overall dashboard." };
+            var snapshot = HttpRuntime.Cache[DashboardSnapshotCacheKey(snapshotKey)] as CmfPanelSnapshotCache;
+            if (snapshot == null || snapshot.Platform != selection || snapshot.Configuration != DashboardPanelConfiguration(selection)
+                || snapshot.CapturedAt.Date != DateTime.Today)
+                return new CmfPlatformBriefing { Success = false, Mode = "ai-unavailable", ReloadRequired = true,
+                    Message = "Dashboard data expired or its scope changed. Reload the dashboard." };
+            return CmfPlatformBriefingService.Get(CmfPlatformBriefingService.CaptureSource(snapshot), refresh);
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Trace.TraceError("Overall page briefing failed: " + exception.GetType().Name);
+            return new CmfPlatformBriefing { Success = false, Mode = "ai-unavailable", Message = "AI insights unavailable. Refresh to retry." };
+        }
+    }
+
+    [WebMethod(EnableSession = true)]
     public static CmfDashboardInsights GetDashboardInsights(string platform, string snapshotKey, int trendWeeks, string chartView)
     {
         try
@@ -5141,6 +5198,7 @@ ORDER BY component_group, idst_name", con))
                         : CmfSummaryTrendService.LoadPendingEstimate(con, pendingSourceSql,
                             BuildSummaryIssueComponentSourceSql(platformTable), totalPending, DateTime.Today);
                     snapshot.PendingIssues = totalPending;
+                    snapshot.OldestPendingAgeDays = totalPending > 0 ? oldestPendingAgeDays : null;
                     snapshot.SummaryFacts.Add(new HomeDashboardFact
                     {
                         Label = "Pending",
@@ -5160,6 +5218,7 @@ ORDER BY component_group, idst_name", con))
             }
 
             PopulateHomeDesignSummaryTable(snapshot, platformTable, con);
+            PopulateHomeCustomerIssueFacts(snapshot, platformTable, pendingSourceSql, con);
 
             snapshot.SummaryFacts.Add(new HomeDashboardFact
             {
@@ -5167,6 +5226,43 @@ ORDER BY component_group, idst_name", con))
                 Value = averageResolutionDays.ToString("0.0", CultureInfo.InvariantCulture),
                 Note = "days | " + averageResolutionSampleSize.ToString(CultureInfo.InvariantCulture) + " resolved CMFs"
             });
+        }
+    }
+
+    private void PopulateHomeCustomerIssueFacts(HomeDashboardSnapshot snapshot, string platformTable,
+        string pendingSourceSql, SqlConnection connection)
+    {
+        snapshot.CustomerIssueFacts = new List<HomeDashboardIssueFact>();
+        string source = BuildSummaryIssueComponentSourceSql(platformTable, true, false, true);
+        string sql = @"SELECT DISTINCT 'Open' AS population, src.source_platform, CAST(src.cp_id AS VARCHAR(64)) AS cp_id,
+            src.customer_company, src.customer_detail, src.title
+            FROM (" + source + @") AS src
+            WHERE src.cmf_request IN ('cmf_ok','cmf_duplicate') AND src.sysdebug LIKE '%customer_must_fix%'
+                AND src.status NOT IN ('complete','rejected','implemented','future')";
+        if (!string.IsNullOrWhiteSpace(pendingSourceSql))
+        {
+            sql += @" UNION ALL SELECT DISTINCT 'Pending', pending.source_platform, CAST(pending.cp_id AS VARCHAR(64)),
+                src.customer_company, src.customer_detail, src.title
+                FROM (" + pendingSourceSql + @") AS pending
+                LEFT JOIN (" + BuildSummaryIssueComponentSourceSql(platformTable, false, false, true) + @") AS src
+                    ON CAST(pending.cp_id AS VARCHAR(64)) = CAST(src.cp_id AS VARCHAR(64))
+                    AND pending.source_platform = src.source_platform
+                WHERE pending.status NOT IN ('complete','rejected')";
+        }
+        using (SqlCommand command = CmfPlatformCatalog.CreateReadCommand(sql, connection))
+        using (SqlDataReader reader = command.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                string population = ReadString(reader, 0);
+                string sourcePlatform = ReadString(reader, 1);
+                string recordId = ReadString(reader, 2);
+                if (string.IsNullOrWhiteSpace(recordId)) continue;
+                snapshot.CustomerIssueFacts.Add(new HomeDashboardIssueFact {
+                    RecordKey = sourcePlatform + ":" + recordId, Population = population, SourcePlatform = sourcePlatform,
+                    Customer = ReadString(reader, 3).Trim(), Design = ReadString(reader, 4).Trim(), Title = ReadString(reader, 5).Trim()
+                });
+            }
         }
     }
 
