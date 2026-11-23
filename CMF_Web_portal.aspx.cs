@@ -3078,7 +3078,6 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         List<string> platforms = (selections ?? new string[0])
             .Where(value => AllowedPlatformTables.Contains(value) && !IsOverallDashboardPlatform(value))
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Take(1)
             .ToList();
         if (platforms.Count == 0) platforms.Add(GetIssuePendingPlatform());
         return platforms;
@@ -6403,28 +6402,66 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
     private void UpdatePlatformDashboardLink()
     {
         string currentPlatform = GetIssuePendingPlatform();
-        CmfPlatformDefinition platform;
 
-        string dashboardUrl = null;
-        if (CmfPlatformCatalog.TryGetPlatformByTable(currentPlatform, out platform))
+        Dictionary<string, string> platformLinks = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            dashboardUrl = !string.IsNullOrWhiteSpace(platform.DashboardProjectUrl) ? platform.DashboardProjectUrl : platform.CdrDocumentUrl;
-        }
+            { "CMF_PTL_ALL_COMPONENTS_TABLE", "https://cdrdv2.intel.com/v1/dl/getContent/833017" },
+            { "CMF_GNR_ALL_COMPONENTS_TABLE", "https://cdrdv2.intel.com/v1/dl/getContent/824182" },
+            { "CMF_WCL_ALL_COMPONENTS_TABLE", "https://cdrdv2.intel.com/v1/dl/getContent/858122" }
+        };
 
-        if (!string.IsNullOrWhiteSpace(dashboardUrl))
+        Dictionary<string, string> platformNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            lnkPlatformDashboard.NavigateUrl = dashboardUrl;
-            lnkPlatformDashboard.Text = (platform != null ? platform.Label : "Platform") + " Dashboard";
+            { "CMF_PTL_ALL_COMPONENTS_TABLE", "PTL Dashboard" },
+            { "CMF_GNR_ALL_COMPONENTS_TABLE", "GNR Dashboard" },
+            { "CMF_WCL_ALL_COMPONENTS_TABLE", "WCL Dashboard" }
+        };
+
+        HashSet<string> nvlPlatforms = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "CMF_NVL_S_ALL_COMPONENTS_TABLE",
+            "CMF_NVL_H_ALL_COMPONENTS_TABLE",
+            "CMF_NVL_U_ALL_COMPONENTS_TABLE",
+            "CMF_NVL_Hx_ALL_COMPONENTS_TABLE"
+        };
+
+        if (platformLinks.ContainsKey(currentPlatform))
+        {
+            lnkPlatformDashboard.NavigateUrl = platformLinks[currentPlatform];
+            lnkPlatformDashboard.Text = platformNames[currentPlatform];
             lnkPlatformDashboard.Visible = true;
-            if (lnkPlatformDashboardPending != null)
-            {
-                lnkPlatformDashboardPending.Visible = false;
-            }
         }
         else
         {
-            // Hide the link if no dashboard exists for this platform
-            lnkPlatformDashboard.Visible = false;
+            CmfPlatformDefinition platform;
+            if (CmfPlatformCatalog.TryGetPlatformByTable(currentPlatform, out platform) && !string.IsNullOrWhiteSpace(platform.CdrDocumentUrl))
+            {
+                lnkPlatformDashboard.NavigateUrl = platform.CdrDocumentUrl;
+                lnkPlatformDashboard.Text = platform.Label + " Dashboard";
+                lnkPlatformDashboard.Visible = true;
+            }
+            else
+            {
+                lnkPlatformDashboard.Visible = false;
+            }
+        }
+
+        if (lnkNvlDashboardDownload != null)
+        {
+            if (nvlPlatforms.Contains(currentPlatform))
+            {
+                lnkNvlDashboardDownload.NavigateUrl = "https://cdrdv2.intel.com/v1/dl/getContent/862842";
+                lnkNvlDashboardDownload.Visible = true;
+            }
+            else
+            {
+                lnkNvlDashboardDownload.Visible = false;
+            }
+        }
+
+        if (lnkPlatformDashboardPending != null)
+        {
+            lnkPlatformDashboardPending.Visible = false;
         }
     }
 
@@ -8326,6 +8363,10 @@ ORDER BY LTRIM(RTRIM(drivers))", con))
         using (SqlConnection con = new SqlConnection(ConnectionString))
         {
             con.Open();
+            if (!isOverallSelection && !SqlTableExists(con, designTable))
+            {
+                designTable = "(SELECT CAST(NULL AS NVARCHAR(4000)) AS customer_detail, CAST(NULL AS DATETIME) AS sw_image_freeze WHERE 1 = 0)";
+            }
             EnsurePublicIssueDriverFilter(con, platformSelection);
             filterValue = Session["filterValue"] as string;
 
@@ -9739,29 +9780,7 @@ LEFT JOIN " + designTable + @" AS d
 
                 using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 1
-    main.cp_id,
-    main.title,
-    main.customer_owner,
-    main.owners_name,
-    main.operating_system,
-    main.component,
-    main.cmf_request,
-    main.must_fix_for,
-    main.closed_reason,
-    main.customer_impact,
-    main.priority,
-    main.promoted_status,
-    main.drivers,
-    main.sysdebug,
-    main.impact,
-    main.processor,
-    main.reproducibility,
-    main.repro_on_rvp,
-    main.promoted_id,
-    main.merge_id,
-    main.fixed_in_version,
-    main.cmf_status,
-    main.status
+    main.*
 FROM " + effectivePlatformTable + @" AS main
 WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
                 {
@@ -9778,7 +9797,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
                     DataRow row = table.Rows[0];
                     StringBuilder builder = new StringBuilder();
 
-                    // ── Section 1: CMF portal database fields ──────────────────
+                    // ── Section 1: CMF portal database fields (all ~50 columns) ──────────────────
                     builder.AppendLine("--- CMF Portal Database ---");
                     builder.AppendLine("Context Platform Table: " + effectivePlatformTable);
                     AppendSummaryContextLine(builder, "Sighting ID", row, "cp_id");
@@ -9787,22 +9806,56 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
                     AppendSummaryContextLine(builder, "Promoted Owner", row, "owners_name");
                     AppendSummaryContextLine(builder, "Operating System", row, "operating_system", "os");
                     AppendSummaryContextLine(builder, "Component", row, "component");
+                    AppendSummaryContextLine(builder, "Component Group", row, "component_group");
                     AppendSummaryContextLine(builder, "CMF Request", row, "cmf_request");
+                    AppendSummaryContextLine(builder, "Why CMF Change", row, "why_cmf_change");
+                    AppendSummaryContextLine(builder, "Pending Reason", row, "pending_reason");
                     AppendSummaryContextLine(builder, "Must Fix For", row, "must_fix_for");
                     AppendSummaryContextLine(builder, "Closed Reason", row, "closed_reason");
+                    AppendSummaryContextLine(builder, "Customer Company", row, "customer_company");
+                    AppendSummaryContextLine(builder, "Customer Detail", row, "customer_detail");
                     AppendSummaryContextLine(builder, "Customer Impact", row, "customer_impact");
                     AppendSummaryContextLine(builder, "Priority", row, "priority");
+                    AppendSummaryContextLine(builder, "Exposure", row, "exposure");
                     AppendSummaryContextLine(builder, "CMF Status", row, "cmf_status");
                     AppendSummaryContextLine(builder, "Promoted Status", row, "promoted_status", "cmf_status", "status");
                     AppendSummaryContextLine(builder, "Drivers", row, "drivers");
+                    AppendSummaryContextLine(builder, "iDST", row, "idst");
                     if (!forDebugSummary) AppendSummaryContextLine(builder, "Sysdebug", row, "sysdebug");
                     AppendSummaryContextLine(builder, "Impact", row, "impact");
                     AppendSummaryContextLine(builder, "Processor", row, "processor");
+                    AppendSummaryContextLine(builder, "SoC Stepping", row, "soc_stepping", "stepping");
+                    AppendSummaryContextLine(builder, "ME SKU", row, "me_sku");
                     AppendSummaryContextLine(builder, "Reproducibility", row, "reproducibility", "repro_on_rvp");
                     AppendSummaryContextLine(builder, "RVP Platform Debug Details", row, "repro_on_rvp");
-                    AppendSummaryContextLine(builder, "Merge ID", row, "merge_id");
+                    AppendSummaryContextLine(builder, "Merge ID", row, "merge_id", "merged_id");
 
-                    string promotedId = FirstNonEmptyColumnValue(row, "promoted_id", "merge_id");
+                    // Append all remaining populated columns from the database row (~50 columns)
+                    HashSet<string> primaryDbCols = new HashSet<string>(new[]
+                    {
+                        "cp_id", "title", "customer_owner", "owners_name", "operating_system", "os",
+                        "component", "component_group", "cmf_request", "why_cmf_change", "pending_reason",
+                        "must_fix_for", "closed_reason", "customer_company", "customer_detail", "customer_impact",
+                        "priority", "exposure", "cmf_status", "promoted_status", "status", "drivers", "idst",
+                        "sysdebug", "impact", "processor", "soc_stepping", "stepping", "me_sku",
+                        "reproducibility", "repro_on_rvp", "merge_id", "merged_id", "promoted_id"
+                    }, StringComparer.OrdinalIgnoreCase);
+                    foreach (DataColumn col in table.Columns)
+                    {
+                        if (col == null || primaryDbCols.Contains(col.ColumnName)) continue;
+                        if (forDebugSummary && col.ColumnName.IndexOf("sysdebug", StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                        object valObj = row[col];
+                        if (valObj == null || valObj == DBNull.Value) continue;
+                        string valText = valObj.ToString().Trim();
+                        if (!string.IsNullOrWhiteSpace(valText) && !string.Equals(valText, "NA", StringComparison.OrdinalIgnoreCase) && !string.Equals(valText, "N/A", StringComparison.OrdinalIgnoreCase))
+                        {
+                            builder.AppendLine("DB " + col.ColumnName + ": " + valText);
+                        }
+                    }
+
+                    string rawMergeId = NormalizeExternalArticleId(FirstNonEmptyColumnValue(row, "merge_id", "merged_id"));
+                    string rawPromotedOnlyId = NormalizeExternalArticleId(FirstNonEmptyColumnValue(row, "promoted_id"));
+                    string promotedId = !string.IsNullOrWhiteSpace(rawPromotedOnlyId) ? rawPromotedOnlyId : rawMergeId;
                     if (string.IsNullOrWhiteSpace(promotedId))
                     {
                         builder.AppendLine("Promoted ID: N/A");
@@ -9822,6 +9875,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
                                 AppendSummaryContextLine(builder, "Promoted Issue Status", promotedRow, "status", "cmf_status");
                                 AppendSummaryContextLine(builder, "Promoted Issue CMF Request", promotedRow, "cmf_request");
                                 AppendSummaryContextLine(builder, "Promoted Issue Priority", promotedRow, "priority");
+                                AppendSummaryContextLine(builder, "Promoted Issue Sysdebug", promotedRow, "sysdebug");
                                 AppendSummaryContextLine(builder, "Promoted Issue Customer Impact", promotedRow, "customer_impact");
                                 AppendSummaryContextLine(builder, "Promoted Issue Closed Reason", promotedRow, "closed_reason");
                                 AppendSummaryContextLine(builder, "Promoted Issue Fixed Version", promotedRow, "fixed_in_version");
@@ -9836,7 +9890,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
 
                     if (forDebugSummary) return builder.ToString().Trim();
 
-                    // ── Section 2 & 3: HSD portal – sighting article (and promoted article only if sighting lacks details) ──
+                    // ── Section 2, 3 & 4: HSD portal – sighting article, promoted article, and merged/duplicated target article ──
                     string cleanIssueId = issueId.Trim();
                     string cleanPromotedId = string.IsNullOrWhiteSpace(promotedId) ? string.Empty : promotedId.Trim();
                     bool hasDistinctPromoted = !string.IsNullOrWhiteSpace(cleanPromotedId)
@@ -9863,15 +9917,21 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
                         }
                     }
 
-                    bool sightingHasRichDetails = hsdSighting != null
-                        && hsdSighting.FetchSuccess
-                        && !string.IsNullOrWhiteSpace(hsdSighting.Description)
-                        && (!string.IsNullOrWhiteSpace(hsdSighting.FixDescription) || (hsdSighting.Comments != null && hsdSighting.Comments.Count > 0));
+                    // Detect duplicated / merged target sighting ID from DB merge_id, HSD MergeId, or HSD comments/history
+                    string duplicatedTargetId = ResolveDuplicatedOrMergedTargetId(cleanIssueId, rawMergeId, hsdSighting, builder.ToString());
+                    if (!string.IsNullOrWhiteSpace(duplicatedTargetId)
+                        && !string.Equals(duplicatedTargetId, cleanIssueId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        DataRow dupDbRow = LoadIssueRowById(con, effectivePlatformTable, duplicatedTargetId)
+                            ?? LoadIssueRowByIdAcrossPlatforms(con, duplicatedTargetId);
+                        HsdArticleData hsdDup = FetchCachedHsdArticle(duplicatedTargetId);
+                        AppendDuplicatedTargetContext(builder, duplicatedTargetId, dupDbRow, hsdDup);
+                    }
 
-                    if (hasDistinctPromoted && !sightingHasRichDetails)
+                    if (hasDistinctPromoted && !string.Equals(cleanPromotedId, duplicatedTargetId, StringComparison.OrdinalIgnoreCase))
                     {
                         HsdArticleData hsdPromoted = FetchCachedHsdArticle(cleanPromotedId);
-                        if (hsdPromoted != null)
+                        if (hsdPromoted != null && hsdPromoted.FetchSuccess)
                         {
                             string hsdPromotedContext = HsdPortalService.FormatForAiContext(hsdPromoted, "Promoted Issue " + cleanPromotedId);
                             if (!string.IsNullOrWhiteSpace(hsdPromotedContext))
@@ -9956,16 +10016,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @issueId", con))
 
         using (SqlCommand cmd = CmfPlatformCatalog.CreateReadCommand(@"
 SELECT TOP 1
-    main.cp_id,
-    main.title,
-    main.status,
-    main.cmf_status,
-    main.cmf_request,
-    main.priority,
-    main.customer_impact,
-    main.closed_reason,
-    main.fixed_in_version,
-    main.impact
+    main.*
 FROM " + platformTable + @" AS main
 WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         {
@@ -10604,32 +10655,79 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         }
     }
 
+    [WebMethod]
+    public static bool InvalidateSightingCache(string cpId)
+    {
+        try
+        {
+            InvalidateSightingDataCache(cpId);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static void InvalidateSightingDataCache(string cpId)
+    {
+        if (string.IsNullOrWhiteSpace(cpId)) return;
+        string clean = cpId.Trim();
+        try
+        {
+            HttpRuntime.Cache.Remove("cmf-assistant-hsd-article:" + clean);
+            HttpRuntime.Cache.Remove("cmf-assistant-hsd-context-v3:" + clean);
+            HttpRuntime.Cache.Remove("cmf-assistant-hsd-evidence-v3:" + clean);
+            HttpRuntime.Cache.Remove("cmf-assistant-hsd-context-v2:" + clean);
+            HttpRuntime.Cache.Remove("cmf-assistant-hsd-evidence-v2:" + clean);
+
+            System.Collections.IDictionaryEnumerator enumerator = HttpRuntime.Cache.GetEnumerator();
+            List<string> keysToRemove = new List<string>();
+            while (enumerator.MoveNext())
+            {
+                string k = enumerator.Key as string;
+                if (k != null && (k.EndsWith(":" + clean, StringComparison.OrdinalIgnoreCase) || k.Contains(":" + clean + ":") || k.Contains(":" + clean)))
+                {
+                    keysToRemove.Add(k);
+                }
+            }
+            foreach (string k in keysToRemove)
+            {
+                HttpRuntime.Cache.Remove(k);
+            }
+
+            CmfRecommendationService.InvalidateSightingQualityCache(clean);
+            AiSummaryService.InvalidateSightingSummaryCache(clean);
+            CmfAssistantResponseCache.InvalidateSighting(clean);
+        }
+        catch
+        {
+        }
+    }
+
     private static HsdArticleData FetchCachedHsdArticle(string articleId)
     {
         if (string.IsNullOrWhiteSpace(articleId)) return null;
         string normalizedId = articleId.Trim();
         string cacheKey = "cmf-assistant-hsd-article:" + normalizedId;
-        using (CmfAssistantResponseCache.Enter(cacheKey))
-        {
-            HsdArticleData cached = HttpRuntime.Cache[cacheKey] as HsdArticleData;
-            if (cached != null) return cached;
+        HsdArticleData cached = HttpRuntime.Cache[cacheKey] as HsdArticleData;
+        if (cached != null) return cached;
 
-            try
+        try
+        {
+            HsdArticleData article = HsdPortalService.FetchArticle(normalizedId);
+            if (article != null && article.FetchSuccess)
             {
-                HsdArticleData article = HsdPortalService.FetchArticle(normalizedId);
-                if (article != null && article.FetchSuccess)
-                {
-                    int refreshSeconds = CmfAssistantConfigService.GetConfig().HsdCacheRefreshSeconds;
-                    if (refreshSeconds <= 0) refreshSeconds = 60;
-                    refreshSeconds = Math.Max(15, Math.Min(300, refreshSeconds));
-                    HttpRuntime.Cache.Insert(cacheKey, article, null, DateTime.UtcNow.AddSeconds(refreshSeconds), System.Web.Caching.Cache.NoSlidingExpiration);
-                }
-                return article;
+                int refreshSeconds = CmfAssistantConfigService.GetConfig().HsdCacheRefreshSeconds;
+                if (refreshSeconds <= 0) refreshSeconds = 15;
+                refreshSeconds = Math.Max(5, Math.Min(15, refreshSeconds));
+                HttpRuntime.Cache.Insert(cacheKey, article, null, DateTime.UtcNow.AddSeconds(refreshSeconds), System.Web.Caching.Cache.NoSlidingExpiration);
             }
-            catch
-            {
-                return null;
-            }
+            return article;
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -10656,10 +10754,165 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         return CmfAssistantResponseCache.Fingerprint(canonical);
     }
 
+    private static string NormalizeExternalArticleId(string candidate)
+    {
+        if (string.IsNullOrWhiteSpace(candidate)) return string.Empty;
+        string trimmed = candidate.Trim();
+        System.Text.RegularExpressions.Match m = System.Text.RegularExpressions.Regex.Match(trimmed, @"\b(\d{8,14})\b");
+        return m.Success ? m.Groups[1].Value : string.Empty;
+    }
+
+    private static string ResolveDuplicatedOrMergedTargetId(string currentCpId, string dbMergeId, HsdArticleData hsdSighting, string fullContext)
+    {
+        string cleanCurrent = (currentCpId ?? string.Empty).Trim();
+        string fromDb = NormalizeExternalArticleId(dbMergeId);
+        if (!string.IsNullOrWhiteSpace(fromDb) && !string.Equals(fromDb, cleanCurrent, StringComparison.OrdinalIgnoreCase))
+        {
+            return fromDb;
+        }
+
+        if (hsdSighting != null)
+        {
+            string fromHsdField = NormalizeExternalArticleId(hsdSighting.MergeId);
+            if (!string.IsNullOrWhiteSpace(fromHsdField) && !string.Equals(fromHsdField, cleanCurrent, StringComparison.OrdinalIgnoreCase))
+            {
+                return fromHsdField;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(fullContext))
+        {
+            string scrubbed = System.Text.RegularExpressions.Regex.Replace(
+                fullContext,
+                @"\b(?:not\s+a\s+duplicate|not\s+duplicate|no\s+duplicate|is\s+not\s+duplicated|not\s+merged)\b",
+                " ",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            System.Text.RegularExpressions.Match m = System.Text.RegularExpressions.Regex.Match(
+                scrubbed,
+                @"\b(?:duplicate(?:d)?\s*(?:of|with|to|into|in|under|by|issue|sighting|hsd|bug|ticket|id)?|dup\s*(?:of|with|to|id|hsd)?|merged?\s*(?:to|into|with)\s*(?:sighting|issue|hsd|bug|article|id)?|same\s+(?:issue|bug|root\s+cause|sighting)\s+as)\s*[:#\-]?\s*(?:https?://\S+/#/)?(?:HSD|sighting|issue|bug|article|ticket|#|\s)*(\d{8,14})\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (m.Success)
+            {
+                string extracted = m.Groups[1].Value.Trim();
+                if (!string.Equals(extracted, cleanCurrent, StringComparison.OrdinalIgnoreCase))
+                {
+                    return extracted;
+                }
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static void AppendDuplicatedTargetContext(StringBuilder builder, string duplicatedTargetId, DataRow dupDbRow, HsdArticleData hsdDup)
+    {
+        if (builder == null || string.IsNullOrWhiteSpace(duplicatedTargetId)) return;
+
+        string dbSysdebug = dupDbRow != null ? FirstNonEmptyColumnValue(dupDbRow, "sysdebug") : string.Empty;
+        string hsdSysdebug = (hsdDup != null && hsdDup.FetchSuccess) ? (hsdDup.Sysdebug ?? string.Empty) : string.Empty;
+        string hsdSysdebugForum = (hsdDup != null && hsdDup.FetchSuccess) ? (hsdDup.SysdebugForum ?? string.Empty) : string.Empty;
+
+        if (string.IsNullOrWhiteSpace(hsdSysdebugForum) && hsdDup != null && hsdDup.FetchSuccess)
+        {
+            if (!string.IsNullOrWhiteSpace(hsdDup.FixDescription))
+            {
+                hsdSysdebugForum = "Fix Description: " + hsdDup.FixDescription;
+            }
+            else if (!string.IsNullOrWhiteSpace(hsdDup.InvestigationHistory))
+            {
+                hsdSysdebugForum = "Investigation History: " + hsdDup.InvestigationHistory;
+            }
+            else if (hsdDup.Comments != null && hsdDup.Comments.Count > 0)
+            {
+                hsdSysdebugForum = "Latest Update: " + hsdDup.Comments[hsdDup.Comments.Count - 1];
+            }
+        }
+
+        string combinedSysdebug = (dbSysdebug + " | " + hsdSysdebug + " | " + hsdSysdebugForum).Trim(' ', '|');
+        bool hasCustomerMustFix = combinedSysdebug.IndexOf("customer_must_fix", StringComparison.OrdinalIgnoreCase) >= 0
+            || HsdPortalService.HasCustomerMustFixFlag(hsdDup);
+
+        // Check if merged ID has a promoted ID (e.g. 14028632633 promoted to 16032445254)
+        string promotedId = hsdDup != null ? NormalizeExternalArticleId(hsdDup.PromotedId) : string.Empty;
+        if (string.IsNullOrWhiteSpace(promotedId) && !string.IsNullOrWhiteSpace(hsdSysdebugForum))
+        {
+            System.Text.RegularExpressions.Match pm = System.Text.RegularExpressions.Regex.Match(hsdSysdebugForum, @"\b(1[4-9]\d{8,9})\b");
+            if (pm.Success && !string.Equals(pm.Groups[1].Value, duplicatedTargetId, StringComparison.OrdinalIgnoreCase))
+            {
+                promotedId = pm.Groups[1].Value;
+            }
+        }
+        if (!string.IsNullOrWhiteSpace(promotedId) && !string.Equals(promotedId, duplicatedTargetId, StringComparison.OrdinalIgnoreCase))
+        {
+            HsdArticleData promotedHsd = FetchCachedHsdArticle(promotedId);
+            if (promotedHsd != null && promotedHsd.FetchSuccess)
+            {
+                string promForum = promotedHsd.SysdebugForum;
+                if (string.IsNullOrWhiteSpace(promForum) && !string.IsNullOrWhiteSpace(promotedHsd.FixDescription))
+                    promForum = "Fix Description: " + promotedHsd.FixDescription;
+                if (!string.IsNullOrWhiteSpace(promForum))
+                {
+                    hsdSysdebugForum = (string.IsNullOrWhiteSpace(hsdSysdebugForum) ? "" : (hsdSysdebugForum + " | "))
+                        + "[Promoted " + promotedId + " Forum]: " + promForum;
+                }
+                if (HsdPortalService.HasCustomerMustFixFlag(promotedHsd))
+                {
+                    hasCustomerMustFix = true;
+                    if (hsdSysdebug.IndexOf("customer_must_fix", StringComparison.OrdinalIgnoreCase) < 0)
+                    {
+                        hsdSysdebug = string.IsNullOrWhiteSpace(hsdSysdebug) ? "customer_must_fix (via promoted " + promotedId + ")" : (hsdSysdebug + "; customer_must_fix (via promoted " + promotedId + ")");
+                    }
+                }
+            }
+        }
+
+        if (!hasCustomerMustFix)
+        {
+            string transitiveMergeId = NormalizeExternalArticleId(
+                !string.IsNullOrWhiteSpace(hsdDup != null ? hsdDup.MergeId : null)
+                    ? hsdDup.MergeId
+                    : (dupDbRow != null ? FirstNonEmptyColumnValue(dupDbRow, "merge_id", "merged_id") : string.Empty));
+            if (!string.IsNullOrWhiteSpace(transitiveMergeId) && !string.Equals(transitiveMergeId, duplicatedTargetId, StringComparison.OrdinalIgnoreCase))
+            {
+                HsdArticleData transitiveHsd = FetchCachedHsdArticle(transitiveMergeId);
+                if (HsdPortalService.HasCustomerMustFixFlag(transitiveHsd))
+                {
+                    hasCustomerMustFix = true;
+                    hsdSysdebug = string.IsNullOrWhiteSpace(hsdSysdebug) ? "customer_must_fix (via parent sighting " + transitiveMergeId + ")" : (hsdSysdebug + "; customer_must_fix (via parent sighting " + transitiveMergeId + ")");
+                }
+            }
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("--- Duplicated / Merged Target Sighting " + duplicatedTargetId + " ---");
+        builder.AppendLine("Duplicated Target Sighting ID: " + duplicatedTargetId);
+        builder.AppendLine("Duplicated Target HSD Link: https://hsdes.intel.com/appstore/article/#/" + duplicatedTargetId);
+        builder.AppendLine("Duplicated Target Sysdebug: " + (string.IsNullOrWhiteSpace(hsdSysdebug) ? (string.IsNullOrWhiteSpace(dbSysdebug) ? "N/A" : dbSysdebug) : hsdSysdebug));
+        builder.AppendLine("Duplicated Target Sysdebug Forum: " + (string.IsNullOrWhiteSpace(hsdSysdebugForum) ? "N/A" : hsdSysdebugForum));
+        builder.AppendLine("Duplicated Target Has customer_must_fix: " + (hasCustomerMustFix ? "Yes (customer_must_fix is written in sysdebug/sysdebug_forum of duplicated sighting " + duplicatedTargetId + ")" : "No"));
+
+        if (dupDbRow != null)
+        {
+            AppendSummaryContextLine(builder, "Duplicated Target DB Title", dupDbRow, "title");
+            AppendSummaryContextLine(builder, "Duplicated Target DB Status", dupDbRow, "status", "cmf_status");
+            AppendSummaryContextLine(builder, "Duplicated Target DB CMF Request", dupDbRow, "cmf_request");
+        }
+
+        if (hsdDup != null && hsdDup.FetchSuccess)
+        {
+            string dupHsdBlock = HsdPortalService.FormatForAiContext(hsdDup, "Duplicated / Merged Sighting " + duplicatedTargetId);
+            if (!string.IsNullOrWhiteSpace(dupHsdBlock))
+            {
+                builder.AppendLine(dupHsdBlock);
+            }
+        }
+    }
+
     private static string BuildPendingHsdContext(string cpId, bool evidenceLed = false)
     {
         if (string.IsNullOrWhiteSpace(cpId)) return string.Empty;
-        string cacheKey = (evidenceLed ? "cmf-assistant-hsd-evidence-v1:" : "cmf-assistant-hsd-context:") + cpId.Trim();
+        string cacheKey = (evidenceLed ? "cmf-assistant-hsd-evidence-v3:" : "cmf-assistant-hsd-context-v3:") + cpId.Trim();
         using (CmfAssistantResponseCache.Enter(cacheKey))
         {
             string cached = HttpRuntime.Cache[cacheKey] as string;
@@ -10669,8 +10922,18 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         {
             HsdArticleData article = FetchCachedHsdArticle(cpId.Trim());
             if (article == null || !article.FetchSuccess) return string.Empty;
-            string context = HsdPortalService.FormatForAiContext(article, "Pending Sighting");
-            context += "\nHSD Source Fingerprint: " + ComputeStableHsdFingerprint(article);
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine(HsdPortalService.FormatForAiContext(article, "Pending Sighting"));
+
+            string dupId = ResolveDuplicatedOrMergedTargetId(cpId.Trim(), string.Empty, article, sb.ToString());
+            if (!string.IsNullOrWhiteSpace(dupId))
+            {
+                HsdArticleData hsdDup = FetchCachedHsdArticle(dupId);
+                AppendDuplicatedTargetContext(sb, dupId, null, hsdDup);
+            }
+
+            sb.AppendLine("HSD Source Fingerprint: " + ComputeStableHsdFingerprint(article));
+            string context = sb.ToString().Trim();
             int refreshSeconds = CmfAssistantConfigService.GetConfig().HsdCacheRefreshSeconds;
             if (refreshSeconds <= 0) refreshSeconds = 60;
             refreshSeconds = Math.Max(15, Math.Min(300, refreshSeconds));
@@ -10688,7 +10951,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
     {
         if (string.IsNullOrWhiteSpace(cpId)) return string.Empty;
         string resolvedPlatform = NormalizePlatformForLookup(platformTable);
-        string cacheKey = "cmf-assistant-full-context:" + resolvedPlatform + ":" + cpId.Trim();
+        string cacheKey = "cmf-assistant-full-context-v3:" + resolvedPlatform + ":" + cpId.Trim();
         using (CmfAssistantResponseCache.Enter(cacheKey))
         {
             string cached = HttpRuntime.Cache[cacheKey] as string;
@@ -10707,7 +10970,8 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 string fingerprintLine = "HSD Source Fingerprint: " + ComputeStableHsdFingerprint(article);
                 if (builder.ToString().IndexOf(fingerprintLine, StringComparison.OrdinalIgnoreCase) < 0)
                 {
-                    if (string.IsNullOrWhiteSpace(dbContext))
+                    bool isRealDbContext = !string.IsNullOrWhiteSpace(dbContext) && dbContext.IndexOf("was not found in", StringComparison.OrdinalIgnoreCase) < 0;
+                    if (!isRealDbContext)
                     {
                         string hsdContext = BuildPendingHsdContext(cpId);
                         if (!string.IsNullOrWhiteSpace(hsdContext)) builder.AppendLine(hsdContext);
@@ -10723,8 +10987,8 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
             if (!string.IsNullOrWhiteSpace(context))
             {
                 int refreshSeconds = CmfAssistantConfigService.GetConfig().HsdCacheRefreshSeconds;
-                if (refreshSeconds <= 0) refreshSeconds = 60;
-                refreshSeconds = Math.Max(15, Math.Min(300, refreshSeconds));
+                if (refreshSeconds <= 0) refreshSeconds = 15;
+                refreshSeconds = Math.Max(5, Math.Min(15, refreshSeconds));
                 HttpRuntime.Cache.Insert(cacheKey, context, null, DateTime.UtcNow.AddSeconds(refreshSeconds), System.Web.Caching.Cache.NoSlidingExpiration);
             }
             return context;
@@ -19330,7 +19594,7 @@ ORDER BY Total_CMF_Approved DESC";
                 StringComparer.OrdinalIgnoreCase);
 
             bool pendingActive = string.Equals(GetActiveFocusedTab(), "pending", StringComparison.OrdinalIgnoreCase);
-            ddlSharedPlatform.SelectionMode = ListSelectionMode.Single;
+            ddlSharedPlatform.SelectionMode = ListSelectionMode.Multiple;
             ddlSharedPlatform.Items.Clear();
             if (availablePlatforms.Count > 0)
             {
@@ -19340,28 +19604,12 @@ ORDER BY Total_CMF_Approved DESC";
                 }
             }
 
-            string currentSelection = pendingActive ? GetPendingPlatformSelections()[0] : GetIssuePendingPlatform();
+            List<string> selectedPlatforms = pendingActive ? GetPendingPlatformSelections() : new List<string> { GetIssuePendingPlatform() };
             ddlSharedPlatform.ClearSelection();
-            if (IsOverallDashboardPlatform(currentSelection))
+            foreach (string plat in selectedPlatforms)
             {
-                ListItem allItem = ddlSharedPlatform.Items.FindByValue(OverallDashboardPlatformTable);
-                if (allItem != null) allItem.Selected = true;
-            }
-            else
-            {
-                string selectedValue = ResolveFirstAvailablePlatform(
-                    new[] { currentSelection, DefaultIssuePendingPlatformTable },
-                    availableSet,
-                    availablePlatforms);
-
-                if (!string.IsNullOrWhiteSpace(selectedValue))
-                {
-                    ListItem item = ddlSharedPlatform.Items.FindByValue(selectedValue);
-                    if (item != null)
-                    {
-                        item.Selected = true;
-                    }
-                }
+                ListItem item = ddlSharedPlatform.Items.FindByValue(plat);
+                if (item != null) item.Selected = true;
             }
         }
         catch (Exception ex)
@@ -19390,7 +19638,6 @@ ORDER BY Total_CMF_Approved DESC";
                 string[] rawSelections = Request.Form.GetValues(ddlSharedPlatform.UniqueID) ?? new string[0];
                 string[] selections = rawSelections
                     .Where(available.Contains)
-                    .Take(1)
                     .ToArray();
                 Session[PendingPlatformsSessionKey] = selections.Length > 0
                     ? selections : new[] { DefaultIssuePendingPlatformTable };
@@ -19400,7 +19647,8 @@ ORDER BY Total_CMF_Approved DESC";
                 return;
             }
 
-            string postedPlatform = Request.Form[ddlSharedPlatform.UniqueID];
+            string[] rawIssueSelections = Request.Form.GetValues(ddlSharedPlatform.UniqueID) ?? new string[0];
+            string postedPlatform = rawIssueSelections.Length > 0 ? rawIssueSelections[0] : Request.Form[ddlSharedPlatform.UniqueID];
             string selectedPlatformTable = ResolveIssuePendingPlatformSelection(
                 string.IsNullOrWhiteSpace(postedPlatform) ? ddlSharedPlatform.SelectedValue : postedPlatform);
             if (IsOverallDashboardPlatform(selectedPlatformTable)) selectedPlatformTable = DefaultIssuePendingPlatformTable;

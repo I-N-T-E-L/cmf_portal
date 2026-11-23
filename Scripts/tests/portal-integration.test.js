@@ -6,6 +6,150 @@ const { test } = require('node:test');
 
 const source = fs.readFileSync(path.join(__dirname, '..', '..', 'CMF_Web_portal.aspx'), 'utf8');
 
+function createCmfAnalysis() {
+    const elements = new Map();
+    const requests = [];
+    const pending = [];
+    const tags = [];
+    const context = vm.createContext({
+        window: {}, console,
+        document: { getElementById(id) {
+            if (!elements.has(id)) elements.set(id, {
+                textContent: '', innerHTML: '', style: {},
+                classList: { add() {}, remove() {} }, setAttribute() {}, removeAttribute() {}
+            });
+            return elements.get(id);
+        } },
+        stopCmfSightingChat() {}, closeAiSummaryDrawer() {}, setCmfDrawerMode() {},
+        resetCmfSightingChat() {}, updateCmfAssistantPromotedId() {}, updatePendingRecommendationBadge() {},
+        getIssuePendingPlatformValue: () => 'CMF_EVAL_ALL_COMPONENTS_TABLE',
+        getPlatformDisplayLabel: value => value,
+        updateCmfAssistantTag: tag => tags.push(tag),
+        fetch: (url, options) => {
+            requests.push({ endpoint: url.split('/').pop(), payload: JSON.parse(options.body) });
+            return new Promise((resolve, reject) => pending.push({ resolve, reject }));
+        }
+    });
+    for (const name of ['renderIssueDescriptionSkeleton', 'renderImpactSummarySkeleton', 'renderCmfRecommendationSkeleton',
+        'renderSightingQualityAssessmentSkeleton', 'renderSightingQualityAssessmentUnavailable',
+        'renderSightingQualityAssessment', 'renderIssueDescriptionText', 'renderImpactSummaryText']) {
+        context[name] = value => name + ':' + (typeof value === 'string' ? value : '');
+    }
+    context.renderCmfAssistantRecommendation = result => result.Recommendation + ':' + result.Evidence;
+    context.renderMergedCmfRecommendation = result => result.Evidence;
+    const definition = source.match(/        async function openCmfPendingRecommendationModal\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    vm.runInContext(definition[0], context);
+    const run = context.openCmfPendingRecommendationModal('123', 'Display issue', 'graphics', '', 'cmf_ask');
+    async function complete(result = { Success: true, Summary: 'Test summary' }, reject = false) {
+        const request = pending.shift();
+        assert.ok(request, 'a request must be pending');
+        if (reject) request.reject(new Error('Service unavailable'));
+        else request.resolve({ json: async () => ({ d: result }) });
+        await new Promise(resolve => setImmediate(resolve));
+    }
+    return { context, elements, requests, pending, tags, run, complete };
+}
+
+const cmfAnalysisOrder = ['GetSightingDescription', 'GetSightingFixStatus', 'GetSightingImpactSummary',
+    'GetSightingQualityAssessment', 'GetCmfPendingRecommendation'];
+
+test('CMF Analysis awaits each endpoint in order and preserves the existing recommendation path', async () => {
+    const drawer = createCmfAnalysis();
+    assert.equal(drawer.elements.get('cmfRecCpId').textContent, '123');
+    assert.equal(drawer.elements.get('cmfRecTitle').textContent, 'Display issue');
+    for (let index = 0; index < cmfAnalysisOrder.length; index++) {
+        assert.deepEqual(drawer.requests.map(request => request.endpoint), cmfAnalysisOrder.slice(0, index + 1));
+        assert.equal(drawer.pending.length, 1, 'no endpoints may overlap');
+        await drawer.complete(index === 4 ? { Success: true, Recommendation: 'CMF_REVIEW', Evidence: 'Existing scoring' }
+            : { Success: true, Summary: 'Test summary', CompletenessRecommendation: null });
+    }
+    await drawer.run;
+    assert.deepEqual(drawer.tags, ['CMF_REVIEW']);
+    assert.match(drawer.elements.get('cmfAssistantRecommendationBody').innerHTML, /Existing scoring/);
+});
+
+test('CMF Analysis carries out recommendation scoring and tags CMF_INCOMPLETE when SQA has missing fields', async () => {
+    const drawer = createCmfAnalysis();
+    for (let index = 0; index < 4; index++) await drawer.complete();
+    assert.deepEqual(drawer.requests.map(request => request.endpoint), cmfAnalysisOrder);
+    await drawer.complete({
+        Success: true,
+        Recommendation: 'CMF_INCOMPLETE',
+        OverallQualityScore: 81,
+        RuleScores: [
+            { RuleId: 'S', RuleName: 'Severity', Score: '3', Evaluation: 'Driver hang' },
+            { RuleId: 'O', RuleName: 'Occurrence', Score: '2', Evaluation: 'Sporadic' }
+        ],
+        Evidence: '- **Key risk drivers:** Severity S3\n- **Why the score is 3.25/4:** Individual metrics evaluate to 3.25/4\n- **AI Recommendation:** Steps to Reproduce are missing from the sighting, so **CMF_INCOMPLETE** is recommended.'
+    });
+    await drawer.run;
+    assert.deepEqual(drawer.tags, ['CMF_INCOMPLETE']);
+    assert.match(drawer.elements.get('cmfAssistantRecommendationBody').innerHTML, /CMF_INCOMPLETE/);
+    assert.match(drawer.elements.get('cmfAssistantRecommendationBody').innerHTML, /Steps to Reproduce are missing/);
+    assert.equal(drawer.pending.length, 0);
+});
+
+for (const transportFailure of [false, true]) {
+    test('CMF Analysis does not recommend after SQA ' + (transportFailure ? 'transport failure' : 'service failure'), async () => {
+        const drawer = createCmfAnalysis();
+        for (let index = 0; index < 3; index++) await drawer.complete();
+        await drawer.complete({ Success: false }, transportFailure);
+        await drawer.run;
+        assert.equal(drawer.requests.length, 4);
+        assert.deepEqual(drawer.tags, ['Unavailable']);
+        assert.match(drawer.elements.get('cmfAssistantRecommendationBody').innerHTML, /could not be completed/);
+    });
+}
+
+test('CMF Analysis still assesses HSD quality when an earlier narrative request fails', async () => {
+    const drawer = createCmfAnalysis();
+    await drawer.complete(null, true);
+    await drawer.complete();
+    await drawer.complete();
+    await drawer.complete({ Success: false });
+    await drawer.run;
+    assert.deepEqual(drawer.requests.map(request => request.endpoint), cmfAnalysisOrder.slice(0, 4));
+    assert.match(drawer.elements.get('cmfAssistantSightingDescription').innerHTML, /Description unavailable/);
+});
+
+test('CMF Analysis ignores stale results and stops after the drawer is closed or replaced', async () => {
+    const drawer = createCmfAnalysis();
+    const description = drawer.elements.get('cmfAssistantSightingDescription').innerHTML;
+    drawer.context.window._cmfSightingChatPayload = null;
+    await drawer.complete();
+    await drawer.run;
+    assert.equal(drawer.requests.length, 1);
+    assert.equal(drawer.elements.get('cmfAssistantSightingDescription').innerHTML, description);
+    assert.deepEqual(drawer.tags, []);
+});
+
+test('CMF Analysis recommendation displays overall score, metric chips, and incomplete reasoning with missing fields', () => {
+    const context = vm.createContext({
+        escapeHtml: value => value,
+        normalizeCmfRecommendationLabel: value => value,
+        normalizeCmfDimensionScores: rules => rules,
+        calculateDisplayedCmfScore: () => 3.25,
+        normalizeWeightedCmfScore: () => 3.25,
+        formatWeightedCmfScore: () => '3.25',
+        buildCmfAssistantRecommendationReasoning: (rec, score, rules, evidence) => [evidence],
+        renderCmfMetricChips: () => '<div class="metric-chips">Chips</div>',
+        renderCmfReasoningBullets: items => items.join('|'),
+        renderCmfRecommendationFeedbackBar: () => ''
+    });
+    const definition = source.match(/        function renderCmfAssistantRecommendation\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    vm.runInContext(definition[0], context);
+    const html = context.renderCmfAssistantRecommendation({
+        Recommendation: 'CMF_INCOMPLETE',
+        OverallQualityScore: 81,
+        RuleScores: [{ RuleId: 'S', Score: '3' }],
+        Evidence: 'Steps to Reproduce are missing from the sighting, so **CMF_INCOMPLETE** is recommended.'
+    });
+    assert.match(html, /3\.25\/4/);
+    assert.match(html, /metric-chips/);
+    assert.match(html, /Steps to Reproduce are missing from the sighting/);
+});
+
 function createDrawer(response) {
     const ids = [
         'cmfRecTitleRow', 'cmfRecSightingRow', 'cmfAssistantSightingDetails',
@@ -661,6 +805,9 @@ test('AI CMF Assistant supports CMF_DUPLICATE tag and hides SQA category boxes w
     for (const name of [
         'normalizeCmfRecommendationLabel', 'updateCmfAssistantTag',
         'getQualityStateClass', 'formatSqaScoreOutOfTen', 'isSqaCoreField',
+        'getSqaFieldScore', 'formatSqaFieldScore', 'normalizeSqaFieldStatusLabel', 'getQualityStatusClass',
+        'getSqaStatusCounts', 'renderSqaStatusSummaryRow', 'renderSqaTemplateQualityOverview', 'renderQualityStatusBadge',
+        'renderSightingQualityScoreRow',
         'buildSqaCategoryItems', 'renderSqaCategoryCard', 'normalizeSqaDimensionScores',
         'buildIssuesFromQualityFields', 'normalizeSightingQualityAssessment',
         'renderSightingQualityAssessment'
@@ -679,12 +826,39 @@ test('AI CMF Assistant supports CMF_DUPLICATE tag and hides SQA category boxes w
 
     // Main SQA card shows compact Quality Score + View details button without the 3 category boxes
     const sqaHtml = sqaContext.renderSightingQualityAssessment({
-        QualityScore: 95,
-        Fields: [{ FieldName: 'SoC Stepping', Status: 'Partial', Characteristic: 'SoC stepping not explicitly called out' }]
+        QualityScore: 93,
+        Fields: [{ FieldName: 'SoC Stepping', Status: 'Partial', Characteristic: 'SoC stepping not explicitly called out' },
+            { FieldName: 'ME SKU', Status: 'Present' }]
     }, {});
     assert.doesNotMatch(sqaHtml, /cmf-sqa-category-grid/);
-    assert.match(sqaHtml, /Quality Score: 9\.5\/10/);
+    assert.match(sqaHtml, /Quality Score: 6\.5\/7/);
+    assert.match(sqaHtml, /cmf-sqa-score-pill\s+is-quality-medium/);
+    assert.equal(sqaContext.getQualityStateClass(100), 'is-quality-high');
+    assert.equal(sqaContext.getQualityStateClass(93), 'is-quality-medium');
+    assert.equal(sqaContext.getQualityStateClass(79), 'is-quality-medium');
+    assert.equal(sqaContext.getQualityStateClass(50), 'is-quality-medium');
+    assert.equal(sqaContext.getQualityStateClass(0), 'is-quality-medium');
     assert.match(sqaHtml, /showSightingQualityDetails\(\)/);
+    const assessment = sqaContext.window.CMF_PORTAL.currentSightingQualityAssessment.assessment;
+    assert.equal(assessment.fields.length, 1);
+    assert.equal(assessment.fields[0].status, 'Partial', 'The scoring status must remain Partial internally');
+    assert.equal(sqaContext.getSqaFieldScore('Partial'), 0.5);
+    assert.equal(sqaContext.getSqaFieldScore('Present'), 1);
+    assert.equal(sqaContext.getSqaFieldScore('Missing'), 0);
+    assert.equal(sqaContext.getSqaFieldScore('Conflicting'), 0);
+    const row = sqaContext.renderSightingQualityScoreRow(assessment.fields[0]);
+    assert.match(row, /0\.5\/1/);
+    assert.match(row, /Partial/);
+    const overview = sqaContext.renderSqaTemplateQualityOverview(assessment);
+    assert.match(overview, /6\.5<span>\/7<\/span>/);
+    assert.match(overview, /Partial<\/span><strong>1<\/strong>/);
+    assert.match(overview, /sqaScoreGuideTooltip/);
+    assert.match(overview, /SQA Scoring Guide/);
+    assert.doesNotMatch(overview, /ME SKU/);
+    for (let halfPoints = 0; halfPoints <= 14; halfPoints++) {
+        const percentage = Math.round(halfPoints / 2 / 7 * 100);
+        assert.equal(Number(sqaContext.formatSqaScoreOutOfTen(percentage)), halfPoints / 2);
+    }
 
     // CMF Pending sidebar uses hourglass-half icon instead of clipboard-check
     assert.match(source, /id="lnkNavPendingList"[\s\S]*?fa-hourglass-half/i);

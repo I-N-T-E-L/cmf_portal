@@ -56,6 +56,7 @@ public sealed class CmfAssistantUnifiedConfig
     public string RvpReproPolicy { get; set; }
     public Dictionary<string, int> DimensionWeights { get; set; }
     public string CompiledRulesText { get; set; }
+    public Dictionary<string, string> PermutationLookup { get; set; }
 
     public Dictionary<string, List<string>> PlatformFamilyJargons { get; set; }
     public Dictionary<string, List<string>> PlatformSkuJargons { get; set; }
@@ -283,7 +284,7 @@ public static class CmfAssistantConfigService
                 config.CmfReviewMinScore = ReadDouble(scoring, "cmfReviewMinScore", config.CmfReviewMinScore);
                 config.ThresholdScore = ReadInt(scoring, "thresholdScore", config.ThresholdScore);
                 config.ReviewThresholdScore = ReadInt(scoring, "reviewThresholdScore", config.ReviewThresholdScore);
-                config.CustomerExperienceOverrideScore = ReadInt(scoring, "customerExperienceOverrideScore", config.CustomerExperienceOverrideScore);
+                config.CustomerExperienceOverrideScore = ReadInt(scoring, "customerExperienceOverrideScore", 0);
 
                 IDictionary mandatory = scoring["mandatoryRequirements"] as IDictionary;
                 if (mandatory != null)
@@ -305,7 +306,10 @@ public static class CmfAssistantConfigService
                     rulesBuilder.AppendLine("cmf_review_min_score: " + config.CmfReviewMinScore.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture));
                     rulesBuilder.AppendLine("threshold_for_cmf_tag: " + config.ThresholdScore);
                     rulesBuilder.AppendLine("review_threshold: " + config.ReviewThresholdScore);
-                    rulesBuilder.AppendLine("customer_experience_override: " + config.CustomerExperienceOverrideScore);
+                    if (config.CustomerExperienceOverrideScore > 0 && config.DimensionWeights != null && config.DimensionWeights.ContainsKey("CX"))
+                    {
+                        rulesBuilder.AppendLine("customer_experience_override: " + config.CustomerExperienceOverrideScore);
+                    }
                     if (!string.IsNullOrWhiteSpace(config.RvpReproPolicy))
                     {
                         rulesBuilder.AppendLine("rvp_repro_policy: " + config.RvpReproPolicy);
@@ -359,6 +363,28 @@ public static class CmfAssistantConfigService
                                 ReadString(gr, "rule", string.Empty),
                                 ReadString(gr, "rationale", string.Empty));
                         }
+                    }
+
+                    IList perms = scoring["permutationAnalysis"] as IList;
+                    if (perms != null && perms.Count > 0)
+                    {
+                        var lookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                        foreach (object item in perms)
+                        {
+                            IDictionary p = item as IDictionary;
+                            if (p == null) continue;
+                            int s = ReadInt(p, "s", 0);
+                            int o = ReadInt(p, "o", 0);
+                            int d = ReadInt(p, "d", 0);
+                            int b = ReadInt(p, "b", 0);
+                            int rvp = ReadInt(p, "rvpScore", 0);
+                            string rec = ReadString(p, "recommendation", string.Empty);
+                            if (s > 0 && o > 0 && d > 0 && b > 0 && rvp > 0 && !string.IsNullOrWhiteSpace(rec))
+                            {
+                                lookup[string.Format(CultureInfo.InvariantCulture, "{0}_{1}_{2}_{3}_{4}", s, o, d, b, rvp)] = rec;
+                            }
+                        }
+                        if (lookup.Count > 0) config.PermutationLookup = lookup;
                     }
 
                     config.CompiledRulesText = rulesBuilder.ToString().Trim();
@@ -416,22 +442,23 @@ public static class CmfAssistantConfigService
             PythonExecutable = "python",
             SyncfusionLicenseKey = string.Empty,
             ScaleMax = 4,
-            Formula = "Overall Score = (S * 0.20) + (O * 0.15) + (D * 0.15) + (R * 0.10) + (B * 0.20) + (CX * 0.20)",
+            Formula = "Overall Score = (S * 0.30) + (O * 0.15) + (D * 0.10) + (B * 0.30) + (RVP * 0.15)",
             CmfOkMinScore = 3.50,
             CmfReviewMinScore = 2.75,
             ThresholdScore = 88,
             ReviewThresholdScore = 69,
-            CustomerExperienceOverrideScore = 3,
+            CustomerExperienceOverrideScore = 0,
             RequireComponentInDescription = true,
             RequireRvpReproInDescription = true,
             RequirePromotedIdInHeader = true,
             RequireRvpReproInReasoning = true,
-            RvpReproPolicy = "RVP repro evidence is critical: if RVP_repro is Yes, the issue reproduces on the Intel Reference Validation Platform (RVP), meaning there is a high likelihood the defect appears across most OEM customer units designed on that RVP platform (critical platform-wide impact). Always consider and explicitly mention RVP repro status in the CMF reasoning bullet points and recommendation justification.",
+            RvpReproPolicy = "1) When RVP_repro is Yes: the issue reproduces on the Intel Reference Validation Platform (RVP), meaning there is a high likelihood the defect appears across most OEM customer units designed on that RVP platform (critical platform-wide impact) -- RVP is scored 4/4 (contributing 0.60 to the weighted score) and satisfies Priority 1 qualification [S>=3 AND (B>=3 OR RVP=Yes)]; explicitly highlight 'also reproduced on RVP' in the CMF reasoning and recommendation justification. 2) When RVP_repro is Unknown, Blank, NA, or Pending: score RVP as 2/4 (neutral score contributing 0.30); RVP exposure is not established. 3) When RVP_repro is No: score RVP as 1/4 (contributing 0.15 to the weighted score), reflecting that the defect did not reproduce on RVP and is isolated to customer units; state in the reasoning that RVP repro is No (isolated to customer unit / not reproduced on RVP).",
             DimensionWeights = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
             {
-                { "S", 20 }, { "O", 15 }, { "D", 15 }, { "R", 10 }, { "B", 20 }, { "CX", 20 }
+                { "S", 30 }, { "O", 15 }, { "D", 10 }, { "B", 30 }, { "RVP", 15 }
             },
             CompiledRulesText = string.Empty,
+            PermutationLookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
             PlatformFamilyJargons = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
             {
                 { "NVL", new List<string> { "novalake", "nova lake", "nvl" } },
@@ -731,82 +758,236 @@ public static class CmfAssistantConfigService
                         return false;
                     }
 
-                    // 1. Locate rubric sheet ("Updated Scoring Guidelines" preferred, otherwise first sheet with Severity/Occurrence headers)
-                    ExcelWorksheet rubricSheet = pkg.Workbook.Worksheets["Updated Scoring Guidelines"]
-                        ?? pkg.Workbook.Worksheets["Scoring Guidelines"]
-                        ?? pkg.Workbook.Worksheets[1];
-
-                    string[] dimIds = new[] { "S", "O", "D", "R", "B", "CX" };
-                    string[] dimNames = new[] { "Severity", "Occurrence", "Detection", "Recovery", "Business Impact", "Customer Experience" };
-                    int[] dimCols = new[] { 2, 3, 4, 5, 6, 7 };
-                    Dictionary<string, int> weights = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+                    // Check if workbook is a standalone Permutation Analysis workbook
+                    ExcelWorksheet standalonePermSheet = pkg.Workbook.Worksheets["Permutation Analysis"]
+                        ?? pkg.Workbook.Worksheets["Permutations"];
+                    bool hasRubricSheet = pkg.Workbook.Worksheets["Updated Scoring Guidelines"] != null
+                        || pkg.Workbook.Worksheets["Scoring Guidelines"] != null;
+                    if (!hasRubricSheet && standalonePermSheet != null)
                     {
-                        { "S", 20 }, { "O", 15 }, { "D", 15 }, { "R", 10 }, { "B", 20 }, { "CX", 20 }
-                    };
-                    Dictionary<string, List<string>> dimScoreParts = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-                    foreach (string id in dimIds) dimScoreParts[id] = new List<string>();
+                        List<Dictionary<string, object>> standalonePermList = ParsePermutationSheet(standalonePermSheet);
+                        if (standalonePermList.Count > 0)
+                        {
+                            string permConfigPath = ResolveConfigFilePath();
+                            JavaScriptSerializer permSerializer = new JavaScriptSerializer { MaxJsonLength = 4194304 };
+                            IDictionary permRoot = (File.Exists(permConfigPath) ? permSerializer.DeserializeObject(File.ReadAllText(permConfigPath, Encoding.UTF8)) as IDictionary : null)
+                                ?? new Dictionary<string, object>();
+                            IDictionary permScoringNode = permRoot["scoringRules"] as IDictionary ?? new Dictionary<string, object>();
+                            permScoringNode["permutationAnalysis"] = standalonePermList.ToArray();
+                            permRoot["scoringRules"] = permScoringNode;
 
+                            File.WriteAllText(permConfigPath, FormatPrettyJson(permSerializer.Serialize(permRoot)), Encoding.UTF8);
+                            CachedConfig = null;
+                            CachedLastWriteUtc = DateTime.MinValue;
+                            CmfRecommendationService.ClearRecommendationCache();
+
+                            statusMessage = string.Format(
+                                "Successfully imported {0} permutation analysis combinations into cmf-assistant-config.json.",
+                                standalonePermList.Count);
+                            return true;
+                        }
+                    }
+
+                    // 1. Locate rubric sheet dynamically ("Updated Scoring Guidelines" / "Scoring Guidelines" or first sheet with Severity/Score header)
+                    ExcelWorksheet rubricSheet = pkg.Workbook.Worksheets["Updated Scoring Guidelines"]
+                        ?? pkg.Workbook.Worksheets["Scoring Guidelines"];
+
+                    if (rubricSheet == null)
+                    {
+                        foreach (ExcelWorksheet ws in pkg.Workbook.Worksheets)
+                        {
+                            if (ws.Dimension == null) continue;
+                            for (int r = 1; r <= Math.Min(ws.Dimension.End.Row, 10); r++)
+                            {
+                                for (int c = 1; c <= Math.Min(ws.Dimension.End.Column, 10); c++)
+                                {
+                                    string txt = (ws.Cells[r, c].Text ?? string.Empty).Trim();
+                                    if (txt.IndexOf("Severity", StringComparison.OrdinalIgnoreCase) >= 0)
+                                    {
+                                        rubricSheet = ws;
+                                        break;
+                                    }
+                                }
+                                if (rubricSheet != null) break;
+                            }
+                            if (rubricSheet != null) break;
+                        }
+                    }
+                    if (rubricSheet == null) rubricSheet = pkg.Workbook.Worksheets[1];
+
+                    // 2. Discover header row and dimensions dynamically
+                    int headerRow = -1;
+                    int endRow = rubricSheet.Dimension != null ? rubricSheet.Dimension.End.Row : 0;
+                    int endCol = rubricSheet.Dimension != null ? rubricSheet.Dimension.End.Column : 0;
+
+                    for (int r = 1; r <= Math.Min(endRow, 10); r++)
+                    {
+                        for (int c = 1; c <= endCol; c++)
+                        {
+                            string txt = (rubricSheet.Cells[r, c].Text ?? string.Empty).Trim();
+                            if (txt.IndexOf("Severity", StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                headerRow = r;
+                                break;
+                            }
+                        }
+                        if (headerRow > 0) break;
+                    }
+                    if (headerRow <= 0) headerRow = 2;
+
+                    var discoveredDims = new List<ExcelDimensionDef>();
+                    for (int c = 2; c <= endCol; c++)
+                    {
+                        string hText = (rubricSheet.Cells[headerRow, c].Text ?? string.Empty).Trim();
+                        if (string.IsNullOrWhiteSpace(hText)) continue;
+
+                        string id = string.Empty;
+                        Match m = Regex.Match(hText, @"\(([A-Za-z0-9_-]+)\)");
+                        if (m.Success)
+                        {
+                            id = m.Groups[1].Value.ToUpperInvariant();
+                        }
+                        else
+                        {
+                            if (hText.IndexOf("Severity", StringComparison.OrdinalIgnoreCase) >= 0) id = "S";
+                            else if (hText.IndexOf("Occurrence", StringComparison.OrdinalIgnoreCase) >= 0) id = "O";
+                            else if (hText.IndexOf("Detection", StringComparison.OrdinalIgnoreCase) >= 0 || hText.IndexOf("Trigger", StringComparison.OrdinalIgnoreCase) >= 0) id = "D";
+                            else if (hText.IndexOf("Recovery", StringComparison.OrdinalIgnoreCase) >= 0 || hText.IndexOf("Workaround", StringComparison.OrdinalIgnoreCase) >= 0) id = "R";
+                            else if (hText.IndexOf("Business", StringComparison.OrdinalIgnoreCase) >= 0) id = "B";
+                            else if (hText.IndexOf("Customer", StringComparison.OrdinalIgnoreCase) >= 0) id = "CX";
+                            else if (hText.IndexOf("RVP", StringComparison.OrdinalIgnoreCase) >= 0) id = "RVP";
+                            else id = Regex.Replace(hText, @"[^A-Za-z0-9]", string.Empty).ToUpperInvariant();
+                        }
+
+                        if (string.IsNullOrWhiteSpace(id)) continue;
+
+                        string name = Regex.Replace(hText, @"\s*\([^)]*\)", string.Empty).Trim();
+                        if (string.IsNullOrWhiteSpace(name))
+                        {
+                            if (id == "S") name = "Severity";
+                            else if (id == "O") name = "Occurrence";
+                            else if (id == "D") name = "Detection";
+                            else if (id == "R") name = "Recovery";
+                            else if (id == "B") name = "Business Impact";
+                            else if (id == "CX") name = "Customer Experience";
+                            else if (id == "RVP") name = "RVP Repro Status";
+                            else name = id;
+                        }
+
+                        discoveredDims.Add(new ExcelDimensionDef
+                        {
+                            Id = id,
+                            Name = name,
+                            Column = c,
+                            Weight = 15
+                        });
+                    }
+
+                    // Fallback to standard 6 dimensions if discovery found nothing
+                    if (discoveredDims.Count == 0)
+                    {
+                        string[] dimIds = new[] { "S", "O", "D", "R", "B", "CX" };
+                        string[] dimNames = new[] { "Severity", "Occurrence", "Detection", "Recovery", "Business Impact", "Customer Experience" };
+                        int[] dimCols = new[] { 2, 3, 4, 5, 6, 7 };
+                        int[] defWeights = new[] { 20, 15, 15, 10, 20, 20 };
+                        for (int i = 0; i < dimIds.Length; i++)
+                        {
+                            discoveredDims.Add(new ExcelDimensionDef
+                            {
+                                Id = dimIds[i],
+                                Name = dimNames[i],
+                                Column = dimCols[i],
+                                Weight = defWeights[i]
+                            });
+                        }
+                    }
+
+                    // 3. Bounded rubric parsing & weight/formula detection
                     int maxScoreFound = 4;
                     string currentScoreLabel = string.Empty;
-                    int endRow = rubricSheet.Dimension != null ? rubricSheet.Dimension.End.Row : 0;
+                    string formulaStr = string.Empty;
+                    int rubricStopRow = endRow + 1;
 
-                    for (int r = 1; r <= endRow; r++)
+                    for (int r = headerRow + 1; r <= endRow; r++)
                     {
                         string c1 = (rubricSheet.Cells[r, 1].Text ?? string.Empty).Trim();
+
+                        if (c1.StartsWith("Weight", StringComparison.OrdinalIgnoreCase))
+                        {
+                            currentScoreLabel = string.Empty;
+                            rubricStopRow = Math.Min(rubricStopRow, r);
+                            foreach (var dim in discoveredDims)
+                            {
+                                string wText = (rubricSheet.Cells[r, dim.Column].Text ?? string.Empty).Replace("%", string.Empty).Trim();
+                                double dVal;
+                                if (double.TryParse(wText, NumberStyles.Float, CultureInfo.InvariantCulture, out dVal) && dVal > 0)
+                                {
+                                    dim.Weight = dVal <= 1.0 ? (int)Math.Round(dVal * 100.0) : (int)Math.Round(dVal);
+                                }
+                            }
+                            continue;
+                        }
+
+                        if (c1.StartsWith("Calculation", StringComparison.OrdinalIgnoreCase) || c1.IndexOf("Overall Score", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            currentScoreLabel = string.Empty;
+                            rubricStopRow = Math.Min(rubricStopRow, r);
+                            for (int c = 1; c <= endCol; c++)
+                            {
+                                string cellTxt = (rubricSheet.Cells[r, c].Text ?? string.Empty).Trim();
+                                if (cellTxt.IndexOf("Overall Score", StringComparison.OrdinalIgnoreCase) >= 0)
+                                {
+                                    formulaStr = cellTxt;
+                                    break;
+                                }
+                            }
+                            continue;
+                        }
+
+                        if (c1.IndexOf("Decision", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            c1.IndexOf("Priority", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            c1.IndexOf("Guardrail", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            c1.IndexOf("Disposition", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            rubricStopRow = Math.Min(rubricStopRow, r);
+                            break;
+                        }
+
                         if (Regex.IsMatch(c1, @"^[1-5]$"))
                         {
                             currentScoreLabel = c1;
                             int parsedS;
                             if (int.TryParse(c1, out parsedS) && parsedS > maxScoreFound) maxScoreFound = parsedS;
-                        }
-                        else if (c1.StartsWith("Weight", StringComparison.OrdinalIgnoreCase))
-                        {
-                            currentScoreLabel = string.Empty;
-                            for (int d = 0; d < dimIds.Length; d++)
-                            {
-                                string wText = (rubricSheet.Cells[r, dimCols[d]].Text ?? string.Empty).Replace("%", string.Empty).Trim();
-                                int wVal;
-                                if (int.TryParse(wText, out wVal) && wVal > 0)
-                                {
-                                    weights[dimIds[d]] = wVal;
-                                }
-                            }
-                            continue;
-                        }
-                        else if (!string.IsNullOrWhiteSpace(c1))
-                        {
-                            currentScoreLabel = string.Empty;
-                            continue;
-                        }
 
-                        if (!string.IsNullOrWhiteSpace(currentScoreLabel))
-                        {
-                            for (int d = 0; d < dimIds.Length; d++)
+                            foreach (var dim in discoveredDims)
                             {
-                                string cellText = (rubricSheet.Cells[r, dimCols[d]].Text ?? string.Empty).Replace("\r", " ").Replace("\n", " ").Trim();
+                                string cellText = (rubricSheet.Cells[r, dim.Column].Text ?? string.Empty).Replace("\r", " ").Replace("\n", " ").Trim();
                                 if (!string.IsNullOrWhiteSpace(cellText))
                                 {
-                                    List<string> list = dimScoreParts[dimIds[d]];
                                     string prefix = currentScoreLabel + "=";
                                     int existingIdx = -1;
-                                    for (int k = 0; k < list.Count; k++)
+                                    for (int k = 0; k < dim.Rubrics.Count; k++)
                                     {
-                                        if (list[k].StartsWith(prefix, StringComparison.Ordinal)) { existingIdx = k; break; }
+                                        if (dim.Rubrics[k].StartsWith(prefix, StringComparison.Ordinal)) { existingIdx = k; break; }
                                     }
                                     if (existingIdx >= 0)
                                     {
-                                        list[existingIdx] = list[existingIdx].TrimEnd('.', ';', ' ') + " OR " + cellText;
+                                        dim.Rubrics[existingIdx] = dim.Rubrics[existingIdx].TrimEnd('.', ';', ' ') + " OR " + cellText;
                                     }
                                     else
                                     {
-                                        list.Add(prefix + cellText);
+                                        dim.Rubrics.Add(prefix + cellText);
                                     }
                                 }
                             }
                         }
+                        else
+                        {
+                            currentScoreLabel = string.Empty;
+                        }
                     }
 
-                    // 2. Locate disposition & guardrails sheet ("6-Category Scoring Mechanism" if present)
+                    // 4. Locate disposition & guardrails (from separate sheet or in-sheet priority table)
                     ExcelWorksheet mechSheet = pkg.Workbook.Worksheets["6-Category Scoring Mechanism"];
                     double cmfOkMin = 3.50;
                     double cmfReviewMin = 2.75;
@@ -874,6 +1055,81 @@ public static class CmfAssistantConfigService
                             }
                         }
                     }
+                    else
+                    {
+                        // Check for in-sheet "Decision Logic and Rule Priority"
+                        for (int r = Math.Max(1, rubricStopRow); r <= endRow; r++)
+                        {
+                            string col1 = (rubricSheet.Cells[r, 1].Text ?? string.Empty).Trim();
+                            string col2 = (rubricSheet.Cells[r, 2].Text ?? string.Empty).Trim();
+                            string col3 = (rubricSheet.Cells[r, 3].Text ?? string.Empty).Trim();
+                            string col4 = (rubricSheet.Cells[r, 4].Text ?? string.Empty).Trim();
+
+                            if (col1.StartsWith("Priority", StringComparison.OrdinalIgnoreCase) ||
+                                col1.IndexOf("Decision", StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                continue;
+                            }
+
+                            int priorityNum;
+                            if (int.TryParse(col1, out priorityNum) && !string.IsNullOrWhiteSpace(col2))
+                            {
+                                string cond = col2;
+                                string rec = col3;
+                                string interp = col4;
+
+                                guardrailRows.Add(new Dictionary<string, object>
+                                {
+                                    { "id", "priority_" + priorityNum },
+                                    { "name", "Priority " + priorityNum + (string.IsNullOrWhiteSpace(interp) ? string.Empty : ": " + interp) },
+                                    { "rule", cond + (string.IsNullOrWhiteSpace(rec) ? string.Empty : " -> " + rec) },
+                                    { "rationale", interp }
+                                });
+
+                                Match numMatch = Regex.Match(cond, @"Score\s*>=\s*(\d+\.\d+)");
+                                if (numMatch.Success)
+                                {
+                                    double parsedNum;
+                                    if (double.TryParse(numMatch.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out parsedNum))
+                                    {
+                                        if (string.Equals(rec, "CMF_OK", StringComparison.OrdinalIgnoreCase)) cmfOkMin = parsedNum;
+                                        else if (string.Equals(rec, "CMF_REVIEW", StringComparison.OrdinalIgnoreCase)) cmfReviewMin = parsedNum;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (guardrailRows.Count > 0)
+                        {
+                            dispRows.Add(new Dictionary<string, object>
+                            {
+                                { "disposition", "CMF_OK" },
+                                { "scoreBand", ">= " + cmfOkMin.ToString("0.00", CultureInfo.InvariantCulture) + " (or S>=3 with B>=3/RVP=Yes)" },
+                                { "minimumConditions", "S>=3 AND (B>=3 OR RVP=Yes) [Priority 1] OR Score>=" + cmfOkMin.ToString("0.00", CultureInfo.InvariantCulture) + " [Priority 2]" },
+                                { "meaning", "Meets primary severity/business/RVP criteria or secondary weighted score with confirmed gate." },
+                                { "requiredAction", "Approve CMF request and tag as CMF_OK." },
+                                { "output", "Approve" }
+                            });
+                            dispRows.Add(new Dictionary<string, object>
+                            {
+                                { "disposition", "CMF_REVIEW" },
+                                { "scoreBand", ">= " + cmfReviewMin.ToString("0.00", CultureInfo.InvariantCulture) + " to < " + cmfOkMin.ToString("0.00", CultureInfo.InvariantCulture) + " (or S>=3 or B>=3 safeguard)" },
+                                { "minimumConditions", "S>=3 [Priority 3], B>=3 [Priority 4], or Score>=" + cmfReviewMin.ToString("0.00", CultureInfo.InvariantCulture) + " [Priority 5]" },
+                                { "meaning", "Severity or confirmed gate safeguard met, or score in review band. Requires committee review." },
+                                { "requiredAction", "Route to CMF review meeting for manual disposition." },
+                                { "output", "Review" }
+                            });
+                            dispRows.Add(new Dictionary<string, object>
+                            {
+                                { "disposition", "CMF_REJECT" },
+                                { "scoreBand", "< " + cmfReviewMin.ToString("0.00", CultureInfo.InvariantCulture) },
+                                { "minimumConditions", "Otherwise [Priority 6] (RVP Yes alone does not qualify)" },
+                                { "meaning", "Does not meet severity, confirmed gate, or weighted score threshold for CMF." },
+                                { "requiredAction", "Reject CMF request." },
+                                { "output", "Reject" }
+                            });
+                        }
+                    }
 
                     // Ensure 5-Tag Model condition entries (CMF_INCOMPLETE & CMF_DUPLICATE) remain in dispositionTable
                     bool hasIncompleteDisp = false;
@@ -909,42 +1165,100 @@ public static class CmfAssistantConfigService
                         });
                     }
 
-                    // 3. Persist updated scoringRules into cmf-assistant-config.json
+                    // Default formula if not found on sheet
+                    if (string.IsNullOrWhiteSpace(formulaStr))
+                    {
+                        List<string> parts = new List<string>();
+                        foreach (var dim in discoveredDims)
+                        {
+                            parts.Add("(" + dim.Id + " * " + (dim.Weight / 100.0).ToString("0.00", CultureInfo.InvariantCulture) + ")");
+                        }
+                        formulaStr = "Overall Score = " + string.Join(" + ", parts.ToArray());
+                    }
+
+                    // 5. Persist updated scoringRules into cmf-assistant-config.json
                     string configPath = ResolveConfigFilePath();
                     JavaScriptSerializer serializer = new JavaScriptSerializer { MaxJsonLength = 4194304 };
                     IDictionary root = (File.Exists(configPath) ? serializer.DeserializeObject(File.ReadAllText(configPath, Encoding.UTF8)) as IDictionary : null)
                         ?? new Dictionary<string, object>();
 
-                    IDictionary scoringNode = root["scoringRules"] as IDictionary ?? new Dictionary<string, object>();
+                    IDictionary existingScoring = root["scoringRules"] as IDictionary;
+                    IDictionary existingMandatory = existingScoring != null ? existingScoring["mandatoryRequirements"] as IDictionary : null;
+
+                    // Erase previous scoring rules completely and construct fresh scoringNode
+                    var scoringNode = new Dictionary<string, object>();
                     scoringNode["scaleMax"] = maxScoreFound;
+                    scoringNode["formula"] = formulaStr;
                     scoringNode["cmfOkMinScore"] = cmfOkMin;
                     scoringNode["cmfReviewMinScore"] = cmfReviewMin;
                     scoringNode["thresholdScore"] = (int)Math.Round((cmfOkMin / maxScoreFound) * 100.0);
                     scoringNode["reviewThresholdScore"] = (int)Math.Round((cmfReviewMin / maxScoreFound) * 100.0);
 
-                    List<Dictionary<string, object>> updatedDims = new List<Dictionary<string, object>>();
-                    for (int d = 0; d < dimIds.Length; d++)
+                    if (existingMandatory != null)
                     {
-                        string id = dimIds[d];
-                        List<string> rParts = dimScoreParts[id];
-                        string rubricStr = rParts.Count > 0 ? string.Join(" ", rParts.ToArray()) : string.Empty;
+                        var mandatoryCopy = new Dictionary<string, object>();
+                        foreach (DictionaryEntry de in existingMandatory)
+                        {
+                            string key = Convert.ToString(de.Key);
+                            string val = Convert.ToString(de.Value);
+                            if (key == "rvpReproPolicy")
+                            {
+                                val = val.Replace("6-category", "mathematical");
+                            }
+                            mandatoryCopy[key] = de.Value is bool ? de.Value : (object)val;
+                        }
+                        scoringNode["mandatoryRequirements"] = mandatoryCopy;
+                    }
+
+                    List<Dictionary<string, object>> updatedDims = new List<Dictionary<string, object>>();
+                    foreach (var dim in discoveredDims)
+                    {
+                        string rubricStr = dim.Rubrics.Count > 0 ? string.Join(" ", dim.Rubrics.ToArray()) : string.Empty;
                         updatedDims.Add(new Dictionary<string, object>
                         {
-                            { "id", id },
-                            { "name", dimNames[d] },
-                            { "weight", weights[id] },
+                            { "id", dim.Id },
+                            { "name", dim.Name },
+                            { "weight", dim.Weight },
                             { "rubric", rubricStr }
                         });
                     }
                     scoringNode["dimensions"] = updatedDims.ToArray();
                     if (dispRows.Count > 0) scoringNode["dispositionTable"] = dispRows.ToArray();
                     if (guardrailRows.Count > 0) scoringNode["gatingGuardrails"] = guardrailRows.ToArray();
+
+                    // Parse Permutation Analysis sheet if present (e.g. 768 combinations)
+                    ExcelWorksheet permSheet = pkg.Workbook.Worksheets["Permutation Analysis"]
+                        ?? pkg.Workbook.Worksheets["Permutations"];
+                    if (permSheet != null && permSheet.Dimension != null && permSheet.Dimension.End.Row >= 5)
+                    {
+                        List<Dictionary<string, object>> permList = ParsePermutationSheet(permSheet);
+                        if (permList.Count > 0)
+                        {
+                            scoringNode["permutationAnalysis"] = permList.ToArray();
+                        }
+                    }
+                    else if (existingScoring != null && existingScoring.Contains("permutationAnalysis"))
+                    {
+                        scoringNode["permutationAnalysis"] = existingScoring["permutationAnalysis"];
+                    }
+
                     root["scoringRules"] = scoringNode;
 
                     File.WriteAllText(configPath, FormatPrettyJson(serializer.Serialize(root)), Encoding.UTF8);
                     CachedConfig = null;
                     CachedLastWriteUtc = DateTime.MinValue;
-                    CmfRecommendationService.ClearRecommendationCache();
+
+                    // Erase any previous rules in cmf-recommendation-rules.txt and update with newly compiled rules
+                    CmfRecommendationService.ResetActiveRulesText();
+                    CmfAssistantUnifiedConfig newConfig = GetConfig();
+                    if (newConfig != null && !string.IsNullOrWhiteSpace(newConfig.CompiledRulesText))
+                    {
+                        CmfRecommendationService.SaveActiveRulesText(newConfig.CompiledRulesText);
+                    }
+                    else
+                    {
+                        CmfRecommendationService.ClearRecommendationCache();
+                    }
 
                     statusMessage = string.Format(
                         "Successfully imported {0}-point scoring guidelines ({1} dimensions, {2} disposition bands, {3} gating guardrails) into cmf-assistant-config.json.",
@@ -958,6 +1272,67 @@ public static class CmfAssistantConfigService
                 return false;
             }
         }
+    }
+
+    private static List<Dictionary<string, object>> ParsePermutationSheet(ExcelWorksheet permSheet)
+    {
+        List<Dictionary<string, object>> permList = new List<Dictionary<string, object>>();
+        if (permSheet == null || permSheet.Dimension == null || permSheet.Dimension.End.Row < 5) return permList;
+
+        int permHeader = 4;
+        for (int pr = 1; pr <= Math.Min(permSheet.Dimension.End.Row, 10); pr++)
+        {
+            string c1 = (permSheet.Cells[pr, 1].Text ?? string.Empty).Trim();
+            if (string.Equals(c1, "ID", StringComparison.OrdinalIgnoreCase)) { permHeader = pr; break; }
+        }
+        for (int pr = permHeader + 1; pr <= permSheet.Dimension.End.Row; pr++)
+        {
+            string idTxt = (permSheet.Cells[pr, 1].Text ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(idTxt)) continue;
+            int idVal;
+            if (!int.TryParse(idTxt, out idVal)) continue;
+
+            int sVal = 0, oVal = 0, dVal = 0, bVal = 0, rvpScoreVal = 0;
+            int.TryParse((permSheet.Cells[pr, 2].Text ?? string.Empty).Trim(), out sVal);
+            int.TryParse((permSheet.Cells[pr, 3].Text ?? string.Empty).Trim(), out oVal);
+            int.TryParse((permSheet.Cells[pr, 4].Text ?? string.Empty).Trim(), out dVal);
+            int.TryParse((permSheet.Cells[pr, 5].Text ?? string.Empty).Trim(), out bVal);
+            string rvpStatus = (permSheet.Cells[pr, 6].Text ?? string.Empty).Trim();
+            int.TryParse((permSheet.Cells[pr, 7].Text ?? string.Empty).Trim(), out rvpScoreVal);
+            double wScore = 0.0;
+            double.TryParse((permSheet.Cells[pr, 8].Text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out wScore);
+            string sBand = (permSheet.Cells[pr, 9].Text ?? string.Empty).Trim();
+            string rTrig = (permSheet.Cells[pr, 10].Text ?? string.Empty).Trim();
+            string recVal = (permSheet.Cells[pr, 11].Text ?? string.Empty).Trim();
+            string ratVal = (permSheet.Cells[pr, 12].Text ?? string.Empty).Trim();
+
+            permList.Add(new Dictionary<string, object>
+            {
+                { "id", idVal },
+                { "s", sVal },
+                { "o", oVal },
+                { "d", dVal },
+                { "b", bVal },
+                { "rvpStatus", rvpStatus },
+                { "rvpScore", rvpScoreVal },
+                { "weightedScore", Math.Round(wScore, 2) },
+                { "scoreBand", sBand },
+                { "ruleTriggered", rTrig },
+                { "recommendation", recVal },
+                { "rationale", ratVal }
+            });
+        }
+        return permList;
+    }
+
+    private class ExcelDimensionDef
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public int Column { get; set; }
+        public int Weight { get; set; }
+        public List<string> Rubrics { get; set; }
+        public ExcelDimensionDef() { Rubrics = new List<string>(); }
     }
 
     private static string FormatPrettyJson(string rawJson)

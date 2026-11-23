@@ -136,7 +136,8 @@ test('debug generation and follow-ups bypass shared forum context without changi
 });
 
 const compiler = path.join(process.env.WINDIR || 'C:\\Windows', 'Microsoft.NET', 'Framework64', 'v4.0.30319', 'csc.exe');
-test('compiled debug assistant isolates forum data, orders recent evidence, and enforces brief output', {
+for (const qualityOnly of [false, true]) {
+test(qualityOnly ? 'compiled SQA classification and completeness gate' : 'compiled debug assistant isolates forum data, orders recent evidence, and enforces brief output', {
     skip: !fs.existsSync(compiler)
 }, () => {
     const root = path.join(__dirname, '..', '..');
@@ -148,6 +149,10 @@ test('compiled debug assistant isolates forum data, orders recent evidence, and 
         for (const assembly of assemblies) {
             fs.copyFileSync(path.join(root, 'bin', assembly), path.join(directory, assembly));
         }
+        const entry = path.join(directory, 'SightingQualityTests.cs');
+        if (qualityOnly) {
+            fs.writeFileSync(entry, 'public static class SightingQualityTests { public static void Main() { DebugSummaryServiceTests.CheckSightingQualityClassification(); System.Console.WriteLine("SQA classification and completeness checks passed."); } }');
+        }
         const build = spawnSync(compiler, [
             '/nologo', '/target:exe', '/out:' + output, '/r:System.Web.dll',
             '/r:System.Web.Extensions.dll', '/r:System.Configuration.dll', '/r:System.Data.dll',
@@ -157,7 +162,8 @@ test('compiled debug assistant isolates forum data, orders recent evidence, and 
             ...assemblies.map(assembly => '/r:' + path.join(root, 'bin', assembly)),
             ...fs.readdirSync(path.join(root, 'App_Code')).filter(file => file.endsWith('.cs'))
                 .map(file => path.join(root, 'App_Code', file)),
-            path.join(__dirname, 'DebugSummaryServiceTests.cs')
+            path.join(__dirname, 'DebugSummaryServiceTests.cs'),
+            ...(qualityOnly ? ['/main:SightingQualityTests', entry] : [])
         ], { encoding: 'utf8', timeout: 120000 });
         assert.equal(build.status, 0, build.stdout + build.stderr);
         const run = spawnSync(output, [], { encoding: 'utf8', timeout: 30000,
@@ -167,3 +173,4 @@ test('compiled debug assistant isolates forum data, orders recent evidence, and 
         fs.rmSync(directory, { recursive: true, force: true });
     }
 });
+}

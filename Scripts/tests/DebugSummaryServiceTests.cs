@@ -6,6 +6,170 @@ using System.Reflection;
 
 public static class DebugSummaryServiceTests
 {
+    public static void CheckSightingQualityClassification()
+    {
+        MethodInfo classify = typeof(CmfRecommendationService).GetMethod("ClassifySightingQualityField", BindingFlags.NonPublic | BindingFlags.Static);
+        string[][] cases = {
+            new[] { "SoC Stepping", "SoC Stepping: unknown\nProcessor: novalake_h\nCustomer Detail: edison1", "Missing" },
+            new[] { "SoC Stepping", "SoC Stepping: A0", "Present" },
+            new[] { "SoC Stepping", "SoC Stepping: A1", "Present" },
+            new[] { "SoC Stepping", "SoC Stepping: B1", "Present" },
+            new[] { "SoC Stepping", "SoC Stepping: C0", "Present" },
+            new[] { "SoC Stepping", "SoC Stepping: QS", "Present" },
+            new[] { "SoC Stepping", "SoC Stepping: A0/B0", "Present" },
+            new[] { "SoC Stepping", "SoC Stepping: A0\nStepping: B0", "Conflicting" },
+            new[] { "SoC Stepping", "Stepping: pending confirmation", "Partial" },
+            new[] { "SoC Stepping", "SoC Stepping: A0\nStepping: A0", "Present" },
+            new[] { "Processor", "Processor: Intel", "Partial" },
+            new[] { "Processor", "Processor: novalake_h,eval", "Present" },
+            new[] { "Processor", "Customer Detail: nvl_h", "Missing" },
+            new[] { "Processor", "Processor: i7-13700\nHSD Processor: i7-14700", "Conflicting" },
+            new[] { "ME SKU", "ME SKU: unknown\nProblem Description: consumer laptop fails", "Missing" },
+            new[] { "ME SKU", "ME SKU: consumer\nME_SKU: corp", "Conflicting" },
+            new[] { "ME SKU", "ME SKU: corp\nME_SKU: corporate", "Present" },
+            new[] { "Title", "DB Title: Issue observed", "Partial" },
+            new[] { "Title", "DB Title: Display goes blank after resume", "Present" },
+            new[] { "Impact", "DB Impact: 2-high", "Partial" },
+            new[] { "Impact", "DB Impact: Blocks customer validation and FVT exit", "Present" },
+            new[] { "Steps to Reproduce", "DB RVP Repro: yes\nProblem Description: crash during stress", "Missing" },
+            new[] { "Steps to Reproduce", "Repro Steps: Setup Description", "Missing" },
+            new[] { "Steps to Reproduce", "Repro Steps: Plug device and run test", "Partial" },
+            new[] { "Steps to Reproduce", "Repro Steps: 1.Boot system.\n2.Plug monitor and verify display works.\n3.Repeat until failure.", "Present" },
+            new[] { "Steps to Reproduce", "Repro Steps: 1. Setup Description\n2. Steps\n1. Connect monitor to typec port of unit.\n2. Connect monitor to another typec port of unit.\n3. Enter S4/restart.\n4. Resume from S4/restart.\n5. Find one of two monitors not display.-->issue\n3. Observations\n4. Attachments\n5. Recovery\nReconnect both monitors", "Present" },
+            new[] { "Steps to Reproduce", "Repro Steps: 1. Boot the system.\n2. Connect the monitor.\n3. The monitor does not respond.", "Present" },
+            new[] { "Steps to Reproduce", "Repro Steps: Connect the monitor, then enter S4, then resume; the monitor cannot display.", "Present" },
+            new[] { "Steps to Reproduce", "Repro Steps: - Boot the system.\n- Connect the monitor.\n- Actual result: image is corrupted.", "Present" },
+            new[] { "Steps to Reproduce", "Repro Steps: 1. Boot the system.\n2. Connect the monitor.\n3. Verify.", "Partial" },
+            new[] { "Steps to Reproduce", "Repro Steps: 1. Setup Description\n2. Steps\nBoot system and connect monitor; no display.\n3. Observations", "Partial" },
+            new[] { "Steps to Reproduce", "Repro Steps: 1. Boot the system.\n2. Connect the monitor.\n3. Recovery\nRestart the system if display fails.", "Missing" },
+            new[] { "Steps to Reproduce", "Repro Steps: 1. Setup Description\nBoot the system. Connect the monitor.\n2. Steps\n3. Observations\nNo display.\n4. Attachments\ntrace.log\n5. Recovery\nRestart the system.", "Missing" },
+            new[] { "Steps to Reproduce", "Repro Steps: Setup Description:\nBoot the system.\nSteps:\nObservations:\nSystem fails.\nRecovery:\nRestart and reconnect.", "Missing" },
+            new[] { "Steps to Reproduce", "Repro Steps: 1. Setup Description\nConfigured test unit.\n2. Steps\nTBD\n3. Observations\nSystem fails.", "Missing" },
+            new[] { "Steps to Reproduce", "Repro Steps: 1. Setup Description\nConfigured test unit.\n2. Steps\nTry the test.\n3. Observations\nSystem fails.\n5. Recovery\nRestart and reconnect.", "Partial" },
+            new[] { "Steps to Reproduce", "Repro Steps: 1. Setup Description\nConfigured test unit.\n2. Steps\n1. Boot the system.\n2. Connect the USB-C monitor.\n3. Enter S4.\n4. Resume the system.\n3. Observations\nNo display.\n4. Attachments\ntrace.log\n5. Recovery\nRestart the system.", "Present" },
+            new[] { "Steps to Reproduce", "Repro Steps: <p>1. Setup Description</p><p>Configured unit.</p><p>2. Steps</p><p>1. Boot the system.</p><p>2. Connect the monitor.</p><p>3. Observations</p><p>No display.</p><p>5. Recovery</p><p>Restart.</p>", "Present" },
+            new[] { "Steps to Reproduce", "Repro Steps: Steps to Repro:\nPrepared the SUT as per the configuration and followed the PM BKM.\nFlashed the BIOS and installed the OS as per the stack mail.\nInstalled all required drivers.\nApplied the necessary OS and BIOS settings.\nEnsured the SUT was running in Administrator mode.\nEnabled Complete Memory Dump in Advanced System Settings.\nModified the system date and time as required.\nInstalled WDK and WDTF.\nInstalled the latest cycling tool and configured the trigger for WR KPI --1000 Cycles", "Present" },
+            new[] { "Reproducibility / Failure Rate", "DB Reproducibility: not reproducible", "Partial" },
+            new[] { "Reproducibility / Failure Rate", "DB Reproducibility: sporadic_10%-40%", "Present" },
+            new[] { "Reproducibility / Failure Rate", "Title occurrence signal: model S4 reboot", "Missing" },
+            new[] { "Exposure / Priority", "Priority: p3-medium", "Present" },
+            new[] { "Exposure / Priority", "DB Impact: Critical blocker", "Missing" },
+            new[] { "Exposure / Priority", "Exposure: 1-critical", "Present" },
+            new[] { "Exposure / Priority", "Priority: p1-showstopper\nPriority: p3-medium", "Conflicting" },
+            new[] { "Exposure / Priority", "Priority: p1-showstopper\nExposure: 2-high", "Present" }
+        };
+        foreach (string[] item in cases)
+        {
+            var field = (SightingQualityFieldAssessment)classify.Invoke(null, new object[] { item[0], item[1], "Clarify the field." });
+            Check(field.Status == item[2], item[0] + " expected " + item[2] + ", got " + field.Status + ": " + item[1]);
+            Check(field.Status != "Missing" || !field.Evidence.Contains("edison1"), "Unrelated background leaked into missing-field evidence.");
+        }
+        CheckSightingQualityCompleteness();
+        CheckSightingQualitySevenPointScore();
+        CheckSightingQualityStepsEvidence();
+        CheckSightingQualityMergedIsolation();
+    }
+
+    public static void CheckSightingQualityMergedIsolation()
+    {
+        MethodInfo build = typeof(CmfRecommendationService).GetMethod("BuildFallbackSightingQualityAssessment", BindingFlags.NonPublic | BindingFlags.Static);
+        string context = "--- CMF Portal Database ---\nSoC Stepping: unknown\nProcessor: novalake_h\nTitle: SUT issue\n--- Sighting 14029023598 (HSD Portal) ---\nSoC Stepping: unknown\n--- Duplicated / Merged Target Sighting 14028462214 ---\nSoC Stepping: A0,B0\n--- Duplicated / Merged Sighting 14028462214 (HSD Portal) ---\nSoC Stepping: A0,B0";
+        var assessment = (SightingQualityAssessmentResponse)build.Invoke(null, new object[] {
+            "14029023598", "SUT issue", "graphics", "", "", "yes", "always_100%", "", "", context
+        });
+        var stepField = assessment.Fields.Find(field => field.FieldName == "SoC Stepping");
+        Check(stepField.Status == "Missing", "Merged sighting stepping A0,B0 must not leak into SQA when current sighting stepping is unknown.");
+    }
+
+    public static void CheckSightingQualityStepsEvidence()
+    {
+        MethodInfo build = typeof(CmfRecommendationService).GetMethod("BuildFallbackSightingQualityAssessment", BindingFlags.NonPublic | BindingFlags.Static);
+        string steps = "1. Boot the system.\n2. Connect the USB-C monitor.\n3. Enter S4.\n4. Resume the system.";
+        string context = "Repro Steps: Setup Description:\nConfigured test system.\nSteps:\n" + steps
+            + "\nObservations:\nNo display.\nAttachments:\ntrace.log\nRecovery:\nRestart the system.\nReproducibility: sporadic_10%-40%\nRVP Repro: yes";
+        var assessment = (SightingQualityAssessmentResponse)build.Invoke(null, new object[] {
+            "123", "Display issue", "graphics", "", "", "yes", "sporadic_10%-40%", "", "", context
+        });
+        var repro = assessment.Fields.Find(field => field.FieldName == "Steps to Reproduce");
+        Check(repro.Status == "Present", "Status was " + repro.Status + " instead of Present: " + repro.Characteristic);
+        Check(repro.Evidence.Replace("\r", "") == ("Repro Steps: " + steps).Replace("\r", ""), "Evidence was [" + repro.Evidence + "] instead of [" + ("Repro Steps: " + steps) + "]");
+        var rate = assessment.Fields.Find(field => field.FieldName == "Reproducibility / Failure Rate");
+        Check(rate.Status == "Present" && rate.Evidence.Contains("sporadic_10%-40%"), "Failure-rate evidence must retain the reproducibility value.");
+        Check(!rate.Evidence.Contains("RVP") && !rate.Evidence.Contains("yes") && !rate.Evidence.Contains("no"), "Failure-rate evidence must exclude RVP yes/no values.");
+
+        var missing = (SightingQualityAssessmentResponse)build.Invoke(null, new object[] {
+            "123", "Display issue", "graphics", "", "", "yes", "sporadic_10%-40%", "", "",
+            context.Replace(steps, string.Empty)
+        });
+        var missingRepro = missing.Fields.Find(field => field.FieldName == "Steps to Reproduce");
+        Check(missingRepro.Status == "Missing" && !missingRepro.Evidence.Contains("Restart"), "Setup, observations, or recovery must not fill an empty Steps section.");
+    }
+
+    public static void CheckSightingQualitySevenPointScore()
+    {
+        MethodInfo apply = typeof(CmfRecommendationService).GetMethod("ApplySightingQualityScoreModel", BindingFlags.NonPublic | BindingFlags.Static);
+        string[] names = { "Title", "Reproducibility / Failure Rate", "Processor", "SoC Stepping", "Impact", "Steps to Reproduce", "Exposure / Priority" };
+        string[] statuses = { "Present", "Partial", "Missing", "Conflicting" };
+        for (int combination = 0; combination < 16384; combination++)
+        {
+            var assessment = new SightingQualityAssessmentResponse();
+            int remaining = combination;
+            double points = 0.0;
+            foreach (string name in names)
+            {
+                string status = statuses[remaining % 4];
+                remaining /= 4;
+                points += status == "Present" ? 1.0 : status == "Partial" ? 0.5 : 0.0;
+                assessment.Fields.Add(new SightingQualityFieldAssessment { FieldName = name, Status = status });
+            }
+            assessment.Fields.Add(new SightingQualityFieldAssessment { FieldName = "ME SKU", Status = "Present" });
+            apply.Invoke(null, new object[] { assessment });
+            int expected = (int)Math.Round(points / 7.0 * 100.0, MidpointRounding.AwayFromZero);
+            Check(assessment.QualityScore == expected && assessment.BaselineScore == expected, "Seven-point score or ME SKU exclusion failed.");
+            double displayed = Math.Round(assessment.QualityScore * 7.0 / 100.0 * 2.0, MidpointRounding.AwayFromZero) / 2.0;
+            Check(displayed == points, "Percentage API must preserve the exact seven-point half-step score.");
+        }
+    }
+
+    public static void CheckSightingQualityCompleteness()
+    {
+        MethodInfo gate = typeof(CmfRecommendationService).GetMethod("BuildSightingQualityCompletenessRecommendation", BindingFlags.NonPublic | BindingFlags.Static);
+        string[] coreFields = { "Title", "Reproducibility / Failure Rate", "Processor", "SoC Stepping", "Impact", "Steps to Reproduce", "Exposure / Priority" };
+        var assessment = new SightingQualityAssessmentResponse { Success = true, CpId = "123", QualityScore = 10 };
+        foreach (string fieldName in coreFields)
+        {
+            assessment.Fields.Add(new SightingQualityFieldAssessment { FieldName = fieldName, Status = "Present" });
+        }
+        Check(gate.Invoke(null, new object[] { assessment, "Test" }) == null, "When all core fields are present, completeness recommendation must be null.");
+        foreach (SightingQualityFieldAssessment field in assessment.Fields)
+        {
+            field.Status = "Partial";
+            Check(gate.Invoke(null, new object[] { assessment, "Test" }) == null, "Partial fields alone must not trigger SQA incomplete tag.");
+            field.Status = "Missing";
+            var result = (CmfRecommendationResponse)gate.Invoke(null, new object[] { assessment, "Test" });
+            Check(result != null && result.Recommendation == "CMF_INCOMPLETE", "Missing " + field.FieldName + " must trigger CMF_INCOMPLETE.");
+            Check(result.Evidence.Contains(field.FieldName), "Reasoning must cite the missing field.");
+            field.Status = "Present";
+        }
+        var config = CmfAssistantConfigService.GetConfig();
+        string originalToken = config.GnaiApiKey;
+        try
+        {
+            config.GnaiApiKey = "unit-test-offline-token";
+            var quality = CmfRecommendationService.GenerateSightingQualityAssessment(new CmfRecommendationRequest { CpId = "sqa-seven-point-test", Title = "Test" });
+            Check(quality.Fields.Count == 7 && quality.Fields.TrueForAll(field => field.FieldName != "ME SKU"), "ME SKU must be absent from the returned SQA checklist.");
+            var directResult = CmfRecommendationService.GenerateCmfPendingRecommendation(new CmfRecommendationRequest { CpId = "sqa-gate-test", Title = "Test" });
+            Check(directResult.Success && directResult.Recommendation == "CMF_INCOMPLETE", "Direct recommendation call with missing fields must resolve to CMF_INCOMPLETE.");
+            Check(directResult.RuleScores != null && directResult.RuleScores.Count > 0, "Recommendation logic must still carry out metric scoring when tagged CMF_INCOMPLETE.");
+            Check(directResult.OverallQualityScore >= 0, "Overall score must be calculated even when incomplete.");
+            Check(directResult.Evidence.Contains("missing from the sighting, so **CMF_INCOMPLETE** is recommended"), "Reasoning must state that missing fields lead to CMF_INCOMPLETE.");
+        }
+        finally
+        {
+            config.GnaiApiKey = originalToken;
+        }
+    }
+
     private static void Check(bool condition, string message)
     {
         if (!condition) throw new Exception(message);
@@ -301,6 +465,7 @@ public static class DebugSummaryServiceTests
 
     public static void Main()
     {
+        CheckSightingQualityClassification();
         CheckPortalInfrastructureConfiguration();
         CheckPortalConfigurationSplit();
         CheckAssistantFeatureConfiguration();

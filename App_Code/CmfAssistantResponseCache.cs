@@ -31,6 +31,32 @@ public static class CmfAssistantResponseCache
         }
     }
 
+    public static void InvalidateSighting(string cpId)
+    {
+        if (string.IsNullOrWhiteSpace(cpId)) return;
+        string clean = cpId.Trim();
+        string directory = HostingEnvironment.MapPath("~/App_Data/cmf-assistant-cache");
+        try
+        {
+            if (directory == null || !Directory.Exists(directory)) return;
+            foreach (string path in Directory.GetFiles(directory, "*.json"))
+            {
+                try
+                {
+                    string content = File.ReadAllText(path, Encoding.UTF8);
+                    if (content.IndexOf("\"CpId\":\"" + clean + "\"", StringComparison.OrdinalIgnoreCase) >= 0
+                        || content.IndexOf("\"cpId\":\"" + clean + "\"", StringComparison.OrdinalIgnoreCase) >= 0
+                        || content.IndexOf(clean, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        File.Delete(path);
+                    }
+                }
+                catch { }
+            }
+        }
+        catch { }
+    }
+
     public static IDisposable Enter(string key)
     {
         string hash = Fingerprint(key);

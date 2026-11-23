@@ -47,6 +47,7 @@ public class HsdArticleData
     public string FixedVersion { get; set; }
     public string CustomerImpact { get; set; }
     public string Reproducibility { get; set; }
+    public string ReproOnRvp { get; set; }
     public string ImplementedDate { get; set; }
     public string VerifiedDate { get; set; }
     public string ClosedDate { get; set; }
@@ -54,6 +55,10 @@ public class HsdArticleData
     public string InvestigationHistory { get; set; }
     public string FetchSource { get; set; }
     public string UpdatedDate { get; set; }
+    public string MergeId { get; set; }
+    public string PromotedId { get; set; }
+    public Dictionary<string, string> ExtraLayoutFields { get; set; }
+    public List<string> ImageReadouts { get; set; }
     public string DebugEvidenceLimitation { get; set; }
     public Dictionary<string, string> InsightFields { get; set; }
     public string InsightEvidenceLimitation { get; set; }
@@ -62,9 +67,9 @@ public class HsdArticleData
 public static class HsdPortalService
 {
     private const string DefaultBaseUrl = "https://hsdes.intel.com/appbuilder/rest/article";
-    private const int DescriptionMaxChars = 2500;
-    private const int CommentMaxChars = 600;
-    private const int MaxComments = 5;
+    private const int DescriptionMaxChars = 3500;
+    private const int CommentMaxChars = 1400;
+    private const int MaxComments = 15;
 
     // Fetches article fields + recent comments using configured providers.
     public static HsdArticleData FetchArticle(string articleId, bool forDebugSummary = false, bool forInsights = false)
@@ -151,6 +156,27 @@ public static class HsdPortalService
         return result;
     }
 
+    public static bool HasCustomerMustFixFlag(HsdArticleData data)
+    {
+        if (data == null || !data.FetchSuccess) return false;
+        if (!string.IsNullOrWhiteSpace(data.Sysdebug) && data.Sysdebug.IndexOf("customer_must_fix", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+        if (!string.IsNullOrWhiteSpace(data.SysdebugForum) && data.SysdebugForum.IndexOf("customer_must_fix", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+        if (data.ExtraLayoutFields != null)
+        {
+            foreach (KeyValuePair<string, string> kv in data.ExtraLayoutFields)
+            {
+                string k = (kv.Key ?? string.Empty).ToLowerInvariant();
+                if ((k.Contains("sysdebug") || k.Contains("qrc_vector") || k.Contains("target_release") || k.Contains("fix_needed_by") || k.Contains("customer_must_fix"))
+                    && !string.IsNullOrWhiteSpace(kv.Value)
+                    && (kv.Value.IndexOf("customer_must_fix", StringComparison.OrdinalIgnoreCase) >= 0 || kv.Value.IndexOf("cmf", StringComparison.OrdinalIgnoreCase) >= 0))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     // Formats HsdArticleData into a context block for the AI prompt.
     public static string FormatForAiContext(HsdArticleData data, string sectionLabel)
     {
@@ -158,6 +184,8 @@ public static class HsdPortalService
 
         var sb = new StringBuilder();
         sb.AppendLine("--- " + sectionLabel + " (HSD Portal) ---");
+        if (!string.IsNullOrWhiteSpace(data.ArticleId))
+            sb.AppendLine("HSD Article Link: https://hsdes.intel.com/appstore/article/#/" + data.ArticleId.Trim());
         AppendIfSet(sb, "HSD Fetch Source", data.FetchSource);
         AppendIfSet(sb, "Title", data.Title);
         AppendIfSet(sb, "Problem Description", Truncate(data.Description, DescriptionMaxChars));
@@ -166,39 +194,60 @@ public static class HsdPortalService
         AppendIfSet(sb, "Status", data.Status);
         AppendIfSet(sb, "Priority", data.Priority);
         AppendIfSet(sb, "Exposure", data.Exposure);
-        AppendIfSet(sb, "Customer Impact", Truncate(data.CustomerImpact, 1000));
+        AppendIfSet(sb, "Customer Impact", Truncate(data.CustomerImpact, 1500));
         AppendIfSet(sb, "Reproducibility", data.Reproducibility);
+        AppendIfSet(sb, "RVP Platform Debug Details", data.ReproOnRvp);
         AppendIfSet(sb, "Sysdebug Category", data.Sysdebug);
-        AppendIfSet(sb, "Sysdebug Forum", Truncate(data.SysdebugForum, 1000));
+        AppendIfSet(sb, "Sysdebug Forum", Truncate(data.SysdebugForum, 2000));
+        AppendIfSet(sb, "Merge ID", data.MergeId);
+        AppendIfSet(sb, "Promoted ID", data.PromotedId);
         AppendIfSet(sb, "Submitter", data.Submitter);
         AppendIfSet(sb, "Owner", data.Owner);
-        AppendIfSet(sb, "Repro Steps", Truncate(data.StepsToReproduce, 800));
-        AppendIfSet(sb, "Expected Behavior", Truncate(data.ExpectedBehavior, 500));
-        AppendIfSet(sb, "Actual Behavior", Truncate(data.ActualBehavior, 500));
-        AppendIfSet(sb, "What Happened", Truncate(data.WhatHappened, 800));
-        AppendIfSet(sb, "What Should Have Happened", Truncate(data.WhatShouldHaveHappened, 500));
-        AppendIfSet(sb, "Customer Detail", Truncate(data.CustomerDetail, 500));
-        AppendIfSet(sb, "Customer Summary", Truncate(data.CustomerSummary, 500));
-        AppendIfSet(sb, "Mandatory Fields", Truncate(data.MandatoryFields, 1200));
+        AppendIfSet(sb, "Repro Steps", Truncate(data.StepsToReproduce, 1200));
+        AppendIfSet(sb, "Expected Behavior", Truncate(data.ExpectedBehavior, 700));
+        AppendIfSet(sb, "Actual Behavior", Truncate(data.ActualBehavior, 700));
+        AppendIfSet(sb, "What Happened", Truncate(data.WhatHappened, 1000));
+        AppendIfSet(sb, "What Should Have Happened", Truncate(data.WhatShouldHaveHappened, 700));
+        AppendIfSet(sb, "Customer Detail", Truncate(data.CustomerDetail, 700));
+        AppendIfSet(sb, "Customer Summary", Truncate(data.CustomerSummary, 700));
+        AppendIfSet(sb, "Mandatory Fields", Truncate(data.MandatoryFields, 1500));
         AppendIfSet(sb, "Board", data.Board);
         AppendIfSet(sb, "Processor", data.Processor);
         AppendIfSet(sb, "SoC Stepping", data.SocStepping);
         AppendIfSet(sb, "ME SKU", data.MeSku);
         AppendIfSet(sb, "Debug Log Attached", data.DebugLogAttached);
         AppendIfSet(sb, "System Scope Filename", data.SystemScopeFilename);
-        AppendIfSet(sb, "CMF Justification", Truncate(data.CmfJustification, 1000));
-        AppendIfSet(sb, "Fix Description", Truncate(data.FixDescription, 1000));
+        AppendIfSet(sb, "CMF Justification", Truncate(data.CmfJustification, 1200));
+        AppendIfSet(sb, "Fix Description", Truncate(data.FixDescription, 1400));
         AppendIfSet(sb, "Fixed Version", data.FixedVersion);
         AppendIfSet(sb, "Closed Reason", data.ClosedReason);
         AppendIfSet(sb, "Implemented Date", data.ImplementedDate);
         AppendIfSet(sb, "Verified Date", data.VerifiedDate);
         AppendIfSet(sb, "Closed Date", data.ClosedDate);
 
+        if (data.ExtraLayoutFields != null && data.ExtraLayoutFields.Count > 0)
+        {
+            sb.AppendLine("Additional HSD Layout Fields:");
+            foreach (KeyValuePair<string, string> kv in data.ExtraLayoutFields)
+            {
+                if (!string.IsNullOrWhiteSpace(kv.Value))
+                    sb.AppendLine("  " + kv.Key + ": " + Truncate(kv.Value, 500));
+            }
+        }
+
         if (data.Comments != null && data.Comments.Count > 0)
         {
             sb.AppendLine("Discussion Comments (" + data.Comments.Count + " shown):");
             for (int i = 0; i < data.Comments.Count; i++)
                 sb.AppendLine("  [" + (i + 1) + "] " + data.Comments[i]);
+        }
+
+        if (data.ImageReadouts != null && data.ImageReadouts.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("=== HSD ATTACHED / INLINE IMAGE READOUTS ===");
+            for (int i = 0; i < data.ImageReadouts.Count; i++)
+                sb.AppendLine("  [Image " + (i + 1) + "] " + data.ImageReadouts[i]);
         }
 
         if (!string.IsNullOrWhiteSpace(data.InvestigationHistory))
@@ -267,6 +316,8 @@ public static class HsdPortalService
         {
             ArticleId = articleId,
             Comments = new List<string>(),
+            ExtraLayoutFields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
+            ImageReadouts = new List<string>(),
             FetchSuccess = false
         };
     }
@@ -314,7 +365,7 @@ public static class HsdPortalService
 
             MergeArticleJsonIntoResult(json, result, forDebugSummary, forInsights);
 
-            // Try to fetch discussion comments; skip separate comment endpoints when inline history is already present and configured.
+            // Fetch discussion comments so latest activity and duplicate/merged ID notes in comments are always captured.
             if (forInsights)
             {
                 FetchInsightComments(articleUrl, result);
@@ -323,11 +374,16 @@ public static class HsdPortalService
             {
                 bool skipComments = !forDebugSummary
                     && CmfAssistantConfigService.GetConfig().SkipCommentEndpointsWhenHistoryPresent
-                    && (!string.IsNullOrWhiteSpace(result.InvestigationHistory) || (result.Comments != null && result.Comments.Count > 0));
+                    && (result.Comments != null && result.Comments.Count > 0);
                 if (!skipComments)
                 {
                     TryFetchComments(articleUrl, result, forDebugSummary);
                 }
+            }
+
+            if (!forDebugSummary && !forInsights && HasRecognizableArticleFields(result))
+            {
+                TryFetchAndReadArticleImages(articleUrl, result);
             }
             return HasRecognizableArticleFields(result);
         }
@@ -458,7 +514,8 @@ public static class HsdPortalService
         StringBuilder builder = new StringBuilder();
         builder.AppendLine("Retrieve HSDES bug/article " + articleId + " using the available HSDES plugin/tool.");
         builder.AppendLine("Return only a JSON object with these keys when available:");
-        builder.AppendLine("fetch_success, fetch_error, article_id, title, problem_description, description, family, component, status, sysdebug, sysdebug_forum, priority, exposure, submitter, owner, repro_steps, steps_to_reproduce, mandatory_fields, expected_behavior, actual_behavior, customer_summary, customer_impact, reproducibility, processor, soc_stepping, me_sku, cmf_justification, fix_description, fixed_version, closed_reason, implemented_date, verified_date, closed_date, investigation_history, comments.");
+        builder.AppendLine("fetch_success, fetch_error, article_id, title, problem_description, description, family, component, status, sysdebug, sysdebug_forum, merge_id, merged_id, duplicate_id, promoted_id, priority, exposure, submitter, owner, repro_steps, steps_to_reproduce, mandatory_fields, expected_behavior, actual_behavior, customer_summary, customer_impact, reproducibility, processor, soc_stepping, me_sku, cmf_justification, fix_description, fixed_version, closed_reason, implemented_date, verified_date, closed_date, investigation_history, comments.");
+        builder.AppendLine("Retrieve Priority and Exposure as separate fields from the article, including the Exposure editor content. Copy the full title and exposure text without truncation. Do not substitute priority, customer impact, or a guessed severity for Exposure. If Exposure is unavailable, leave it null rather than inferring it.");
         builder.AppendLine("Also return updated_date with the article's last-modified timestamp or revision when available. Copy retrieved field values verbatim rather than paraphrasing or summarizing them, so unchanged articles produce stable source data. comments must contain the most recent discussion/update strings in newest-first order. investigation_history should include relevant engineering updates, debug findings, root-cause/fix/closure notes, and customer/external history when present.");
         builder.AppendLine("If the plugin/tool cannot retrieve this article, return fetch_success=false and a short fetch_error. Do not use prior knowledge or guess.");
         return builder.ToString();
@@ -1052,27 +1109,60 @@ public static class HsdPortalService
 
     private static void MapArticleFields(IDictionary fields, HsdArticleData result)
     {
-        result.Title = FirstNonEmpty(Pick(fields, "title", "subject", "name"), result.Title);
-        result.Description = FirstNonEmpty(Pick(fields, "problem_description", "problemDescription", "description", "sighting.description", "body", "text", "summary", "client_platf.bug.problem_description", "client_platf.bug.root_cause_description", "client_platf.bug.what_happened"), result.Description);
-        result.Family = FirstNonEmpty(Pick(fields, "family", "product_family", "sighting.family", "cpu_family"), result.Family);
-        result.Component = FirstNonEmpty(Pick(fields, "component", "sighting.component", "component_name"), result.Component);
-        result.Status = FirstNonEmpty(Pick(fields, "status", "sighting.status", "state"), result.Status);
-        result.Sysdebug = FirstNonEmpty(Pick(fields, "sysdebug", "sighting.sysdebug", "debug_category", "sysdebug_category", "client_platf.bug.sysdebug"), result.Sysdebug);
-        result.SysdebugForum = FirstNonEmpty(Pick(fields, "sysdebug_forum", "sighting.sysdebug_forum", "debug_forum", "client_platf.bug.sysdebug_forum"), result.SysdebugForum);
-        result.Priority = FirstNonEmpty(Pick(fields, "priority", "sighting.priority", "severity"), result.Priority);
-        result.Submitter = FirstNonEmpty(Pick(fields, "submitter", "reporter", "created_by", "author"), result.Submitter);
-        result.Owner = FirstNonEmpty(Pick(fields, "owner", "assigned_to", "assignee"), result.Owner);
-        result.StepsToReproduce = FirstNonEmpty(Pick(fields, "repro_steps", "reproSteps", "steps_to_reproduce", "stepsToReproduce", "sighting.steps_to_reproduce", "sighting.repro_steps", "repro", "to_reproduce", "bug.to_reproduce", "client_platf.bug.repro_steps", "client_platf.bug.steps_to_reproduce", "client_platf.bug.ext_cust_to_reproduce"), result.StepsToReproduce);
-        result.ExpectedBehavior = FirstNonEmpty(Pick(fields, "expected_behavior", "expected", "sighting.expected_behavior", "client_platf.bug.what_should_have_happened"), result.ExpectedBehavior);
-        result.ActualBehavior = FirstNonEmpty(Pick(fields, "actual_behavior", "actual", "sighting.actual_behavior", "client_platf.bug.what_happened"), result.ActualBehavior);
-        result.WhatHappened = FirstNonEmpty(Pick(fields, "what_happened", "client_platf.bug.what_happened"), result.WhatHappened);
-        result.WhatShouldHaveHappened = FirstNonEmpty(Pick(fields, "what_should_have_happened", "client_platf.bug.what_should_have_happened"), result.WhatShouldHaveHappened);
-        result.DebugLogAttached = FirstNonEmpty(Pick(fields, "debug_log_attached", "client_platf.bug.debug_log_attached", "is_system_scope_log_attached", "client_platf.bug.is_system_scope_log_attached"), result.DebugLogAttached);
-        result.SystemScopeFilename = FirstNonEmpty(Pick(fields, "system_scope_filename", "client_platf.bug.system_scope_filename"), result.SystemScopeFilename);
-        result.CustomerDetail = FirstNonEmpty(Pick(fields, "customer_detail", "client_platf.bug.customer_detail"), result.CustomerDetail);
-        result.CustomerSummary = FirstNonEmpty(Pick(fields, "customer_summary", "customerSummary", "client_platf.bug.customer_summary", "client_platf.bug.ext_cust_summary", "ext_cust_summary"), result.CustomerSummary);
+        result.Title = FirstNonEmpty(PickByExactOrSuffix(fields, "title", "subject", "name"), result.Title);
+        result.Description = FirstNonEmpty(PickByExactOrSuffix(fields, "problem_description", "problemDescription", "description", "sighting.description", "body", "text", "summary", "client_platf.bug.problem_description", "client_platf.bug.root_cause_description", "client_platf.bug.what_happened"), result.Description);
+        result.Family = FirstNonEmpty(PickByExactOrSuffix(fields, "family", "product_family", "sighting.family", "cpu_family"), result.Family);
+        result.Component = FirstNonEmpty(PickByExactOrSuffix(fields, "component", "sighting.component", "component_name"), result.Component);
+        result.Status = FirstNonEmpty(PickByExactOrSuffix(fields, "status", "sighting.status", "state"), result.Status);
+        result.Sysdebug = FirstNonEmpty(PickByExactOrSuffix(fields, "sysdebug", "sighting.sysdebug", "debug_category", "sysdebug_category", "client_platf.bug.sysdebug"), result.Sysdebug);
+        string qrcVector = PickByExactOrSuffix(fields, "bug.qrc_vector", "qrc_vector");
+        if (!string.IsNullOrWhiteSpace(qrcVector) && qrcVector.IndexOf("customer_must_fix", StringComparison.OrdinalIgnoreCase) >= 0
+            && (string.IsNullOrWhiteSpace(result.Sysdebug) || result.Sysdebug.IndexOf("customer_must_fix", StringComparison.OrdinalIgnoreCase) < 0))
+        {
+            result.Sysdebug = string.IsNullOrWhiteSpace(result.Sysdebug) ? qrcVector : (result.Sysdebug + " (" + qrcVector + ")");
+        }
+        string custMustFixDate = PickByExactOrSuffix(fields, "customer_must_fix_date", "bug.customer_must_fix_date", "client_platf.bug.customer_must_fix_date");
+        string targetRelease = PickByExactOrSuffix(fields, "target_release", "bug.target_release", "client_platf.bug.target_release");
+        string fixNeededBy = PickByExactOrSuffix(fields, "fix_needed_by", "bug.fix_needed_by", "client_platf.bug.fix_needed_by");
+        bool hasCmfReleaseMarker = !string.IsNullOrWhiteSpace(custMustFixDate)
+            || (!string.IsNullOrWhiteSpace(targetRelease) && targetRelease.IndexOf("CMF", StringComparison.OrdinalIgnoreCase) >= 0)
+            || (!string.IsNullOrWhiteSpace(fixNeededBy) && fixNeededBy.IndexOf("CMF", StringComparison.OrdinalIgnoreCase) >= 0);
+        if (hasCmfReleaseMarker)
+        {
+            string cmfMarker = "customer_must_fix";
+            if (!string.IsNullOrWhiteSpace(targetRelease)) cmfMarker += " (Target: " + targetRelease.Trim() + ")";
+            else if (!string.IsNullOrWhiteSpace(custMustFixDate)) cmfMarker += " (CMF Date: " + custMustFixDate.Trim() + ")";
+            if (string.IsNullOrWhiteSpace(result.Sysdebug))
+            {
+                result.Sysdebug = cmfMarker;
+            }
+            else if (result.Sysdebug.IndexOf("customer_must_fix", StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                result.Sysdebug = cmfMarker + " | " + result.Sysdebug;
+            }
+        }
+
+        result.SysdebugForum = FirstNonEmpty(PickByExactOrSuffix(fields,
+            "sysdebug_forum", "sighting.sysdebug_forum", "debug_forum", "client_platf.bug.sysdebug_forum",
+            "sighting.forum_notes", "forum_notes", "bug.forum_notes",
+            "internal_summary", "ip_sw_graphics.bug.internal_summary", "debug_description", "debug_notes",
+            "fix_description", "bug.fix_description"), result.SysdebugForum);
+        result.MergeId = FirstNonEmpty(PickByExactOrSuffix(fields, "merge_id", "merged_id", "mergeId", "mergedId", "duplicate_id", "duplicated_id", "duplicated_to", "merged_to", "sighting.merge_id", "client_platf.bug.merge_id"), result.MergeId);
+        result.PromotedId = FirstNonEmpty(PickByExactOrSuffix(fields, "promoted_id", "promotedId", "sighting.promoted_id", "client_platf.bug.promoted_id", "bug_promoted_id"), result.PromotedId);
+        result.Priority = FirstNonEmpty(PickByExactOrSuffix(fields, "priority", "sighting.priority", "client_platf.bug.priority", "severity"), result.Priority);
+        result.Submitter = FirstNonEmpty(PickByExactOrSuffix(fields, "submitter", "reporter", "created_by", "author"), result.Submitter);
+        result.Owner = FirstNonEmpty(PickByExactOrSuffix(fields, "owner", "assigned_to", "assignee"), result.Owner);
+        result.StepsToReproduce = FirstNonEmpty(PickByExactOrSuffix(fields, "repro_steps", "reproSteps", "steps_to_reproduce", "stepsToReproduce", "sighting.steps_to_reproduce", "sighting.repro_steps", "repro", "to_reproduce", "bug.to_reproduce", "client_platf.bug.repro_steps", "client_platf.bug.steps_to_reproduce", "client_platf.bug.ext_cust_to_reproduce"), result.StepsToReproduce);
+        result.ExpectedBehavior = FirstNonEmpty(PickByExactOrSuffix(fields, "expected_behavior", "expected", "sighting.expected_behavior", "client_platf.bug.what_should_have_happened"), result.ExpectedBehavior);
+        result.ActualBehavior = FirstNonEmpty(PickByExactOrSuffix(fields, "actual_behavior", "actual", "sighting.actual_behavior", "client_platf.bug.what_happened"), result.ActualBehavior);
+        result.WhatHappened = FirstNonEmpty(PickByExactOrSuffix(fields, "what_happened", "client_platf.bug.what_happened"), result.WhatHappened);
+        result.WhatShouldHaveHappened = FirstNonEmpty(PickByExactOrSuffix(fields, "what_should_have_happened", "client_platf.bug.what_should_have_happened"), result.WhatShouldHaveHappened);
+        result.DebugLogAttached = FirstNonEmpty(PickByExactOrSuffix(fields, "debug_log_attached", "client_platf.bug.debug_log_attached", "is_system_scope_log_attached", "client_platf.bug.is_system_scope_log_attached"), result.DebugLogAttached);
+        result.SystemScopeFilename = FirstNonEmpty(PickByExactOrSuffix(fields, "system_scope_filename", "client_platf.bug.system_scope_filename"), result.SystemScopeFilename);
+        result.CustomerDetail = FirstNonEmpty(PickByExactOrSuffix(fields, "customer_detail", "client_platf.bug.customer_detail"), result.CustomerDetail);
+        result.CustomerSummary = FirstNonEmpty(PickByExactOrSuffix(fields, "customer_summary", "customerSummary", "client_platf.bug.customer_summary", "client_platf.bug.ext_cust_summary", "ext_cust_summary"), result.CustomerSummary);
         result.MandatoryFields = FirstNonEmpty(
-            Pick(fields,
+            PickByExactOrSuffix(fields,
                 "mandatory_fields",
                 "mandatoryFields",
                 "required_fields",
@@ -1083,12 +1173,13 @@ public static class HsdPortalService
                 "client_platf.bug.required_fields"),
             result.MandatoryFields,
             BuildMandatoryFieldsSummary(fields));
-        result.Board = FirstNonEmpty(Pick(fields, "board", "client_platf.bug.board", "customer_board", "client_platf.bug.customer_board"), result.Board);
-        result.Processor = FirstNonEmpty(Pick(fields, "processor", "sighting.processor", "cpu", "cpu_model", "processor_model", "client_platf.bug.processor", "client_platf.bug.cpu", "client_platf.bug.cpu_model"), result.Processor);
-        result.SocStepping = FirstNonEmpty(Pick(fields, "soc_stepping", "socstepping", "soc.stepping", "stepping", "silicon_stepping", "client_platf.bug.soc_stepping", "client_platf.bug.stepping", "client_platf.bug.silicon_stepping"), result.SocStepping);
-        result.Exposure = FirstNonEmpty(Pick(fields, "exposure", "customer_exposure", "business_exposure", "client_platf.bug.exposure", "client_platf.bug.customer_exposure"), result.Exposure);
-        result.MeSku = FirstNonEmpty(Pick(fields, "me_sku", "meSKU", "me.sku", "me_sku_type", "me_type", "client_platf.bug.me_sku", "client_platf.bug.me_sku_type", "client_platf.bug.me_type"), result.MeSku);
-        result.FixDescription = FirstNonEmpty(Pick(
+        result.Board = FirstNonEmpty(PickByExactOrSuffix(fields, "board", "client_platf.bug.board", "customer_board", "client_platf.bug.customer_board"), result.Board);
+        result.Processor = FirstNonEmpty(PickByExactOrSuffix(fields, "processor", "sighting.processor", "cpu", "cpu_model", "processor_model", "client_platf.bug.processor", "client_platf.bug.cpu", "client_platf.bug.cpu_model"), result.Processor);
+        result.SocStepping = FirstNonEmpty(PickSteppingValue(fields, result.SocStepping), result.SocStepping);
+        result.Exposure = FirstNonEmpty(PickByExactOrSuffix(fields, "exposure", "bug.exposure", "sighting.exposure", "customer_exposure", "business_exposure", "client_platf.bug.exposure", "client_platf.bug.customer_exposure", "client_platf.bug.business_exposure"), result.Exposure);
+        result.MeSku = FirstNonEmpty(PickByExactOrSuffix(fields, "me_sku", "meSKU", "me.sku", "me_sku_type", "me_type", "client_platf.bug.me_sku", "client_platf.bug.me_sku_type", "client_platf.bug.me_type"), result.MeSku);
+        result.ReproOnRvp = FirstNonEmpty(PickByExactOrSuffix(fields, "repro_on_rvp", "repro_on_intel_rvp", "sighting.repro_on_rvp", "client_platf.bug.repro_on_rvp", "rvp_repro", "rvp_reproduced", "rvp_debug"), result.ReproOnRvp);
+        result.FixDescription = FirstNonEmpty(PickByExactOrSuffix(
             fields,
             "fix_description",
             "bugfixdescription",
@@ -1097,7 +1188,7 @@ public static class HsdPortalService
             "fixdescription",
             "resolution"), result.FixDescription);
 
-        result.ClosedReason = FirstNonEmpty(Pick(
+        result.ClosedReason = FirstNonEmpty(PickByExactOrSuffix(
             fields,
             "closed_reason",
             "bugclosedreason",
@@ -1105,7 +1196,7 @@ public static class HsdPortalService
             "closedreason",
             "closure_reason"), result.ClosedReason);
 
-        result.FixedVersion = FirstNonEmpty(Pick(
+        result.FixedVersion = FirstNonEmpty(PickByExactOrSuffix(
             fields,
             "fixed_version",
             "clientplatfbugfixedinversion",
@@ -1114,7 +1205,7 @@ public static class HsdPortalService
             "fixedinversion",
             "fixed_in_version"), result.FixedVersion);
 
-        result.CustomerImpact = FirstNonEmpty(Pick(
+        result.CustomerImpact = FirstNonEmpty(PickByExactOrSuffix(
             fields,
             "customer_impact",
             "bug.customer_impact",
@@ -1125,7 +1216,7 @@ public static class HsdPortalService
             "customerimpact",
             "impact"), result.CustomerImpact);
 
-        result.Reproducibility = FirstNonEmpty(Pick(
+        result.Reproducibility = FirstNonEmpty(PickByExactOrSuffix(
             fields,
             "reproducibility",
             "bug.reproducibility",
@@ -1134,7 +1225,7 @@ public static class HsdPortalService
             "bugreproducibility",
             "repro"), result.Reproducibility);
 
-        result.ImplementedDate = FirstNonEmpty(Pick(
+        result.ImplementedDate = FirstNonEmpty(PickByExactOrSuffix(
             fields,
             "implemented_date",
             "bug.implemented_date",
@@ -1142,28 +1233,27 @@ public static class HsdPortalService
             "bugimplementeddate",
             "dateimplemented"), result.ImplementedDate);
 
-        result.VerifiedDate = FirstNonEmpty(Pick(
+        result.VerifiedDate = FirstNonEmpty(PickByExactOrSuffix(
             fields,
             "verified_date",
             "bug.verified_date",
             "bugverifieddate",
             "dateverified"), result.VerifiedDate);
 
-        result.ClosedDate = FirstNonEmpty(Pick(
+        result.ClosedDate = FirstNonEmpty(PickByExactOrSuffix(
             fields,
-            "closed_date",
             "closed_date",
             "closeddate",
             "dateclosed"), result.ClosedDate);
 
-        result.CmfJustification = FirstNonEmpty(Pick(
+        result.CmfJustification = FirstNonEmpty(PickByExactOrSuffix(
             fields,
             "cmf_justification",
             "client_platf.bug.why_cmf_change",
             "clientplatfbugwhycmfchange",
             "whycmfchange"), result.CmfJustification);
 
-        string commentsHistory = Pick(
+        string commentsHistory = PickByExactOrSuffix(
             fields,
             "investigation_history",
             "investigationHistory",
@@ -1181,7 +1271,7 @@ public static class HsdPortalService
             result.InvestigationHistory = commentsHistory;
         }
 
-        string customerBlogHistory = Pick(
+        string customerBlogHistory = PickByExactOrSuffix(
             fields,
             "clientplatfbugextcustbloghist",
             "custbloghist",
@@ -1199,6 +1289,8 @@ public static class HsdPortalService
                 result.InvestigationHistory = customerBlogHistory;
             }
         }
+
+        PopulateExtraLayoutFields(fields, result);
     }
 
     private static void ParseCommentsJson(string json, HsdArticleData result, bool forDebugSummary = false)
@@ -1251,6 +1343,411 @@ public static class HsdPortalService
                 return s;
         }
         return null;
+    }
+
+    // Matches exact keys first, then scans all HSD layout-prefixed keys (e.g., ip_bug.sighting.soc_stepping, sw_bug.sysdebug_forum).
+    private static string PickByExactOrSuffix(IDictionary dict, params string[] keys)
+    {
+        string exact = Pick(dict, keys);
+        if (!string.IsNullOrEmpty(exact)) return exact;
+        if (dict == null || keys == null || keys.Length == 0) return null;
+
+        foreach (string candidate in keys)
+        {
+            if (string.IsNullOrWhiteSpace(candidate)) continue;
+            string leaf = candidate.Contains(".") ? candidate.Substring(candidate.LastIndexOf('.') + 1) : candidate;
+            foreach (DictionaryEntry entry in dict)
+            {
+                if (entry.Key == null || entry.Value == null) continue;
+                if (entry.Value is IDictionary || entry.Value is IList) continue;
+                string keyStr = entry.Key.ToString().Trim();
+                if (string.Equals(keyStr, candidate, StringComparison.OrdinalIgnoreCase)
+                    || keyStr.EndsWith("." + leaf, StringComparison.OrdinalIgnoreCase))
+                {
+                    string valStr = entry.Value.ToString().Trim();
+                    if (!string.IsNullOrEmpty(valStr) && !string.Equals(valStr, "null", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return valStr;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static string PickSteppingValue(IDictionary fields, string existing)
+    {
+        string[] candidateKeys = new[]
+        {
+            "soc_stepping", "socstepping", "soc.stepping", "client_platf.bug.soc_stepping",
+            "bug.soc_stepping", "sighting.soc_stepping", "client_platf.sighting.soc_stepping",
+            "silicon_stepping", "client_platf.bug.silicon_stepping",
+            "stepping", "client_platf.bug.stepping", "bug.stepping", "sighting.stepping",
+            "target_stepping", "client_platf.bug.target_stepping"
+        };
+        string candidate = null;
+        foreach (string key in candidateKeys)
+        {
+            string val = PickByExactOrSuffix(fields, key);
+            if (string.IsNullOrWhiteSpace(val)) continue;
+            string clean = val.Trim();
+            if (System.Text.RegularExpressions.Regex.IsMatch(clean, @"\A(?:~?unknown|unassigned|not\s+(?:available|provided|specified|known|applicable)|to\s+be\s+(?:determined|confirmed)|tbc|none|n/?a|[-?]+)\z", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            {
+                if (candidate == null) candidate = clean;
+                continue;
+            }
+            return clean;
+        }
+        return !string.IsNullOrWhiteSpace(candidate) ? candidate : existing;
+    }
+
+    private static void PopulateExtraLayoutFields(IDictionary fields, HsdArticleData result)
+    {
+        if (fields == null || result == null) return;
+        if (result.ExtraLayoutFields == null)
+        {
+            result.ExtraLayoutFields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        string[] ignoredSubstrings = new[]
+        {
+            "acl", "tenant", "notify", "watcher", "subscriber", "mail", "password", "secret", "token",
+            "fetch_success", "fetch_error", "subject_config", "sync_", "etag", "row_version", "rev"
+        };
+
+        HashSet<string> alreadyMappedValues = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string v in new[]
+        {
+            result.ArticleId, result.Title, result.Description, result.Family, result.Component, result.Status,
+            result.Sysdebug, result.SysdebugForum, result.MergeId, result.PromotedId, result.Priority,
+            result.Submitter, result.Owner, result.StepsToReproduce, result.ExpectedBehavior, result.ActualBehavior,
+            result.WhatHappened, result.WhatShouldHaveHappened, result.DebugLogAttached, result.SystemScopeFilename,
+            result.CustomerDetail, result.CustomerSummary, result.Board, result.Processor, result.SocStepping,
+            result.Exposure, result.MeSku, result.FixDescription, result.ClosedReason, result.FixedVersion,
+            result.CustomerImpact, result.Reproducibility, result.CmfJustification, result.InvestigationHistory
+        })
+        {
+            if (!string.IsNullOrWhiteSpace(v)) alreadyMappedValues.Add(v.Trim());
+        }
+
+        int addedCount = 0;
+        foreach (DictionaryEntry entry in fields)
+        {
+            if (addedCount >= 35) break;
+            if (entry.Key == null || entry.Value == null) continue;
+            if (entry.Value is IDictionary || entry.Value is IList) continue;
+
+            string key = entry.Key.ToString().Trim();
+            string val = entry.Value.ToString().Trim();
+            if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(val)) continue;
+            if (string.Equals(val, "null", StringComparison.OrdinalIgnoreCase) || val.Length > 1500) continue;
+            if (alreadyMappedValues.Contains(val)) continue;
+
+            bool ignore = false;
+            string lowerKey = key.ToLowerInvariant();
+            for (int i = 0; i < ignoredSubstrings.Length; i++)
+            {
+                if (lowerKey.Contains(ignoredSubstrings[i])) { ignore = true; break; }
+            }
+            if (ignore) continue;
+
+            if (!result.ExtraLayoutFields.ContainsKey(key))
+            {
+                result.ExtraLayoutFields[key] = val;
+                addedCount++;
+            }
+        }
+    }
+
+    private sealed class HsdImageCandidate
+    {
+        public string Label { get; set; }
+        public string MediaType { get; set; }
+        public string Base64Data { get; set; }
+    }
+
+    private static void TryFetchAndReadArticleImages(string articleUrl, HsdArticleData result)
+    {
+        if (result == null) return;
+        try
+        {
+            List<HsdImageCandidate> candidates = new List<HsdImageCandidate>();
+            HashSet<string> seenSources = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // 1. Scan inline HTML <img src="..."> across rich text fields and comments
+            List<string> htmlBlocks = new List<string>
+            {
+                result.Description, result.StepsToReproduce, result.ActualBehavior,
+                result.WhatHappened, result.CustomerImpact, result.InvestigationHistory
+            };
+            if (result.Comments != null) htmlBlocks.AddRange(result.Comments);
+
+            foreach (string block in htmlBlocks)
+            {
+                if (string.IsNullOrWhiteSpace(block) || block.IndexOf("<img", StringComparison.OrdinalIgnoreCase) < 0) continue;
+                System.Text.RegularExpressions.MatchCollection matches = System.Text.RegularExpressions.Regex.Matches(
+                    block,
+                    @"<img\b[^>]*?\bsrc\s*=\s*[""']([^""']+)[""']",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                foreach (System.Text.RegularExpressions.Match m in matches)
+                {
+                    if (candidates.Count >= 3) break;
+                    string src = System.Net.WebUtility.HtmlDecode(m.Groups[1].Value.Trim());
+                    if (string.IsNullOrWhiteSpace(src) || !seenSources.Add(src)) continue;
+                    HsdImageCandidate img = TryLoadImageCandidate(src, "Inline image");
+                    if (img != null) candidates.Add(img);
+                }
+                if (candidates.Count >= 3) break;
+            }
+
+            // 2. Check HSD attachment children for screenshots/images if slots remain
+            if (candidates.Count < 3 && !string.IsNullOrWhiteSpace(articleUrl))
+            {
+                try
+                {
+                    string attachJson = HttpGetSspi(articleUrl + "/children?type=attachment&count=8", 2500);
+                    if (!string.IsNullOrWhiteSpace(attachJson))
+                    {
+                        JavaScriptSerializer ser = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                        IDictionary root = ser.DeserializeObject(attachJson) as IDictionary;
+                        IList items = root == null ? null : (root["data"] as IList ?? root["children"] as IList ?? root["attachments"] as IList);
+                        if (items != null)
+                        {
+                            foreach (object obj in items)
+                            {
+                                if (candidates.Count >= 3) break;
+                                IDictionary att = obj as IDictionary;
+                                if (att == null) continue;
+                                string fileName = FirstNonEmpty(PickByExactOrSuffix(att, "file_name", "filename", "title", "name", "document_name"));
+                                string downloadUrl = FirstNonEmpty(PickByExactOrSuffix(att, "download_url", "url", "content_url", "binary_url", "href"));
+                                string attId = FirstNonEmpty(Pick(att, "id", "article_id"));
+                                bool isImageName = System.Text.RegularExpressions.Regex.IsMatch(fileName ?? string.Empty, @"\.(?:png|jpe?g|gif|webp)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                                if (!isImageName) continue;
+
+                                if (string.IsNullOrWhiteSpace(downloadUrl) && !string.IsNullOrWhiteSpace(attId))
+                                {
+                                    Uri baseUri = new Uri(articleUrl);
+                                    downloadUrl = baseUri.GetLeftPart(UriPartial.Authority) + "/rest/binary/" + Uri.EscapeUriString(attId);
+                                }
+                                if (!string.IsNullOrWhiteSpace(downloadUrl) && seenSources.Add(downloadUrl))
+                                {
+                                    HsdImageCandidate img = TryLoadImageCandidate(downloadUrl, string.IsNullOrWhiteSpace(fileName) ? "Attachment image" : fileName);
+                                    if (img != null) candidates.Add(img);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            if (candidates.Count == 0) return;
+
+            string readout = ReadImagesWithGnaiVision(candidates);
+            if (!string.IsNullOrWhiteSpace(readout))
+            {
+                if (result.ImageReadouts == null) result.ImageReadouts = new List<string>();
+                result.ImageReadouts.Add(readout.Trim());
+            }
+        }
+        catch { }
+    }
+
+    private static HsdImageCandidate TryLoadImageCandidate(string src, string label)
+    {
+        try
+        {
+            if (src.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+            {
+                int comma = src.IndexOf(',');
+                if (comma <= 11 || comma >= src.Length - 1) return null;
+                string header = src.Substring(5, comma - 5);
+                string mediaType = header.Split(';')[0].Trim().ToLowerInvariant();
+                if (!IsSupportedVisionMimeType(mediaType)) return null;
+                string b64 = src.Substring(comma + 1).Trim();
+                if (b64.Length > 4000000) return null;
+                return new HsdImageCandidate { Label = label, MediaType = mediaType, Base64Data = b64 };
+            }
+
+            Uri uri;
+            if (!Uri.TryCreate(src, UriKind.Absolute, out uri)) return null;
+            if (!uri.Host.EndsWith(".intel.com", StringComparison.OrdinalIgnoreCase) && !string.Equals(uri.Host, "intel.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            string contentType;
+            byte[] bytes = HttpGetBytesSspi(uri.AbsoluteUri, 3000, 3 * 1024 * 1024, out contentType);
+            if (bytes == null || bytes.Length < 64) return null;
+
+            string resolvedMime = NormalizeImageMimeType(contentType, uri.AbsolutePath, bytes);
+            if (!IsSupportedVisionMimeType(resolvedMime)) return null;
+
+            return new HsdImageCandidate
+            {
+                Label = label,
+                MediaType = resolvedMime,
+                Base64Data = Convert.ToBase64String(bytes)
+            };
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool IsSupportedVisionMimeType(string mime)
+    {
+        return string.Equals(mime, "image/png", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(mime, "image/jpeg", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(mime, "image/gif", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(mime, "image/webp", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeImageMimeType(string contentType, string path, byte[] bytes)
+    {
+        string clean = (contentType ?? string.Empty).Split(';')[0].Trim().ToLowerInvariant();
+        if (clean == "image/jpg") return "image/jpeg";
+        if (IsSupportedVisionMimeType(clean)) return clean;
+
+        if (bytes != null && bytes.Length >= 4)
+        {
+            if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) return "image/png";
+            if (bytes[0] == 0xFF && bytes[1] == 0xD8) return "image/jpeg";
+            if (bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46) return "image/gif";
+        }
+        string lowerPath = (path ?? string.Empty).ToLowerInvariant();
+        if (lowerPath.EndsWith(".png")) return "image/png";
+        if (lowerPath.EndsWith(".jpg") || lowerPath.EndsWith(".jpeg")) return "image/jpeg";
+        if (lowerPath.EndsWith(".gif")) return "image/gif";
+        if (lowerPath.EndsWith(".webp")) return "image/webp";
+        return string.Empty;
+    }
+
+    private static byte[] HttpGetBytesSspi(string url, int timeoutMs, int maxBytes, out string contentType)
+    {
+        contentType = string.Empty;
+        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+        request.Method = "GET";
+        request.Timeout = timeoutMs;
+        request.ReadWriteTimeout = timeoutMs;
+        request.AllowAutoRedirect = true;
+        request.UseDefaultCredentials = true;
+        request.Credentials = CredentialCache.DefaultCredentials;
+        request.PreAuthenticate = true;
+        request.Proxy = BuildHsdProxy();
+
+        using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+        {
+            contentType = response.ContentType ?? string.Empty;
+            if (response.ContentLength > maxBytes) return null;
+            using (Stream stream = response.GetResponseStream())
+            using (MemoryStream ms = new MemoryStream())
+            {
+                if (stream == null) return null;
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    if (ms.Length + read > maxBytes) return null;
+                    ms.Write(buffer, 0, read);
+                }
+                return ms.ToArray();
+            }
+        }
+    }
+
+    private static string ReadImagesWithGnaiVision(List<HsdImageCandidate> images)
+    {
+        if (images == null || images.Count == 0) return string.Empty;
+        string token = ResolveGnaiToken();
+        string baseEndpoint = CmfAssistantConfigService.ResolveGnaiEndpoint();
+        string model = FirstNonEmpty(CmfAssistantConfigService.GetConfig().FastSummaryModel, CmfAssistantConfigService.ResolvePrimaryModel(), "claude-4-5-haiku");
+        if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(baseEndpoint) || baseEndpoint.StartsWith("REPLACE", StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Empty;
+        }
+
+        string endpoint = CmfAssistantConfigService.ResolveGnaiEndpointForModel(baseEndpoint, model);
+        bool isAnthropic = CmfAssistantConfigService.IsAnthropicMessagesEndpoint(endpoint, model);
+        JavaScriptSerializer serializer = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+
+        object payload;
+        string instruction = "Read the attached HSD sighting image(s) carefully. Extract all visible error messages, BSOD/MCA stop codes, Device Manager / HLK errors, BIOS/driver/OS/stepping versions, failure counts, or visual display symptoms in 2-5 concise plain-English bullet lines. Do not guess anything not visible.";
+        if (isAnthropic)
+        {
+            ArrayList contentBlocks = new ArrayList();
+            for (int i = 0; i < images.Count; i++)
+            {
+                Hashtable source = new Hashtable();
+                source["type"] = "base64";
+                source["media_type"] = images[i].MediaType;
+                source["data"] = images[i].Base64Data;
+
+                Hashtable imgBlock = new Hashtable();
+                imgBlock["type"] = "image";
+                imgBlock["source"] = source;
+                contentBlocks.Add(imgBlock);
+            }
+            Hashtable textBlock = new Hashtable();
+            textBlock["type"] = "text";
+            textBlock["text"] = instruction;
+            contentBlocks.Add(textBlock);
+
+            payload = new
+            {
+                model = model,
+                max_tokens = 450,
+                temperature = 0,
+                messages = new object[] { new { role = "user", content = contentBlocks } }
+            };
+        }
+        else
+        {
+            ArrayList contentBlocks = new ArrayList();
+            for (int i = 0; i < images.Count; i++)
+            {
+                Hashtable imgUrl = new Hashtable();
+                imgUrl["url"] = "data:" + images[i].MediaType + ";base64," + images[i].Base64Data;
+                Hashtable imgBlock = new Hashtable();
+                imgBlock["type"] = "image_url";
+                imgBlock["image_url"] = imgUrl;
+                contentBlocks.Add(imgBlock);
+            }
+            Hashtable textBlock = new Hashtable();
+            textBlock["type"] = "text";
+            textBlock["text"] = instruction;
+            contentBlocks.Add(textBlock);
+
+            payload = new
+            {
+                model = model,
+                temperature = 0,
+                messages = new object[] { new { role = "user", content = contentBlocks } }
+            };
+        }
+
+        try
+        {
+            string responseBody = PostJson(endpoint, serializer.Serialize(payload), token, BuildGnaiProxy(), "CMF-Portal-HSD-Vision/1.0");
+            IDictionary root = serializer.DeserializeObject(responseBody) as IDictionary;
+            if (root != null && root["content"] is IList)
+            {
+                StringBuilder sb = new StringBuilder();
+                foreach (object blockObj in (IList)root["content"])
+                {
+                    IDictionary block = blockObj as IDictionary;
+                    if (block != null && block["text"] != null) sb.Append(block["text"].ToString());
+                }
+                if (sb.Length > 0) return sb.ToString().Trim();
+            }
+            return ExtractModelContent(responseBody);
+        }
+        catch
+        {
+            return string.Empty;
+        }
     }
 
     private static string FirstNonEmpty(params string[] values)

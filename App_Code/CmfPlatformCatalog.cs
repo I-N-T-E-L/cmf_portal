@@ -240,22 +240,29 @@ ORDER BY t.name", connection))
             "NVL-H",
             "CMF_NVL_H_ALL_COMPONENTS_TABLE",
             "https://dashboards.intel.com/projects/nvl-h",
-            string.Empty,
+            "https://cdrdv2.intel.com/v1/dl/getContent/862842",
             new[] { "nvl-h", "nvl h", "nvl_h", "novalake-h", "novalake h", "nova lake-h", "nova lake h" }),
 
         new CmfPlatformDefinition(
             "NVL-S",
             "CMF_NVL_S_ALL_COMPONENTS_TABLE",
             "https://dashboards.intel.com/projects/nvl-s",
-            string.Empty,
+            "https://cdrdv2.intel.com/v1/dl/getContent/862842",
             new[] { "nvl-s", "nvl s", "nvl_s", "novalake-s", "novalake s", "nova lake-s", "nova lake s" }),
 
         new CmfPlatformDefinition(
             "NVL-U",
             "CMF_NVL_U_ALL_COMPONENTS_TABLE",
             "https://dashboards.intel.com/projects/nvl-u",
-            string.Empty,
+            "https://cdrdv2.intel.com/v1/dl/getContent/862842",
             new[] { "nvl-u", "nvl u", "nvl_u", "novalake-u", "novalake u", "nova lake-u", "nova lake u" }),
+
+        new CmfPlatformDefinition(
+            "NVL-Hx",
+            "CMF_NVL_Hx_ALL_COMPONENTS_TABLE",
+            "https://dashboards.intel.com/projects/nvl-hx",
+            "https://cdrdv2.intel.com/v1/dl/getContent/862842",
+            new[] { "nvl-hx", "nvl hx", "nvl_hx", "novalake-hx", "novalake hx", "nova lake-hx", "nova lake hx" }),
 
         new CmfPlatformDefinition(
             "PTL",

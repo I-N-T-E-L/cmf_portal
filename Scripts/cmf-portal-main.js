@@ -37,15 +37,20 @@ function toggleSidebar() {
         trigger.setAttribute('aria-expanded', 'false');
         trigger.removeAttribute('aria-controls');
         if (restoreFocus && trigger.isConnected) trigger.focus();
-        if (dirty && !select.matches('#pendingTabShell select, #GridView_cmf_pending select')) {
-            select.dispatchEvent(new Event('change', { bubbles: true }));
+        if (dirty) {
+            if (select.id === 'ddlSharedPlatform' || !select.matches('#pendingTabShell select, #GridView_cmf_pending select')) {
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            }
         }
     }
 
     function sync(control) {
         var option = control.select.options[control.select.selectedIndex];
         var selected = Array.from(control.select.selectedOptions).filter(function (item) { return item.value; });
-        control.text.textContent = control.select.multiple && selected.length ? (selected.length === 1 ? selected[0].textContent : selected.length + ' selected') : option ? option.textContent : 'Select All';
+        var displayLabel = control.select.multiple && selected.length
+            ? (selected.length === 1 ? selected[0].textContent : (selected.length <= 2 ? selected.map(function (item) { return item.textContent; }).join(', ') : selected.length + ' selected'))
+            : (option ? option.textContent : 'Select All');
+        control.text.textContent = displayLabel;
         control.trigger.title = control.select.multiple && selected.length ? selected.map(function (item) { return item.title || item.textContent; }).join(', ') : option ? option.title || option.textContent : control.label;
         control.trigger.disabled = control.select.disabled;
         control.trigger.setAttribute('aria-label', control.label + ': ' + control.text.textContent);
@@ -66,13 +71,20 @@ function toggleSidebar() {
                 active.dirty = true;
                 active.renderOptions();
             }
-            if (control.select.matches('#pendingTabShell select, #GridView_cmf_pending select')) {
+            if (control.select.id !== 'ddlSharedPlatform' && control.select.matches('#pendingTabShell select, #GridView_cmf_pending select')) {
                 control.select.dispatchEvent(new Event('change', { bubbles: true }));
             }
         } else {
-            closeMenu(true);
-            control.select.selectedIndex = index;
+            if (control.select.multiple) {
+                Array.from(control.select.options).forEach(function (item, idx) {
+                    item.selected = (idx === index);
+                });
+            } else {
+                control.select.selectedIndex = index;
+            }
             sync(control);
+            if (active) active.dirty = false;
+            closeMenu(true);
             control.select.dispatchEvent(new Event('change', { bubbles: true }));
         }
     }
@@ -162,6 +174,16 @@ function toggleSidebar() {
                 button.append(check, text);
                 button.addEventListener('click', function (event) {
                     event.preventDefault();
+                    var isCheckClick = check.contains(event.target) || event.target === check;
+                    if (control.select.id === 'ddlSharedPlatform') {
+                        if (isCheckClick) {
+                            event.stopPropagation();
+                            choose(control, index, true);
+                        } else {
+                            choose(control, index, false);
+                        }
+                        return;
+                    }
                     if (control.select.multiple) event.stopPropagation();
                     choose(control, index, control.select.multiple ? true : check.contains(event.target));
                 });
@@ -219,10 +241,10 @@ function toggleSidebar() {
             if (!select.isConnected) controls.delete(select);
         });
         document.querySelectorAll(selector).forEach(function (select) {
-            if ((select.matches('#pendingTabShell select.cmf-pending-filter-select, #GridView_cmf_pending select.cmf-pending-filter-select, #overall_request_details th select.header-dropdown')) && !select.multiple) {
+            if ((select.id === 'ddlSharedPlatform' || select.matches('#pendingTabShell select.cmf-pending-filter-select, #GridView_cmf_pending select.cmf-pending-filter-select, #overall_request_details th select.header-dropdown')) && !select.multiple) {
                 var previousIndex = select.selectedIndex;
                 select.multiple = true;
-                if (previousIndex >= 0) select.options[previousIndex].selected = true;
+                if (previousIndex >= 0 && select.options[previousIndex]) select.options[previousIndex].selected = true;
             }
             if (controls.has(select)) {
                 sync(controls.get(select));

@@ -11,6 +11,15 @@ const page = fs.readFileSync(path.join(root, 'CMF_Web_portal.aspx'), 'utf8');
 const server = fs.readFileSync(path.join(root, 'CMF_Web_portal.aspx.cs'), 'utf8');
 const theme = fs.readFileSync(path.join(root, 'Content', 'cmf-portal-theme.css'), 'utf8');
 
+test('Issue List supports a missing optional design table', () => {
+    const binding = server.slice(server.indexOf('    private void BindGridView(string filterValue'));
+    assert.match(binding, /if \(!isOverallSelection && !SqlTableExists\(con, designTable\)\)/);
+    assert.match(binding, /designTable = "\(SELECT CAST\(NULL AS NVARCHAR\(4000\)\) AS customer_detail, CAST\(NULL AS DATETIME\) AS sw_image_freeze WHERE 1 = 0\)"/);
+    const active = binding.replace(/^\s*\/\/.*$/gm, '');
+    assert.match(active, /LEFT JOIN " \+ designTable \+ @" AS d2/);
+    assert.match(active, /LEFT JOIN " \+ designTable \+ @" AS d\s/);
+});
+
 test('Issue List preserves the reference column order with separate promoted fields', () => {
     function fields(source) {
         const grid = source.replace(/<%--[\s\S]*?--%>/g, '').match(/<asp:GridView ID="overall_request_details"[\s\S]*?<Columns>([\s\S]*?)<\/Columns>/)[1];
