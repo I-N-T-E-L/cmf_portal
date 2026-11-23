@@ -27061,7 +27061,7 @@ td:nth-child(odd), th:nth-child(odd) {
         }
 </script>
     <script src="Scripts/cmf-portal-main.js?v=20261103-title-actions"></script>
-    <script src="Scripts/cmf-dashboard-insights.js?v=41"></script>
+    <script src="Scripts/cmf-dashboard-insights.js?v=42"></script>
 
     <link rel="stylesheet" href="Content/cmf-portal-theme.css?v=20261120-header-visits-v8" />
     <link rel="stylesheet" href="Content/cmf-dashboard-insights.css?v=39" />

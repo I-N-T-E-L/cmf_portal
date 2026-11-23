@@ -649,8 +649,9 @@
         var state = active = { host: host, scope: document.getElementById(host.id + 'Scope'), key: key, platform: platform,
             snapshotKey: snapshot.InsightsSnapshotKey, trendWeeks: 6, chartView: 'line',
             tab: overall ? 'summary' : 'highlights', overall: overall, dimension: 'Component', serial: 0 };
-        if (state.scope) state.scope.textContent = overall ? snapshot.PlatformLabel || 'Overall'
-            : (snapshot.PlatformLabel || '').replace(/\s+Dashboard\s*$/i, '');
+        var scopeLabel = overall ? snapshot.PlatformLabel || 'Overall'
+            : (snapshot.PlatformLabel || '').replace(/\s+Dashboard\s*$/i, '').trim();
+        if (state.scope) state.scope.textContent = overall || !scopeLabel ? scopeLabel : '(' + scopeLabel + ')';
         host.innerHTML = '<div class="ci-controls"><div class="ci-tabs ci-panel-tabs" role="tablist" aria-label="AI Insights views" hidden></div>'
                 + '<div class="ci-toolbar"><button type="button" class="ci-refresh" title="Refresh insights" aria-label="Refresh insights"><i class="fas fa-sync-alt" aria-hidden="true"></i></button></div></div>'
                 + '<div class="ci-status" role="status" aria-live="polite"></div>'

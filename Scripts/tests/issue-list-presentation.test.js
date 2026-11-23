@@ -1034,12 +1034,41 @@ test('AI Insights keeps content-independent card dimensions and internal scrolli
     assert.match(styles, /#homeLegacyTopLayout > #homeLegacyAiHealthCard\s*\{\s*max-width: min\(100cqw, calc\(100vw - 40px\)\);/);
 });
 
+test('platform AI summary scope wraps current labels in parentheses', () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    new vm.Script(script);
+    const elements = new Map();
+    for (const id of ['homePlatformInsights', 'homeOverallInsights']) {
+        elements.set(id, { id, innerHTML: '', querySelector: () => ({ addEventListener() {} }) });
+        elements.set(id + 'Scope', { textContent: '' });
+    }
+    const portal = { currentDashboardPlatform: 'CMF_NVL_H_ALL_COMPONENTS_TABLE' };
+    const context = vm.createContext({
+        active: null, window: { CMF_PORTAL: portal },
+        document: { getElementById: id => elements.get(id) }, loadPlatform() {}, clearTimeout() {}
+    });
+    const definition = script.match(/    function render\([^)]*\) \{[\s\S]*?\r?\n    \}/);
+    assert.ok(definition);
+    vm.runInContext(definition[0], context);
+    for (const [label, expected] of [
+        ['NVL H', '(NVL H)'], ['NVL H Dashboard', '(NVL H)'],
+        [' NVL H dAsHbOaRd ', '(NVL H)'], ['PTL', '(PTL)'], ['', ''], ['   ', ''], [undefined, '']
+    ]) {
+        context.render({ InsightsSnapshotKey: String(label), PlatformLabel: label });
+        assert.equal(elements.get('homePlatformInsightsScope').textContent, expected);
+    }
+    portal.currentDashboardPlatform = 'CMF_OVERALL_ALL_COMPONENTS_TABLE';
+    context.render({ InsightsSnapshotKey: 'overall', PlatformLabel: 'Overall (12 included platforms)' });
+    assert.equal(elements.get('homeOverallInsightsScope').textContent, 'Overall (12 included platforms)');
+});
+
 test('AI Insights scope sits beside each heading at 13px without the acceptance-date label', () => {
     const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
     const styles = fs.readFileSync(path.join(root, 'Content', 'cmf-dashboard-insights.css'), 'utf8');
     new vm.Script(script);
     for (const hostId of ['homeOverallInsights', 'homePlatformInsights']) {
-        assert.match(page, new RegExp('AI INSIGHTS</span><span id="' + hostId + 'Scope" class="ci-scope"></span>'));
+        const heading = hostId === 'homePlatformInsights' ? 'AI SUMMARY' : 'AI INSIGHTS';
+        assert.match(page, new RegExp(heading + '</span><span id="' + hostId + 'Scope" class="ci-scope"></span>'));
     }
     assert.match(styles, /\.ci-heading\s*\{[^}]*align-items: baseline;[^}]*flex-wrap: wrap;/);
     assert.match(styles, /\.ci-scope\s*\{[^}]*font-size: 13px;/);
@@ -1075,7 +1104,8 @@ test('AI Insights scope sits beside each heading at 13px without the acceptance-
         portal.currentDashboardPlatform = platform;
         context.render({ GeneratedAt: '2026-11-04T12:00:00Z', PlatformLabel: label });
         const state = states.at(-1);
-        assert.equal(elements.get(hostId + 'Scope').textContent, label);
+        const scopeLabel = hostId === 'homePlatformInsights' ? '(' + label + ')' : label;
+        assert.equal(elements.get(hostId + 'Scope').textContent, scopeLabel);
         assert.doesNotMatch(state.host.innerHTML, /ci-scope|All acceptance dates/);
         assert.match(state.host.innerHTML, /ci-platform-title/);
         assert.match(state.host.innerHTML, new RegExp('aria-label="Ranked ' + (hostId === 'homeOverallInsights' ? 'Overall' : 'platform') + ' findings"'));
@@ -1087,11 +1117,11 @@ test('AI Insights scope sits beside each heading at 13px without the acceptance-
         state.pages = { highlights: { items: [] } };
         state.data = { Scope: label, DateRange: 'All acceptance dates', Mode: 'ai', Records: 0, DistinctIssues: 0, DuplicateRecords: 0, ExcludedRecords: 0, GeneratedAt: '2026-11-04T12:00:00Z', ExpiresAt: '2099-01-01T00:00:00Z', SourceStatus: 'All returned text AI-reviewed' };
         context.draw(state);
-        assert.equal(elements.get(hostId + 'Scope').textContent, label);
+        assert.equal(elements.get(hostId + 'Scope').textContent, scopeLabel);
     }
     for (const label of ['NVL S Dashboard', 'NVL S', 'NVL S dAsHbOaRd ']) {
         context.render({ InsightsSnapshotKey: label, PlatformLabel: label });
-        assert.equal(elements.get('homePlatformInsightsScope').textContent, 'NVL S');
+        assert.equal(elements.get('homePlatformInsightsScope').textContent, '(NVL S)');
     }
 });
 
