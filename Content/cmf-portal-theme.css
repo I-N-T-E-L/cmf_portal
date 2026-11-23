@@ -385,6 +385,13 @@ body .portal-app-header .header-user-mode {
     color: #dce5f0 !important;
 }
 
+body .portal-app-header .portal-header-metadata {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+}
+
 body .portal-app-header .portal-header-updated {
     display: inline-flex;
     align-items: center;
@@ -393,6 +400,15 @@ body .portal-app-header .portal-header-updated {
     font-size: 14px;
     font-weight: 400;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+body .portal-app-header .portal-header-visits {
+    color: #dce5f0;
+    font-size: 12px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
     white-space: nowrap;
 }
 

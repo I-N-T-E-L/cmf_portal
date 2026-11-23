@@ -123,9 +123,260 @@ read-time only: it does not delete database rows, alter imports, or update HSD.
 
 ### Dashboard AI Insights
 
-Overall and individual platform dashboards share an Insights panel. Overall adds
-a Summary tab before Highlights and Trends; individual platforms retain Highlights
-and Trends. The active fact pipeline is `CmfRenderedInsightsService`: inputs are
+Individual platform dashboards use `CmfPlatformBriefingService` through the
+snapshot-validated `GetPlatformDashboardBriefing` endpoint. Overall uses the same
+generation-and-independent-review engine through `GetOverallDashboardBriefing`,
+with a separate `overall-page-briefing-v1` result/cache identity. It analyzes its
+own server-owned Overall snapshot, not platform-generated findings or summaries;
+the active UI no longer calls the old aggregation/ranking/Summary endpoints.
+Both panels share the latest one-prominent-observation Summary rules, uncapped
+material findings, optional Open ingredient splits, separate pending/TPT topics,
+Source controls and tab styling. Platform panels retain conditional Summary and
+Customer Issues tabs. Overall is Summary-only: customer issue records and their
+coverage metadata are excluded from its AI analysis and review, not merely hidden.
+Overall ingredient/platform Open totals explicitly sum unique and duplicate
+heatmap counts without adding LOS; their strict status=open population remains
+separate from headline and OEM Open counts.
+C# normalizes the
+selected dashboard's Summary/TPT metrics and all populated ingredient, pending,
+milestone and design rows into typed evidence. It removes hidden issue-ID payloads,
+excludes Total rows from denominators, separates unique/duplicate/LOS/aged counts,
+and includes recognized SW image freeze dates without guessing unknown formats.
+Both panels describe today's situation only, with optional significant
+yesterday-to-today changes. Weekly chart history, weekly activity totals and
+seven-day KPI estimates are excluded; chart view/range does not affect insights.
+The existing persistent cache retains today's and the previous captured snapshot
+per user, platform, configuration and date scope. A baseline qualifies only when
+captured exactly yesterday in the same scope; missing or stale baselines produce
+current-only insights, never invented changes or missing-history bullets.
+Daily capture starts on first use, so yesterday comparisons are unavailable until
+a valid previous-day snapshot exists. Numeric changes require both an absolute
+difference of at least 2 units and the existing 10% relative threshold (at least
+2 from zero); no percentages appear in generated text. Summary/TPT and matching
+table measurements are eligible, along with material captured design-field
+changes. Aggregate row changes are not proof of individual CMF transitions.
+Unchanged freeze countdown aging is not treated as a sudden change. Yesterday
+values are observed snapshots, not estimated end-of-day balances. Hidden
+comparisons remain excluded. Daily capture writes cache files, not database rows.
+Closed carries an explicit Total CMFs denominator from the same accepted-record
+summary population (including duplicates). Pending assessments are a separate
+queue, not an additional disjoint status bucket to add to accepted summary counts.
+Generation and review use these declared populations and denominators rather than
+inferring shares from unrelated headline values. Grounding failures retain private
+structured claim/reason diagnostics in the server cache; the public response and
+UI never expose rejected draft text or reviewer explanations.
+
+The LLM writes and ranks every significant nonredundant observation, with no
+fixed target, maximum finding count or top-N selection. Larger evidence payloads
+are batched by size and every batch is independently verified. All approved
+findings retain their AI-generated batch order without another ranking-only call.
+There is no final cross-batch reranking request. Numeric, date, schema,
+citation and previous-day guards run before independent semantic verification.
+`DayChangeEvidenceIds` identifies eligible significant day-over-day evidence;
+`change` without such a citation and all `trend` findings are rejected. Current
+concentrations and cross-measure observations remain `cluster` and `pattern`.
+One local-validation correction and one independent-review correction are permitted
+per batch, each with full rejection feedback and fresh verification. A local repair
+does not consume the chance to address subsequent semantic rejection. At most three
+generations and two independent reviews run per batch. Within a server job,
+provider failures do not trigger another generation correction. No unapproved
+or canned prose is shown.
+Platform AI Insights cards provide separate Summary and Customer Issues views using
+the existing assistant-section styling and expandable supporting evidence,
+without pagination or a finding cap. Summary contains populated Highlights and
+Lowlights boxes. Customer Issues contains separate populated Open and Pending
+boxes, grouped using reviewed CustomerIssues Sources rather than title keywords;
+queue aging, ownership and aggregate metrics remain in Summary. Empty boxes and
+views have no heading or tab. Tabs support arrow/Home/End keys, preserve each
+view's scroll position and Source expansion, and make no additional AI request.
+The footer counts findings in the selected view.
+The model's reviewed section classifications remain unchanged; the display grouping
+does not require regeneration or weaken evidence approval. The LLM writes a short dynamic bold
+topic subheading (at most 8 words/64 characters) plus exactly one sentence (at most
+35 words/280 characters). Subheadings and bullet text are indented beneath the
+heading; each item ends with a Source link that toggles its own backing data
+immediately below it, preserving expanded state during redraws. Empty sections
+are omitted. Each Source drawer identifies the section/row and exact fields
+selected for that finding, explains the denominator population, and shows scope,
+measurement dates and essential context. A short model-written justification
+explains why those fields support the observation; unrelated milestones and
+routine zero-valued fields are not dumped into the drawer. The full source rows
+remain available to the independent reviewer. Field selections, explanations and
+rendered backing text are validated and bound to the approval hash.
+Priority order is retained within each section. Section choice,
+tone, sentence format and title are included
+in independent review and bound to the approval hash. Favorable/adverse judgments
+such as strong closure, low backlog or fast turnaround need an explicit target or
+supported comparison, not just an absolute value. Counts-only wording remains;
+the sample layout is not a source of numbers or customer issue descriptions.
+Both panels check requested TPT, headline Open and pending-assessment coverage
+before adding points. Positive current TPT averages at or below their own
+user-provided references (Disposition 2 days, Resolution 18 days, Overall 21 days)
+can qualify as Highlights. Equality is a neutral meets-target assessment, not
+proof of fast or maintained handling; below-reference values use favorable
+reference comparisons. Above-reference values qualify as adverse Lowlights only
+when the gap is at least 20% of the reference and at least one day. Slight
+above-reference gaps, zero and unavailable cards remain omitted. TPT bullets stay
+qualitative and concise, with exact days, references, gaps and rationale in Source.
+Above-target sentences convey magnitude: `above` when the gap is below half the
+target, `well above` from half to below a full target, and `far above` or
+`much beyond` from a full target. Generation, validation and independent review
+keep qualifiers evidence-bound; larger gaps are not reduced to a generic `above`.
+Stable or maintained claims require actual history; no SLA or invented temporal progress.
+Milestone-share/ranking/distribution-only points are omitted; milestone context
+remains available for distinct material open/LOS/pending concerns or eligible daily changes.
+Dedicated LOS-only findings are omitted, including LOS-only daily changes. Relevant
+LOS detail can qualify a broader Open or ingredient finding, without a separate
+recap. Generation and independent review enforce this scope; omission does not
+fail completeness. Titles prefer specific queue, backlog, ingredient and design
+wording rather than repeated generic "exposure" labels.
+Distinct measures are not added together. Open/pending balances are added only when their exact metric
+and population are not already covered, including pending totals used in
+age/assignment/concentration findings. Each Summary bullet covers one prominent
+observation in the short bold-topic plus concise-sentence style. Material aging,
+unassigned-iDST (Overall only), pending ingredient, closure/backlog, design breadth/named maxima
+and each qualifying TPT measure remain distinct. Include all material nonredundant
+observations without a count quota; do not add filler or repeat an observation.
+Essential same-observation qualifiers and meaningful runners-up can stay together.
+Customer Issues grouping is unchanged; no aged/unassigned overlap is inferred.
+Standalone iDST assignment, missing-owner and assignment-coverage items are excluded
+from individual platform AI insights; their omission does not fail completeness.
+Overall AI insights retain material, evidence-supported iDST items. Dashboard
+assignment data and necessary Source context remain available; material aging and
+ingredient observations are not removed.
+Only independently material backlog review needs qualify for attention-tone
+Lowlights in platform and Overall Summary. A nonzero Open balance or small share
+against supplied same-population Closed/Total counts is not enough: routine small
+balances may be omitted without failing completeness. Meaningful relative-share
+qualifiers can instead be neutral Highlights when supported by explicit current
+counts and denominators, never interpreted as safe performance. Material concentrations, ingredient/design
+exposure, aging, assignment gaps (Overall only) and qualifying adverse daily changes remain
+eligible even with a small overall Open share. Generation and independent review
+enforce materiality before section choice; attention means review priority, not
+proven poor performance. Supported favorable changes and broad zero-open design
+coverage can still qualify for Highlights.
+Other Highlight candidates include broad complete-table coverage with zero or at
+most one Open design-table record and, in Overall, pending iDST coverage. Exact zero/one/multiple
+design counts include all non-Total rows; they do not prove unique CMFs, delivery
+readiness or SLA compliance. Not being counted as aged does not establish valid
+request dates or within-threshold ages; no such queue-wide complement is inferred.
+Complementary coverage recaps are not separate findings of the same observation.
+Open headline counts include accepted
+duplicates; the pending queue and unique-only milestone/heatmap counts remain
+separate. Independent review checks these baselines and rejects duplicate coverage,
+unsupported comparisons and misleading zero-duration claims.
+Open duplicate/unique counts are projected only from the server-owned Open card's
+exact duplicate metadata, with duplicates bounded by Open. Missing, malformed or
+other-population metadata stays unavailable; all-status or cross-table duplicates
+are never subtracted from the headline. User examples guide qualifiers, never
+actual counts, findings or a required number of Highlights.
+The snapshot retains typed oldest-pending age for dashboard use, but briefing
+bullets and selected Source fields omit it. Briefings use explicit cross-milestone
+ingredient Open totals (unique and duplicate counts kept separate; LOS remains a
+subset), and complete-table design exposure counts, including zero-Open designs.
+These can strengthen existing findings without implying an SLA breach or design
+readiness. Their Sources retain the calculation basis and exact populations.
+Prominent Open ingredient bullets normally give the total and meaningful runners-up.
+Unique/duplicate/LOS detail stays available but is optional unless material to the
+claim; Sources select only supporting fields, and review does not require unused
+splits. Pending ingredient findings retain material ingredient splits,
+using explicit all-iDST ingredient totals when rows repeat; supported aging and
+assignment detail stays within its own population. Generation and independent
+review require these details without adding redundant findings.
+Open and Pending customer briefings use scoped database customer/title pairs,
+not invented symptoms or customer names inferred from design prefixes. Missing or
+conflicting metadata is excluded, duplicate source-platform/issue keys are
+deduplicated, and description coverage remains explicit. Reported symptoms are
+qualitatively summarized in separate Open/Pending groups under Customer Issues
+with source title text in Sources
+(percentage expressions omitted to preserve count-only backing data);
+issue IDs are not passed in the model evidence. Independent review must approve
+customer attribution and symptom wording before anything is published.
+Each complete Open/Pending customer population and its coverage metadata stay
+together in a platform analysis batch, avoiding split-population analysis without
+truncating evidence. Briefings do not decode unexplained abbreviations in titles.
+Language follows a plain executive briefing: familiar 2-5-word topic labels,
+direct verbs (closed, leads, accounts for, includes), and data-first sentences
+of roughly 12-25 words when essential qualifications allow.
+Subheadings prefer an evidence-backed modifier plus topic so they hint at the
+finding: predominantly closed, concentrated pending assessments, leading or
+joint-leading ingredients, aged exposure, or significant previous-day change.
+Ranking, majority and exposure modifiers need supporting counts and correct
+scope/ties; strong, low, limited and fast still require a target, benchmark or
+supported comparison. The reviewer checks each modifier independently. A factual
+topic label remains valid when no interpretive modifier is supported.
+Numeric sequences, zero-valued row lists, repeated claims and methodology narration stay out of the
+main bullet. The independent reviewer checks clarity without dropping scope,
+units, comparison dates or estimated-history qualifications. Redundant current
+capture dates and calendar conventions remain in Source. A writing-style
+version in the evidence hash invalidates older wording without changing layout.
+Measurement column names are supplied once, with complete
+typed rows shared by the analysis and verification prompts. Batches use this
+compact serialized size, not repeated per-measurement JSON property names.
+Overall additionally sends repeated per-section context once, with exact row
+overrides. Both generation and independent review receive the same lossless
+representation; measurements, units, dates, populations and all rows remain intact.
+Batch sizing includes the shared context itself.
+Successful results are cached for 30 minutes by evidence, writing style, platform, configuration,
+scope, calendar date and provider, so unchanged same-day page reloads reuse work
+instead of restarting it solely because the capture timestamp changed. Approved
+results are also persisted through the existing assistant cache and reused after
+application restarts only while fresh and matching the same source, scope,
+pipeline and provider key. Drafts and failures are never restored as approved results. Failed
+results are cached for one minute. Explicit Refresh retries the same page snapshot.
+Overall checkpoints only independently approved batches for 30 minutes, keyed by
+the complete source/policy/provider and exact batch evidence. Failed or interrupted
+runs can resume that work, including after an application restart, without
+regenerating approved batches. New batches still receive independent review, and
+no partial result publishes. Refresh on a completed result bypasses batch reuse.
+Expired, evicted or changed page snapshots still require a dashboard reload to
+keep the analysis aligned with the visible page; the panel's refresh control
+performs that reload after receiving `ReloadRequired`.
+
+Platform polling retries transient transport failures, request timeouts and HTTP
+408/429/5xx responses twice, without forcing a fresh analysis or resetting completed
+progress. Invalid scope, snapshot or result-shape responses are not retried.
+Both Overall and platform panels allow one fresh analysis per load after a known
+recoverable generation/review failure, provider timeout, empty response or temporary
+provider unavailability. That retry keeps the same snapshot and scope, hides rejected
+findings, and stops on a scope change. Authorization, exhausted rate limits,
+cancellation and unknown failures do not trigger automatic regeneration. A failed
+retry leaves one concise user-facing notice; technical failure text is not rendered.
+Provider failures are distinguished from evidence-verification failures. Safe
+response/trace diagnostics include `Stage`, `Requests`, `ElapsedMilliseconds`,
+`LastRequestMilliseconds` and controlled `FailureCode` values; raw provider errors,
+credentials, prompts and unapproved findings are not exposed. Request durations
+and controlled failure metadata are also saved privately for troubleshooting
+provider, format and verification failures after application restarts. Durations
+include queueing, pacing and any bounded provider retries. Each batch still needs
+analysis and independent verification; corrections can add calls, and all dashboard
+AI calls share the provider's serialized request queue. Two clean batches require
+four calls rather than five because the extra ranking-only request is removed.
+Cached approved results require no provider call; cold-run duration still depends
+on provider response time and quota waits.
+`AI:InsightsRequestTimeoutSeconds` defaults to 120 seconds per provider attempt,
+excluding queue/cooldown time. No verification checks or finding-count guarantees
+are relaxed to reduce latency.
+
+Overall additionally projects its visible OEM counts and resolution TPT, current
+pending-age buckets, and open-CMF heatmap cells and derived platform/ingredient
+totals. Unique CMFs, duplicates and LOS subsets remain separate. OEM status
+definitions and heatmap's strict Open population are explicit; pending-age
+denominators exclude records with unknown ages and are not assumed to equal the
+full pending queue. Historical OEM trend fields, predictions and hidden IDs are
+excluded. Overall evidence tables remain intact within generation/review batches,
+even when one complete table exceeds the nominal compact-size budget, so global
+denominators and rankings are checked against the entire comparison population.
+No rows or findings are capped. Snapshot tokens are user-bound and checked against current Overall
+membership, configuration and date. Overall uses the same Highlights/Lowlights
+boxes, concise bold titles, icon-only expandable justified sources, progress,
+refresh, cache expiry and bounded transport retries as individual platforms.
+
+#### Retained Legacy Insights APIs
+
+The remainder of this section documents the retained
+`CmfRenderedInsightsService` / `CmfDashboardSummaryService` APIs, not the active
+Overall AI Insights panel. Their inputs are
 projected from the same server-owned `HomeDashboardSnapshot` that supplies the
 selected panel's KPI cards, component/ingredient summary, pending summary,
 and milestone tables. Calendar-week chart buckets are not Insights inputs. Platform selection,
