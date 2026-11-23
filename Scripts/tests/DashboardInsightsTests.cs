@@ -25,6 +25,8 @@ public static class DashboardInsightsTests
         CheckOverallBriefingResume();
         CheckBriefingBacklogMateriality();
         CheckBriefingHighlightCandidates();
+        CheckBriefingPanelIsolation();
+        CheckBriefingCustomerIssueGrouping();
         CheckBriefingTptMagnitude();
         CheckBriefingIdstExclusion();
         CheckPlatformBriefingValidation();
@@ -384,7 +386,7 @@ public static class DashboardInsightsTests
             && overallWriting.Contains("separate material aging and unassigned-iDST observations")
             && overallWriting.Contains("splits remain available, not mandatory")
             && overallReview.Contains("do not reject its omission")
-            && overallWriting.Contains("CustomerIssues grouping is unchanged")
+            && overallWriting.Contains("CustomerIssues uses issue-based bullets")
             && overallWriting.Contains("omit oldest age from bullets and selected Sources")
             && overallReview.Contains("NO STANDALONE LOS"),
             "Overall lost applicable platform Summary, optional-split, pending, TPT or Customer Issues rules.");
@@ -787,6 +789,132 @@ public static class DashboardInsightsTests
         Console.WriteLine("Highlight candidate checks passed in both scopes: current Open splits, on-target TPT, complete design coverage and pending assignment coverage, without sample copying or relaxed review.");
     }
 
+    public static void CheckBriefingPanelIsolation()
+    {
+        var source = new CmfPlatformBriefingSource { Platform = "NVL_H", Scope = "Panel isolation test", DateScope = "2026-11-23",
+            Configuration = "test-config", CapturedAt = "2026-11-23", Hash = "combined-source", Evidence = new List<CmfPlatformBriefingEvidence>() };
+        foreach (string section in new[] { "CMF Summary", "TPT", "CustomerIssues", "CustomerIssueCoverage" })
+            source.Evidence.Add(new CmfPlatformBriefingEvidence { Id = section, Section = section, Subject = section,
+                Context = new Dictionary<string, string>(), Measurements = new List<CmfFactMeasurement> {
+                    new CmfFactMeasurement { Name = section, Current = 1, Unit = "records", CurrentDate = "2026-11-23" } } });
+        var summary = CmfPlatformBriefingService.ForPanel(source, "summary");
+        var customers = CmfPlatformBriefingService.ForPanel(source, "customers");
+        Check(summary.Evidence.Count == 2 && summary.Evidence.All(row => row.Section != "CustomerIssues" && row.Section != "CustomerIssueCoverage")
+            && customers.Evidence.Count == 2 && customers.Evidence.All(row => row.Section == "CustomerIssues" || row.Section == "CustomerIssueCoverage"),
+            "Summary and customer panel evidence is not isolated.");
+        Check(summary.Hash != customers.Hash && CmfPlatformBriefingService.PipelineFor(summary) == CmfPlatformBriefingService.SummaryPipeline
+            && CmfPlatformBriefingService.PipelineFor(customers) == CmfPlatformBriefingService.CustomerPipeline, "Panel jobs or cache identities collide.");
+        string originalSummaryHash = summary.Hash;
+        source.Evidence.Single(row => row.Section == "CustomerIssues").Measurements[0].Current = 2;
+        Check(CmfPlatformBriefingService.ForPanel(source, "summary").Hash == originalSummaryHash
+            && CmfPlatformBriefingService.ForPanel(source, "customers").Hash != customers.Hash, "Customer-only data changes invalidate the Summary cache.");
+        foreach (var row in source.Evidence) row.Id = "shifted-" + row.Id;
+        Check(CmfPlatformBriefingService.ForPanel(source, "summary").Hash == originalSummaryHash,
+            "Original combined-row ID shifts invalidate otherwise unchanged Summary evidence.");
+        foreach (var panel in new[] { summary, customers })
+        {
+            string label = panel.Panel == "summary" ? "PANEL: Summary only" : "PANEL: Customer Issues only";
+            Check(CmfPlatformBriefingService.AnalysisPrompt(panel).Contains(label)
+                && CmfPlatformBriefingService.VerificationPrompt(panel, new List<CmfPlatformBriefingFinding>()).Contains(label),
+                "Generation/review is not constrained to the selected panel.");
+            CmfPlatformBriefingService.Generate(panel, prompt => {
+                Check(prompt.Contains(label), "A generation batch lost its panel scope.");
+                return "{\"findings\":[]}";
+            }, prompt => {
+                Check(prompt.Contains(label), "An independent review batch lost its panel scope.");
+                return "{\"complete\":true,\"checks\":[]}";
+            }, prompt => { throw new Exception("Panel fixtures requested unnecessary ranking."); });
+        }
+        var approved = new CmfPlatformBriefing { Success = true, Mode = "ai", Stage = "complete", Pipeline = CmfPlatformBriefingService.SummaryPipeline,
+            SourceHash = summary.Hash, Scope = summary.Scope, ExpiresAt = DateTime.UtcNow.AddMinutes(10).ToString("o"), Findings = new List<CmfPlatformBriefingFinding>() };
+        Check(CmfPlatformBriefingService.IsReusableResult(summary, approved, DateTime.UtcNow)
+            && !CmfPlatformBriefingService.IsReusableResult(customers, approved, DateTime.UtcNow), "Approved panel results leak into another panel.");
+        Console.WriteLine("Panel isolation checks passed: independent evidence, pipelines, cache hashes and approvals; customer changes do not invalidate Summary.");
+    }
+
+    public static void CheckBriefingCustomerIssueGrouping()
+    {
+        var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+        var source = new CmfPlatformBriefingSource { Platform = "NVL_H", Scope = "Customer issue grouping test", DateScope = "2026-11-23",
+            CapturedAt = "2026-11-23", Hash = "customer-issue-grouping-test", Evidence = new List<CmfPlatformBriefingEvidence>() };
+        foreach (var report in new[] {
+            new { Id = "open-contoso-hang", Population = "Open", Customer = "Contoso", Title = "System hangs after resume" },
+            new { Id = "open-fabrikam-hang", Population = "Open", Customer = "Fabrikam", Title = "System hangs after resume" },
+            new { Id = "open-contoso-display", Population = "Open", Customer = "Contoso", Title = "External monitor blanks after resume" },
+            new { Id = "pending-contoso-dock", Population = "Pending", Customer = "Contoso", Title = "USB dock is not recognized after startup" } })
+        {
+            source.Evidence.Add(new CmfPlatformBriefingEvidence { Id = report.Id, Section = "CustomerIssues",
+                Subject = report.Population + " reported customer issue", Kind = "current",
+                Context = new Dictionary<string, string> { { "Issue population", report.Population }, { "Customer", report.Customer },
+                    { "Reported issue title", report.Title } }, Measurements = new List<CmfFactMeasurement> {
+                    new CmfFactMeasurement { Name = "Reported issue record", Current = 1, Unit = "records", CurrentDate = "2026-11-23" } } });
+        }
+        Func<string, string, string[], object> issue = (title, summary, ids) => new {
+            title, summary, kind = "pattern", tone = "attention", section = "focus", evidenceIds = ids,
+            support = ids.Select(id => new { evidenceId = id, measurementNames = new[] { "Reported issue record" },
+                explanation = source.Evidence.Single(row => row.Id == id).Context["Customer"] + " reports "
+                    + source.Evidence.Single(row => row.Id == id).Context["Reported issue title"] + " in the "
+                    + source.Evidence.Single(row => row.Id == id).Context["Issue population"]
+                    + " population; the report establishes this symptom, not a diagnosis." }).ToArray() };
+        object dock = issue("Reported dock recognition", "Contoso reports USB dock recognition problems after startup.", new[] { "pending-contoso-dock" });
+        string combined = serializer.Serialize(new { findings = new[] {
+            issue("Reported resume problems", "Contoso and Fabrikam report system hangs and Contoso reports external monitor blanking after resume.",
+                new[] { "open-contoso-hang", "open-fabrikam-hang", "open-contoso-display" }), dock } });
+        string separated = serializer.Serialize(new { findings = new[] {
+            issue("Reported resume hangs", "Contoso and Fabrikam report system hangs after resume.", new[] { "open-contoso-hang", "open-fabrikam-hang" }),
+            issue("Reported external monitor blanking", "Contoso reports external monitor blanking after resume.", new[] { "open-contoso-display" }), dock } });
+        foreach (string prefix in new[] { "Open customer issues include", "Open customer issue include", "open reports include",
+            "Pending assessments include", "Pending customer issues include", "Pending reports include" })
+        {
+            bool pending = prefix.StartsWith("Pending", StringComparison.OrdinalIgnoreCase);
+            string output = serializer.Serialize(new { findings = new[] { issue("Reported customer issue", prefix
+                + (pending ? " Contoso USB dock recognition problems after startup." : " Contoso system hangs after resume."),
+                new[] { pending ? "pending-contoso-dock" : "open-contoso-hang" }) } });
+            bool rejected = false;
+            try { CmfPlatformBriefingService.Validate(source, output); }
+            catch (InvalidOperationException exception) { rejected = exception.Data["RejectedCheck"] as string == "customer-wording"; }
+            Check(rejected, "A redundant customer status lead-in was accepted: " + prefix);
+        }
+        int generated = 0, reviewed = 0;
+        var findings = CmfPlatformBriefingService.Generate(source, prompt => {
+            generated++;
+            Check(prompt.Contains("ISSUE-BASED CUSTOMER BULLETS") && prompt.Contains("Split unrelated symptoms even for one customer")
+                && prompt.Contains("not one omnibus per status"), "Customer generation still permits an unrelated omnibus bulletin.");
+            Check(prompt.Contains("Headings supply status; start with the customer or symptom")
+                && !prompt.Contains("State the population and use includes"), "Customer generation still requires a redundant status lead-in.");
+            foreach (var evidence in source.Evidence) Check(prompt.Contains(evidence.Id), "Issue grouping lost complete customer evidence.");
+            if (generated > 1) Check(prompt.Contains("PreviousDraft") && prompt.Contains("Unrelated issue types"), "Issue grouping correction lost review feedback.");
+            return generated == 1 ? combined : separated;
+        }, prompt => {
+            reviewed++;
+            Check(prompt.Contains("ISSUE-BASED CUSTOMER BULLETS") && prompt.Contains("a shared customer/status is not grounds to merge")
+                && prompt.Contains("Require all distinct material impacts for complete"), "Customer review does not enforce issue-level grouping/completeness.");
+            Check(prompt.Contains("Reject repeated status lead-ins") && prompt.Contains("Reports are partial coverage, not exhaustive claims"),
+                "Customer review no longer enforces concise, nonexhaustive customer wording.");
+            var packet = (Dictionary<string, object>)serializer.DeserializeObject(prompt.Substring(prompt.IndexOf('\n') + 1));
+            var skeleton = (Dictionary<string, object>)packet["ResponseSkeleton"];
+            skeleton["complete"] = true;
+            foreach (Dictionary<string, object> check in (object[])skeleton["checks"])
+            {
+                foreach (string flag in new[] { "supported", "numbers", "scope", "comparisons", "significance" }) check[flag] = true;
+                bool bundled = reviewed == 1 && Convert.ToInt32(check["index"]) == 0;
+                check["significance"] = !bundled;
+                check["reason"] = bundled ? "Unrelated issue types must be separate bullets; resume hangs and external monitor blanking are distinct." : "";
+            }
+            return serializer.Serialize(skeleton);
+        }, prompt => { throw new Exception("Customer issue grouping requested unnecessary ranking."); });
+        Check(generated == 2 && reviewed == 2 && findings.Count == 3, "Bundled customer issues were published or split without fresh review.");
+        Check(findings[0].EvidenceIds.SequenceEqual(new[] { "open-contoso-hang", "open-fabrikam-hang" })
+            && findings[1].EvidenceIds.SequenceEqual(new[] { "open-contoso-display" })
+            && findings[2].EvidenceIds.SequenceEqual(new[] { "pending-contoso-dock" })
+            && findings.SelectMany(item => item.EvidenceIds).Distinct().Count() == source.Evidence.Count,
+            "Issue-based bullets lost a distinct issue, mixed populations or duplicated overlapping reports.");
+        Check(findings[0].Evidence.All(item => item.Text.Contains("Reported issue title: System hangs after resume"))
+            && findings[1].Evidence.Single().Text.Contains("Reported issue title: External monitor blanks after resume")
+            && findings[2].Evidence.Single().Text.Contains("Issue population: Pending"), "Issue bullets lost exact customer/title Source attribution.");
+        Console.WriteLine("Customer issue grouping checks passed: distinct issues split, overlapping same-issue reports merged, exact Sources and fresh independent review retained.");
+    }
+
     public static void CheckBriefingTptMagnitude()
     {
         var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
@@ -1007,7 +1135,7 @@ public static class DashboardInsightsTests
             "Requested TPT/open/pending coverage loses category, deduplication or independent review safeguards.");
         Check(writingPrompt.Contains("SINGLE-PROMINENT-ITEM") && sectionPrompt.Contains("SINGLE-PROMINENT-ITEM")
             && writingPrompt.Contains("each eligible TPT measure") && sectionPrompt.Contains("each eligible TPT measure")
-            && writingPrompt.Contains("CustomerIssues grouping is unchanged")
+            && writingPrompt.Contains("CustomerIssues uses issue-based bullets")
             && writingPrompt.Contains("IDST SCOPE: Platform excludes")
             && sectionPrompt.Contains("IDST SCOPE: Platform excludes")
             && sectionPrompt.Contains("Reject inferred aged/unassigned overlap"), "Pending-queue synthesis lacks independent overlap and fact-preservation safeguards.");
