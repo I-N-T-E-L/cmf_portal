@@ -181,7 +181,7 @@ public static class CmfPlatformCatalog
         return !string.IsNullOrWhiteSpace(tableName)
             && Regex.IsMatch(tableName, @"\ACMF_[A-Z0-9]+(?:_[A-Z0-9]+)*_ALL_COMPONENTS_TABLE\z", RegexOptions.IgnoreCase)
             && !string.Equals(tableName, OverallPlatformTableName, StringComparison.OrdinalIgnoreCase)
-            && !Regex.IsMatch(tableName, @"_(?:DUMMY|BACKUP|BAK|ARCHIVE|TEMP|TEST)(?:_|$)", RegexOptions.IgnoreCase);
+            && !Regex.IsMatch(tableName, @"_(?:DUMMY|BACKUP|BAK|ARCHIVE|TEMP|TEST|EVAL)(?:_|$)", RegexOptions.IgnoreCase);
     }
 
     public static CmfPlatformDefinition[] DiscoverPlatforms(SqlConnection connection)

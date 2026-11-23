@@ -10301,6 +10301,8 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
             }
 
             string hsdContext = BuildPendingRecommendationContext(NormalizePlatformForLookup(resolvedPlatform), cpId, true);
+            title = ResolveSightingTitle(cpId, title, hsdContext);
+            impact = ResolveSightingImpact(cpId, impact, hsdContext);
 
             CmfRecommendationRequest request = new CmfRecommendationRequest
             {
@@ -10366,6 +10368,10 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 };
             }
 
+            string hsdContext = BuildPendingRecommendationContext(resolvedPlatform, cpId);
+            title = ResolveSightingTitle(cpId, title, hsdContext);
+            impact = ResolveSightingImpact(cpId, impact, hsdContext);
+
             CmfRecommendationRequest request = new CmfRecommendationRequest
             {
                 CpId = cpId,
@@ -10378,7 +10384,7 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
                 Reproducibility = reproducibility,
                 CustomerDetail = customerDetail,
                 CustomerOwner = customerOwner,
-                HsdContext = BuildPendingRecommendationContext(resolvedPlatform, cpId)
+                HsdContext = hsdContext
             };
 
             return CmfRecommendationService.GenerateSightingQualityAssessment(request);
@@ -10562,24 +10568,79 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
         }
     }
 
+    private static string ResolveSightingTitle(string cpId, string title, string contextDetails)
+    {
+        if (!string.IsNullOrWhiteSpace(title) && !string.Equals(title.Trim(), "N/A", StringComparison.OrdinalIgnoreCase))
+        {
+            return title.Trim();
+        }
+        if (!string.IsNullOrWhiteSpace(cpId))
+        {
+            HsdArticleData article = FetchCachedHsdArticle(cpId.Trim());
+            if (article != null && !string.IsNullOrWhiteSpace(article.Title))
+            {
+                return article.Title.Trim();
+            }
+        }
+        if (!string.IsNullOrWhiteSpace(contextDetails))
+        {
+            System.Text.RegularExpressions.Match m = System.Text.RegularExpressions.Regex.Match(contextDetails, @"(?:Title|title):\s*([^\r\n]+)");
+            if (m.Success && !string.IsNullOrWhiteSpace(m.Groups[1].Value))
+            {
+                return m.Groups[1].Value.Trim();
+            }
+        }
+        return !string.IsNullOrWhiteSpace(cpId) ? ("Sighting " + cpId.Trim()) : "Sighting";
+    }
+
+    private static string ResolveSightingImpact(string cpId, string impact, string contextDetails)
+    {
+        if (!string.IsNullOrWhiteSpace(impact) && !string.Equals(impact.Trim(), "N/A", StringComparison.OrdinalIgnoreCase))
+        {
+            return impact.Trim();
+        }
+        if (!string.IsNullOrWhiteSpace(cpId))
+        {
+            HsdArticleData article = FetchCachedHsdArticle(cpId.Trim());
+            if (article != null && !string.IsNullOrWhiteSpace(article.CustomerImpact))
+            {
+                return article.CustomerImpact.Trim();
+            }
+        }
+        if (!string.IsNullOrWhiteSpace(contextDetails))
+        {
+            System.Text.RegularExpressions.Match m = System.Text.RegularExpressions.Regex.Match(contextDetails, @"(?:Customer Impact|Impact|impact):\s*([^\r\n]+)");
+            if (m.Success && !string.IsNullOrWhiteSpace(m.Groups[1].Value))
+            {
+                return m.Groups[1].Value.Trim();
+            }
+        }
+        return string.Empty;
+    }
+
     [WebMethod]
     public static AiSummaryResponse GetSightingDescription(string cpId, string title, string platform)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(cpId) || string.IsNullOrWhiteSpace(title))
+            if (string.IsNullOrWhiteSpace(cpId))
             {
                 return new AiSummaryResponse
                 {
                     Success = false,
-                    Message = "Sighting ID and title are required."
+                    Message = "Sighting ID is required."
                 };
             }
 
             string contextDetails = BuildPendingRecommendationContext(platform, cpId);
+            title = ResolveSightingTitle(cpId, title, contextDetails);
 
             // Call the AI service to generate the sighting description
             AiSummaryResponse response = AiSummaryService.GenerateSightingDescription(cpId, title, contextDetails);
+            if (response != null && string.IsNullOrWhiteSpace(response.Title))
+            {
+                response.Title = title;
+            }
 
             return response;
         }
@@ -10598,16 +10659,19 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(cpId) || string.IsNullOrWhiteSpace(title))
+            if (string.IsNullOrWhiteSpace(cpId))
             {
                 return new AiSummaryResponse
                 {
                     Success = false,
-                    Message = "Sighting ID and title are required."
+                    Message = "Sighting ID is required."
                 };
             }
 
-            return AiSummaryService.GenerateSightingFixStatus(cpId, title, BuildPendingRecommendationContext(platform, cpId));
+            string contextDetails = BuildPendingRecommendationContext(platform, cpId);
+            title = ResolveSightingTitle(cpId, title, contextDetails);
+
+            return AiSummaryService.GenerateSightingFixStatus(cpId, title, contextDetails);
         }
         catch (Exception ex)
         {
@@ -10624,16 +10688,20 @@ WHERE CAST(main.cp_id AS VARCHAR(50)) = @lookupIssueId", connection))
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(cpId) || string.IsNullOrWhiteSpace(title))
+            if (string.IsNullOrWhiteSpace(cpId))
             {
                 return new AiSummaryResponse
                 {
                     Success = false,
-                    Message = "Sighting ID and title are required."
+                    Message = "Sighting ID is required."
                 };
             }
 
-            return AiSummaryService.GenerateSightingImpactSummary(cpId, title, impact, BuildPendingRecommendationContext(platform, cpId));
+            string contextDetails = BuildPendingRecommendationContext(platform, cpId);
+            title = ResolveSightingTitle(cpId, title, contextDetails);
+            impact = ResolveSightingImpact(cpId, impact, contextDetails);
+
+            return AiSummaryService.GenerateSightingImpactSummary(cpId, title, impact, contextDetails);
         }
         catch (Exception ex)
         {

@@ -17674,8 +17674,16 @@ td:nth-child(odd), th:nth-child(odd) {
             }
 
             cpIdNode.textContent = cpId || 'N/A';
-            titleNode.textContent = title || 'N/A';
-            componentNode.textContent = component || 'N/A';
+            if (title && title !== 'N/A') {
+                titleNode.textContent = title;
+            } else if (!titleNode.textContent || titleNode.textContent === '-' || titleNode.textContent === 'N/A') {
+                titleNode.textContent = 'Loading...';
+            }
+            if (component && component !== 'N/A') {
+                componentNode.textContent = component;
+            } else if (!componentNode.textContent || componentNode.textContent === '-' || componentNode.textContent === 'N/A') {
+                componentNode.textContent = 'N/A';
+            }
             if (sightingDescriptionNode) sightingDescriptionNode.innerHTML = renderIssueDescriptionSkeleton();
             if (fixStatusNode) fixStatusNode.innerHTML = renderIssueDescriptionSkeleton();
             if (impactSummaryNode) impactSummaryNode.innerHTML = renderImpactSummarySkeleton();
@@ -17711,7 +17719,13 @@ td:nth-child(odd), th:nth-child(odd) {
             }
             setCmfAssistantPromotedIdLoading();
             if (platformNode) platformNode.textContent = getPlatformDisplayLabel(sourcePlatform || getIssuePendingPlatformValue());
-            if (visibleComponentNode) visibleComponentNode.textContent = component || 'N/A';
+            if (visibleComponentNode) {
+                if (component && component !== 'N/A') {
+                    visibleComponentNode.textContent = component;
+                } else if (!visibleComponentNode.textContent || visibleComponentNode.textContent === '-' || visibleComponentNode.textContent === 'N/A') {
+                    visibleComponentNode.textContent = 'N/A';
+                }
+            }
 
             if (recNode) recNode.style.display = 'none';
             if (evidenceNode) evidenceNode.innerHTML = '';
@@ -17765,6 +17779,15 @@ td:nth-child(odd), th:nth-child(odd) {
                 if (window._cmfSightingChatPayload !== sightingSession) return;
                 var result = data && data.d ? data.d : data;
                 updateCmfAssistantPromotedId((result && result.PromotedId) ? result.PromotedId : 'NA');
+                if (result && result.Title) {
+                    var titleElem = document.getElementById('cmfRecTitle');
+                    if (titleElem && (!titleElem.textContent || titleElem.textContent === 'N/A' || titleElem.textContent === 'Loading...' || titleElem.textContent === '-' || titleElem.textContent !== result.Title)) {
+                        titleElem.textContent = result.Title;
+                    }
+                    if (window._cmfCurrentModalPayload) window._cmfCurrentModalPayload.title = result.Title;
+                    if (window._cmfSightingChatPayload) window._cmfSightingChatPayload.title = result.Title;
+                    payload.title = result.Title;
+                }
                 if (!sightingDescriptionNode) return;
                 if (!result || result.Success !== true) {
                     sightingDescriptionNode.innerHTML = '<span class="sighting-description-error">Description unavailable.</span>';
@@ -18271,19 +18294,30 @@ td:nth-child(odd), th:nth-child(odd) {
             } catch (e) { }
 
             try {
+                var currentTitle = payload.title;
+                var currentComp = payload.component;
+                var titleElem = document.getElementById('cmfRecTitle');
+                if (!currentTitle && titleElem && titleElem.textContent && titleElem.textContent !== '-' && titleElem.textContent !== 'N/A' && titleElem.textContent !== 'Loading...') {
+                    currentTitle = titleElem.textContent;
+                }
+                var compElem = document.getElementById('cmfAssistantComponent');
+                if (!currentComp && compElem && compElem.textContent && compElem.textContent !== '-' && compElem.textContent !== 'N/A') {
+                    currentComp = compElem.textContent;
+                }
+
                 await openCmfPendingRecommendationModal(
                     payload.cpId,
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    payload.sourcePlatform
+                    currentTitle || '',
+                    currentComp || '',
+                    payload.componentGroup || '',
+                    payload.cmfRequest || '',
+                    payload.impact || '',
+                    payload.idst || '',
+                    payload.reproOnRvp || '',
+                    payload.reproducibility || '',
+                    payload.customerDetail || '',
+                    payload.customerOwner || '',
+                    payload.sourcePlatform || payload.platform
                 );
             } finally {
                 if (refreshBtn) refreshBtn.classList.remove('is-spinning');
