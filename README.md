@@ -124,15 +124,25 @@ read-time only: it does not delete database rows, alter imports, or update HSD.
 ### Dashboard AI Insights
 
 Individual platform dashboards use `CmfPlatformBriefingService` through the
-snapshot-validated `GetPlatformDashboardBriefing` endpoint. Overall uses the same
+snapshot-validated `GetPlatformDashboardSummaryBriefing` and
+`GetPlatformDashboardCustomerBriefing` endpoints. Summary and Customer Issues have
+separate evidence, jobs, provider-bound caches and approval identities:
+`platform-summary-briefing-v1` and `platform-customer-briefing-v1`. Summary excludes
+customer records/coverage; Customer Issues receives only those records/coverage.
+Customer-only evidence changes do not invalidate Summary results. The browser
+publishes the reviewed Summary first, then starts Customer Issues; an AI failure
+in either panel does not clear or suppress the other panel's approved findings.
+The legacy combined `GetPlatformDashboardBriefing` endpoint remains compatible.
+Overall uses the same
 generation-and-independent-review engine through `GetOverallDashboardBriefing`,
 with a separate `overall-page-briefing-v1` result/cache identity. It analyzes its
 own server-owned Overall snapshot, not platform-generated findings or summaries;
 the active UI no longer calls the old aggregation/ranking/Summary endpoints.
 Both panels share the latest one-prominent-observation Summary rules, uncapped
 material findings, optional Open ingredient splits, separate pending/TPT topics,
-Source controls and tab styling. Platform panels retain conditional Summary and
-Customer Issues tabs. Overall is Summary-only: customer issue records and their
+Source controls and tab styling. Platform panels retain Summary and
+Customer Issues tabs with independent loading, failure and empty states.
+Overall is Summary-only: customer issue records and their
 coverage metadata are excluded from its AI analysis and review, not merely hidden.
 Overall ingredient/platform Open totals explicitly sum unique and duplicate
 heatmap counts without adding LOS; their strict status=open population remains
@@ -186,10 +196,17 @@ the existing assistant-section styling and expandable supporting evidence,
 without pagination or a finding cap. Summary contains populated Highlights and
 Lowlights boxes. Customer Issues contains separate populated Open and Pending
 boxes, grouped using reviewed CustomerIssues Sources rather than title keywords;
-queue aging, ownership and aggregate metrics remain in Summary. Empty boxes and
-views have no heading or tab. Tabs support arrow/Home/End keys, preserve each
+queue aging, ownership and aggregate metrics remain in Summary. Empty
+finding boxes remain hidden; each independent panel retains its tab and status
+message after Summary finishes. Tabs support arrow/Home/End keys, preserve each
 view's scroll position and Source expansion, and make no additional AI request.
-The footer counts findings in the selected view.
+The footer, progress and error message reflect the selected panel. Refresh retries
+only that panel, retaining the other panel's approved content. Interrupted polling
+of the other panel resumes without restarting its server AI job. Client responses
+are bound to panel pipeline, platform snapshot and current request generation;
+stale/wrong-panel responses and unreviewed findings are never published. Expired
+snapshot requests require a dashboard reload rather than more provider work.
+Source controls use distinct panel IDs, even when both jobs return `f1`.
 The model's reviewed section classifications remain unchanged; the display grouping
 does not require regeneration or weaken evidence approval. The LLM writes a short dynamic bold
 topic subheading (at most 8 words/64 characters) plus exactly one sentence (at most
@@ -288,7 +305,12 @@ not invented symptoms or customer names inferred from design prefixes. Missing o
 conflicting metadata is excluded, duplicate source-platform/issue keys are
 deduplicated, and description coverage remains explicit. Reported symptoms are
 qualitatively summarized in separate Open/Pending groups under Customer Issues
-with source title text in Sources
+as issue-based bullets rather than one omnibus bulletin per status. Distinct
+symptoms remain separate even for the same customer; only overlapping reports
+of the same symptom, function and scenario are merged, retaining each customer
+attribution without implying a common cause. All material distinct issues remain
+eligible without a count quota. Independent review rejects unrelated bundled
+issues and requires fresh reviewed regeneration, with source title text in Sources
 (percentage expressions omitted to preserve count-only backing data);
 issue IDs are not passed in the model evidence. Independent review must approve
 customer attribution and symptom wording before anything is published.
