@@ -1197,11 +1197,31 @@ public static class CmfAssistantConfigService
                     if (existingMandatory != null)
                     {
                         var mandatoryCopy = new Dictionary<string, object>();
+                        int importedRvpWeight = 0;
+                        foreach (var dim in discoveredDims)
+                        {
+                            if (string.Equals(dim.Id, "RVP", StringComparison.OrdinalIgnoreCase))
+                            {
+                                importedRvpWeight = dim.Weight;
+                                break;
+                            }
+                        }
                         foreach (DictionaryEntry de in existingMandatory)
                         {
                             string key = Convert.ToString(de.Key);
                             string val = Convert.ToString(de.Value);
-                            if (key == "rvpReproPolicy")
+                            if (key == "rvpReproPolicy" && importedRvpWeight > 0)
+                            {
+                                double w = importedRvpWeight / 100.0;
+                                val = string.Format(
+                                    CultureInfo.InvariantCulture,
+                                    "1) When RVP_repro is Yes: the issue reproduces on the Intel Reference Validation Platform (RVP), indicating platform-wide risk across OEM customer units -- RVP is scored {0}/{0} (contributing {1:0.00} to the weighted score); explicitly highlight RVP reproduction in the CMF reasoning. 2) When RVP_repro is Unknown, Blank, NA, or Pending: score RVP as 2/{0} (neutral score contributing {2:0.00}); RVP exposure is not established. 3) When RVP_repro is No: score RVP as 1/{0} (contributing {3:0.00} to the weighted score), reflecting that the defect did not reproduce on RVP and is isolated to customer units.",
+                                    maxScoreFound,
+                                    maxScoreFound * w,
+                                    2 * w,
+                                    1 * w);
+                            }
+                            else if (key == "rvpReproPolicy")
                             {
                                 val = val.Replace("6-category", "mathematical");
                             }
@@ -1226,7 +1246,8 @@ public static class CmfAssistantConfigService
                     if (dispRows.Count > 0) scoringNode["dispositionTable"] = dispRows.ToArray();
                     if (guardrailRows.Count > 0) scoringNode["gatingGuardrails"] = guardrailRows.ToArray();
 
-                    // Parse Permutation Analysis sheet if present (e.g. 768 combinations)
+                    // Parse Permutation Analysis sheet if present (e.g. 768 combinations).
+                    // Do NOT carry over old permutationAnalysis from previous guidelines when importing a new rubric workbook without a Permutation sheet.
                     ExcelWorksheet permSheet = pkg.Workbook.Worksheets["Permutation Analysis"]
                         ?? pkg.Workbook.Worksheets["Permutations"];
                     if (permSheet != null && permSheet.Dimension != null && permSheet.Dimension.End.Row >= 5)
@@ -1236,10 +1257,6 @@ public static class CmfAssistantConfigService
                         {
                             scoringNode["permutationAnalysis"] = permList.ToArray();
                         }
-                    }
-                    else if (existingScoring != null && existingScoring.Contains("permutationAnalysis"))
-                    {
-                        scoringNode["permutationAnalysis"] = existingScoring["permutationAnalysis"];
                     }
 
                     root["scoringRules"] = scoringNode;

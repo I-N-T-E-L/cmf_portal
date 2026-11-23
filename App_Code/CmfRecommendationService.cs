@@ -229,7 +229,7 @@ public static class CmfRecommendationService
         bool mergedTargetHasCmf;
         hsdContext = EnrichContextWithMergedTargetHsd(cpId, title, cmfRequest, impact, hsdContext, out duplicateDetail, out duplicatedTargetId, out mergedTargetHasCmf);
 
-        string hash = ComputeHash("cmf-recommendation-live-context-v91-recommendation-justification-only|" + GetAiProviderCacheSignature() + "|" + cpId + "|" + title + "|" + component + "|" + cmfRequest + "|" + impact + "|" + idst + "|" + reproOnRvp + "|" + reproducibility + "|" + customerDetail + "|" + customerOwner + "|" + rules + "|" + feedbackMemory + "|" + hsdContext + "|sqa:" + string.Join(",", missingSqaFields.ToArray()));
+        string hash = ComputeHash("cmf-recommendation-live-context-v93-clean-why-score-bullet|" + GetAiProviderCacheSignature() + "|" + cpId + "|" + title + "|" + component + "|" + cmfRequest + "|" + impact + "|" + idst + "|" + reproOnRvp + "|" + reproducibility + "|" + customerDetail + "|" + customerOwner + "|" + rules + "|" + feedbackMemory + "|" + hsdContext + "|sqa:" + string.Join(",", missingSqaFields.ToArray()));
         string cacheKey = "cmf-recommendation:" + hash;
 
         using (CmfAssistantResponseCache.Enter(cacheKey))
@@ -1459,12 +1459,12 @@ public static class CmfRecommendationService
             CmfRecommendationRuleScore fallbackScore = FindMetricRule(fallbackScores, metricId);
             if (IsUsableModelMetricScore(modelScore))
             {
-                NormalizeModelMetricEvaluation(modelScore, hsdContext);
+                NormalizeModelMetricEvaluation(modelScore, hsdContext, title);
                 completed.Add(modelScore);
             }
             else if (fallbackScore != null)
             {
-                NormalizeModelMetricEvaluation(fallbackScore, hsdContext);
+                NormalizeModelMetricEvaluation(fallbackScore, hsdContext, title);
                 completed.Add(fallbackScore);
             }
         }
@@ -1481,7 +1481,7 @@ public static class CmfRecommendationService
         return score >= 1 && score <= 4 && !string.IsNullOrWhiteSpace(rule.Evaluation);
     }
 
-    private static void NormalizeModelMetricEvaluation(CmfRecommendationRuleScore rule, string hsdContext = "")
+    private static void NormalizeModelMetricEvaluation(CmfRecommendationRuleScore rule, string hsdContext = "", string title = "")
     {
         if (rule == null) return;
         rule.Score = NormalizeNumericScore(rule.Score);
@@ -1504,11 +1504,24 @@ public static class CmfRecommendationService
             return;
         }
 
-        if (id == "S" && numericScore < 4 && ContainsAny(evaluation + " " + evidence + " " + factor, new string[] {
+        string severityText = evaluation + " " + evidence + " " + factor + " " + SafeText(title);
+        bool isTbtUsb4TypeCLoss =
+            ContainsAny(severityText, new string[] {
+                "thunderbolt / usb4 / type-c loss", "dock not enumerated", "dock disconnect",
+                "tbt dock not recognized", "tbt dock cannot be recognized", "tbt dock/hub cannot be recognized",
+                "tbt dock/hub cannot be recongnized", "tbt port not recognized"
+            })
+            || (ContainsAny(severityText, new string[] { "tbt dock", "tbt port", "usb4", "type-c", "retimer" })
+                && ContainsAny(severityText, new string[] {
+                    "loss", "lost", "fail", "disconnect", "unrecognized", "not recognized",
+                    "cannot be recognized", "cannot be recongnized", "not enumerated", "enumeration fail", "dead"
+                }));
+
+        if (id == "S" && numericScore < 4 && (isTbtUsb4TypeCLoss || ContainsAny(severityText, new string[] {
             "system hard hang", "hard hang", "system hang", "hang up", "system freeze", "hard freeze", "deadlock", "lockup",
             "bsod", "bugcheck", "kernel crash", "unexpected reboot", "unexpected shutdown", "cannot boot", "cannot power", "no boot",
             "data loss", "data corruption", "permanent damage", "port dead", "nvme ssd lost", "storage lost", "completely dead",
-            "completely unresponsive", "thunderbolt / usb4 / type-c loss", "black screen", "blank screen", "screen blank" }))
+            "completely unresponsive", "black screen", "blank screen", "screen blank" })))
         {
             numericScore = 4;
             rule.Score = "4";
@@ -1994,6 +2007,14 @@ public static class CmfRecommendationService
             {
                 continue;
             }
+            // Strip comma-joined trailing action clauses like ", request submitter provide SoC stepping details..."
+            trimmed = System.Text.RegularExpressions.Regex.Replace(
+                trimmed,
+                @",\s*(?:so\s+)?(?:please\s+)?(?:request|ask|collect|provide|gather|submit|update|confirm|verify|retest|attach)\s+(?:that\s+)?(?:the\s+)?(?:submitter|customer|owner|team|engineer|missing|logs|details|stepping|data)\b[^.!?]*",
+                string.Empty,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim(' ', ',');
+            if (string.IsNullOrWhiteSpace(trimmed)) continue;
+            if (!System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"[.!?](?:\*\*)?$")) trimmed += ".";
             kept.Add(trimmed);
         }
 
@@ -2018,81 +2039,75 @@ public static class CmfRecommendationService
         int oScore = GetMetricScore(ruleScores, "O");
         int dScore = GetMetricScore(ruleScores, "D");
         int bScore = GetMetricScore(ruleScores, "B");
-        string sFactor = ExtractContributingFactorValueFromRule(ruleScores, "S");
-        string bFactor = ExtractContributingFactorValueFromRule(ruleScores, "B");
-        string oFactor = ExtractContributingFactorValueFromRule(ruleScores, "O");
-        string dFactor = ExtractContributingFactorValueFromRule(ruleScores, "D");
-        string rvpClause = rvpYes ? "reproduces on Intel RVP" : "isolated to customer units";
-        string dec = SafeText(decision).ToUpperInvariant();
+        int rvpScore = GetMetricScore(ruleScores, "RVP");
+        string sFactor = LowerFirst(ExtractContributingFactorValueFromRule(ruleScores, "S"));
+        string bFactor = LowerFirst(ExtractContributingFactorValueFromRule(ruleScores, "B"));
+        string oFactor = LowerFirst(ExtractContributingFactorValueFromRule(ruleScores, "O"));
+        string dFactor = LowerFirst(ExtractContributingFactorValueFromRule(ruleScores, "D"));
 
-        if (dec == "CMF_DUPLICATE")
-        {
-            return "The score of " + displayedScore + " reflects severe functional risk (" + LowerFirst(sFactor) + ") and program impact (" + LowerFirst(bFactor) + "), while resolution is tracked under the primary merged sighting with customer_must_fix in sysdebug.";
-        }
+        List<string> raising = new List<string>();
+        List<string> holdingBack = new List<string>();
 
-        if (dec == "CMF_INCOMPLETE")
-        {
-            if (sScore >= 3 && bScore >= 3)
-            {
-                return "The score of " + displayedScore + " is driven by critical severity (" + LowerFirst(sFactor) + ") and milestone impact (" + LowerFirst(bFactor) + "), but remains tentative pending missing sighting fields.";
-            }
-            if (sScore >= 3)
-            {
-                return "The score of " + displayedScore + " reflects significant functional risk from " + LowerFirst(sFactor) + ", with overall risk moderated by incomplete field evidence.";
-            }
-            return "The score of " + displayedScore + " balances moderate severity (" + LowerFirst(sFactor) + ") and limited milestone risk (" + LowerFirst(bFactor) + ") with missing critical sighting fields.";
-        }
+        if (sScore >= 3 && !string.IsNullOrWhiteSpace(sFactor)) raising.Add(sFactor);
+        else if (!string.IsNullOrWhiteSpace(sFactor)) holdingBack.Add("limited functional impact (" + sFactor + ")");
 
-        if (sScore >= 3 && bScore >= 3)
-        {
-            if (rvpYes && oScore >= 3)
-            {
-                return "The score of " + displayedScore + " is justified by critical severity (" + LowerFirst(sFactor) + "), showstopper gate blockage (" + LowerFirst(bFactor) + "), and confirmed Intel RVP reproduction.";
-            }
-            if (rvpYes)
-            {
-                return "The score of " + displayedScore + " is driven by critical severity (" + LowerFirst(sFactor) + ") and milestone impact (" + LowerFirst(bFactor) + ") on Intel RVP, moderated by sporadic occurrence (" + LowerFirst(oFactor) + ").";
-            }
-            return "The score of " + displayedScore + " reflects critical severity (" + LowerFirst(sFactor) + ") and milestone blockage (" + LowerFirst(bFactor) + "), moderated by sporadic occurrence (" + LowerFirst(oFactor) + ") and lack of RVP reproduction.";
-        }
+        if (bScore >= 3 && !string.IsNullOrWhiteSpace(bFactor)) raising.Add(bFactor);
+        else if (!string.IsNullOrWhiteSpace(bFactor)) holdingBack.Add("limited milestone impact (" + bFactor + ")");
 
-        if (sScore >= 3 && rvpYes)
-        {
-            return "The score of " + displayedScore + " is driven by critical severity (" + LowerFirst(sFactor) + ") and confirmed Intel RVP reproduction, while business impact remains limited to " + LowerFirst(bFactor) + ".";
-        }
+        if (dScore >= 3 && !string.IsNullOrWhiteSpace(dFactor)) raising.Add("triggering during " + dFactor);
+        else if (!string.IsNullOrWhiteSpace(dFactor)) holdingBack.Add("narrow trigger conditions (" + dFactor + ")");
 
-        if (dec == "CMF_OK")
-        {
-            return "The score of " + displayedScore + " is justified by high functional severity (" + LowerFirst(sFactor) + ") and release-blocking milestone impact (" + LowerFirst(bFactor) + ").";
-        }
+        if (oScore >= 3 && !string.IsNullOrWhiteSpace(oFactor)) raising.Add(oFactor + " occurrence");
+        else if (!string.IsNullOrWhiteSpace(oFactor)) holdingBack.Add("low occurrence (" + oFactor + ")");
 
-        if (dec == "CMF_REVIEW")
-        {
-            if (sScore >= 3)
-            {
-                return "The score of " + displayedScore + " reflects elevated functional risk from " + LowerFirst(sFactor) + ", moderated by business impact being limited to " + LowerFirst(bFactor) + ".";
-            }
-            if (bScore >= 3)
-            {
-                return "The score of " + displayedScore + " is driven by milestone exposure (" + LowerFirst(bFactor) + "), but is tempered by secondary functional severity (" + LowerFirst(sFactor) + ").";
-            }
-            return "The score of " + displayedScore + " balances notable functional risk (" + LowerFirst(sFactor) + ") and customer exposure (" + LowerFirst(bFactor) + ") against moderate occurrence frequency.";
-        }
+        if (rvpYes) raising.Add("confirmed Intel RVP reproduction");
+        else if (rvpScore == 1) holdingBack.Add("no reproduction on Intel RVP");
+        else holdingBack.Add("unconfirmed RVP reproduction");
 
-        // CMF_REJECT
-        if (rvpYes)
+        // Keep each side concise (top 2-3 factors) so the sentence flows naturally
+        if (raising.Count > 3) raising = raising.GetRange(0, 3);
+        if (holdingBack.Count > 2) holdingBack = holdingBack.GetRange(0, 2);
+
+        if (raising.Count > 0 && holdingBack.Count > 0)
         {
-            return "The score of " + displayedScore + " remains low because minor severity (" + LowerFirst(sFactor) + ") and low business impact (" + LowerFirst(bFactor) + ") keep overall risk minimal despite RVP reproduction.";
+            string up = JoinReadableList(raising);
+            string down = JoinReadableList(holdingBack);
+            return char.ToUpperInvariant(up[0]) + up.Substring(1) + " push the score up, while " + down + " keep it moderate.";
         }
-        return "The score of " + displayedScore + " reflects minor functional severity (" + LowerFirst(sFactor) + "), sporadic occurrence (" + LowerFirst(oFactor) + "), and zero milestone blockage.";
+        if (raising.Count > 0)
+        {
+            string up = JoinReadableList(raising);
+            return char.ToUpperInvariant(up[0]) + up.Substring(1) + " drive the score high across the key risk factors.";
+        }
+        if (holdingBack.Count > 0)
+        {
+            string down = JoinReadableList(holdingBack);
+            return char.ToUpperInvariant(down[0]) + down.Substring(1) + " keep the overall score low.";
+        }
+        return "The individual severity, occurrence, trigger scope, business impact, and RVP factors balance out to " + displayedScore + ".";
     }
 
     private static string TrimCrispReasoningSentence(string body, string displayedScore = "")
     {
         if (string.IsNullOrWhiteSpace(body)) return string.Empty;
         string text = body.Trim();
-        // Remove inline arithmetic expansions such as 'weighted = (4x0.30)+(4x0.15)... = 3.85,'
-        text = System.Text.RegularExpressions.Regex.Replace(text, @"(?:,?\s*\bweighted(?:\s+score)?\s*)?=\s*\(\d[^\r\n;!?]*?\)\s*=\s*\d+(?:\.\d+)?\s*,?\s*", " ", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        // Remove inline arithmetic expansions such as 'weighted = (4x0.30)+... = 3.85' or 'Weighted score (3×0.30 + ... = 2.85)'
+        text = System.Text.RegularExpressions.Regex.Replace(
+            text,
+            @"(?:,?\s*\bweighted(?:\s+score)?\s*)?(?:=\s*)?\(\s*\d+(?:\.\d+)?\s*[×*x]\s*0?\.\d+[^)]*\)(?:\s*=\s*\d+(?:\.\d+)?)?\s*,?\s*",
+            " ",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        text = System.Text.RegularExpressions.Regex.Replace(
+            text,
+            @"(?:,?\s*\bweighted(?:\s+score)?\s*)?=\s*\(\d[^\r\n;!?]*?\)\s*=\s*\d+(?:\.\d+)?\s*,?\s*",
+            " ",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        // Remove raw metric shorthand or parenthetical score callouts like '(S=3)', '(Score 3 Severity)', '(moderate functional loss, Score 3 Severity)', '(3/4)'
+        text = System.Text.RegularExpressions.Regex.Replace(
+            text,
+            @"\s*\([^)]*(?:\b(?:S|O|D|B|RVP)\s*[:=]\s*[1-4]\b|\bscore\s*[1-4]\b|\b[1-4]\s*/\s*4\b|\b(?:severity|occurrence|detection|business\s+impact|rvp)\s*[:=]\s*[1-4]\b)[^)]*\)",
+            string.Empty,
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         if (!string.IsNullOrWhiteSpace(displayedScore))
         {
             text = System.Text.RegularExpressions.Regex.Replace(text, @"\b(score\s+of\s+)\d+\.\d+(?:/4)?\b", "${1}" + displayedScore, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
@@ -2108,6 +2123,39 @@ public static class CmfRecommendationService
         text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim(' ', ',');
         if (!System.Text.RegularExpressions.Regex.IsMatch(text, @"[.!?](?:\*\*)?$")) text += ".";
         return text;
+    }
+
+    private static string SanitizeWhyScoreBullet(string body, string displayedScore = "")
+    {
+        string text = TrimCrispReasoningSentence(body, displayedScore);
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+
+        string[] sentences = System.Text.RegularExpressions.Regex.Split(text, @"(?<=[.!?])\s+");
+        List<string> kept = new List<string>();
+        foreach (string s in sentences)
+        {
+            string trimmed = s.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed)) continue;
+
+            // Drop sentences that discuss disposition bands, score thresholds, CMF tags, or missing-field gates (those belong in Bullet 2)
+            if (System.Text.RegularExpressions.Regex.IsMatch(
+                trimmed,
+                @"\b(?:CMF_(?:OK|REVIEW|REJECT|INCOMPLETE|DUPLICATE)|threshold|review\s+band|reject\s+band|approve\s+band|falls\s+(?:below|above|within|in)\b|weighted\s+score\s+of|field(?:s)?\s+(?:is|are)\s+missing|missing\s+(?:critical\s+)?(?:sighting\s+)?field|preventing\s+full\s+(?:metric\s+)?(?:validation|assessment)|block(?:s|ing)?\s+final\s+disposition|Priority\s+[1-6A-C])\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            {
+                continue;
+            }
+            kept.Add(trimmed);
+        }
+
+        if (kept.Count == 0) return string.Empty;
+        string cleaned = string.Join(" ", kept.ToArray()).Trim();
+        // Clean up any leftover punctuation artifacts from removed parentheticals
+        cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"\s+([,.;:])", "$1");
+        cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"\s+", " ").Trim(' ', ',');
+        if (cleaned.Length < 20) return string.Empty;
+        if (!System.Text.RegularExpressions.Regex.IsMatch(cleaned, @"[.!?](?:\*\*)?$")) cleaned += ".";
+        return cleaned;
     }
 
     private static string StripDuplicateClausesFromBullet(string bulletBody, string duplicatedTargetId)
@@ -2166,6 +2214,7 @@ public static class CmfRecommendationService
         if (lines.Length == 2)
         {
             string p1Body = System.Text.RegularExpressions.Regex.Replace(lines[0], @"^-\s*\*\*Why\s+the\s+score\s+is\s+[^*:]+:\*\*\s*", string.Empty, System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+            p1Body = SanitizeWhyScoreBullet(p1Body, displayedScore);
             if (string.IsNullOrWhiteSpace(p1Body))
             {
                 lines[0] = "- " + fallback1;
@@ -2212,6 +2261,7 @@ public static class CmfRecommendationService
         if (lines.Length == 2)
         {
             string p1Body = System.Text.RegularExpressions.Regex.Replace(lines[0], @"^-\s*\*\*Why\s+the\s+score\s+is\s+[^*:]+:\*\*\s*", string.Empty, System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+            p1Body = SanitizeWhyScoreBullet(p1Body, displayedScore);
             if (string.IsNullOrWhiteSpace(p1Body))
             {
                 lines[0] = "- " + fallback1;
@@ -2262,24 +2312,26 @@ public static class CmfRecommendationService
                 string[] lines = twoPoints.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
                 if (lines.Length == 2)
                 {
+                    bool tagOverridden = !string.Equals(finalDecision, modelDecision, StringComparison.OrdinalIgnoreCase);
                     string p1 = System.Text.RegularExpressions.Regex.Replace(lines[0], @"^-\s*\*\*Why\s+the\s+score\s+is\s+[^*:]+:\*\*\s*", string.Empty, System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+                    p1 = SanitizeWhyScoreBullet(p1, displayedScore);
                     if (string.IsNullOrWhiteSpace(p1))
                     {
                         lines[0] = "- " + fb1;
                     }
+                    else
+                    {
+                        lines[0] = "- **Why the score is " + displayedScore + ":** " + char.ToUpperInvariant(p1[0]) + p1.Substring(1);
+                    }
                     string p2 = System.Text.RegularExpressions.Regex.Replace(lines[1], @"^-\s*\*\*AI\s+Recommendation\s*:\*\*\s*", string.Empty, System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
                     p2 = StripNextStepSentences(p2);
-                    if (string.IsNullOrWhiteSpace(p2) || IsNextStepInsteadOfJustification(p2))
+                    if (string.IsNullOrWhiteSpace(p2) || IsNextStepInsteadOfJustification(p2) || tagOverridden)
                     {
                         lines[1] = "- " + fb2;
                     }
-                    else if (!string.Equals(finalDecision, modelDecision, StringComparison.OrdinalIgnoreCase))
+                    else
                     {
-                        if (System.Text.RegularExpressions.Regex.IsMatch(p2, @"\bCMF_(?:OK|REVIEW|REJECT|INCOMPLETE|DUPLICATE)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
-                        {
-                            p2 = System.Text.RegularExpressions.Regex.Replace(p2, @"\bCMF_(?:OK|REVIEW|REJECT|INCOMPLETE|DUPLICATE)\b", "**" + finalDecision + "**", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                            lines[1] = "- **AI Recommendation:** " + p2;
-                        }
+                        lines[1] = "- **AI Recommendation:** " + p2.TrimEnd('.') + ".";
                     }
                     twoPoints = string.Join("\n", lines);
                 }
@@ -3411,45 +3463,20 @@ public static class CmfRecommendationService
         prompt.AppendLine("      4 = Critical failure / Major Subsystem Loss: Matches any Score 4 guideline category:");
         prompt.AppendLine("          * Permanent Black / Blank Screen: eDP/HDMI/DP panel cannot light up or display goes blank/disappears after boot, reboot, or Sx/S4 resume.");
         prompt.AppendLine("          * Thunderbolt / USB4 / Type-C Loss: TBT4/TBT5 dock disconnect, TBT daisy-chain device lost or cannot be recognized after resume/restart, USB4/NVMe lost, Type-C port dead.");
-        prompt.AppendLine("          * BSOD / Bugcheck Stop Codes: 0x7E, 0x3B, 0x116, 0x101, 0x124, 0x9F, GSOD, kernel crash.");
-        prompt.AppendLine("          * System Hard Hang / Deadlock: OS lock-screen hang, GPSB timeout, freeze.");
-        prompt.AppendLine("          * Unexpected Reboot / Hardware Reset: CATERR, MCA error, 3-strike, unexpected reboot.");
-        prompt.AppendLine("          * No Boot / POST / Memory Training Fail: Stuck at OEM logo, memory training fail, cannot boot/power.");
-        prompt.AppendLine("          * Sleep / Wake & Package C-State Failure: S0ix/S3/S4/S5 wake failure, package C-state stuck.");
-        prompt.AppendLine("      3 = Major/moderate degradation of a PRIMARY/CORE function while OS remains up: primary display panel flicker/shake, whole application hang/crash, audio pop/crackling on main audio, or ClickPad lost function.");
-        prompt.AppendLine("      2 = Limited feature degradation of a SECONDARY / OPTIONAL / NON-CORE feature or UI element where PRIMARY workflow continues normally with minor disruption (e.g., optional camera background-blur brief stutter, secondary OSD/HDR badge fade delay, toast delay, yellow bang / event-log warning). CRITICAL: Whenever a secondary/optional/UI-overlay feature has a brief stutter/delay while primary video/audio/OS continues normally, S MUST be 2 (NEVER 3!).");
-        prompt.AppendLine("      1 = Minor/cosmetic/label/1px visual shift with zero loss of required function.");
-        prompt.AppendLine("  - O | Occurrence (Weight 15%): Score ONLY observed reproduction frequency/tag (do NOT inflate O because RVP=Yes or symptom is severe):");
-        prompt.AppendLine("      4 = >=50% failure rate, or portal tag 'always_100%' / 'frequently_50%-90%'.");
-        prompt.AppendLine("      3 = 10% to <50% failure rate (e.g., 15%, 25%, 30%), or portal tag 'sporadic_10%-40%'.");
-        prompt.AppendLine("      2 = 1% to <10% failure rate (e.g., 2/50 = 4%, 2/40 = 5%, 1/29 = 3.4%), or portal tag 'very_sporadic_<10%'. NEVER score a 1%-9.9% rate as 1!");
-        prompt.AppendLine("      1 = Strictly <1% failure rate (e.g., <1/100, 1/919, 1/5000), single non-repeatable one-off event, or portal tag 'once' / 'cannot_reproduce'.");
-        prompt.AppendLine("  - D | Detection / Trigger Scope (Weight 10%): Score ONLY how the issue is triggered:");
-        prompt.AppendLine("      4 = Universal everyday user flow in default configuration WITHOUT multi-cycle sleep/hibernate/stress loops: single cold boot to desktop, desktop idle, lock/login screen, opening standard desktop app, or normal desktop 4K/HDR video playback ('Universal / Desktop & Idle Flow').");
-        prompt.AppendLine("      3 = Normal customer validation or specific secondary feature flow: S3/S4/S5 hibernate/resume validation cycling, warm-reset cycling, multi-monitor/refresh-rate switch, heavy GPU/CPU stress suites, or toggling a specific optional feature inside an app ('Specific Feature / Secondary Workflow'). CRITICAL: Multi-cycle S4 hibernate/resume or power-cycling validation MUST be scored D = 3 (not 4).");
-        prompt.AppendLine("      2 = Narrow/corner-case setup: uncommon peripheral/DPI orientation (e.g., custom 175% portrait secondary monitor), single niche utility dialog button, or synthetic compliance test ('Corner-Case / Non-Core Workflow').");
-        prompt.AppendLine("      1 = Artificial debug/lab/manufacturing-only tool or setup (RMT, IOMT, mFIT, FPT, UEFI Shell, IPTAT).");
-        prompt.AppendLine("  - B | Business Impact (Weight 30%): Score ONLY customer program/milestone gate status — NEVER inflate B because RVP=Yes (RVP has its own 15% metric) and NEVER downgrade B because Severity S is low (e.g., S=2):");
-        prompt.AppendLine("      4 = Confirmed milestone/launch/phase gate blocked / P1 showstopper: Matches any Score 4 guideline category:");
-        prompt.AppendLine("          * Executive / P1 Showstopper Escalation: P1-Showstopper, executive/ePM escalation, Dell ATS P1 review, multiple projects reported, cross-platform escalation.");
-        prompt.AppendLine("          * Launch / Phase Exit Gate Blocker: Blocks Product Launch, FCS, SS, MP, RTS, PRQ, or Customer Shipment (CF); blocks SIT, FVT, SVT, DVT, PVT phase exit.");
-        prompt.AppendLine("          * Factory / Line-Down Blocker: Blocks factory mfg flow, ME EOL test, MEManuf, FPT.");
-        prompt.AppendLine("          * Validation Blocked / Milestone Risk: Blocks SW Image Freeze (IF), Golden Image (GM), QS gate, or HLK/WHQL certification.");
-        prompt.AppendLine("      3 = Confirmed non-launch validation test or readiness activity delayed, or moderate single-SKU / post-launch support / warranty risk without blocking a formal phase-exit/launch/IF/GM gate ('Moderate Program / Support Risk').");
-        prompt.AppendLine("      2 = Customer requests a fix (or accepted a temporary release-note limitation for current phase exit), and NO required validation, certification, milestone, or launch gate is confirmed blocked ('Low Business Exposure').");
-        prompt.AppendLine("      1 = No demonstrated customer program or validation impact; validation and milestone activities continue normally ('No Business / Customer Impact').");
-        prompt.AppendLine("  - RVP | RVP Repro Status (Weight 15%): 4 = Yes (reproduced on Intel RVP); 2 = Unknown / Blank / Pending; 1 = No (tested on RVP and did not reproduce). Score 3 is never used.");
+        prompt.AppendLine("          *METRIC INDEPENDENCE & AUTHORITATIVE RULES ###");
+        prompt.AppendLine("Use the ACTIVE CMF SCORING RULES & GUIDELINES section below as the SOLE authoritative source for all dimension weights, score rubrics, formula, disposition thresholds, and gating guardrails.");
+        prompt.AppendLine("Score every metric (S, O, D, B, RVP) strictly on its own dimension from 1 to 4 using the active rubric below — NEVER let one metric contaminate another (for example, do not inflate Occurrence or Business Impact because RVP=Yes, and do not downgrade Business Impact because Severity is low).");
         prompt.AppendLine();
         prompt.AppendLine("### MANDATORY EVALUATION FLOW & TAG PRIORITY ###");
-        prompt.AppendLine("1. Always score all 5 metrics (S, O, D, B, RVP) first, then compute EVIDENCE QUALITY = (S * 0.30) + (O * 0.15) + (D * 0.10) + (B * 0.30) + (RVP * 0.15).");
+        prompt.AppendLine("1. Always score all 5 metrics (S, O, D, B, RVP) first using the active rubric below, then compute EVIDENCE QUALITY using the exact formula and weights defined in the ACTIVE CMF SCORING RULES & GUIDELINES section.");
         prompt.AppendLine("2. Determine RECOMMENDATION in this strict priority order:");
-        prompt.AppendLine("   - Priority A (Duplicate): Check if the sighting is merged or duplicated to another sighting (via merge_id, merged_id, or duplicate comments). If a merged sighting exists, check if its sysdebug / sysdebug_forum contains 'customer_must_fix'. ONLY if the merged sighting has 'customer_must_fix' in sysdebug, return CMF_DUPLICATE. If the merged sighting does NOT have 'customer_must_fix' in sysdebug, do NOT tag as CMF_DUPLICATE; instead evaluate it as a normal pending issue according to SQA completeness (Priority B) and scoring guidelines (Priority 1..6).");
+        prompt.AppendLine("   - Priority A (Duplicate): Check if the sighting is merged or duplicated to another sighting (via merge_id, merged_id, or duplicate comments). If a merged sighting exists, check if its sysdebug / sysdebug_forum contains 'customer_must_fix'. ONLY if the merged sighting has 'customer_must_fix' in sysdebug, return CMF_DUPLICATE. If the merged sighting does NOT have 'customer_must_fix' in sysdebug, do NOT tag as CMF_DUPLICATE; instead evaluate it as a normal pending issue according to SQA completeness (Priority B) and the active disposition rules (Priority C).");
         prompt.AppendLine("   - Priority B (Completeness): If NOT duplicate and Sighting Quality Assessment has missing critical field(s), return CMF_INCOMPLETE.");
-        prompt.AppendLine("   - Priority C (Core Disposition): Otherwise apply Priority 1..6: P1 [S>=3 AND (B>=3 OR RVP==4)] -> CMF_OK; P2 [Score>=3.50] -> CMF_OK; P3 [S>=3] -> CMF_REVIEW; P4 [B>=3] -> CMF_REVIEW; P5 [Score>=2.75] -> CMF_REVIEW; P6 [Otherwise] -> CMF_REJECT.");
+        prompt.AppendLine("   - Priority C (Core Disposition): Otherwise apply the disposition bands and gating guardrails defined in the ACTIVE CMF SCORING RULES & GUIDELINES section below.");
         prompt.AppendLine("3. Metric Contributing Factors: For Severity (S), write the exact concrete symptom or failure that is severe / prone to risk in the sighting (e.g., 'TBT port is not being recognized', 'External display blank on resume', 'BSOD 0x116 VIDEO_TDR_FAILURE', 'System hard hang during restart', 'eUSB2 eye diagram fails tuning', 'NVMe boot drive missing', 'Camera device lost after S4'). Do NOT write broad generic category headings like 'Thunderbolt / USB4 / Type-C Loss' or 'Major Subsystem Loss' — state the exact failure observed! For other metrics, state concise, specific factors (e.g., O: '100% consistent', '2/40 (5% sporadic)'; D: 'S4 hibernate/resume cycling', 'Normal desktop idle boot'; B: 'P1-Showstopper', 'Blocks FVT phase exit'; RVP: 'Confirmed on RVP', 'Isolated to customer unit', 'Blank').");
-        prompt.AppendLine("4. REASONING REQUIREMENTS (EXACTLY 2 CONCISE, CRISP BULLETS; KEEP UNDER 25 WORDS PER BULLET SO REVIEWERS CAN SCAN IN SECONDS; WRITE IN CLEAR, PROFESSIONAL ENGLISH):");
-        prompt.AppendLine("   - Bullet 1: - **Why the score is [score]/4:** In 1 concise sentence (under 25 words), justify why the calculated score is specifically [score]/4 using the key risk drivers identified in the sighting (balancing elevating factors like severity and milestone blockage against moderating factors like sporadic occurrence or lack of RVP repro). Do NOT use rule headings like 'Priority 1' or 'Priority A'.");
-        prompt.AppendLine("   - Bullet 2: - **AI Recommendation:** In 1 concise sentence (under 25 words), name the recommended tag (**CMF_OK**, **CMF_REVIEW**, **CMF_REJECT**, **CMF_INCOMPLETE**, or **CMF_DUPLICATE**) and explain strictly WHY this tag was recommended based on the sighting's risk profile and criteria. Explain ONLY why the tag was recommended — do NOT include next steps, actions to take, or instructions on what to collect, request, or test next (e.g. do NOT say 'Request stepping detail', 'Collect crash logs', or 'Next steps are...'). Only if tagged as CMF_DUPLICATE, mention the primary sighting ID and customer_must_fix. If tagged as CMF_INCOMPLETE, state which critical field is missing.");
+        prompt.AppendLine("4. REASONING REQUIREMENTS (EXACTLY 2 CONCISE, CRISP BULLETS; KEEP UNDER 25 WORDS PER BULLET; WRITE IN SIMPLE, SMOOTH, EVERYDAY ENGLISH):");
+        prompt.AppendLine("   - Bullet 1: - **Why the score is [score]/4:** Write 1 natural, plain-English sentence explaining what factors pushed the score up (such as the failure severity, trigger scope, or blocked milestone) and what held it back (such as low occurrence or unconfirmed/no RVP repro). NEVER include parenthetical scores like '(Score 3 Severity)', '(Score 4 Business Impact)', '(S=3)', or '(3/4)', math formulas, weights, disposition bands/thresholds (like 'falls below CMF_OK threshold 3.50'), CMF tag names, or missing-field statements.");
+        prompt.AppendLine("   - Bullet 2: - **AI Recommendation:** Write 1 crisp, plain-English sentence naming the recommended tag (**CMF_OK**, **CMF_REVIEW**, **CMF_REJECT**, **CMF_INCOMPLETE**, or **CMF_DUPLICATE**) and stating strictly why that tag applies, without repeating metric scores or listing next steps/actions (e.g., do NOT say 'request submitter provide...'). Only if tagged as CMF_DUPLICATE, mention the primary sighting ID and customer_must_fix. If tagged as CMF_INCOMPLETE, state which critical field is missing.");
 
         if (!string.IsNullOrWhiteSpace(duplicateDetail) || !string.IsNullOrWhiteSpace(duplicatedTargetId) || (missingSqaFields != null && missingSqaFields.Count > 0))
         {
@@ -3504,8 +3531,8 @@ public static class CmfRecommendationService
         prompt.AppendLine("EVIDENCE QUALITY: [weighted score from 1.00 to 4.00]");
         prompt.AppendLine();
         prompt.AppendLine("REASONING:");
-        prompt.AppendLine("- **Why the score is [score]/4:** [Under 25 words: justify the calculated score of [score]/4 by balancing elevating risk drivers against moderating factors.]");
-        prompt.AppendLine("- **AI Recommendation:** [Under 25 words: state recommended **TAG** and crisp rationale based on the failure risk, flowing from Bullet 1.]");
+        prompt.AppendLine("- **Why the score is [score]/4:** [1 smooth plain-English sentence under 25 words: explain what factors raise the score and what factors hold it back, with no formulas, no '(S=3)' codes, and no CMF tag names.]");
+        prompt.AppendLine("- **AI Recommendation:** [1 crisp plain-English sentence under 25 words: state recommended **TAG** and strictly why it applies, without repeating metric scores or listing next steps.]");
         prompt.AppendLine();
         prompt.AppendLine("RULE SCORES:");
         prompt.AppendLine("Rule ID | Rule Name | Score | Evaluation");

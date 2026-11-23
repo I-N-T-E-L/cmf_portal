@@ -162,7 +162,7 @@ public static class DebugSummaryServiceTests
             Check(directResult.Success && directResult.Recommendation == "CMF_INCOMPLETE", "Direct recommendation call with missing fields must resolve to CMF_INCOMPLETE.");
             Check(directResult.RuleScores != null && directResult.RuleScores.Count > 0, "Recommendation logic must still carry out metric scoring when tagged CMF_INCOMPLETE.");
             Check(directResult.OverallQualityScore >= 0, "Overall score must be calculated even when incomplete.");
-            Check(directResult.Evidence.Contains("missing from the sighting, so **CMF_INCOMPLETE** is recommended"), "Reasoning must state that missing fields lead to CMF_INCOMPLETE.");
+            Check(directResult.Evidence.Contains("missing from the sighting") && directResult.Evidence.Contains("**CMF_INCOMPLETE**"), "Reasoning must state that missing fields lead to CMF_INCOMPLETE.");
         }
         finally
         {
@@ -938,6 +938,81 @@ public static class DebugSummaryServiceTests
             null,
             savedTpl.TemplateId);
         Check(tplPptResp != null && tplPptResp.Success && tplPptResp.HasPptx && tplPptResp.SlideCount == 4, "Critique failed: Custom template + 1-line prompt did not generate a 4-slide PPTX deck.");
+
+        // 13. Verify Plain-English Reasoning Flow, Formula Stripping, Tag-Override Alignment & TBT S=4 Floor
+        var trimMethod = typeof(CmfRecommendationService).GetMethod("TrimCrispReasoningSentence", BindingFlags.NonPublic | BindingFlags.Static);
+        Check(trimMethod != null, "TrimCrispReasoningSentence method not found.");
+        string trimmedFormula = (string)trimMethod.Invoke(null, new object[] {
+            "TBT dock enumeration failure is a core loss (S=3), with FVT blocked (B=4). Weighted score (3×0.30 + 2×0.15 + 4×0.10 + 4×0.30 + 2×0.15 = 2.85) falls in review band.",
+            "3/4"
+        });
+        Check(!trimmedFormula.Contains("0.30") && !trimmedFormula.Contains("2.85") && !trimmedFormula.Contains("(S=3)") && !trimmedFormula.Contains("(B=4)"),
+            "Formula or metric code leaked after TrimCrispReasoningSentence: " + trimmedFormula);
+
+        var normMetricMethod = typeof(CmfRecommendationService).GetMethod("NormalizeModelMetricEvaluation", BindingFlags.NonPublic | BindingFlags.Static);
+        Check(normMetricMethod != null, "NormalizeModelMetricEvaluation method not found.");
+        CmfRecommendationRuleScore tbtRule = new CmfRecommendationRuleScore
+        {
+            RuleId = "S",
+            RuleName = "Severity",
+            Score = "3",
+            Evaluation = "Contributing factor: TBT dock not enumerated. Evidence: Core subsystem loss under S0/Sx resume."
+        };
+        normMetricMethod.Invoke(null, new object[] {
+            tbtRule,
+            "",
+            "[Lenovo_Yoga][FVT]Unit can be charged but TBT dock/hub cannot be recongnized when connect TBT dock/hub to TBT port under S0 or resume from MS/S4/S5."
+        });
+        Check(tbtRule.Score == "4", "TBT dock enumeration failure was not promoted to S=4: got " + tbtRule.Score);
+
+        var alignReasoningMethod = typeof(CmfRecommendationService).GetMethod("BuildSinglePassAlignedReasoning", BindingFlags.NonPublic | BindingFlags.Static);
+        Check(alignReasoningMethod != null, "BuildSinglePassAlignedReasoning method not found.");
+        var sampleScores = new System.Collections.Generic.List<CmfRecommendationRuleScore>
+        {
+            tbtRule,
+            new CmfRecommendationRuleScore { RuleId = "O", RuleName = "Occurrence", Score = "2", Evaluation = "Contributing factor: Under 10% sporadic. Evidence: 4% failure rate." },
+            new CmfRecommendationRuleScore { RuleId = "D", RuleName = "Detection / Trigger Scope", Score = "4", Evaluation = "Contributing factor: Normal S0 and Sx resume. Evidence: Normal dock plug-in." },
+            new CmfRecommendationRuleScore { RuleId = "B", RuleName = "Business Impact", Score = "4", Evaluation = "Contributing factor: FVT phase gate blocked. Evidence: Blocks FVT exit." },
+            new CmfRecommendationRuleScore { RuleId = "RVP", RuleName = "RVP Repro Status", Score = "2", Evaluation = "Contributing factor: Blank. Evidence: RVP repro not established." }
+        };
+        string overriddenReasoning = (string)alignReasoningMethod.Invoke(null, new object[] {
+            "CMF_OK",
+            "CMF_REVIEW",
+            "- **Why the score is 3/4:** Weighted score (3×0.30 + 2×0.15 = 2.85) falls in CMF_REVIEW band.\n- **AI Recommendation:** **CMF_REVIEW** — RVP repro is blank so cannot approve.",
+            sampleScores,
+            "TBT dock cannot be recognized",
+            "TBT",
+            "FVT phase gate blocked",
+            "very_sporadic_<10%",
+            "",
+            "Blank",
+            null
+        });
+        string[] ovLines = overriddenReasoning.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        Check(ovLines.Length == 2, "Expected 2 aligned reasoning bullets, got: " + overriddenReasoning);
+        Check(!ovLines[0].Contains("CMF_REVIEW") && !ovLines[0].Contains("0.30"), "Bullet 1 leaked tag or formula after override: " + ovLines[0]);
+        Check(ovLines[1].Contains("**CMF_OK**") && !ovLines[1].Contains("cannot approve"), "Bullet 2 kept contradictory rationale after tag override: " + ovLines[1]);
+
+        var alignIncompleteMethod = typeof(CmfRecommendationService).GetMethod("BuildAlignedIncompleteReasoning", BindingFlags.NonPublic | BindingFlags.Static);
+        Check(alignIncompleteMethod != null, "BuildAlignedIncompleteReasoning method not found.");
+        string incompleteReasoning = (string)alignIncompleteMethod.Invoke(null, new object[] {
+            "CMF_INCOMPLETE",
+            "- **Why the score is 3.25/4:** Second-level TBT daisy-chain device fails to enumerate after S4/S5 resume (moderate functional loss, Score 3 Severity), sporadic 10-20% reproduction rate across NVL platforms (Score 3 Occurrence), triggered during normal S4/S5 resume workflow (Score 3 Detection), explicitly blocks FVT phase exit and product shipping per P1-Showstopper escalation (Score 4 Business Impact), while RVP repro is \"no,\" indicating isolation to customer units (Score 1 RVP). Weighted score of 3.25/4 falls below **CMF_OK** threshold (3.50), but critical SoC Stepping field is missing, preventing full metric validation.\n- **AI Recommendation:** **CMF_INCOMPLETE** — SoC Stepping field is missing and required to complete severity and platform-scope assessment, request submitter provide SoC stepping details before CMF disposition can proceed.",
+            new System.Collections.Generic.List<string> { "SoC Stepping" },
+            sampleScores,
+            null,
+            "TBT daisy-chain device fails to enumerate",
+            "TBT",
+            "Blocks FVT phase exit",
+            "sporadic_10%-40%",
+            "",
+            "No"
+        });
+        string[] incLines = incompleteReasoning.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        Check(incLines.Length == 2, "Expected 2 aligned incomplete reasoning bullets, got: " + incompleteReasoning);
+        Check(!incLines[0].Contains("Score 3") && !incLines[0].Contains("Score 4") && !incLines[0].Contains("Score 1") && !incLines[0].Contains("CMF_OK") && !incLines[0].Contains("3.50") && !incLines[0].Contains("missing"),
+            "Bullet 1 still leaked parenthetical scores, threshold/band, or missing-field note: " + incLines[0]);
+        Check(!incLines[1].Contains("request submitter"), "Bullet 2 still leaked trailing action clause: " + incLines[1]);
     }
 
     private static void RunUnitTestCritiqueAudit(string description, string fixStatus, string impactSummary, string reasoning)
