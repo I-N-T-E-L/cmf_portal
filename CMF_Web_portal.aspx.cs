@@ -3428,6 +3428,23 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
     [WebMethod(EnableSession = true)]
     public static CmfPlatformBriefing GetPlatformDashboardBriefing(string platform, string snapshotKey, bool refresh)
     {
+        return GetPlatformBriefingPanel(platform, snapshotKey, refresh, null);
+    }
+
+    [WebMethod(EnableSession = true)]
+    public static CmfPlatformBriefing GetPlatformDashboardSummaryBriefing(string platform, string snapshotKey, bool refresh)
+    {
+        return GetPlatformBriefingPanel(platform, snapshotKey, refresh, "summary");
+    }
+
+    [WebMethod(EnableSession = true)]
+    public static CmfPlatformBriefing GetPlatformDashboardCustomerBriefing(string platform, string snapshotKey, bool refresh)
+    {
+        return GetPlatformBriefingPanel(platform, snapshotKey, refresh, "customers");
+    }
+
+    private static CmfPlatformBriefing GetPlatformBriefingPanel(string platform, string snapshotKey, bool refresh, string panel)
+    {
         try
         {
             string selection = ResolveDashboardPlatformSelectionForWeb(platform);
@@ -3439,7 +3456,8 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
                 || snapshot.CapturedAt.Date != DateTime.Today)
                 return new CmfPlatformBriefing { Success = false, Mode = "ai-unavailable", ReloadRequired = true,
                     Message = "Dashboard data expired or its scope changed. Reload the dashboard." };
-            return CmfPlatformBriefingService.Get(CmfPlatformBriefingService.CaptureSource(snapshot), refresh);
+            var source = CmfPlatformBriefingService.CaptureSource(snapshot);
+            return CmfPlatformBriefingService.Get(panel == null ? source : CmfPlatformBriefingService.ForPanel(source, panel), refresh);
         }
         catch (Exception exception)
         {

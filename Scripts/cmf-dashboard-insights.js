@@ -430,8 +430,9 @@
         }
         function bullets(group) {
             return '<ul class="ci-platform-bullets">' + group.map(function (finding) {
-                    var sourceId = (data.Pipeline === 'overall-page-briefing-v1' ? 'overall' : 'platform') + '-insight-source-' + finding.Id;
-                    return '<li data-finding-id="' + escape(finding.Id) + '"><p class="ci-evidence"><strong>'
+                    var customerPipeline = data.Pipeline === 'platform-customer-briefing-v1';
+                    var sourceId = (customerPipeline ? 'platform-customer' : data.Pipeline === 'overall-page-briefing-v1' ? 'overall' : 'platform') + '-insight-source-' + finding.Id;
+                    return '<li data-finding-id="' + escape((customerPipeline ? 'customer-' : '') + finding.Id) + '"><p class="ci-evidence"><strong>'
                         + escape(finding.Title) + ':</strong> ' + escape(finding.Summary)
                         + ' <button type="button" class="ci-source-link" id="' + escape(sourceId + '-toggle') + '" aria-expanded="false" aria-controls="'
                         + escape(sourceId) + '" aria-label="Source and justification for ' + escape(finding.Title) + '" title="Source and justification for '
@@ -488,6 +489,48 @@
         content.setAttribute('aria-label', state.briefingView === 'customers' ? 'Customer issue findings' : 'Summary findings');
         var count = selected.querySelectorAll('[data-finding-id]').length;
         state.host.querySelector('.ci-metadata').textContent = count + (count === 1 ? ' finding' : ' findings');
+        if (state.decoupled) updatePlatformStatus(state);
+    }
+
+    function platformPanelMarkup(state) {
+        if (!state.decoupled) return platformFindings(state.data);
+        function statusPanel(view, data, notice) {
+            var busy = !data || data.Mode === 'ai-loading';
+            var text = busy ? 'Analyzing ' + (view === 'customers' ? 'customer issues' : 'summary') + '...'
+                : data.Mode === 'ai' ? 'No significant patterns or changes in this scope.'
+                : notice || 'Insights aren\'t available right now. Try again.';
+            return '<div class="ci-briefing-panel" id="platform-briefing-' + view + '" role="tabpanel" data-briefing-panel="'
+                + view + '" aria-labelledby="platform-briefing-tab-' + view + '" aria-busy="' + busy + '"><p class="ci-empty">'
+                + escape(text) + '</p></div>';
+        }
+        var summary = state.data && state.data.Mode === 'ai' && state.data.Findings.length
+            ? platformFindings(state.data) : statusPanel('summary', state.data, state.notice);
+        if (!state.summaryFinished) return summary;
+        var customers = state.customerData && state.customerData.Mode === 'ai' && state.customerData.Findings.length
+            ? platformFindings(state.customerData) : statusPanel('customers', state.customerData, state.customerNotice);
+        return summary + customers;
+    }
+
+    function updatePlatformStatus(state) {
+        var customer = state.decoupled && state.briefingView === 'customers';
+        var data = customer ? state.customerData : state.data;
+        var busy = !data || data.Mode === 'ai-loading';
+        var complete = data && data.Mode === 'ai';
+        state.host.querySelector('.ci-content').setAttribute('aria-busy', String(busy));
+        state.host.querySelector('.ci-metadata').textContent = complete
+            ? data.Findings.length + (data.Findings.length === 1 ? ' finding' : ' findings') : '';
+        var time = state.host.querySelector('.ci-time');
+        time.textContent = complete ? 'Updated ' + new Date(data.GeneratedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        time.dateTime = complete ? data.GeneratedAt : '';
+        state.host.querySelector('.ci-refresh').disabled = busy;
+        var loader = state.host.querySelector('.ci-progress');
+        var progress = complete ? 100 : busy ? Number(data && data.Progress) : 0;
+        if (!isFinite(progress)) progress = 2;
+        if (busy) progress = Math.max(2, Math.min(98, progress));
+        loader.style.setProperty('--ci-progress', progress + '%');
+        loader.setAttribute('aria-valuenow', String(progress));
+        loader.hidden = !busy;
+        state.host.querySelector('.ci-status').textContent = (customer ? state.customerNotice : state.notice) || '';
     }
 
     function drawPlatform(state) {
@@ -499,7 +542,7 @@
             var detail = item.querySelector('details');
             opened[item.dataset.findingId] = !!(detail && detail.open);
         });
-        content.innerHTML = platformFindings(state.data);
+        content.innerHTML = platformPanelMarkup(state);
         content.querySelectorAll('[data-finding-id]').forEach(function (item) {
             var detail = item.querySelector('details');
             var trigger = item.querySelector('.ci-source-link');
@@ -511,23 +554,7 @@
             });
         });
         content.scrollTop = scroll;
-        var busy = !state.data || state.data.Mode === 'ai-loading';
-        content.setAttribute('aria-busy', String(busy));
-        var complete = state.data && state.data.Mode === 'ai';
-        state.host.querySelector('.ci-metadata').textContent = complete
-            ? state.data.Findings.length + (state.data.Findings.length === 1 ? ' finding' : ' findings') : '';
-        var time = state.host.querySelector('.ci-time');
-        time.textContent = complete ? 'Updated ' + new Date(state.data.GeneratedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-        time.dateTime = complete ? state.data.GeneratedAt : '';
-        state.host.querySelector('.ci-refresh').disabled = busy;
-        var loader = state.host.querySelector('.ci-progress');
-        var progress = complete ? 100 : busy ? Number(state.data && state.data.Progress) : 0;
-        if (!isFinite(progress)) progress = 2;
-        if (busy) progress = Math.max(2, Math.min(98, progress));
-        loader.style.setProperty('--ci-progress', progress + '%');
-        loader.setAttribute('aria-valuenow', String(progress));
-        loader.hidden = !busy;
-        state.host.querySelector('.ci-status').textContent = state.notice || '';
+        updatePlatformStatus(state);
         var tabs = state.host.querySelector('.ci-panel-tabs');
         if (tabs) {
             var panels = Array.from(content.querySelectorAll('[data-briefing-panel]'));
@@ -556,26 +583,75 @@
         }
     }
 
-    function loadPlatform(state, refresh) {
+    function loadPlatform(state, refresh, requestedPanel) {
         if (state.controller) state.controller.abort();
         clearTimeout(state.pollTimer);
         clearTimeout(state.expiryTimer);
         var serial = ++state.serial;
         var consecutiveErrors = 0;
         var generationRetries = 0;
+        var panel = !state.overall && requestedPanel === 'customers' ? 'customers' : 'summary';
+        var followCustomers = !state.overall && (!requestedPanel || (requestedPanel === 'summary'
+            && state.customerData && state.customerData.Mode === 'ai-loading'));
+        var resumeSummary = !state.overall && requestedPanel === 'customers' && state.data && state.data.Mode === 'ai-loading';
+        state.decoupled = !state.overall;
         state.reloadRequired = false;
-        state.data = null;
-        state.notice = '';
-        state.viewScrolls = {};
+        if (!refresh) {
+            state.customerData = null;
+            state.summaryFinished = false;
+        }
+        state.viewScrolls = state.viewScrolls || {};
         state.host.querySelector('.ci-content').scrollTop = 0;
-        drawPlatform(state);
-        function current() { return active === state && state.serial === serial && state.host.isConnected; }
+        function current(phase) { return active === state && state.serial === serial && panel === phase && state.host.isConnected; }
+        function begin(phase, forceRefresh) {
+            panel = phase;
+            consecutiveErrors = 0;
+            generationRetries = 0;
+            if (phase === 'customers') {
+                state.summaryFinished = true;
+                state.customerData = { Mode: 'ai-loading', Progress: 2, Findings: [] };
+                state.customerNotice = '';
+                state.customerReloadRequired = false;
+            } else {
+                state.data = { Mode: 'ai-loading', Progress: 2, Findings: [] };
+                state.notice = '';
+                state.summaryReloadRequired = false;
+            }
+            drawPlatform(state);
+            poll(forceRefresh);
+        }
+        function publish(phase, data, notice) {
+            if (phase === 'customers') {
+                state.customerData = data;
+                state.customerNotice = notice || '';
+            } else {
+                state.data = data;
+                state.notice = notice || '';
+                if (data.Mode !== 'ai-loading') state.summaryFinished = true;
+            }
+            drawPlatform(state);
+            if (phase === 'summary' && data.Mode !== 'ai-loading' && followCustomers) {
+                followCustomers = false;
+                if (!state.summaryReloadRequired) begin('customers', !requestedPanel && refresh);
+                else {
+                    state.customerData = { Mode: 'ai-unavailable', Findings: [] };
+                    state.customerNotice = notice;
+                    state.customerReloadRequired = true;
+                    drawPlatform(state);
+                }
+            } else if (phase === 'customers' && data.Mode !== 'ai-loading' && resumeSummary) {
+                resumeSummary = false;
+                if (!state.customerReloadRequired) begin('summary', false);
+            }
+        }
         function poll(forceRefresh) {
-            if (!current()) return;
+            var phase = panel;
+            if (!current(phase)) return;
             var controller = new AbortController();
             state.controller = controller;
             var deadline = setTimeout(function () { controller.abort(); }, 45000);
-            fetch('CMF_Web_portal.aspx/' + (state.overall ? 'GetOverallDashboardBriefing' : 'GetPlatformDashboardBriefing'), {
+            fetch('CMF_Web_portal.aspx/' + (state.overall ? 'GetOverallDashboardBriefing'
+                : phase === 'customers' ? 'GetPlatformDashboardCustomerBriefing' : 'GetPlatformDashboardSummaryBriefing'), {
                 method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json; charset=utf-8' },
                 signal: controller.signal,
                 body: JSON.stringify({ platform: state.platform, snapshotKey: state.snapshotKey, refresh: !!forceRefresh })
@@ -587,13 +663,16 @@
                 }
                 return response.json();
             }).then(function (payload) {
-                if (!current()) return;
+                if (!current(phase)) return;
                 var data = payload && (payload.d || payload);
                 if (!data || data.Success !== true) {
                     state.reloadRequired = !!(data && data.ReloadRequired === true);
+                    if (phase === 'customers') state.customerReloadRequired = state.reloadRequired;
+                    else state.summaryReloadRequired = state.reloadRequired;
                     throw new Error('Insights are unavailable.');
                 }
-                if (data.Pipeline !== (state.overall ? 'overall-page-briefing-v1' : 'platform-page-briefing-v3') || !Array.isArray(data.Findings)
+                if (data.Pipeline !== (state.overall ? 'overall-page-briefing-v1'
+                    : phase === 'customers' ? 'platform-customer-briefing-v1' : 'platform-summary-briefing-v1') || !Array.isArray(data.Findings)
                     || ['ai', 'ai-loading', 'ai-unavailable'].indexOf(data.Mode) < 0) throw new Error('Insights are unavailable.');
                 consecutiveErrors = 0;
                 if (data.Mode === 'ai-unavailable' && generationRetries < 1 && [
@@ -602,33 +681,28 @@
                     'grounding-rejected', 'incomplete-ranking', 'provider-timeout', 'provider-empty', 'provider-unavailable'
                 ].indexOf(data.FailureCode) >= 0) {
                     generationRetries++;
-                    state.data = { Mode: 'ai-loading', Progress: 2, Findings: [] };
-                    state.notice = 'Preparing insights...';
-                    drawPlatform(state);
+                    publish(phase, { Mode: 'ai-loading', Progress: 2, Findings: [] }, 'Preparing insights...');
                     state.pollTimer = setTimeout(function () { poll(true); }, 3000);
                     return;
                 }
-                state.data = data.Mode === 'ai' ? data : { Mode: data.Mode, Progress: data.Progress, Findings: [] };
-                state.notice = data.Mode === 'ai-unavailable'
+                var notice = data.Mode === 'ai-unavailable'
                     ? data.FailureCode === 'provider-rate-limited' ? 'Insights are busy. Try again shortly.'
                         : 'Insights aren\'t available right now. Try again.' : '';
-                drawPlatform(state);
+                publish(phase, data.Mode === 'ai' ? data : { Mode: data.Mode, Progress: data.Progress, Findings: [] }, notice);
                 if (data.Mode === 'ai-loading') state.pollTimer = setTimeout(function () { poll(false); }, 3000);
             }).catch(function (error) {
-                if (!current()) return;
+                if (!current(phase)) return;
                 var transient = error.retryable === true || ['AbortError', 'TypeError', 'SyntaxError'].indexOf(error.name) >= 0;
                 if (transient && consecutiveErrors < 2) {
                     consecutiveErrors++;
                     state.pollTimer = setTimeout(function () { poll(false); }, 1000 * consecutiveErrors);
                     return;
                 }
-                state.data = { Mode: 'ai-unavailable', Findings: [] };
-                state.notice = state.reloadRequired ? 'Refresh the dashboard to load insights.'
-                    : 'Insights aren\'t available right now. Try again.';
-                drawPlatform(state);
+                publish(phase, { Mode: 'ai-unavailable', Findings: [] }, state.reloadRequired ? 'Refresh the dashboard to load insights.'
+                    : 'Insights aren\'t available right now. Try again.');
             }).finally(function () { clearTimeout(deadline); });
         }
-        poll(refresh);
+        begin(panel, refresh);
     }
 
     function render(snapshot) {
@@ -659,8 +733,9 @@
                 + '<div class="ci-footer"><time class="ci-time"></time><p class="ci-metadata"></p></div>'
                 + '<div class="ci-progress" role="progressbar" aria-label="Insights progress" aria-valuemin="0" aria-valuemax="100" hidden><span></span></div>';
         host.querySelector('.ci-refresh').addEventListener('click', function () {
-            if (state.reloadRequired) window.location.reload();
-            else loadPlatform(state, true);
+            var customer = state.decoupled && state.briefingView === 'customers';
+            if (state.decoupled ? customer ? state.customerReloadRequired : state.summaryReloadRequired : state.reloadRequired) window.location.reload();
+            else loadPlatform(state, true, state.decoupled ? customer ? 'customers' : 'summary' : undefined);
         });
         loadPlatform(state, false);
     }

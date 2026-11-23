@@ -1392,7 +1392,7 @@ test('platform briefing view tabs preserve scroll, support keyboard switching an
     const state = { host: { isConnected: true, querySelector: selector => parts.get(selector), querySelectorAll: () => availableButtons },
         data: { Mode: 'ai', Findings: [{}, {}, {}], GeneratedAt: '2026-11-23T03:00:00Z' } };
     const context = vm.createContext({ active: state, platformFindings: () => 'Approved panels', fetch() { throw new Error('View switches must not request AI.'); } });
-    for (const name of ['selectPlatformView', 'drawPlatform'])
+    for (const name of ['platformPanelMarkup', 'updatePlatformStatus', 'selectPlatformView', 'drawPlatform'])
         vm.runInContext(script.match(new RegExp('    function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n    \\}'))[0], context);
     context.drawPlatform(state);
     assert.equal(state.briefingView, 'summary');
@@ -1433,7 +1433,7 @@ test('platform briefing view tabs preserve scroll, support keyboard switching an
     context.drawPlatform(state);
     assert.equal(parts.get('.ci-panel-tabs').hidden, true);
     assert.equal(parts.get('.ci-panel-tabs').innerHTML, '');
-    assert.match(page, /cmf-dashboard-insights\.js\?v=41/);
+    assert.match(page, /cmf-dashboard-insights\.js\?v=43/);
     assert.match(page, /cmf-dashboard-insights\.css\?v=39/);
     const styles = fs.readFileSync(path.join(root, 'Content', 'cmf-dashboard-insights.css'), 'utf8');
     assert.match(styles, /\.ci-panel-tabs \{[^}]*gap: 0;[^}]*padding: 0 8px/);
@@ -1475,6 +1475,8 @@ test('platform briefing Source toggles only its backing data and preserves open 
     const state = { host: { isConnected: true, querySelector: selector => parts.get(selector) },
         data: { Mode: 'ai', Findings: items, GeneratedAt: '2026-11-20T05:00:00Z' } };
     const context = vm.createContext({ active: state, platformFindings: () => 'Rendered bullets' });
+    for (const name of ['platformPanelMarkup', 'updatePlatformStatus'])
+        vm.runInContext(script.match(new RegExp('    function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n    \\}'))[0], context);
     vm.runInContext(script.match(/    function drawPlatform\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0], context);
     context.drawPlatform(state);
     items[0].trigger.click();
@@ -1499,6 +1501,8 @@ test('platform briefing fills the existing bar from real stages without looping 
     }]));
     const state = { host: { isConnected: true, querySelector: selector => parts.get(selector) }, data: null };
     const context = vm.createContext({ active: state, platformFindings: () => '<p>Analyzing dashboard data...</p>' });
+    for (const name of ['platformPanelMarkup', 'updatePlatformStatus'])
+        vm.runInContext(script.match(new RegExp('    function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n    \\}'))[0], context);
     vm.runInContext(script.match(/    function drawPlatform\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0], context);
     const loader = parts.get('.ci-progress');
     for (const stage of [5, 25, 45, 65, 85, 90, 98]) {
@@ -1531,7 +1535,7 @@ test('platform briefing fills the existing bar from real stages without looping 
     const platformMarkup = script.match(/    function render\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0];
     assert.doesNotMatch(platformMarkup, /ci-progress-indeterminate|aria-valuetext/);
     assert.match(platformMarkup, /class="ci-progress"[^>]*><span><\/span>/);
-    assert.match(page, /Scripts\/cmf-dashboard-insights\.js\?v=41/);
+    assert.match(page, /Scripts\/cmf-dashboard-insights\.js\?v=43/);
 });
 
 test('Overall briefing uses only its own snapshot endpoint and isolated reviewed Source controls', async () => {
@@ -1574,6 +1578,120 @@ test('Overall briefing uses only its own snapshot endpoint and isolated reviewed
     assert.doesNotMatch(endpoint, /BuildHomeDashboardSnapshot|CmfRenderedInsightsService|GetSummaryIssueSourceTables|RankDashboardInsights/);
 });
 
+test('platform panels publish Summary first and isolate customer polling failures and refresh', async () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const state = { serial: 0, platform: 'CMF_NVL_H_ALL_COMPONENTS_TABLE', snapshotKey: 'panel-snapshot',
+        host: { isConnected: true, querySelector: () => ({ scrollTop: 0 }) } };
+    const requests = [], timers = new Map(), events = [];
+    let timerId = 0;
+    const context = vm.createContext({ active: state, AbortController,
+        setTimeout(callback, delay) { timers.set(++timerId, { callback, delay }); return timerId; },
+        clearTimeout(id) { timers.delete(id); },
+        drawPlatform(target) { if (target.data && target.data.Mode === 'ai') events.push('summary-visible'); },
+        fetch(url, options) {
+            events.push(url);
+            return new Promise(resolve => requests.push({ url, body: JSON.parse(options.body), resolve }));
+        }
+    });
+    vm.runInContext(script.match(/    function loadPlatform\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0], context);
+    const settle = () => new Promise(resolve => setImmediate(resolve));
+    const reply = async (index, data) => { requests[index].resolve({ ok: true, json: async () => ({ d: data }) }); await settle(); };
+    context.loadPlatform(state, false);
+    assert.equal(requests[0].url, 'CMF_Web_portal.aspx/GetPlatformDashboardSummaryBriefing');
+    await reply(0, { Success: true, Pipeline: 'platform-summary-briefing-v1', Mode: 'ai-loading', Progress: 45, Findings: [{ Title: 'DRAFT' }] });
+    assert.equal(requests.length, 1);
+    assert.equal(state.data.Findings.length, 0);
+    Array.from(timers.values()).find(timer => timer.delay === 3000).callback();
+    const summary = { Success: true, Pipeline: 'platform-summary-briefing-v1', Mode: 'ai', Findings: [{ Id: 'f1', Title: 'Reviewed Summary' }] };
+    await reply(1, summary);
+    assert.equal(requests[2].url, 'CMF_Web_portal.aspx/GetPlatformDashboardCustomerBriefing');
+    assert.ok(events.indexOf('summary-visible') < events.indexOf(requests[2].url));
+    assert.equal(state.data, summary);
+    await reply(2, { Success: true, Pipeline: 'platform-customer-briefing-v1', Mode: 'ai-loading', Progress: 20, Findings: [{ Title: 'CUSTOMER DRAFT' }] });
+    assert.equal(state.data, summary);
+    assert.equal(state.customerData.Findings.length, 0);
+    Array.from(timers.values()).filter(timer => timer.delay === 3000).at(-1).callback();
+    await reply(3, { Success: true, Pipeline: 'platform-customer-briefing-v1', Mode: 'ai-unavailable', FailureCode: 'provider-authorization', Findings: [] });
+    assert.equal(state.data, summary);
+    assert.equal(state.customerData.Mode, 'ai-unavailable');
+    context.loadPlatform(state, true, 'customers');
+    assert.equal(requests[4].url, 'CMF_Web_portal.aspx/GetPlatformDashboardCustomerBriefing');
+    assert.equal(requests[4].body.refresh, true);
+    assert.equal(state.data, summary);
+    await reply(4, { Success: true, Pipeline: 'platform-summary-briefing-v1', Mode: 'ai', Findings: [{ Title: 'WRONG PANEL' }] });
+    assert.equal(state.customerData.Mode, 'ai-unavailable');
+    assert.equal(state.data, summary);
+    context.loadPlatform(state, true, 'customers');
+    state.serial++;
+    await reply(5, { Success: true, Pipeline: 'platform-customer-briefing-v1', Mode: 'ai', Findings: [{ Title: 'STALE CUSTOMER' }] });
+    assert.equal(state.customerData.Mode, 'ai-loading');
+    assert.equal(state.data, summary);
+    context.loadPlatform(state, true, 'summary');
+    assert.equal(requests[6].url, 'CMF_Web_portal.aspx/GetPlatformDashboardSummaryBriefing');
+    await reply(6, summary);
+    assert.equal(requests[7].url, 'CMF_Web_portal.aspx/GetPlatformDashboardCustomerBriefing');
+    assert.equal(requests[7].body.refresh, false);
+    await reply(7, { Success: false, ReloadRequired: true });
+    assert.equal(state.data, summary);
+    assert.equal(state.customerReloadRequired, true);
+    context.loadPlatform(state, false);
+    await reply(8, { Success: false, ReloadRequired: true });
+    assert.equal(requests.length, 9);
+    assert.equal(state.customerData.Mode, 'ai-unavailable');
+    assert.equal(state.customerReloadRequired, true);
+    state.data = { Mode: 'ai-loading', Progress: 45, Findings: [] };
+    context.loadPlatform(state, true, 'customers');
+    await reply(9, { Success: true, Pipeline: 'platform-customer-briefing-v1', Mode: 'ai', Findings: [] });
+    assert.equal(requests[10].url, 'CMF_Web_portal.aspx/GetPlatformDashboardSummaryBriefing');
+    assert.equal(requests[10].body.refresh, false);
+    await reply(10, summary);
+    assert.equal(state.data, summary);
+});
+
+test('platform panel markup and selected status preserve Summary during customer loading', () => {
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
+    const parts = new Map(['.ci-content', '.ci-metadata', '.ci-time', '.ci-refresh', '.ci-progress', '.ci-status'].map(key => [key, {
+        textContent: '', setAttribute() {}, style: { setProperty() {} }
+    }]));
+    const state = { decoupled: true, summaryFinished: true, briefingView: 'summary', notice: '', customerNotice: '',
+        host: { querySelector: key => parts.get(key) },
+        data: { Pipeline: 'platform-summary-briefing-v1', Mode: 'ai', GeneratedAt: '2026-11-23T12:00:00Z', Findings: [
+            { Id: 'f1', Title: 'Reviewed Summary', Summary: 'Summary text.', Section: 'highlights', Evidence: [] }] },
+        customerData: { Mode: 'ai-loading', Progress: 30, Findings: [] } };
+    const context = vm.createContext({});
+    for (const name of ['escape', 'platformFindings', 'platformPanelMarkup', 'updatePlatformStatus'])
+        vm.runInContext(script.match(new RegExp('    function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\r?\\n    \\}'))[0], context);
+    let html = context.platformPanelMarkup(state);
+    assert.match(html, /Reviewed Summary/);
+    assert.match(html, /platform-briefing-customers/);
+    assert.match(html, /Analyzing customer issues/);
+    context.updatePlatformStatus(state);
+    assert.equal(parts.get('.ci-progress').hidden, true);
+    assert.equal(parts.get('.ci-refresh').disabled, false);
+    state.briefingView = 'customers';
+    context.updatePlatformStatus(state);
+    assert.equal(parts.get('.ci-progress').hidden, false);
+    assert.equal(parts.get('.ci-refresh').disabled, true);
+    state.customerData = { Pipeline: 'platform-customer-briefing-v1', Mode: 'ai', GeneratedAt: '2026-11-23T12:01:00Z', Findings: [
+        { Id: 'f1', Title: 'Reviewed Customer', Summary: 'Customer text.', Section: 'focus',
+            Evidence: [{ Source: 'CustomerIssues - Open reported customer issue', Text: 'Exact customer source.' }] }] };
+    html = context.platformPanelMarkup(state);
+    assert.match(html, /platform-insight-source-f1/);
+    assert.match(html, /platform-customer-insight-source-f1/);
+    assert.match(html, /data-finding-id="customer-f1"/);
+    assert.equal((html.match(/id="platform-briefing-summary"/g) || []).length, 1);
+    assert.equal((html.match(/id="platform-briefing-customers"/g) || []).length, 1);
+    state.customerData = { Mode: 'ai-unavailable', Findings: [] };
+    state.customerNotice = 'Customer provider unavailable.';
+    assert.match(context.platformPanelMarkup(state), /Reviewed Summary/);
+    context.updatePlatformStatus(state);
+    assert.equal(parts.get('.ci-status').textContent, state.customerNotice);
+    state.briefingView = 'summary';
+    context.updatePlatformStatus(state);
+    assert.equal(parts.get('.ci-status').textContent, '');
+    assert.equal(parts.get('.ci-metadata').textContent, '1 finding');
+});
+
 test('platform briefing sends only snapshot scope and rejects stale or unapproved responses', async () => {
     const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
     const definition = script.match(/    function loadPlatform\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0];
@@ -1587,30 +1705,35 @@ test('platform briefing sends only snapshot scope and rejects stale or unapprove
         fetch(url, options) { requests.push({ url, body: JSON.parse(options.body) }); return new Promise(resolve => { pending = resolve; }); }
     });
     vm.runInContext(definition, context);
-    context.loadPlatform(state, true);
-    assert.deepEqual(requests[0], { url: 'CMF_Web_portal.aspx/GetPlatformDashboardBriefing',
+    context.loadPlatform(state, true, 'summary');
+    assert.deepEqual(requests[0], { url: 'CMF_Web_portal.aspx/GetPlatformDashboardSummaryBriefing',
         body: { platform: state.platform, snapshotKey: 'opaque-snapshot', refresh: true } });
-    pending({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-page-briefing-v3', Mode: 'ai-loading', Progress: 45, Findings: [{ Title: 'UNAPPROVED' }] } }) });
+    pending({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-summary-briefing-v1', Mode: 'ai-loading', Progress: 45, Findings: [{ Title: 'UNAPPROVED' }] } }) });
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(state.data.Mode, 'ai-loading');
     assert.equal(state.data.Progress, 45);
     assert.equal(state.data.Findings.length, 0);
     Array.from(timers.values()).find(timer => timer.delay === 3000).callback();
     assert.equal(requests[1].body.refresh, false);
-    pending({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-page-briefing-v3', Mode: 'ai-review', Findings: [{ Title: 'DRAFT' }] } }) });
+    pending({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-summary-briefing-v1', Mode: 'ai-review', Findings: [{ Title: 'DRAFT' }] } }) });
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(state.data.Mode, 'ai-unavailable');
     assert.equal(state.data.Findings.length, 0);
-    context.loadPlatform(state, false);
+    context.loadPlatform(state, false, 'summary');
     state.serial++;
-    pending({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-page-briefing-v3', Mode: 'ai', Findings: [{ Title: 'STALE' }] } }) });
+    pending({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-summary-briefing-v1', Mode: 'ai', Findings: [{ Title: 'STALE' }] } }) });
     await new Promise(resolve => setImmediate(resolve));
-    assert.equal(state.data, null);
-    const endpoint = server.match(/    public static CmfPlatformBriefing GetPlatformDashboardBriefing\([\s\S]*?\r?\n    \}/)[0];
+    assert.equal(state.data.Mode, 'ai-loading');
+    const endpoint = server.match(/    private static CmfPlatformBriefing GetPlatformBriefingPanel\([\s\S]*?\r?\n    \}/)[0];
     assert.match(endpoint, /selection == OverallDashboardPlatformTable/);
     assert.match(endpoint, /DashboardSnapshotCacheKey\(snapshotKey\)/);
     assert.match(endpoint, /snapshot\.Platform != selection/);
     assert.match(endpoint, /snapshot\.Configuration != DashboardPanelConfiguration\(selection\)/);
+    assert.match(endpoint, /snapshot\.CapturedAt\.Date != DateTime\.Today/);
+    for (const [method, panel] of [['GetPlatformDashboardSummaryBriefing', 'summary'], ['GetPlatformDashboardCustomerBriefing', 'customers']]) {
+        const wrapper = server.match(new RegExp('    public static CmfPlatformBriefing ' + method + '\\([\\s\\S]*?\\r?\\n    \\}'))[0];
+        assert.match(wrapper, new RegExp('GetPlatformBriefingPanel\\(platform, snapshotKey, refresh, "' + panel + '"\\)'));
+    }
     assert.doesNotMatch(endpoint, /snapshotContext|FetchArticle|CmfRenderedInsightsService/);
 });
 
@@ -1633,28 +1756,28 @@ test('platform briefing retries transient polls without restarting generation an
         timers.delete(entry[0]);
         entry[1].callback();
     };
-    context.loadPlatform(state, true);
+    context.loadPlatform(state, true, 'summary');
     const oldDeadline = Array.from(timers.values()).find(timer => timer.delay === 45000).callback;
     requests[0].resolve({ ok: false, status: 503 });
     await settle();
-    assert.equal(state.data, null, 'A temporary server failure should leave the analysis loading.');
+    assert.equal(state.data.Mode, 'ai-loading', 'A temporary server failure should leave the analysis loading.');
     fire(1000);
     oldDeadline();
     assert.equal(requests[1].options.signal.aborted, false, 'An old request deadline aborted the replacement request.');
     assert.equal(JSON.parse(requests[1].options.body).refresh, false, 'Transport retry restarted model generation.');
-    requests[1].resolve({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-page-briefing-v3', Mode: 'ai-loading', Progress: 45, Findings: [] } }) });
+    requests[1].resolve({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-summary-briefing-v1', Mode: 'ai-loading', Progress: 45, Findings: [] } }) });
     await settle();
     fire(3000);
     requests[2].reject(new TypeError('Network interrupted'));
     await settle();
     assert.equal(state.data.Progress, 45, 'A transient failed poll reset completed analysis progress.');
     fire(1000);
-    requests[3].resolve({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-page-briefing-v3', Mode: 'ai', Findings: [], ExpiresAt: new Date(Date.now() + 60000).toISOString() } }) });
+    requests[3].resolve({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-summary-briefing-v1', Mode: 'ai', Findings: [], ExpiresAt: new Date(Date.now() + 60000).toISOString() } }) });
     await settle();
     assert.equal(state.data.Mode, 'ai');
     assert.equal(state.notice, '');
     assert.equal(timers.size, 0, 'Completed insights scheduled an unwanted latest-update reminder.');
-    context.loadPlatform(state, false);
+    context.loadPlatform(state, false, 'summary');
     for (let attempt = 0; attempt < 3; attempt++) {
         requests[4 + attempt].reject(new TypeError('Offline'));
         await settle();
@@ -1662,13 +1785,13 @@ test('platform briefing retries transient polls without restarting generation an
     }
     assert.equal(state.data.Mode, 'ai-unavailable');
     assert.equal(timers.size, 0, 'Transport failures retried without a bound.');
-    context.loadPlatform(state, true);
+    context.loadPlatform(state, true, 'summary');
     requests[7].resolve({ ok: true, json: async () => ({ d: { Success: false, ReloadRequired: true, Message: 'Dashboard data expired.' } }) });
     await settle();
     assert.equal(state.reloadRequired, true);
     assert.equal(state.notice, 'Refresh the dashboard to load insights.');
     assert.equal(timers.size, 0, 'An invalid snapshot must not be retried automatically.');
-    assert.match(script, /if \(state\.reloadRequired\) window\.location\.reload\(\)/);
+    assert.match(script, /customerReloadRequired : state\.summaryReloadRequired/);
     assert.match(server, /Mode = "ai-unavailable", ReloadRequired = true/);
 });
 
@@ -1676,7 +1799,7 @@ test('platform briefing retries recoverable generation once for each host and pu
     const script = fs.readFileSync(path.join(root, 'Scripts', 'cmf-dashboard-insights.js'), 'utf8');
     const definition = script.match(/    function loadPlatform\([^)]*\) \{[\s\S]*?\r?\n    \}/)[0];
     for (const overall of [false, true]) {
-        const pipeline = overall ? 'overall-page-briefing-v1' : 'platform-page-briefing-v3';
+        const pipeline = overall ? 'overall-page-briefing-v1' : 'platform-summary-briefing-v1';
         const state = { overall, serial: 0, platform: overall ? 'CMF_OVERALL_ALL_COMPONENTS_TABLE' : 'NVL-H', snapshotKey: 'snapshot',
             host: { isConnected: true, querySelector: () => ({ scrollTop: 0 }) } };
         const requests = [], timers = new Map();
@@ -1698,7 +1821,7 @@ test('platform briefing retries recoverable generation once for each host and pu
             timers.delete(entry[0]);
             entry[1].callback();
         };
-        context.loadPlatform(state, false);
+        context.loadPlatform(state, false, 'summary');
         await respond({ Mode: 'ai-unavailable', FailureCode: 'unsupported-number', Message: 'Technical verification details', Findings: [{ Title: 'REJECTED' }] });
         assert.equal(state.data.Mode, 'ai-loading');
         assert.equal(state.data.Findings.length, 0);
@@ -1712,9 +1835,9 @@ test('platform briefing retries recoverable generation once for each host and pu
         await respond({ Mode: 'ai', Findings: [{ Title: 'APPROVED' }], ExpiresAt: new Date(Date.now() + 60000).toISOString() });
         assert.equal(state.data.Findings[0].Title, 'APPROVED');
         assert.equal(state.notice, '');
-        assert.ok(requests.every(request => request.url.endsWith(overall ? 'GetOverallDashboardBriefing' : 'GetPlatformDashboardBriefing')));
+        assert.ok(requests.every(request => request.url.endsWith(overall ? 'GetOverallDashboardBriefing' : 'GetPlatformDashboardSummaryBriefing')));
 
-        context.loadPlatform(state, true);
+        context.loadPlatform(state, true, 'summary');
         await respond({ Mode: 'ai-unavailable', FailureCode: 'grounding-rejected', Findings: [] });
         fire();
         await respond({ Mode: 'ai-unavailable', FailureCode: 'grounding-rejected', Message: 'Evidence verification failed', Findings: [{ Title: 'REJECTED AGAIN' }] });
@@ -1723,7 +1846,7 @@ test('platform briefing retries recoverable generation once for each host and pu
         assert.equal(state.notice, "Insights aren't available right now. Try again.");
         assert.equal(timers.size, 0, 'Generation retried more than once.');
 
-        context.loadPlatform(state, false);
+        context.loadPlatform(state, false, 'summary');
         await respond({ Mode: 'ai-unavailable', FailureCode: 'unsupported-number', Findings: [] });
         const beforeSwitch = requests.length;
         state.serial++;
@@ -1745,8 +1868,8 @@ test('platform briefing stops permanent or unknown failures and keeps technical 
             fetch() { return new Promise(resolve => { respond = resolve; }); }
         });
         vm.runInContext(definition, context);
-        context.loadPlatform(state, false);
-        respond({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-page-briefing-v3',
+        context.loadPlatform(state, false, 'summary');
+        respond({ ok: true, json: async () => ({ d: { Success: true, Pipeline: 'platform-summary-briefing-v1',
             Mode: 'ai-unavailable', FailureCode: failureCode, Message: 'The generated insights did not pass evidence verification.', Findings: [] } }) });
         await new Promise(resolve => setImmediate(resolve));
         assert.equal(state.data.Mode, 'ai-unavailable');
