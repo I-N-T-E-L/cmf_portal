@@ -3710,7 +3710,8 @@ ORDER BY group_name, CAST(src.cp_id AS VARCHAR(64))";
         string prefix = alias + ".";
         string openStatusPredicate = prefix + "status NOT IN ('complete', 'rejected', 'implemented', 'future')";
         string currentStatusPredicate = implemented ? prefix + "status IN ('implemented', 'future')" : openStatusPredicate;
-        string historicalPredicate = "TRY_CAST(" + prefix + "date_cmf_ask AS DATE) < (" + cutoffSql + ")"
+        string historicalDateColumn = implemented ? "date_cmf_ask" : "date_cmf_decided";
+        string historicalPredicate = "TRY_CAST(" + prefix + historicalDateColumn + " AS DATE) < (" + cutoffSql + ")"
             + " AND (TRY_CAST(" + prefix + "closed_date AS DATE) IS NULL OR TRY_CAST(" + prefix + "closed_date AS DATE) >= (" + cutoffSql + "))"
             + (implemented
                 ? " AND " + prefix + "status IN ('implemented', 'future', 'complete', 'rejected') AND TRY_CAST(" + prefix + "implemented_date AS DATE) < (" + cutoffSql + ")"
@@ -5039,6 +5040,8 @@ ORDER BY Component, Driver", con))
             string componentLookupSourceSql = "(" + BuildSummaryIssueComponentSourceSql(platformTable, false) + ") AS src_comp";
             if (!string.IsNullOrWhiteSpace(pendingSourceSql))
             {
+                string pendingIdstMappingSql = BuildPendingIdstMappingSql(isOverall
+                    ? (IEnumerable<string>)GetOverallAggregateSourceTables() : new[] { platformTable });
                 int pendingAgeThresholdDays = GetPendingSummaryAgeThresholdDays();
                 snapshot.PendingSummaryAgeThresholdDays = pendingAgeThresholdDays;
                 int? oldestPendingAgeDays = null;
@@ -5050,9 +5053,10 @@ WITH pending_rows AS (
     SELECT
         CASE WHEN pending.component_group IS NULL OR pending.component_group = '' OR pending.component_group = 'no iDST assigned' THEN 'Unassigned' ELSE pending.component_group END AS component_group,
         CASE
-                        WHEN src_comp.idst IS NULL OR LTRIM(RTRIM(src_comp.idst)) = ''
-                            OR LOWER(LTRIM(RTRIM(src_comp.idst))) = 'no idst assigned' THEN 'Unassigned'
-            ELSE LTRIM(RTRIM(src_comp.idst))
+                        WHEN ISNULL(idst_mapping.idst_display_name, src_comp.idst) IS NULL
+                            OR LTRIM(RTRIM(ISNULL(idst_mapping.idst_display_name, src_comp.idst))) = ''
+                            OR LOWER(LTRIM(RTRIM(ISNULL(idst_mapping.idst_display_name, src_comp.idst)))) = 'no idst assigned' THEN 'Unassigned'
+            ELSE LTRIM(RTRIM(ISNULL(idst_mapping.idst_display_name, src_comp.idst)))
         END AS idst_name,
         CAST(pending.cp_id AS VARCHAR(64)) AS cp_id,
         TRY_CAST(pending.date_cmf_ask AS DATE) AS date_cmf_ask
@@ -5060,6 +5064,9 @@ WITH pending_rows AS (
     LEFT JOIN " + componentLookupSourceSql + @"
       ON CAST(pending.cp_id AS VARCHAR(64)) = CAST(src_comp.cp_id AS VARCHAR(64))
      AND pending.source_platform = src_comp.source_platform
+        LEFT JOIN (" + pendingIdstMappingSql + @") AS idst_mapping
+            ON idst_mapping.component = src_comp.component_group
+         AND idst_mapping.source_platform = pending.source_platform
     WHERE pending.status NOT IN ('complete', 'rejected')
 )
 SELECT component_group, idst_name, cp_id, date_cmf_ask
@@ -5140,9 +5147,10 @@ WITH pending_rows AS (
     SELECT
         CASE WHEN pending.component_group IS NULL OR pending.component_group = '' OR pending.component_group = 'no iDST assigned' THEN 'Unassigned' ELSE pending.component_group END AS component_group,
         CASE
-                        WHEN src_comp.idst IS NULL OR LTRIM(RTRIM(src_comp.idst)) = ''
-                            OR LOWER(LTRIM(RTRIM(src_comp.idst))) = 'no idst assigned' THEN 'Unassigned'
-            ELSE LTRIM(RTRIM(src_comp.idst))
+                        WHEN ISNULL(idst_mapping.idst_display_name, src_comp.idst) IS NULL
+                            OR LTRIM(RTRIM(ISNULL(idst_mapping.idst_display_name, src_comp.idst))) = ''
+                            OR LOWER(LTRIM(RTRIM(ISNULL(idst_mapping.idst_display_name, src_comp.idst)))) = 'no idst assigned' THEN 'Unassigned'
+            ELSE LTRIM(RTRIM(ISNULL(idst_mapping.idst_display_name, src_comp.idst)))
         END AS idst_name,
         CAST(pending.cp_id AS VARCHAR(64)) AS cp_id,
         TRY_CAST(pending.date_cmf_ask AS DATE) AS date_cmf_ask
@@ -5150,6 +5158,9 @@ WITH pending_rows AS (
     LEFT JOIN " + componentLookupSourceSql + @"
       ON CAST(pending.cp_id AS VARCHAR(64)) = CAST(src_comp.cp_id AS VARCHAR(64))
      AND pending.source_platform = src_comp.source_platform
+        LEFT JOIN (" + pendingIdstMappingSql + @") AS idst_mapping
+            ON idst_mapping.component = src_comp.component_group
+         AND idst_mapping.source_platform = pending.source_platform
     WHERE pending.status NOT IN ('complete', 'rejected')
 )
 SELECT
@@ -13786,6 +13797,18 @@ firstPatternCaseStatements +
         return cache;
     }
 
+    private static string BuildPendingIdstMappingSql(IEnumerable<string> pendingPlatforms)
+    {
+        return string.Join(" UNION ALL ", pendingPlatforms.Select(platform =>
+        {
+            string mappingTable = platform.IndexOf("NVL", StringComparison.OrdinalIgnoreCase) >= 0 ? "idst_mapping_table_NVL"
+                : platform.IndexOf("PTL", StringComparison.OrdinalIgnoreCase) >= 0 ? "idst_mapping_table_PTL"
+                : platform.IndexOf("WCL", StringComparison.OrdinalIgnoreCase) >= 0 ? "idst_mapping_table_WCL"
+                : "idst_mapping_table";
+            return "SELECT '" + platform + "' AS source_platform, component, idst_display_name FROM [dbo].[" + mappingTable + "]";
+        }));
+    }
+
     private void BindGridView_cmf_pending()
     {
         List<string> pendingPlatforms = GetPendingPlatformSelections();
@@ -13799,14 +13822,7 @@ firstPatternCaseStatements +
         using (SqlConnection con = new SqlConnection(connectionString))
         {
             con.Open();
-            string pendingIdstMappingSql = string.Join(" UNION ALL ", pendingPlatforms.Select(platform =>
-            {
-                string mappingTable = platform.IndexOf("NVL", StringComparison.OrdinalIgnoreCase) >= 0 ? "idst_mapping_table_NVL"
-                    : platform.IndexOf("PTL", StringComparison.OrdinalIgnoreCase) >= 0 ? "idst_mapping_table_PTL"
-                    : platform.IndexOf("WCL", StringComparison.OrdinalIgnoreCase) >= 0 ? "idst_mapping_table_WCL"
-                    : "idst_mapping_table";
-                return "SELECT '" + platform + "' AS source_platform, component, idst_display_name FROM [dbo].[" + mappingTable + "]";
-            }));
+            string pendingIdstMappingSql = BuildPendingIdstMappingSql(pendingPlatforms);
             string main_query;
             if (isOverallSelection)
             {

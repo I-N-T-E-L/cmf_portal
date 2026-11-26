@@ -172,7 +172,7 @@ Closed carries an explicit Total CMFs denominator from the same accepted-record
 summary population (including duplicates). Pending assessments are a separate
 queue, not an additional disjoint status bucket to add to accepted summary counts.
 Generation and review use these declared populations and denominators rather than
-inferring shares from unrelated headline values. Grounding failures retain private
+inferring shares from unrelated headline values. Review failures retain private
 structured claim/reason diagnostics in the server cache; the public response and
 UI never expose rejected draft text or reviewer explanations.
 
@@ -188,9 +188,19 @@ concentrations and cross-measure observations remain `cluster` and `pattern`.
 One local-validation correction and one independent-review correction are permitted
 per batch, each with full rejection feedback and fresh verification. A local repair
 does not consume the chance to address subsequent semantic rejection. At most three
-generations and two independent reviews run per batch. Within a server job,
+generations and two semantic reviews run per batch. Malformed review JSON, missing
+checks, invalid flags or stale hashes permit one additional review-only repair per
+batch, with unchanged findings and approval hashes. This does not consume a draft
+correction or publish the rejected response. A reviewer reporting omitted material
+coverage must supply `coverageReason`; that reason drives fresh generation and
+independent review instead of being treated as a transport failure. Within a server job,
 provider failures do not trigger another generation correction. No unapproved
 or canned prose is shown.
+Dashboard AI permits at most three concurrent requests across all panels. Starts
+remain globally paced at least three seconds apart, including retries. Provider
+`Retry-After` cooldowns are shared and cannot be shortened by another response;
+backoff, cancellation and retry bounds remain enforced. Approved scoped caches
+are reused without another model call.
 Platform AI Insights cards provide separate Summary and Customer Issues views using
 the existing assistant-section styling and expandable supporting evidence,
 without pagination or a finding cap. Summary contains populated Highlights and
@@ -233,12 +243,12 @@ can qualify as Highlights. Equality is a neutral meets-target assessment, not
 proof of fast or maintained handling; below-reference values use favorable
 reference comparisons. Above-reference values qualify as adverse Lowlights only
 when the gap is at least 20% of the reference and at least one day. Slight
-above-reference gaps, zero and unavailable cards remain omitted. TPT bullets stay
-qualitative and concise, with exact days, references, gaps and rationale in Source.
-Above-target sentences convey magnitude: `above` when the gap is below half the
-target, `well above` from half to below a full target, and `far above` or
-`much beyond` from a full target. Generation, validation and independent review
-keep qualifiers evidence-bound; larger gaps are not reduced to a generic `above`.
+above-reference gaps, zero and unavailable cards remain omitted. TPT titles stay
+qualitative and sentences concise. Above-target sentences use plain `above target`
+or `exceeds target` with the exact excess in days, even for large gaps. Source
+retains the actual average, its target and the selected difference. Generation,
+validation and independent review reject exaggerated qualifiers such as `well above`,
+`far above` and `much beyond`, without changing eligibility or weakening source checks.
 Stable or maintained claims require actual history; no SLA or invented temporal progress.
 Milestone-share/ranking/distribution-only points are omitted; milestone context
 remains available for distinct material open/LOS/pending concerns or eligible daily changes.
@@ -748,7 +758,7 @@ drilldowns use the selected dashboard platform/date scope, never Issue List
 milestone or column-filter sessions. Switching platforms or returning from Issue
 List cannot carry a hidden filter into dashboard activity counts, and dashboard
 rendering does not change Issue List filter selections.
-Historical Open includes earlier requests not yet implemented or closed at the
+Historical Open includes CMFs accepted before the cutoff and not yet implemented or closed at the
 cutoff, with other active statuses retained in the Open bucket. Historical
 Implemented includes implementations before the cutoff that were not yet closed.
 Weekly drilldowns use the same cutoff and lifecycle predicates as the line chart.
@@ -757,15 +767,15 @@ Each dashboard's title dropdown selects **OPEN BACKLOG TREND BY WORK WEEK**
 ranges. Clustered bars retain their weekly activity counts.
 Weekly Closed bars and their click-through details group complete/rejected CMFs
 by `closed_date`, not `implemented_date`. Both bar series count unique accepted
-CMFs only (`cmf_ok`), excluding duplicate CMFs. Open remains grouped by request
-week and counts all requests in that week, including those implemented or closed
+CMFs only (`cmf_ok`), excluding duplicate CMFs. Accepted is grouped by acceptance
+week using `date_cmf_decided` and counts all acceptances in that week, including those implemented or closed
 within the same week or later. It is an intake count, not the current Open status
-or the entire week-end backlog. Missing, invalid and future request dates are
-excluded. A same-week opened/closed CMF contributes to both bars but is listed
+or the entire week-end backlog. Missing, invalid and future acceptance dates are
+excluded; request dates do not control this count. A same-week accepted/closed CMF contributes to both bars but is listed
 only once in combined details. The chart and details share these date rules;
 details default to unique CMFs only,
 with duplicate records available only through the explicit popup filter.
-Missing or invalid implementation/closure dates do not suppress a valid Open
+Missing or invalid implementation/closure dates do not suppress a valid Accepted
 intake entry. Missing or invalid closure dates are
 excluded from Closed rather than assigned to an implementation week. Summary seven-day
 balance comparisons and the Implemented series are unchanged.
@@ -773,12 +783,15 @@ The backlog chart's dark-blue contour is independent of the Open and Implemented
 legend entries. It follows the sum of the selected areas and disappears when both
 are deselected; it does not add a legend item or tooltip total.
 
-Balances are reconstructed from `date_cmf_ask`, `implemented_date`, and
-`closed_date`, assuming a single request-to-implementation-to-closure lifecycle.
+Historical Open uses `date_cmf_decided` as its entry date, with `implemented_date`
+and `closed_date` determining its earlier state. Historical Implemented retains
+its existing `date_cmf_ask`, `implemented_date`, and `closed_date` rules.
+These calculations assume a single acceptance-to-implementation-to-closure lifecycle.
 They are not historical snapshots: reopened records, previous CMF eligibility,
 and missing or incorrect transition dates cannot be reconstructed exactly.
-Records without a request date are excluded from historical balances, but the
-current point includes them when the summary card does.
+Records without a valid acceptance date are excluded from historical Open balances;
+historical Implemented still requires a request date. The current point retains
+the summary card's current-status balance.
 
 ### Issue-Count Popup Filters
 
