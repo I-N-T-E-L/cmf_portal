@@ -5445,7 +5445,7 @@ body .overall-quick-links .overall-quick-link-btn:active {
     border-radius: 8px;
     background: #ffffff;
     color: #1f2937;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     padding: 0 8px;
 }
@@ -19177,18 +19177,18 @@ td:nth-child(odd), th:nth-child(odd) {
             var trendOptions = {
                 animation: false,
                 color: isStackedLine ? ['#800000', '#0369a1'] : [isClusteredBar ? '#0369a1' : '#ef4444', '#16a34a'],
-                tooltip: { trigger: 'axis', axisPointer: { type: isClusteredBar ? 'shadow' : 'line' } },
+                tooltip: { trigger: 'axis', axisPointer: { type: isClusteredBar ? 'shadow' : 'line' }, textStyle: { fontSize: 12 } },
                 legend: {
                     top: 0,
                     right: 8,
                     selected: selectedTrendLegends,
                     formatter: function (name) {
-                        return isClusteredBar && name === 'Open' ? 'Opened' : name;
+                        return isClusteredBar && name === 'Open' ? 'Accepted' : name;
                     },
                     icon: isClusteredBar ? 'rect' : 'circle',
                     itemWidth: 8,
                     itemHeight: 8,
-                    textStyle: { color: '#24354e', fontSize: 11 }
+                    textStyle: { color: '#24354e', fontSize: 12 }
                 },
                 grid: {
                     left: 30,
@@ -19201,7 +19201,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     boundaryGap: isClusteredBar,
                     axisLine: { lineStyle: { color: '#e4e7ec' } },
                     axisLabel: {
-                        color: '#24354e', fontSize: 11, margin: 8,
+                        color: '#24354e', fontSize: 12, margin: 8,
                         showMinLabel: isStackedLine ? true : undefined,
                         showMaxLabel: isStackedLine ? true : undefined,
                         hideOverlap: isStackedLine ? true : undefined
@@ -19213,7 +19213,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     minInterval: 1,
                     axisLine: { show: false },
                     splitLine: { lineStyle: { color: '#eef2f7' } },
-                    axisLabel: { show: hasTrendData, color: '#24354e', fontSize: 11, margin: 8 }
+                    axisLabel: { show: hasTrendData, color: '#24354e', fontSize: 12, margin: 8 }
                 },
                 series: [
                     {
@@ -19248,13 +19248,29 @@ td:nth-child(odd), th:nth-child(odd) {
                 ]
             };
             if (isClusteredBar) {
+                trendOptions.tooltip.showContent = false;
+                trendOptions.xAxis.axisPointer = { triggerEmphasis: false };
+                trendOptions.tooltip.formatter = function (params) {
+                    var points = params || [];
+                    if (!points.length) return '';
+                    var html = escapeHtml(String(points[0].axisValueLabel || points[0].axisValue || ''));
+                    points.forEach(function (point) {
+                        var label = point.seriesName === 'Open' ? 'Accepted' : point.seriesName;
+                        html += '<br/>' + (point.marker || '') + escapeHtml(label) + ': ' + Number(point.value || 0);
+                    });
+                    return html;
+                };
                 trendOptions.series.forEach(function (series) {
+                    series.emphasis = {
+                        focus: 'none',
+                        itemStyle: { color: series.name === 'Open' ? '#7dd3fc' : '#86efac' }
+                    };
                     series.label = {
                         show: true,
                         position: 'top',
                         distance: 3,
                         color: '#24354e',
-                        fontSize: 11,
+                        fontSize: 12,
                         formatter: function (point) { return point.value > 0 ? String(point.value) : ''; }
                     };
                 });
@@ -19343,6 +19359,14 @@ td:nth-child(odd), th:nth-child(odd) {
                 if (trendChart.__cmfTrendClickHandler) {
                     trendChart.off('click', trendChart.__cmfTrendClickHandler);
                 }
+                if (trendChart.__cmfTrendBarMouseOverHandler) {
+                    trendChart.off('mouseover', trendChart.__cmfTrendBarMouseOverHandler);
+                }
+                if (trendChart.__cmfTrendBarMouseOutHandler) {
+                    trendChart.off('mouseout', trendChart.__cmfTrendBarMouseOutHandler);
+                }
+                trendChart.__cmfTrendBarMouseOverHandler = null;
+                trendChart.__cmfTrendBarMouseOutHandler = null;
 
                 if (trendChart.__cmfTrendAxisPointerHandler) {
                     trendChart.off('updateAxisPointer', trendChart.__cmfTrendAxisPointerHandler);
@@ -19351,10 +19375,89 @@ td:nth-child(odd), th:nth-child(odd) {
                 if (trendChart.__cmfTrendZrClickHandler && trendChart.getZr) {
                     trendChart.getZr().off('click', trendChart.__cmfTrendZrClickHandler);
                 }
+                if (trendChart.__cmfTrendZrGlobalOutHandler && trendChart.getZr) {
+                    trendChart.getZr().off('globalout', trendChart.__cmfTrendZrGlobalOutHandler);
+                }
+                trendChart.__cmfTrendZrGlobalOutHandler = null;
                 trendChart.__cmfTrendClickHandler = null;
+                function getTrendLegendStatus() {
+                    var options = trendChart.getOption() || {};
+                    var selected = options.legend && options.legend.length ? options.legend[0].selected || {} : {};
+                    return { showOpen: selected.Open !== false, showClosed: selected[isStackedLine ? 'Implemented' : 'Closed'] !== false };
+                }
+                if (isClusteredBar) {
+                    var hoveredTrendBar = null;
+                    var trendBarFillKey = 'normal';
+                    var updateTrendBarFills = function (weekIndex, seriesIndex) {
+                        var fillKey = weekIndex == null ? 'normal' : weekIndex + ':' + (seriesIndex == null ? 'week' : seriesIndex);
+                        if (fillKey === trendBarFillKey) return;
+                        trendBarFillKey = fillKey;
+                        var singleBar = seriesIndex != null;
+                        var seriesUpdates = trendOptions.series.map(function (series, index) {
+                            return {
+                                name: series.name,
+                                data: series.data.map(function (point, dataIndex) {
+                                    var blank = singleBar && dataIndex === weekIndex && index !== seriesIndex;
+                                    return Object.assign({}, point, {
+                                        itemStyle: { color: blank ? 'transparent' : series.itemStyle.color }
+                                    });
+                                })
+                            };
+                        });
+                        trendChart.setOption({
+                            xAxis: { axisPointer: { shadowStyle: { opacity: singleBar ? 0 : 1 } } },
+                            series: seriesUpdates
+                        });
+                        trendChart.dispatchAction({ type: 'downplay' });
+                        if (weekIndex == null) return;
+                        trendChart.dispatchAction({ type: 'showTip', seriesIndex: singleBar ? seriesIndex : 0, dataIndex: weekIndex });
+                        if (singleBar) {
+                            trendChart.dispatchAction({ type: 'downplay', seriesIndex: 1 - seriesIndex, dataIndex: weekIndex });
+                            trendChart.dispatchAction({ type: 'highlight', seriesIndex: seriesIndex, dataIndex: weekIndex });
+                        } else {
+                            var status = getTrendLegendStatus();
+                            var batch = [];
+                            if (status.showOpen) batch.push({ seriesIndex: 0, dataIndex: weekIndex });
+                            if (status.showClosed) batch.push({ seriesIndex: 1, dataIndex: weekIndex });
+                            if (batch.length) trendChart.dispatchAction({ type: 'highlight', batch: batch });
+                        }
+                    };
+                    var updateTrendBarShadow = function (params, opacity) {
+                        if (!params || params.componentType !== 'series'
+                            || (params.seriesName !== 'Open' && params.seriesName !== 'Closed')) return;
+                        hoveredTrendBar = opacity === 0 ? params : null;
+                        updateTrendBarFills(params.dataIndex, hoveredTrendBar ? params.seriesIndex : null);
+                    };
+                    trendChart.__cmfTrendBarMouseOverHandler = function (params) {
+                        updateTrendBarShadow(params, 0);
+                    };
+                    trendChart.__cmfTrendBarMouseOutHandler = function (params) {
+                        updateTrendBarShadow(params, 1);
+                    };
+                    trendChart.on('mouseover', trendChart.__cmfTrendBarMouseOverHandler);
+                    trendChart.on('mouseout', trendChart.__cmfTrendBarMouseOutHandler);
+                    trendChart.__cmfTrendZrGlobalOutHandler = function () {
+                        hoveredTrendBar = null;
+                        updateTrendBarFills(null, null);
+                    };
+                    trendChart.getZr().on('globalout', trendChart.__cmfTrendZrGlobalOutHandler);
+                    trendChart.__cmfTrendClickHandler = function (params) {
+                        if (!params || params.componentType !== 'series'
+                            || (params.seriesName !== 'Open' && params.seriesName !== 'Closed')) return;
+                        var point = visibleTrendPoints[params.dataIndex];
+                        if (!point) return;
+                        var status = getTrendLegendStatus();
+                        status.showOpen = status.showOpen && params.seriesName === 'Open';
+                        status.showClosed = status.showClosed && params.seriesName === 'Closed';
+                        if (!status.showOpen && !status.showClosed) return;
+                        openTrendWeekIssueLinksPopup(params.seriesName, point.weekLabel, point.weekOffset, status);
+                    };
+                    trendChart.on('click', trendChart.__cmfTrendClickHandler);
+                }
 
                 var trendAxisPointerHandler = function (params) {
                     if (!params || !params.axesInfo || !params.axesInfo.length) {
+                        if (isClusteredBar && !hoveredTrendBar) updateTrendBarFills(null, null);
                         return;
                     }
 
@@ -19366,6 +19469,7 @@ td:nth-child(odd), th:nth-child(odd) {
                     }
 
                     trendChart.__cmfTrendLastAxisIndex = axisIndex;
+                    if (isClusteredBar && !hoveredTrendBar) updateTrendBarFills(axisIndex, null);
                 };
 
                 trendChart.__cmfTrendAxisPointerHandler = trendAxisPointerHandler;
@@ -19374,7 +19478,7 @@ td:nth-child(odd), th:nth-child(odd) {
                 trendChart.__cmfTrendVisiblePoints = visibleTrendPoints;
 
                 var trendZrClickHandler = function (event) {
-                    if (!event || !trendChart || !trendChart.containPixel || !trendChart.convertFromPixel) {
+                    if (!event || (isClusteredBar && event.target) || !trendChart || !trendChart.containPixel || !trendChart.convertFromPixel) {
                         return;
                     }
 
@@ -19399,12 +19503,14 @@ td:nth-child(odd), th:nth-child(odd) {
                         return;
                     }
 
-                    var totalIssues = Number(point.openValue || 0) + Number(point.closedValue || 0);
+                    var status = getTrendLegendStatus();
+                    var totalIssues = (status.showOpen ? Number(point.openValue || 0) : 0)
+                        + (status.showClosed ? Number(point.closedValue || 0) : 0);
                     if (isNaN(totalIssues) || totalIssues <= 0) {
                         return;
                     }
 
-                    openTrendWeekIssueLinksPopup(isStackedLine ? 'Open and Implemented' : 'All', point.weekLabel, point.weekOffset);
+                    openTrendWeekIssueLinksPopup(isStackedLine ? 'Open and Implemented' : 'All', point.weekLabel, point.weekOffset, status);
                 };
 
                 trendChart.__cmfTrendZrClickHandler = trendZrClickHandler;
@@ -20304,8 +20410,11 @@ td:nth-child(odd), th:nth-child(odd) {
                     : buildSummaryIssueGroupByOptions(isOverallDashboardSelection()));
             var initialGroupBy = syncSummaryIssueGroupByOptions(options, options.length > 0 ? options[0] : 'ingredient');
             var initialSortBy = syncSummaryIssueSortByOptions('alphabetical');
-            var initialTrendStatus = syncSummaryTrendIssueStatusControls(true, true);
-            document.getElementById('summaryIssuesClosedLabel').textContent = popupOptions && popupOptions.seriesName === 'Open and Implemented' ? 'Implemented' : 'Closed';
+            var initialTrendStatus = syncSummaryTrendIssueStatusControls(!popupOptions || popupOptions.showOpen !== false,
+                !popupOptions || popupOptions.showClosed !== false);
+            var isBacklogTrendPopup = popupOptions && popupOptions.seriesName === 'Open and Implemented';
+            document.getElementById('summaryIssuesOpenLabel').textContent = sourceType === 'trend-week' && !isBacklogTrendPopup ? 'Accepted' : 'Open';
+            document.getElementById('summaryIssuesClosedLabel').textContent = isBacklogTrendPopup ? 'Implemented' : 'Closed';
             syncSummaryIssuePopupControls(sourceType, metricKey);
 
             window.CMF_PORTAL.summaryIssuesPopupState = {
@@ -20411,7 +20520,7 @@ td:nth-child(odd), th:nth-child(odd) {
             });
         }
 
-        function openTrendWeekIssueLinksPopup(seriesName, weekLabel, weekOffset) {
+        function openTrendWeekIssueLinksPopup(seriesName, weekLabel, weekOffset, statusSelection) {
             var normalizedSeries = String(seriesName || '').trim();
             var normalizedWeek = String(weekLabel || '').trim();
             var safeWeekOffset = parseInt(weekOffset, 10);
@@ -20419,12 +20528,14 @@ td:nth-child(odd), th:nth-child(odd) {
                 safeWeekOffset = 0;
             }
 
-            var popupLabel = normalizedSeries + (normalizedWeek ? (' • ' + normalizedWeek) : '');
-            openSummaryIssueLinksPopup('open', popupLabel, {
+            var popupLabel = (normalizedSeries === 'Open' ? 'Accepted' : normalizedSeries) + (normalizedWeek ? (' • ' + normalizedWeek) : '');
+            openSummaryIssueLinksPopup(normalizedSeries === 'Closed' ? 'closed' : 'open', popupLabel, {
                 sourceType: 'trend-week',
-                seriesName: normalizedSeries,
+                seriesName: normalizedSeries === 'Open' || normalizedSeries === 'Closed' ? 'All' : normalizedSeries,
                 weekLabel: normalizedWeek,
-                weekOffset: safeWeekOffset
+                weekOffset: safeWeekOffset,
+                showOpen: statusSelection ? statusSelection.showOpen !== false : normalizedSeries !== 'Closed',
+                showClosed: statusSelection ? statusSelection.showClosed !== false : normalizedSeries !== 'Open'
             });
         }
 
@@ -23340,7 +23451,8 @@ td:nth-child(odd), th:nth-child(odd) {
                         var totalRowOverThresholdIds = isTotalRow ? pendingSummaryAggregateOverThresholdIdsCsv : '';
                         html += '<td>' + escapeHtml(row[0] == null ? '' : row[0]) + '</td>';
                         html += '<td class="ccip-pending-summary-links-col">' + buildPendingSummaryCellHtml(row[pendingValueColumnIndex], isTotalRow, row[0], totalRowIds, totalRowOverThresholdIds) + '</td>';
-                        html += '<td>' + escapeHtml(row[1] == null ? '' : row[1]) + '</td>';
+                        var pendingIdstName = row[1] == null ? '' : String(row[1]);
+                        html += '<td>' + escapeHtml(pendingIdstName.trim().toLowerCase() === 'unassigned' ? '' : pendingIdstName) + '</td>';
                     } else {
                         for (var i = 0; i < renderColumns.length; i++) {
                             if (isPendingSummary && i === pendingValueColumnIndex) {
@@ -28231,7 +28343,7 @@ Submit
                             </div>
                             <label for="summaryIssuesShowOpen" id="summaryIssuesTrendStatusLabel">Show issues</label>
                             <div id="summaryIssuesTrendStatusChecks" class="summary-issues-popup-checkers">
-                                <label><input type="checkbox" id="summaryIssuesShowOpen" checked="checked" />Open</label>
+                                <label><input type="checkbox" id="summaryIssuesShowOpen" checked="checked" /><span id="summaryIssuesOpenLabel">Open</span></label>
                                 <label><input type="checkbox" id="summaryIssuesShowClosed" checked="checked" /><span id="summaryIssuesClosedLabel">Closed</span></label>
                             </div>
                         </div>

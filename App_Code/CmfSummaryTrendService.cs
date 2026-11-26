@@ -168,8 +168,8 @@ public static class CmfSummaryTrendService
     {
         string prefix = alias + ".";
         string today = "CAST(GETDATE() AS DATE)";
-        return "TRY_CAST(" + prefix + "date_cmf_ask AS DATE) <= " + today
-            + " AND DATEDIFF(WEEK, TRY_CAST(" + prefix + "date_cmf_ask AS DATE), " + today + ") = " + weekOffsetSql;
+        return "TRY_CAST(" + prefix + "date_cmf_decided AS DATE) <= " + today
+            + " AND DATEDIFF(WEEK, TRY_CAST(" + prefix + "date_cmf_decided AS DATE), " + today + ") = " + weekOffsetSql;
     }
 
     private static string BuildBalanceEvidenceSql(string sourceSql, bool includeMetadata, bool includeInsightFields = false)

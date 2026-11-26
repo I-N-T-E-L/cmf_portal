@@ -208,12 +208,27 @@ test('the integrated inline JavaScript is syntactically valid', () => {
 
 test('pending summary normalizes missing iDST placeholders before counting and building issue links', () => {
     const server = fs.readFileSync(path.join(__dirname, '..', '..', 'CMF_Web_portal.aspx.cs'), 'utf8');
-    const expressions = Array.from(server.matchAll(/CASE\s+WHEN src_comp\.idst IS NULL[\s\S]*?END AS idst_name/g), match => match[0]);
+    const expressions = Array.from(server.matchAll(/CASE\s+WHEN ISNULL\(idst_mapping\.idst_display_name, src_comp\.idst\) IS NULL[\s\S]*?END AS idst_name/g), match => match[0]);
     assert.equal(expressions.length, 2);
     assert.equal(expressions[0], expressions[1]);
-    assert.match(expressions[0], /LOWER\(LTRIM\(RTRIM\(src_comp\.idst\)\)\) = 'no idst assigned' THEN 'Unassigned'/);
-    assert.match(expressions[0], /ELSE LTRIM\(RTRIM\(src_comp\.idst\)\)/);
+    assert.match(expressions[0], /LOWER\(LTRIM\(RTRIM\(ISNULL\(idst_mapping\.idst_display_name, src_comp\.idst\)\)\)\) = 'no idst assigned' THEN 'Unassigned'/);
+    assert.match(expressions[0], /ELSE LTRIM\(RTRIM\(ISNULL\(idst_mapping\.idst_display_name, src_comp\.idst\)\)\)/);
     assert.match(server, /GROUP BY component_group, idst_name/);
+});
+
+test('dashboard pending counts and issue links share the CMF Pending platform-qualified iDST mapping', () => {
+    const server = fs.readFileSync(path.join(__dirname, '..', '..', 'CMF_Web_portal.aspx.cs'), 'utf8');
+    const joins = Array.from(server.matchAll(/LEFT JOIN \(" \+ pendingIdstMappingSql \+ @"\) AS idst_mapping[\s\S]*?WHERE pending.status NOT IN \('complete', 'rejected'\)/g), match => match[0]);
+    assert.equal(joins.length, 2);
+    assert.equal(joins[0], joins[1]);
+    assert.match(joins[0], /idst_mapping.component = src_comp.component_group/);
+    assert.match(joins[0], /idst_mapping.source_platform = pending.source_platform/);
+    assert.match(server, /BuildPendingIdstMappingSql\(isOverall\s*\? \(IEnumerable<string>\)GetOverallAggregateSourceTables\(\) : new\[\] \{ platformTable \}\)/);
+    assert.match(server, /string pendingIdstMappingSql = BuildPendingIdstMappingSql\(pendingPlatforms\)/);
+    const helper = server.match(/    private static string BuildPendingIdstMappingSql\([^)]*\)[\s\S]*?\r?\n    \}/);
+    assert.ok(helper);
+    for (const suffix of ['NVL', 'PTL', 'WCL']) assert.ok(helper[0].includes('idst_mapping_table_' + suffix));
+    assert.match(helper[0], /: "idst_mapping_table"/);
 });
 
 test('weekly Closed bars exclude duplicates and use closure dates for complete and rejected records', () => {
@@ -238,7 +253,7 @@ test('weekly Closed bars exclude duplicates and use closure dates for complete a
     assert.match(drilldown[0], /BuildTrendWeekEndStatusPredicate\("src", cutoffSql, true, "@week_offset"\)/);
 });
 
-test('weekly Open bars and details retain all request-week intake regardless of resolution', () => {
+test('weekly Accepted bars and details use acceptance-week intake regardless of resolution', () => {
     const server = fs.readFileSync(path.join(__dirname, '..', '..', 'CMF_Web_portal.aspx.cs'), 'utf8');
     const open = server.match(/new_issues AS \(([\s\S]*?)\r?\n\),\r?\nresolved_issues AS/);
     assert.ok(open);
@@ -250,8 +265,8 @@ test('weekly Open bars and details retain all request-week intake regardless of 
     const service = fs.readFileSync(path.join(__dirname, '..', '..', 'App_Code', 'CmfSummaryTrendService.cs'), 'utf8');
     const predicate = service.match(/    public static string BuildWeeklyOpenPredicate\([^)]*\)[\s\S]*?\r?\n    \}/);
     assert.ok(predicate);
-    assert.match(predicate[0], /date_cmf_ask/);
-    assert.doesNotMatch(predicate[0], /implemented_date|closed_date|status|cutoff/);
+    assert.match(predicate[0], /date_cmf_decided/);
+    assert.doesNotMatch(predicate[0], /date_cmf_ask|implemented_date|closed_date|status|cutoff/);
 });
 
 test('one shared Updated timestamp follows Mode outside tab-specific panels', () => {
