@@ -14,6 +14,7 @@ public static class DashboardDateFilterTests
     cmf_request,
     DATEADD(WEEK, implemented_offset, CAST(GETDATE() AS DATE)) AS implemented_date,
     DATEADD(WEEK, ask_offset, CAST(GETDATE() AS DATE)) AS date_cmf_ask,
+    DATEADD(WEEK, ask_offset, CAST(GETDATE() AS DATE)) AS date_cmf_decided,
     CASE WHEN closed_offset IS NOT NULL
         THEN CONVERT(VARCHAR(10), DATEADD(WEEK, closed_offset, CAST(GETDATE() AS DATE)), 23)
         ELSE raw_closed END AS closed_date
@@ -59,7 +60,7 @@ FROM (VALUES
             + CmfSummaryTrendService.BuildWeeklyClosedPredicate("src", "@week_offset") + "))", connection))
         {
             command.Parameters.AddWithValue("@week_offset", 0);
-            Check(Convert.ToInt32(command.ExecuteScalar()) == 3, "Combined flow drilldown did not retain request dates for Open and closure dates for Closed.");
+            Check(Convert.ToInt32(command.ExecuteScalar()) == 3, "Combined flow drilldown did not retain acceptance dates for Accepted and closure dates for Closed.");
         }
         Console.WriteLine("Weekly Closed SQL fixtures passed (unique-only complete/rejected closures, closure-week placement, invalid dates and both drilldown paths).");
     }
@@ -67,10 +68,14 @@ FROM (VALUES
     public static void CheckWeeklyOpenFlowSql(SqlConnection connection, string portalSource)
     {
         string fixture = @"(SELECT fixture_id, status, cmf_request, 'customer_must_fix' AS sysdebug,
-    CASE WHEN fixture_id = 'invalid-ask' THEN 'invalid'
-        ELSE CONVERT(VARCHAR(10), DATEADD(DAY, ask_day, request_week), 23) END AS date_cmf_ask,
-    COALESCE(raw_implemented, CONVERT(VARCHAR(10), DATEADD(DAY, implemented_day, request_week), 23)) AS implemented_date,
-    COALESCE(raw_closed, CONVERT(VARCHAR(10), DATEADD(DAY, closed_day, request_week), 23)) AS closed_date
+    CASE WHEN fixture_id = 'missing-request' THEN NULL
+        WHEN fixture_id = 'invalid-request' THEN 'invalid'
+        WHEN fixture_id = 'future-request' THEN CONVERT(VARCHAR(10), DATEADD(DAY, 29, acceptance_week), 23)
+        ELSE CONVERT(VARCHAR(10), DATEADD(DAY, -14, acceptance_week), 23) END AS date_cmf_ask,
+    CASE WHEN fixture_id = 'invalid-acceptance' THEN 'invalid'
+        ELSE CONVERT(VARCHAR(10), DATEADD(DAY, accepted_day, acceptance_week), 23) END AS date_cmf_decided,
+    COALESCE(raw_implemented, CONVERT(VARCHAR(10), DATEADD(DAY, implemented_day, acceptance_week), 23)) AS implemented_date,
+    COALESCE(raw_closed, CONVERT(VARCHAR(10), DATEADD(DAY, closed_day, acceptance_week), 23)) AS closed_date
 FROM (VALUES
     ('still-open','open','cmf_ok',1,NULL,NULL,NULL,NULL),
     ('later-implemented','implemented','cmf_ok',1,8,NULL,NULL,NULL),
@@ -84,17 +89,22 @@ FROM (VALUES
     ('same-week-rejected','rejected','cmf_ok',1,NULL,2,NULL,NULL),
     ('already-implemented','implemented','cmf_ok',1,0,NULL,NULL,NULL),
     ('duplicate-open','open','cmf_duplicate',1,NULL,NULL,NULL,NULL),
-    ('missing-ask','open','cmf_ok',NULL,NULL,NULL,NULL,NULL),
-    ('invalid-ask','open','cmf_ok',1,NULL,NULL,NULL,NULL),
-    ('future-ask','open','cmf_ok',29,NULL,NULL,NULL,NULL),
+    ('missing-acceptance','open','cmf_ok',NULL,NULL,NULL,NULL,NULL),
+    ('invalid-acceptance','open','cmf_ok',1,NULL,NULL,NULL,NULL),
+    ('future-acceptance','open','cmf_ok',29,NULL,NULL,NULL,NULL),
     ('missing-implementation','implemented','cmf_ok',1,NULL,NULL,NULL,NULL),
     ('missing-closure','complete','cmf_ok',1,NULL,NULL,NULL,NULL),
     ('invalid-implementation','open','cmf_ok',1,NULL,NULL,'invalid',NULL),
-    ('invalid-closure','complete','cmf_ok',1,NULL,NULL,NULL,'invalid')
-) AS dates(fixture_id,status,cmf_request,ask_day,implemented_day,closed_day,raw_implemented,raw_closed)
+    ('invalid-closure','complete','cmf_ok',1,NULL,NULL,NULL,'invalid'),
+    ('later-acceptance','open','cmf_ok',8,NULL,NULL,NULL,NULL),
+    ('acceptance-week-boundary','open','cmf_ok',7,NULL,NULL,NULL,NULL),
+    ('missing-request','open','cmf_ok',1,NULL,NULL,NULL,NULL),
+    ('invalid-request','open','cmf_ok',1,NULL,NULL,NULL,NULL),
+    ('future-request','open','cmf_ok',1,NULL,NULL,NULL,NULL)
+) AS dates(fixture_id,status,cmf_request,accepted_day,implemented_day,closed_day,raw_implemented,raw_closed)
 CROSS APPLY (SELECT DATEADD(DAY, -21 - DATEDIFF(DAY, CONVERT(date, '19000107', 112), CAST(GETDATE() AS DATE)) % 7,
-    CAST(GETDATE() AS DATE)) AS request_week) AS calendar) AS src";
-        string expected = "already-implemented,invalid-closure,invalid-implementation,last-day-implemented,later-complete,later-implemented,later-rejected,later-verified,missing-closure,missing-implementation,next-week-boundary,same-week-closed,same-week-implemented,same-week-rejected,still-open";
+    CAST(GETDATE() AS DATE)) AS acceptance_week) AS calendar) AS src";
+        string expected = "already-implemented,future-request,invalid-closure,invalid-implementation,invalid-request,last-day-implemented,later-complete,later-implemented,later-rejected,later-verified,missing-closure,missing-implementation,missing-request,next-week-boundary,same-week-closed,same-week-implemented,same-week-rejected,still-open";
         var ids = new System.Collections.Generic.List<string>();
         using (var command = new SqlCommand("SELECT fixture_id FROM " + fixture + " WHERE src.cmf_request = 'cmf_ok' AND "
             + CmfSummaryTrendService.BuildWeeklyOpenPredicate("src", "@week_offset") + " ORDER BY fixture_id", connection))
@@ -103,7 +113,7 @@ CROSS APPLY (SELECT DATEADD(DAY, -21 - DATEDIFF(DAY, CONVERT(date, '19000107', 1
             using (var reader = command.ExecuteReader()) while (reader.Read()) ids.Add(reader.GetString(0));
         }
         Check(string.Join(",", ids.ToArray()) == expected,
-            "Weekly Open lost requested CMFs because of resolution status/dates or included duplicates or unusable request dates.");
+            "Weekly Accepted misplaced acceptances, used request dates, lost resolved records or included duplicates or unusable acceptance dates.");
         var open = System.Text.RegularExpressions.Regex.Match(portalSource,
             @"new_issues AS \((?<query>[\s\S]*?)\r?\n\),\r?\nresolved_issues AS");
         Check(open.Success, "Weekly Open query could not be located.");
@@ -112,26 +122,148 @@ CROSS APPLY (SELECT DATEADD(DAY, -21 - DATEDIFF(DAY, CONVERT(date, '19000107', 1
             .Replace("\" + CmfSummaryTrendService.BuildWeeklyOpenPredicate(\"src\", \"w.week_offset\") + @\"",
                 CmfSummaryTrendService.BuildWeeklyOpenPredicate("src", "w.week_offset"));
         using (var command = new SqlCommand("WITH weeks AS (SELECT 0 AS week_offset UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3), new_issues AS ("
-            + query + ") SELECT week_offset, count_value FROM new_issues", connection))
+            + query + ") SELECT week_offset, count_value FROM new_issues ORDER BY week_offset", connection))
         using (var reader = command.ExecuteReader())
-            Check(reader.Read() && reader.GetInt32(0) == 3 && reader.GetInt32(1) == 15 && !reader.Read(),
-                "Weekly Open chart and drilldown counts disagree for the full request-week intake.");
+        {
+            Check(reader.Read() && reader.GetInt32(0) == 2 && reader.GetInt32(1) == 2,
+                "Weekly Accepted did not place delayed and boundary acceptances in their acceptance week.");
+            Check(reader.Read() && reader.GetInt32(0) == 3 && reader.GetInt32(1) == 18 && !reader.Read(),
+                "Weekly Accepted chart and drilldown counts disagree for acceptance-week intake.");
+        }
+        using (var command = new SqlCommand("SELECT COUNT(*) FROM " + fixture + " WHERE src.cmf_request = 'cmf_ok' AND "
+            + CmfSummaryTrendService.BuildWeeklyOpenPredicate("src", "@week_offset"), connection))
+        {
+            command.Parameters.AddWithValue("@week_offset", 2);
+            Check(Convert.ToInt32(command.ExecuteScalar()) == 2, "Delayed-acceptance drilldown does not match its chart week.");
+            command.Parameters["@week_offset"].Value = 5;
+            Check(Convert.ToInt32(command.ExecuteScalar()) == 0, "Accepted flow incorrectly appeared in the earlier request week.");
+        }
         using (var command = new SqlCommand("SELECT COUNT(*) FROM " + fixture + " WHERE src.cmf_request = 'cmf_ok' AND (("
             + CmfSummaryTrendService.BuildWeeklyOpenPredicate("src", "@week_offset") + ") OR ("
             + CmfSummaryTrendService.BuildWeeklyClosedPredicate("src", "@week_offset") + "))", connection))
         {
             command.Parameters.AddWithValue("@week_offset", 3);
-            Check(Convert.ToInt32(command.ExecuteScalar()) == 15,
-                "Combined weekly details counted same-week opened/closed CMFs twice.");
+            Check(Convert.ToInt32(command.ExecuteScalar()) == 18,
+                "Combined weekly details counted same-week accepted/closed CMFs twice.");
         }
-        string current = @"(SELECT status, CAST(GETDATE() AS DATE) AS date_cmf_ask,
+        string current = @"(SELECT status, DATEADD(DAY, -7, CAST(GETDATE() AS DATE)) AS date_cmf_ask,
+    CAST(GETDATE() AS DATE) AS date_cmf_decided,
     DATEADD(DAY, implementation_day, CAST(GETDATE() AS DATE)) AS implemented_date,
     DATEADD(DAY, closure_day, CAST(GETDATE() AS DATE)) AS closed_date
 FROM (VALUES ('open',NULL,NULL),('implemented',0,NULL),('complete',NULL,0)) AS dates(status,implementation_day,closure_day)) AS src";
         using (var command = new SqlCommand("SELECT COUNT(*) FROM " + current + " WHERE "
             + CmfSummaryTrendService.BuildWeeklyOpenPredicate("src", "0"), connection))
-            Check(Convert.ToInt32(command.ExecuteScalar()) == 3, "The current partial week lost requests implemented or closed today.");
-        Console.WriteLine("Weekly Open SQL fixtures passed (same-week/later resolutions retained, unique-only intake, valid request dates, chart/detail parity and combined-detail deduplication).");
+            Check(Convert.ToInt32(command.ExecuteScalar()) == 3, "The current partial week lost acceptances implemented or closed today.");
+        Console.WriteLine("Weekly Accepted SQL fixtures passed (acceptance-week placement, unusable acceptance dates, request-date independence, resolved intake, chart/detail parity and combined deduplication).");
+    }
+
+    public static void CheckWeekEndOpenAcceptanceSql(SqlConnection connection, string historicalOpenPredicate,
+        string historicalImplementedPredicate, string currentOpenPredicate)
+    {
+        string fixture = @"(SELECT * FROM (VALUES
+    ('accepted-before','open','cmf_ok','2026-11-01','2026-11-20',NULL,NULL),
+    ('accepted-after','open','cmf_ok','2026-11-01','2026-11-24',NULL,NULL),
+    ('accepted-at-cutoff','open','cmf_ok','2026-11-01','2026-11-23',NULL,NULL),
+    ('missing-decision','open','cmf_ok','2026-11-01',NULL,NULL,NULL),
+    ('invalid-decision','open','cmf_ok','2026-11-01','invalid',NULL,NULL),
+    ('future-decision','open','cmf_ok','2026-11-01','2099-01-01',NULL,NULL),
+    ('missing-request','open','cmf_ok',NULL,'2026-11-20',NULL,NULL),
+    ('implemented-later','implemented','cmf_ok','2026-11-01','2026-11-20','2026-11-24',NULL),
+    ('implemented-before','implemented','cmf_ok','2026-11-01','2026-11-10','2026-11-20',NULL),
+    ('closed-before','complete','cmf_ok','2026-11-01','2026-11-10',NULL,'2026-11-21'),
+    ('closed-later','complete','cmf_ok','2026-11-01','2026-11-20',NULL,'2026-11-24'),
+    ('duplicate','open','cmf_duplicate','2026-11-01','2026-11-20',NULL,NULL)
+) AS dates(fixture_id,status,cmf_request,date_cmf_ask,date_cmf_decided,implemented_date,closed_date)) AS src";
+        var ids = new System.Collections.Generic.List<string>();
+        using (var command = new SqlCommand("SELECT fixture_id FROM " + fixture
+            + " WHERE src.cmf_request = 'cmf_ok' AND " + historicalOpenPredicate + " ORDER BY fixture_id", connection))
+        using (var reader = command.ExecuteReader()) while (reader.Read()) ids.Add(reader.GetString(0));
+        Check(string.Join(",", ids.ToArray()) == "accepted-before,closed-later,implemented-later,missing-request",
+            "Historical Open must begin at acceptance, exclude unusable/later acceptance dates and retain lifecycle rollback.");
+        using (var command = new SqlCommand("SELECT fixture_id FROM " + fixture
+            + " WHERE src.cmf_request = 'cmf_ok' AND " + historicalImplementedPredicate, connection))
+        using (var reader = command.ExecuteReader())
+            Check(reader.Read() && reader.GetString(0) == "implemented-before" && !reader.Read(),
+                "Historical Implemented timing changed with the Open acceptance-date update.");
+        using (var command = new SqlCommand("SELECT COUNT(*) FROM " + fixture
+            + " WHERE src.cmf_request = 'cmf_ok' AND " + currentOpenPredicate, connection))
+            Check(Convert.ToInt32(command.ExecuteScalar()) == 7, "The current Open status balance must remain unchanged.");
+        Console.WriteLine("Week-end Open SQL fixtures passed (acceptance cutoff, delayed acceptance, missing dates, lifecycle rollback and unchanged current/Implemented balances).");
+    }
+
+    public static void CheckPendingIdstMappingSql(SqlConnection connection, string portalSource)
+    {
+        string pendingSource = @"SELECT cp_id, status, component_group,
+    DATEADD(DAY, -age_days, CAST(GETDATE() AS DATE)) AS date_cmf_ask, source_platform
+FROM (VALUES
+    ('1','open','HW',4,'A'), ('2','open','HW',0,'A'), ('1','open','HW',4,'B'),
+    ('3','open','HW',0,'C'), ('4','open','HW',0,'C'), ('5','open','HW',0,'C'), ('6','open','HW',0,'C'),
+    ('7','open','HW',0,'D'), ('8','open','memory',0,'D'), ('9','open','TBT',5,'D'),
+    ('10','complete','HW',4,'A')
+) AS requests(cp_id,status,component_group,age_days,source_platform)";
+        string componentSource = @"(SELECT * FROM (VALUES
+    ('1','HW','Old Lee','A'), ('2','HW',NULL,'A'), ('1','HW','Old Lee','B'),
+    ('3','HW','Stored fallback','C'), ('4','HW','no iDST assigned','C'), ('5','HW',NULL,'C'), ('6','HW','  ','C'),
+    ('7','HW','Old name','D'), ('8','memory','Old name','D'), ('9','TBT','Stored fallback','D'),
+    ('10','HW','Old Lee','A')
+) AS issues(cp_id,component_group,idst,source_platform)) AS src_comp";
+        string mappingSource = @"SELECT * FROM (VALUES
+    ('A','HW','Mapped A'), ('B','HW','Mapped B'), ('D','HW',' no iDST assigned '),
+    ('D','memory','  '), ('D','TBT',NULL)
+) AS mappings(source_platform,component,idst_display_name)";
+        var queries = System.Text.RegularExpressions.Regex.Matches(portalSource,
+            @"using \(SqlCommand (pendingIdsCommand|pendingCommand) = CmfPlatformCatalog.CreateReadCommand\(@""(?<query>[\s\S]*?)"", con\)\)");
+        Check(queries.Count == 2, "Both dashboard pending queries must be exercised.");
+        var expected = new System.Collections.Generic.Dictionary<string, int>
+        {
+            { "HW\u001fMapped A", 2 }, { "HW\u001fMapped B", 1 }, { "HW\u001fStored fallback", 1 },
+            { "HW\u001fUnassigned", 4 }, { "memory\u001fUnassigned", 1 }, { "TBT\u001fStored fallback", 1 }
+        };
+        var linkedCounts = new System.Collections.Generic.Dictionary<string, int>();
+        foreach (System.Text.RegularExpressions.Match match in queries)
+        {
+            string query = match.Groups["query"].Value
+                .Replace("\" + pendingSourceSql + @\"", pendingSource)
+                .Replace("\" + componentLookupSourceSql + @\"", componentSource)
+                .Replace("\" + pendingIdstMappingSql + @\"", mappingSource);
+            using (var command = new SqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@pending_age_threshold_days", 2);
+                using (var reader = command.ExecuteReader())
+                {
+                    int total = 0;
+                    int aged = 0;
+                    int groups = 0;
+                    while (reader.Read())
+                    {
+                        string key = reader.GetString(0) + "\u001f" + reader.GetString(1);
+                        Check(expected.ContainsKey(key), "Mapped iDST, fallback or normalization produced an unexpected group.");
+                        if (match.Groups[1].Value == "pendingIdsCommand")
+                        {
+                            int count;
+                            linkedCounts.TryGetValue(key, out count);
+                            linkedCounts[key] = count + 1;
+                            Check(reader.GetString(2) != "10", "Terminal requests must not enter pending links.");
+                            if (reader.GetString(2) == "1")
+                                Check(key == "HW\u001fMapped A" || key == "HW\u001fMapped B", "Platform-qualified mappings were not retained.");
+                            total++;
+                        }
+                        else
+                        {
+                            Check(reader.GetInt32(2) == expected[key] && linkedCounts[key] == expected[key],
+                                "Pending counts and issue-link groups must match after mapping and row merging.");
+                            total += reader.GetInt32(2);
+                            aged += reader.GetInt32(3);
+                            groups++;
+                        }
+                    }
+                    Check(total == 10, "Mapping changed the pending request total or cross-matched platforms.");
+                    if (match.Groups[1].Value == "pendingCommand")
+                        Check(groups == expected.Count && aged == 3, "Mapping changed pending age totals or omitted a group.");
+                }
+            }
+        }
+        Console.WriteLine("Pending iDST mapping SQL fixtures passed (mapped precedence, raw fallback, placeholders, platform isolation, merged rows, counts, aging and link parity).");
     }
 
     public static void CheckPendingEstimateSql(SqlConnection connection)

@@ -241,6 +241,38 @@ test('CMF Pending Count fills available width while retaining count and iDST col
     }
 });
 
+test('CMF Pending Count leaves unassigned iDST cells blank without changing rows or issue links', () => {
+    const cells = page.match(/                    if \(isPendingSummary && renderColumns.length >= 3\) \{\s*(var totalRowIds[\s\S]*?)\r?\n                    \} else/);
+    assert.ok(cells);
+    const cases = [
+        ['HW', 'Unassigned', '1', ''],
+        ['Unassigned', 'UNASSIGNED', '2', ''],
+        ['HW', ' Unassigned ', '1', ''],
+        ['HW', null, '1', ''],
+        ['HW', 'Ok, Arun; Bao, Xulei', '(1)', 'Ok, Arun; Bao, Xulei'],
+        ['HW', '<mapped&name>', '1', '&lt;mapped&amp;name&gt;'],
+        ['Total', '', '5 (2)', '']
+    ];
+    for (const [ingredient, idst, value, expected] of cases) {
+        const row = [ingredient, idst, value];
+        const original = row.slice();
+        const calls = [];
+        const context = vm.createContext({
+            row, html: '', pendingValueColumnIndex: 2, isTotalRow: ingredient === 'Total',
+            pendingSummaryAggregateIdsCsv: '14029072573,14029150490',
+            pendingSummaryAggregateOverThresholdIdsCsv: '14029072573',
+            escapeHtml: text => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+            buildPendingSummaryCellHtml: (...args) => { calls.push(args); return 'linked-count'; }
+        });
+        vm.runInContext(cells[1], context);
+        assert.equal(context.html, '<td>' + ingredient + '</td><td class="ccip-pending-summary-links-col">linked-count</td><td>' + expected + '</td>');
+        assert.deepEqual(row, original);
+        assert.deepEqual(calls, [[value, ingredient === 'Total', ingredient,
+            ingredient === 'Total' ? '14029072573,14029150490' : '',
+            ingredient === 'Total' ? '14029072573' : '']]);
+    }
+});
+
 test('pending threshold legend tracks only the required scrollbar gutter and reuses its observer', () => {
     const definition = page.match(/        function applyPendingSummaryLegendGutter\([^)]*\) \{[\s\S]*?\r?\n        \}/);
     assert.ok(definition);
@@ -2152,6 +2184,12 @@ test('Overall and platform trend titles select backlog or weekly flow without a 
         assert.equal((page.match(new RegExp('id="' + selectorId + '"', 'g')) || []).length, 1);
         assert.match(page, new RegExp('<h4 class="overall-card-title overall-trend-title">[\\s\\S]*?<select id="' + selectorId + '" class="overall-trend-title-select"[\\s\\S]*?<option value="line" selected="selected">OPEN BACKLOG TREND BY WORK WEEK</option>[\\s\\S]*?<option value="bar">WEEKLY ISSUE FLOW</option>[\\s\\S]*?</select>\\s*</h4>'));
     }
+    const rangeStyle = page.match(/\.overall-trend-range-select \{([^}]*)\}/);
+    assert.ok(rangeStyle);
+    assert.match(rangeStyle[1], /font-size: 12px;/);
+    for (const selectorId of ['homeOverallTrendRange', 'homeSpecificTrendRange']) {
+        assert.match(page, new RegExp('<select id="' + selectorId + '" class="overall-trend-range-select"'));
+    }
 });
 
 test('Overall trend stacks week-end balances and retains weekly clustered bars and drilldowns', () => {
@@ -2232,14 +2270,25 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.doesNotMatch(tooltip, /Backlog contour|264/);
     assert.equal(options[0].tooltip.formatter([]), '');
     chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
-    assert.deepEqual(popups[0], ['Open and Implemented', 'WW6', 5]);
+    assert.deepEqual(popups[0].slice(0, 3), ['Open and Implemented', 'WW6', 5]);
+    assert.equal(popups[0][3].showOpen, true);
+    assert.equal(popups[0][3].showClosed, true);
     view.value = 'bar';
     context.renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'overallChart', 6);
     const bars = options[1];
     assert.equal(bars.series[0].type, 'bar');
     assert.equal(bars.series[1].type, 'bar');
-    assert.deepEqual(Array.from(bars.series, series => bars.legend.formatter(series.name)), ['Opened', 'Closed']);
-    assert.equal(bars.tooltip.formatter, undefined);
+    assert.equal(bars.series[0].name, 'Open', 'Keep the internal series key for legend toggling and drilldowns.');
+    assert.deepEqual(Array.from(bars.series, series => bars.legend.formatter(series.name)), ['Accepted', 'Closed']);
+    const flowPoints = [
+        { seriesName: 'Open', value: 7, axisValueLabel: 'WW6', marker: '[blue]' },
+        { seriesName: 'Closed', value: 6, axisValueLabel: 'WW6', marker: '[green]' }
+    ];
+    const flowTooltip = bars.tooltip.formatter(flowPoints);
+    assert.match(flowTooltip, /WW6[\s\S]*\[blue\]Accepted: 7[\s\S]*\[green\]Closed: 6/);
+    assert.doesNotMatch(flowTooltip, /\bOpen\b|\bOpened\b/);
+    assert.equal(bars.tooltip.formatter([]), '');
+    assert.equal(bars.tooltip.formatter(flowPoints.slice(1)), 'WW6<br/>[green]Closed: 6');
     assert.equal(bars.color[0], '#0369a1');
     assert.equal(bars.color[1], '#16a34a');
     assert.ok(bars.series.every(series => series.barMaxWidth === 18 && series.itemStyle.borderWidth === 1));
@@ -2266,13 +2315,27 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.equal(bars.series[1].name, 'Closed');
     assert.equal(bars.series[1].data[0].value, 6);
     chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
-    assert.deepEqual(popups[1], ['All', 'WW6', 5]);
+    assert.deepEqual(popups[1].slice(0, 3), ['All', 'WW6', 5]);
+    for (const name of ['Open', 'Closed']) {
+        const event = { offsetX: 10, offsetY: 10, target: {} };
+        const count = popups.length;
+        chart.__cmfTrendZrClickHandler(event);
+        assert.equal(popups.length, count, 'Series graphic targets never use the combined grid fallback, regardless of event order.');
+        chart.__cmfTrendClickHandler({ componentType: 'series', seriesName: name, dataIndex: 5, event });
+        assert.deepEqual(popups[count].slice(0, 3), [name, 'WW11', 0]);
+        assert.equal(popups[count][3].showOpen, name === 'Open');
+        assert.equal(popups[count][3].showClosed, name === 'Closed');
+        chart.__cmfTrendZrClickHandler(event);
+        assert.equal(popups.length, count + 1, 'The grid fallback must not overwrite the clicked series filter.');
+        popups.pop();
+    }
     context.renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'overallChart', 12);
     assert.equal(options[2].series[0].data.length, 12);
     assert.ok(options[2].series.every(series => series.barMaxWidth === 8));
     view.value = 'line';
     context.renderHomeTrendChart(snapshot, 'homeOverallTrendChart', 'overallChart', 12);
     assert.equal(options[3].series[0].type, 'line');
+    assert.equal(chart.__cmfTrendClickHandler, null, 'Backlog charts retain their combined-grid drilldown.');
     assert.equal(options[3].series[0].data[0].value, 80);
     assert.equal(options[3].series[1].data[0].value, 40);
     assert.deepEqual(Array.from(options[3].legend.data, options[3].legend.formatter), ['Open', 'Implemented']);
@@ -2314,20 +2377,221 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
     assert.equal(restoredOption.grid.left, 30);
     assert.equal(restoredOption.series[0].data[0].value, 132);
     chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
-    assert.deepEqual(popups[2], ['Open and Implemented', 'WW6', 5]);
+    assert.deepEqual(popups[2].slice(0, 3), ['Open and Implemented', 'WW6', 5]);
     specificView.value = 'bar';
     context.renderHomeTrendChart(snapshot, 'homeTrendChart', 'specificChart', 6);
     assert.equal(chart.__cmfTrendLegendHandler, null, 'Weekly bars remove the contour legend listener.');
     assert.equal(options[5].series[0].type, 'bar');
     assert.equal(options[5].series[1].name, 'Closed');
-    assert.deepEqual(Array.from(options[5].series, series => options[5].legend.formatter(series.name)), ['Opened', 'Closed']);
+    assert.deepEqual(Array.from(options[5].series, series => options[5].legend.formatter(series.name)), ['Accepted', 'Closed']);
+    assert.equal(options[5].tooltip.formatter(flowPoints), flowTooltip);
+    for (const name of ['Open', 'Closed']) {
+        const event = { offsetX: 10, offsetY: 10, target: {} };
+        const count = popups.length;
+        chart.__cmfTrendZrClickHandler(event);
+        assert.equal(popups.length, count);
+        chart.__cmfTrendClickHandler({ componentType: 'series', seriesName: name, dataIndex: 0, event });
+        assert.deepEqual(popups[count].slice(0, 3), [name, 'WW6', 5]);
+        chart.__cmfTrendZrClickHandler(event);
+        assert.equal(popups.length, count + 1);
+        popups.pop();
+    }
     assert.equal(options[5].yAxis.minInterval, 1, 'Platform weekly flow uses whole-number issue ticks.');
     assert.equal(options[5].series[0].data[0].value, 7);
     assert.equal(options[5].series[1].data[0].value, 6);
     assert.ok(options[5].series.every(series => !series.stack && series.barMaxWidth === 18));
+    options.forEach(option => {
+        assert.equal(option.legend.textStyle.fontSize, 12);
+        assert.equal(option.xAxis.axisLabel.fontSize, 12);
+        assert.equal(option.yAxis.axisLabel.fontSize, 12);
+        assert.equal(option.tooltip.textStyle.fontSize, 12);
+        option.series.filter(series => series.type === 'bar').forEach(series => assert.equal(series.label.fontSize, 12));
+    });
     context.renderHomeTrendChart(snapshot, 'homeTrendChart', 'specificChart', 12);
     assert.ok(options[6].series.every(series => series.data.length === 12 && series.barMaxWidth === 8));
     assert.equal(JSON.stringify(options[6].series), JSON.stringify(options[2].series));
+});
+
+test('weekly flow leaves other weeks unaffected and blanks only the paired bar on bar hover', () => {
+    const definition = page.match(/        function renderHomeTrendChart\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    for (const hostId of ['homeTrendChart', 'homeOverallTrendChart']) {
+        const options = [];
+        const actions = [];
+        const handlers = new Map();
+        const view = { value: 'bar' };
+        const chart = {
+            setOption: option => options.push(option), getOption: () => ({}), resize() {},
+            dispatchAction: action => actions.push(action),
+            on: (name, handler) => handlers.set(name, handler),
+            off: (name, handler) => { if (handlers.get(name) === handler) handlers.delete(name); },
+            getZr: () => ({ on() {}, off() {} })
+        };
+        const context = vm.createContext({
+            document: { getElementById: id => /TrendView$/.test(id) ? view : {}, body: {} },
+            window: { CMF_PORTAL: { ids: {} } }, echarts: { init: () => chart },
+            getComputedStyle: () => ({ fontFamily: 'Cambria' }), getTextById: () => '', escapeHtml: String
+        });
+        vm.runInContext(definition[0], context);
+        const snapshot = { Trend: [
+            { WeekLabel: 'WW47', NewIssues: 2, ResolvedIssues: 5, WeekEndOpenIssues: 6, WeekEndImplementedIssues: 4 },
+            { WeekLabel: 'WW48', NewIssues: 5, ResolvedIssues: 3, WeekEndOpenIssues: 8, WeekEndImplementedIssues: 5 }
+        ] };
+        context.renderHomeTrendChart(snapshot, hostId, 'chart', 6);
+        assert.equal(options[0].tooltip.axisPointer.type, 'shadow');
+        assert.equal(options[0].tooltip.showContent, false, 'Weekly flow has no floating hover count tooltip.');
+        assert.equal(options[0].xAxis.axisPointer.triggerEmphasis, false, 'The hover handler controls bar emphasis without competing axis highlights.');
+        options[0].series.forEach(series => {
+            assert.equal(series.emphasis.focus, 'none', 'Other bars must not be dimmed.');
+            assert.equal(series.emphasis.itemStyle.color, series.name === 'Open' ? '#7dd3fc' : '#86efac');
+            assert.notEqual(series.emphasis.itemStyle.color, series.itemStyle.borderColor);
+            assert.notEqual(series.emphasis.itemStyle.color, series.itemStyle.color);
+        });
+        const over = handlers.get('mouseover');
+        const out = handlers.get('mouseout');
+        assert.ok(over && out);
+        for (const seriesName of ['Open', 'Closed']) {
+            const seriesIndex = seriesName === 'Open' ? 0 : 1;
+            over({ componentType: 'series', seriesName, seriesIndex, dataIndex: 0 });
+            const barOption = options.pop();
+            assert.equal(barOption.xAxis.axisPointer.shadowStyle.opacity, 0);
+            barOption.series.forEach((series, index) => {
+                assert.equal(series.data[0].itemStyle.color, index === seriesIndex ? options[0].series[index].itemStyle.color : 'transparent');
+                assert.equal(series.data[1].itemStyle.color, options[0].series[index].itemStyle.color, 'Other weeks retain normal fills.');
+                assert.equal(series.data[1].value, options[0].series[index].data[1].value);
+            });
+            assert.equal(JSON.stringify(actions.splice(0)), JSON.stringify([
+                { type: 'downplay' },
+                { type: 'showTip', seriesIndex, dataIndex: 0 },
+                { type: 'downplay', seriesIndex: 1 - seriesIndex, dataIndex: 0 },
+                { type: 'highlight', seriesIndex, dataIndex: 0 }
+            ]));
+            out({ componentType: 'series', seriesName, seriesIndex, dataIndex: 0 });
+            const weekOption = options.pop();
+            assert.equal(weekOption.xAxis.axisPointer.shadowStyle.opacity, 1);
+            weekOption.series.forEach((series, index) => {
+                assert.equal(series.data[0].itemStyle.color, options[0].series[index].itemStyle.color);
+                assert.equal(series.data[1].itemStyle.color, options[0].series[index].itemStyle.color, 'Other weeks retain their fills during week shading.');
+            });
+            assert.equal(JSON.stringify(actions.splice(0)), JSON.stringify([
+                { type: 'downplay' },
+                { type: 'showTip', seriesIndex: 0, dataIndex: 0 },
+                { type: 'highlight', batch: [
+                { seriesIndex: 0, dataIndex: 0 }, { seriesIndex: 1, dataIndex: 0 }
+                ] }
+            ]));
+            assert.equal(actions.length, 0);
+        }
+        handlers.get('updateAxisPointer')({ axesInfo: [{ value: 1 }] });
+        const nextWeek = options.pop();
+        nextWeek.series.forEach((series, index) => series.data.forEach(point => assert.equal(point.itemStyle.color, options[0].series[index].itemStyle.color)));
+        actions.splice(0);
+        handlers.get('updateAxisPointer')({ axesInfo: [{ value: 1 }] });
+        assert.equal(actions.length, 0, 'Unchanged pointer updates cannot recursively reapply styles.');
+        chart.__cmfTrendZrGlobalOutHandler();
+        const reset = options.pop();
+        reset.series.forEach((series, index) => series.data.forEach(point => assert.equal(point.itemStyle.color, options[0].series[index].itemStyle.color)));
+        assert.equal(actions.pop().type, 'downplay');
+        const count = options.length;
+        over({ componentType: 'legend', seriesName: 'Open' });
+        out(null);
+        assert.equal(options.length, count);
+        view.value = 'line';
+        context.renderHomeTrendChart(snapshot, hostId, 'chart', 6);
+        assert.equal(handlers.has('mouseover'), false);
+        assert.equal(handlers.has('mouseout'), false);
+        assert.equal(chart.__cmfTrendBarMouseOverHandler, null);
+        assert.equal(chart.__cmfTrendZrGlobalOutHandler, null);
+        assert.equal(options.at(-1).tooltip.axisPointer.type, 'line');
+        assert.equal(options.at(-1).tooltip.showContent, undefined, 'Backlog hover counts remain enabled.');
+        assert.equal(options.at(-1).xAxis.axisPointer, undefined, 'Backlog axis behavior is unchanged.');
+    }
+});
+
+test('weekly flow popup defaults to the clicked series and labels Accepted without locking status filters', () => {
+    const calls = [];
+    const context = vm.createContext({ openSummaryIssueLinksPopup: (...args) => calls.push(args) });
+    const definition = page.match(/        function openTrendWeekIssueLinksPopup\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    vm.runInContext(definition[0], context);
+    for (const name of ['Open', 'Closed', 'All', 'Open and Implemented']) {
+        context.openTrendWeekIssueLinksPopup(name, "WW'48", 0);
+        const [metric, label, options] = calls.pop();
+        assert.equal(metric, name === 'Closed' ? 'closed' : 'open');
+        assert.equal(label, (name === 'Open' ? 'Accepted' : name) + " • WW'48");
+        assert.equal(options.seriesName, name === 'Open' || name === 'Closed' ? 'All' : name,
+            'Weekly flow filters remain switchable after opening a single series.');
+        assert.equal(options.showOpen, name !== 'Closed');
+        assert.equal(options.showClosed, name !== 'Open');
+        assert.equal(options.weekOffset, 0);
+    }
+    context.openTrendWeekIssueLinksPopup('Open and Implemented', "WW'47", 1, { showOpen: false, showClosed: true });
+    const backlog = calls.pop()[2];
+    assert.equal(backlog.seriesName, 'Open and Implemented');
+    assert.equal(backlog.showOpen, false);
+    assert.equal(backlog.showClosed, true);
+    context.openTrendWeekIssueLinksPopup('All', "WW'47", 1, { showOpen: true, showClosed: false });
+    const flow = calls.pop()[2];
+    assert.equal(flow.showOpen, true);
+    assert.equal(flow.showClosed, false);
+    assert.match(page, /syncSummaryTrendIssueStatusControls\(!popupOptions \|\| popupOptions.showOpen !== false,\s*!popupOptions \|\| popupOptions.showClosed !== false\)/);
+    assert.match(page, /id="summaryIssuesOpenLabel">Open<\/span>/);
+    assert.match(page, /getElementById\('summaryIssuesOpenLabel'\).textContent = sourceType === 'trend-week' && !isBacklogTrendPopup \? 'Accepted' : 'Open'/);
+});
+
+test('trend week drilldowns inherit live legend selections in both views and hosts', () => {
+    const definition = page.match(/        function renderHomeTrendChart\([^)]*\) \{[\s\S]*?\r?\n        \}/);
+    assert.ok(definition);
+    for (const hostId of ['homeTrendChart', 'homeOverallTrendChart']) {
+        for (const chartType of ['bar', 'line']) {
+            let selected = {};
+            const popups = [];
+            const chart = {
+                setOption() {}, getOption: () => ({ legend: [{ selected }] }), on() {}, off() {}, resize() {},
+                dispatchAction() {},
+                getZr: () => ({ on() {}, off() {} }), containPixel: () => true, convertFromPixel: () => 1
+            };
+            const context = vm.createContext({
+                document: { getElementById: id => /TrendView$/.test(id) ? { value: chartType } : {}, body: {} },
+                window: { CMF_PORTAL: { ids: {} } }, echarts: { init: () => chart },
+                getComputedStyle: () => ({ fontFamily: 'Cambria' }), getTextById: () => '', escapeHtml: String,
+                openTrendWeekIssueLinksPopup: (...args) => popups.push(args)
+            });
+            vm.runInContext(definition[0], context);
+            context.renderHomeTrendChart({ Trend: [
+                { WeekLabel: 'WW47', NewIssues: 0, ResolvedIssues: 3, WeekEndOpenIssues: 0, WeekEndImplementedIssues: 3 },
+                { WeekLabel: 'WW48', NewIssues: 4, ResolvedIssues: 5, WeekEndOpenIssues: 4, WeekEndImplementedIssues: 5 }
+            ] }, hostId, 'chart', 6);
+            const second = chartType === 'line' ? 'Implemented' : 'Closed';
+            for (const showOpen of [true, false]) for (const showClosed of [true, false]) {
+                selected = { Open: showOpen, [second]: showClosed };
+                const count = popups.length;
+                chart.__cmfTrendAxisPointerHandler({ axesInfo: [{ value: 1 }] });
+                chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
+                assert.equal(popups.length, count + (showOpen || showClosed ? 1 : 0));
+                if (showOpen || showClosed) {
+                    const call = popups.pop();
+                    assert.deepEqual(call.slice(0, 3), [chartType === 'line' ? 'Open and Implemented' : 'All', 'WW48', 0]);
+                    assert.equal(call[3].showOpen, showOpen);
+                    assert.equal(call[3].showClosed, showClosed);
+                }
+                if (chartType === 'bar') for (const name of ['Open', 'Closed']) {
+                    const enabled = name === 'Open' ? showOpen : showClosed;
+                    chart.__cmfTrendClickHandler({ componentType: 'series', seriesName: name, dataIndex: 1 });
+                    assert.equal(popups.length, enabled ? 1 : 0, 'A hidden series cannot open a popup.');
+                    if (enabled) {
+                        const call = popups.pop();
+                        assert.equal(call[3].showOpen, name === 'Open');
+                        assert.equal(call[3].showClosed, name === 'Closed');
+                    }
+                }
+            }
+            selected = { Open: true, [second]: false };
+            chart.__cmfTrendAxisPointerHandler({ axesInfo: [{ value: 0 }] });
+            chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
+            assert.equal(popups.length, 0, 'A week with issues only in the hidden series must not open a popup.');
+        }
+    }
 });
 
 ['homeOverallTrendChart', 'homeTrendChart'].forEach(hostId => test('filtered ' + hostId + ' trends disable the week selector and preserve the full filtered timeline and week offsets', () => {
@@ -2398,7 +2662,9 @@ test('Overall trend stacks week-end balances and retains weekly clustered bars a
             }
             chart.__cmfTrendZrClickHandler({ offsetX: 10, offsetY: 10 });
             const populatedIndex = chartType === 'line' ? start + 2 : start;
-            assert.deepEqual(popups.at(-1), [chartType === 'line' ? 'Open and Implemented' : 'All', 'WW' + populatedIndex, 11 - populatedIndex]);
+            assert.deepEqual(popups.at(-1).slice(0, 3), [chartType === 'line' ? 'Open and Implemented' : 'All', 'WW' + populatedIndex, 11 - populatedIndex]);
+            assert.equal(popups.at(-1)[3].showOpen, true);
+            assert.equal(popups.at(-1)[3].showClosed, true);
         }
         dateMode.value = 'all';
         for (const weeks of [6, 12]) {
@@ -2522,6 +2788,8 @@ test('Overall week-end line uses summary-card scope and current status buckets w
     assert.match(predicate[0], /status IN \('implemented', 'future'\)/);
     assert.match(predicate[0], /weekOffsetSql \+ " = 0 AND " \+ currentStatusPredicate/);
     assert.match(predicate[0], /weekOffsetSql \+ " > 0 AND " \+ historicalPredicate/);
+    assert.match(predicate[0], /string historicalDateColumn = implemented \? "date_cmf_ask" : "date_cmf_decided";/);
+    assert.match(predicate[0], /prefix \+ historicalDateColumn \+ " AS DATE\) < \("/);
     const drilldown = server.match(/    public static SummaryIssueLinksResponse GetTrendWeekIssueLinks\([^)]*\)[\s\S]*?\r?\n    \}/);
     assert.ok(drilldown);
     assert.doesNotMatch(drilldown[0], /AppendDashboardDriverFilter|AppendDashboardColumnFilters/);

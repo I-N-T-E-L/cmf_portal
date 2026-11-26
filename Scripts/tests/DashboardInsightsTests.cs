@@ -920,48 +920,81 @@ public static class DashboardInsightsTests
         var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
         foreach (string platform in new[] { "NVL_H", CmfPlatformCatalog.OverallPlatformTableName })
         foreach (var band in new[] {
-            new { Current = 26m, Wording = "above", Wrong = "well above" },
-            new { Current = 31m, Wording = "above", Wrong = "far above" },
-            new { Current = 32m, Wording = "well above", Wrong = "much beyond" },
-            new { Current = 41m, Wording = "well above", Wrong = "far above" },
-            new { Current = 42m, Wording = "far above", Wrong = "well above" },
-            new { Current = 80m, Wording = "much beyond", Wrong = "well above" } })
+            new { Measure = "CMF Disposition TPT", Target = 2m, Current = 3m },
+            new { Measure = "CMF Disposition TPT", Target = 2m, Current = 4m },
+            new { Measure = "CMF Resolution TPT", Target = 18m, Current = 22m },
+            new { Measure = "CMF Overall TPT", Target = 21m, Current = 26m },
+            new { Measure = "CMF Overall TPT", Target = 21m, Current = 31m },
+            new { Measure = "CMF Overall TPT", Target = 21m, Current = 32m },
+            new { Measure = "CMF Overall TPT", Target = 21m, Current = 41m },
+            new { Measure = "CMF Overall TPT", Target = 21m, Current = 42m },
+            new { Measure = "CMF Overall TPT", Target = 21m, Current = 80m } })
         {
             var source = new CmfPlatformBriefingSource { Platform = platform, Scope = "TPT magnitude test", DateScope = "2026-11-23",
                 CapturedAt = "2026-11-23", Hash = "tpt-magnitude-test",
                 Evidence = new List<CmfPlatformBriefingEvidence> {
-                    new CmfPlatformBriefingEvidence { Id = "tpt", Section = "TPT", Subject = "CMF Overall TPT", Kind = "current",
+                    new CmfPlatformBriefingEvidence { Id = "tpt", Section = "TPT", Subject = band.Measure, Kind = "current",
                         Context = new Dictionary<string, string>(), Measurements = new List<CmfFactMeasurement> {
-                            new CmfFactMeasurement { Name = "CMF Overall TPT", Current = band.Current, Unit = "days", CurrentDate = "2026-11-23" },
-                            new CmfFactMeasurement { Name = "TPT target", Current = 21, Unit = "days", CurrentDate = "2026-11-23" } } } } };
+                            new CmfFactMeasurement { Name = band.Measure, Current = band.Current, Unit = "days", CurrentDate = "2026-11-23" },
+                            new CmfFactMeasurement { Name = "TPT target", Current = band.Target, Unit = "days", CurrentDate = "2026-11-23" },
+                            new CmfFactMeasurement { Name = "Difference from TPT target", Current = band.Current - band.Target, Unit = "days", CurrentDate = "2026-11-23" } } } } };
+            string gap = (band.Current - band.Target).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string dayUnit = gap == "1" ? "day" : "days";
             Func<string, string> output = wording => serializer.Serialize(new { findings = new[] { new {
-                title = "Overall TPT assessment", summary = "CMF Overall TPT is " + wording + " its target.",
+                title = band.Measure.Replace("CMF ", "") + " above target", summary = band.Measure + " is " + wording + " target by " + gap + " " + dayUnit + ".",
                 kind = "pattern", tone = "attention", section = "focus", evidenceIds = new[] { "tpt" },
-                support = new[] { new { evidenceId = "tpt", measurementNames = new[] { "CMF Overall TPT", "TPT target" },
-                    explanation = "The current average and its own target establish this relative gap band, not a historical change or an SLA breach." } } } } });
-            var findings = CmfPlatformBriefingService.Validate(source, output(band.Wording));
-            Check(findings.Count == 1 && findings[0].Evidence[0].Text.Contains("Field TPT target: 21 days")
-                && findings[0].Evidence[0].Text.Contains("Field CMF Overall TPT: " + band.Current + " days"),
-                "TPT magnitude wording lost its exact current and target Source fields.");
-            bool rejected = false;
-            try { CmfPlatformBriefingService.Validate(source, output(band.Wrong)); }
-            catch (InvalidOperationException exception) { rejected = exception.Data["RejectedCheck"] as string == "tpt-magnitude"; }
-            Check(rejected, "A TPT qualifier inconsistent with its actual target gap was accepted.");
+                support = new[] { new { evidenceId = "tpt", measurementNames = new[] { band.Measure, "TPT target", "Difference from TPT target" },
+                    explanation = "The current average and its own target establish the exact excess in days, not a historical change or an SLA breach." } } } } });
+            var findings = CmfPlatformBriefingService.Validate(source, output("above"));
+            Check(findings.Count == 1 && findings[0].Evidence[0].Text.Contains("Field TPT target: " + band.Target + " days")
+                && findings[0].Evidence[0].Text.Contains("Field " + band.Measure + ": " + band.Current + " days")
+                && findings[0].Evidence[0].Text.Contains("Field Difference from TPT target: " + gap + " day")
+                && findings[0].Summary.Contains(gap + " " + dayUnit),
+                "Plain TPT wording lost its exact current, target or gap Source fields.");
+            Check(CmfPlatformBriefingService.Validate(source, output("above").Replace("is above target", "exceeds target")).Count == 1,
+                "A clear exceeds-target paraphrase was rejected.");
+            foreach (string invalid in new[] {
+                output("above").Replace(" by " + gap + " " + dayUnit, ""),
+                output("above").Replace(" by " + gap + " " + dayUnit, " by " + (band.Current - band.Target + 1m) + " days"),
+                output("above").Replace(",\"Difference from TPT target\"", "") })
+            {
+                bool gapRejected = false;
+                try { CmfPlatformBriefingService.Validate(source, invalid); }
+                catch (InvalidOperationException exception) { gapRejected = exception.Data["RejectedCheck"] as string == "tpt-gap"; }
+                Check(gapRejected, "A missing, incorrect or unselected exact TPT target gap was accepted.");
+            }
+            foreach (string exaggerated in new[] { "well above", "far above", "much beyond", "substantially above" })
+            {
+                bool rejected = false;
+                try { CmfPlatformBriefingService.Validate(source, output(exaggerated)); }
+                catch (InvalidOperationException exception) { rejected = exception.Data["RejectedCheck"] as string == "tpt-magnitude"; }
+                Check(rejected, "An exaggerated TPT qualifier was accepted.");
+            }
+            var titlePacket = (Dictionary<string, object>)serializer.DeserializeObject(output("above"));
+            ((Dictionary<string, object>)((object[])titlePacket["findings"])[0])["title"] = band.Measure.Replace("CMF ", "") + " well above target";
+            bool titleRejected = false;
+            try { CmfPlatformBriefingService.Validate(source, serializer.Serialize(titlePacket)); }
+            catch (InvalidOperationException exception) { titleRejected = exception.Data["RejectedCheck"] as string == "tpt-magnitude"; }
+            Check(titleRejected, "An exaggerated TPT heading was accepted with a plain sentence.");
             foreach (string prompt in new[] { CmfPlatformBriefingService.AnalysisPrompt(source), CmfPlatformBriefingService.VerificationPrompt(source, findings) })
-                Check(prompt.Contains("well above from half to below a full target") && prompt.Contains("far above or much beyond from a full target"),
-                    "Generation and independent review lack the same evidence-bound magnitude bands.");
+                Check(prompt.Contains("plain above target or exceeds target for every excess")
+                    && !prompt.Contains("half the target") && !prompt.Contains("generic above for larger gaps")
+                    && prompt.Contains("exact Difference from TPT target in days"),
+                    "Generation and independent review lack consistent plain TPT wording.");
             if (band.Current == 80m)
             {
                 int generated = 0, reviewed = 0;
                 var corrected = CmfPlatformBriefingService.Generate(source, prompt => {
                     generated++;
-                    if (generated > 1) Check(prompt.Contains("PreviousDraft") && prompt.Contains("full-target gap"),
-                        "TPT magnitude correction lost the rejected draft or independent review feedback.");
-                    return output(generated == 1 ? "above" : band.Wording);
+                    if (generated > 1) Check(prompt.Contains("PreviousDraft") && prompt.Contains("Source exaggeration"),
+                        "Plain TPT correction lost the rejected draft or independent review feedback.");
+                    return generated == 1 ? output("above").Replace(
+                        "The current average and its own target establish the exact excess in days, not a historical change or an SLA breach.",
+                        "The gap proves severe delivery delays.") : output("above").Replace("is above target", "exceeds target");
                 }, prompt => {
                     reviewed++;
-                    Check(prompt.Contains("Reject mismatched title qualifiers, generic above for larger gaps"),
-                        "Independent review no longer rejects understated large TPT gaps.");
+                    Check(prompt.Contains("Reject exaggerated magnitude qualifiers in title, sentence or Source"),
+                        "Independent review no longer checks exaggerated TPT explanations.");
                     var packet = (Dictionary<string, object>)serializer.DeserializeObject(prompt.Substring(prompt.IndexOf('\n') + 1));
                     var skeleton = (Dictionary<string, object>)packet["ResponseSkeleton"];
                     skeleton["complete"] = true;
@@ -969,15 +1002,16 @@ public static class DashboardInsightsTests
                     {
                         foreach (string flag in new[] { "supported", "numbers", "scope", "comparisons", "significance" }) check[flag] = true;
                         check["comparisons"] = reviewed > 1;
-                        check["reason"] = reviewed > 1 ? "" : "The full-target gap needs far above or much beyond, not generic above.";
+                        check["reason"] = reviewed > 1 ? "" : "Source exaggeration: the exact target gap does not prove severe delivery delays.";
                     }
                     return serializer.Serialize(skeleton);
                 }, prompt => { throw new Exception("TPT magnitude requested an unnecessary ranking call."); });
-                Check(generated == 2 && reviewed == 2 && corrected.Single().Summary.Contains("much beyond"),
-                    "Understated TPT magnitude was published or corrected without fresh independent review.");
+                Check(generated == 2 && reviewed == 2 && corrected.Single().Summary.Contains("exceeds target")
+                    && !corrected.Single().Support.Single().Explanation.Contains("severe"),
+                    "Exaggerated TPT evidence was published or corrected without fresh independent review.");
             }
         }
-        Console.WriteLine("TPT magnitude checks passed in both scopes: half/full-target boundaries, qualified wording and exact Sources.");
+        Console.WriteLine("TPT wording checks passed in both scopes: one-day and large gaps, plain paraphrases, exaggeration rejection and exact Sources.");
     }
 
     public static void CheckBriefingIdstExclusion()
@@ -1027,6 +1061,15 @@ public static class DashboardInsightsTests
     public static void CheckPlatformBriefingValidation()
     {
         var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+        var designSnapshot = new CmfPanelSnapshotCache { Platform = "NVL_H", Configuration = "entity-fixture", DateScope = "all",
+            CapturedAt = new DateTime(2026, 11, 23), Data = new Dictionary<string, object> {
+                { "PlatformLabel", "NVL H" },
+                { "DesignSummary", serializer.DeserializeObject(@"{""Columns"":[""Design Name"",""SW Image Freeze"",""Support Model"",""QS"",""Impl/Verified""],""Rows"":[[""dell_nvl_trinity"",""NA"","""",""3"",""0""],[""Vendor_X-Board.2"",""NA"","""",""1"",""0""]]}") } } };
+        var designSource = CmfPlatformBriefingService.BuildSource(designSnapshot);
+        var namedDesigns = designSource.Evidence.Where(item => item.Section == "DesignSummary").ToList();
+        Check(namedDesigns.Select(item => item.Subject).SequenceEqual(new[] { "dell_nvl_trinity", "Vendor_X-Board.2" })
+            && namedDesigns.All(item => !item.Context.ContainsKey("Heading name")),
+            "Design names were aliased or their original casing/separators were changed.");
         var evidence = new CmfPlatformBriefingEvidence { Id = "e1", Section = "ComponentSummary", Subject = "Graphics", Kind = "distribution",
             Context = new Dictionary<string, string>(), Measurements = new List<CmfFactMeasurement> {
                 new CmfFactMeasurement { Name = "Open", Current = 12, Denominator = 20, Unit = "records", CurrentDate = "2026-11-19" } } };
@@ -1087,6 +1130,59 @@ public static class DashboardInsightsTests
                 && reviewRules.Contains("Only material review needs justify Lowlights")
                 && generationRules.Contains("Supported favorable changes or broad zero-open design coverage may remain highlights"),
                 "Platform/Overall generation or independent review allows backlog-focused neutral Highlights or overstates poor performance.");
+            Check(generationRules.Contains("SAMPLE PRESENTATION") && reviewRules.Contains("SAMPLE PRESENTATION")
+                && generationRules.Contains("bold topic label, colon, one data-first sentence")
+                && generationRules.Contains("Broad design coverage") && generationRules.Contains("Disposition TPT on target")
+                && generationRules.Contains("Entity labels use supplied names")
+                && !generationRules.Contains("Ingredient leads open CMFs") && !generationRules.Contains("Ingredient leads pending assessments")
+                && !generationRules.Contains("Joint-leading ingredients")
+                && generationRules.Contains("never decode design identifiers") && reviewRules.Contains("never decoded identifiers")
+                && generationRules.Contains("Closure must retain 'including duplicates'")
+                && reviewRules.Contains("Closure retains 'including duplicates' only for that supplied population")
+                && generationRules.Contains("name 'accepted CMFs' when the denominator is accepted")
+                && reviewRules.Contains("explicitly names accepted CMFs for an accepted denominator")
+                && generationRules.Contains("NEVER percentages") && reviewRules.Contains("No percentages or repeated ratios")
+                && generationRules.Contains("No inferred SLA compliance, stability or delivery success")
+                && reviewRules.Contains("no invented cause, forecast, diagnosis, SLA breach"),
+                "Sample presentation lost concise subject-led wording, explicit duplicate populations or factual counts-only safeguards.");
+            Check(generationRules.Contains("ENTITY HEADINGS") && reviewRules.Contains("ENTITY HEADINGS")
+                && generationRules.Contains("joint concentrations name all major members")
+                && generationRules.Contains("Name distinctly high runners-up retained in the sentence too")
+                && reviewRules.Contains("must appear in the title even when framed as a leading comparison")
+                && generationRules.Contains("Use exact design Subject names in titles and sentences")
+                && reviewRules.Contains("Preserve exact design Subject names in titles and sentences")
+                && reviewRules.Contains("reject aliases or reformatted design identifiers")
+                && generationRules.Contains("No generic Design concentration")
+                && reviewRules.Contains("Reject generic titles or missing entities with significance=false")
+                && reviewRules.Contains("require fresh generation, never repair prose")
+                && generationRules.Contains("unequal counts are not joint-leading")
+                && reviewRules.Contains("Never attribute causes from concentration alone"),
+                "Summary headings lost exact entity names, joint-concentration distinctions or independent correction.");
+            Check(generationRules.Contains("exclude full entity names") && reviewRules.Contains("exclude full entity names")
+                && generationRules.Contains("at most 3 remaining words") && reviewRules.Contains("at most 3 remaining words")
+                && generationRules.Contains("including connectors/category labels") && reviewRules.Contains("including connectors/category labels")
+                && reviewRules.Contains("Reject overlong descriptions with significance=false"),
+                "Entity subheadings permit elaborate descriptions or count the entity names against the descriptive limit.");
+            Check(generationRules.Contains("Keep only leaders, tied leaders and distinctly high contributors")
+                && reviewRules.Contains("Keep only leaders, tied leaders and distinctly high contributors")
+                && generationRules.Contains("omit minor tails, low-count lists and 'no other design' comparisons")
+                && reviewRules.Contains("Reject minor tails, low-count lists and 'no other design' comparisons with significance=false")
+                && generationRules.Contains("Two records alone do not make a runner-up material")
+                && reviewRules.Contains("minor omissions do not fail completeness or justify false sole-leader claims"),
+                "Summary generation/review permits trivial comparison tails or forces minor rows into visible findings.");
+            Check(generationRules.Contains("A unique current leader qualifies even with small counts or a one-record lead")
+                && reviewRules.Contains("A unique current leader qualifies even with small counts or a one-record lead")
+                && generationRules.Contains("Include a peculiar entity when supplied attributes/comparisons prove it stands out")
+                && reviewRules.Contains("Do not reject a standout solely for small counts, near balance or a one-record lead")
+                && generationRules.Contains("use kind=pattern for a factual standout without concentration claims")
+                && reviewRules.Contains("complete requires these distinct standouts too")
+                && generationRules.Contains("Queue-total/aging coverage does not replace entity standouts")
+                && reviewRules.Contains("Reject arbitrary rankings in balanced ties, not a supported unique leader"),
+                "A supported entity standout is suppressed as a weak concentration or mistaken for queue-aging coverage.");
+            Check(generationRules.Contains("Pending ingredient sentences use '[subject] has N of D CMF pending assessments.'")
+                && generationRules.Contains("Keep iDST-row aggregation in Source only, never visible prose")
+                && reviewRules.Contains("Reject iDST-row aggregation in visible sentences with significance=false"),
+                "Pending ingredient prose still narrates row aggregation or loses its concise supplied-count form.");
         }
         int backlogGenerations = 0, backlogReviews = 0;
         var correctedBacklog = CmfPlatformBriefingService.Generate(source, prompt => {
@@ -1109,6 +1205,99 @@ public static class DashboardInsightsTests
         }, prompt => { throw new Exception("A single backlog finding requested ranking."); });
         Check(backlogGenerations == 2 && backlogReviews == 2 && correctedBacklog.Single().Section == "focus"
             && correctedBacklog.Single().Tone == "attention", "A backlog Highlight bypassed rejection or was relabeled without fresh generation and independent review.");
+        var entitySource = new CmfPlatformBriefingSource { Platform = source.Platform, Scope = source.Scope, Hash = "entity-heading-fixture",
+            CapturedAt = source.CapturedAt, Evidence = new List<CmfPlatformBriefingEvidence> { evidence,
+                new CmfPlatformBriefingEvidence { Id = "hw", Section = "ComponentSummary", Subject = "HW", Kind = "distribution",
+                    Context = new Dictionary<string, string>(), Measurements = new List<CmfFactMeasurement> {
+                        new CmfFactMeasurement { Name = "Open", Current = 7, Denominator = 20, Unit = "records", CurrentDate = "2026-11-19" } } } } };
+        foreach (string initialTitle in new[] { "Graphics leads open CMFs", "Graphics leads open CMFs ahead of HW" })
+        {
+            int entityGenerations = 0, entityReviews = 0;
+            var namedComparison = CmfPlatformBriefingService.Generate(entitySource, prompt => {
+                entityGenerations++;
+                return serializer.Serialize(new { findings = new[] { new {
+                    title = entityGenerations == 1 ? initialTitle : "Graphics and HW open concentration",
+                    summary = "Graphics has 12 of 20 open records, ahead of HW with 7.", kind = "cluster", tone = "attention", section = "focus",
+                    evidenceIds = new[] { "e1", "hw" }, support = new[] {
+                        new { evidenceId = "e1", measurementNames = new[] { "Open" }, explanation = "Graphics has the largest count within this ingredient population." },
+                        new { evidenceId = "hw", measurementNames = new[] { "Open" }, explanation = "HW is a substantial runner-up within the same open population." } } } } });
+            }, prompt => {
+                entityReviews++;
+                var packet = (Dictionary<string, object>)serializer.DeserializeObject(prompt.Substring(prompt.IndexOf('\n') + 1));
+                var proposed = (Dictionary<string, object>)((object[])packet["Findings"])[0];
+                string proposedTitle = (string)proposed["Title"];
+                bool hasRunnerUp = proposedTitle.Contains("HW");
+                string description = System.Text.RegularExpressions.Regex.Replace(proposedTitle, @"\b(?:Graphics|HW)\b", "");
+                bool shortDescription = System.Text.RegularExpressions.Regex.Matches(description, @"\S+").Count <= 3;
+                var entitySkeleton = (Dictionary<string, object>)packet["ResponseSkeleton"];
+                entitySkeleton["complete"] = true;
+                var entityCheck = (Dictionary<string, object>)((object[])entitySkeleton["checks"])[0];
+                foreach (string flag in new[] { "supported", "numbers", "scope", "comparisons" }) entityCheck[flag] = true;
+                entityCheck["significance"] = hasRunnerUp && shortDescription;
+                entityCheck["reason"] = !hasRunnerUp ? "The heading omits the material HW runner-up; regenerate with both names."
+                    : !shortDescription ? "Regenerate with full entity names and at most three other words; leave the comparison in the sentence." : "";
+                return serializer.Serialize(entitySkeleton);
+            }, prompt => { throw new Exception("A single entity comparison requested ranking."); });
+            Check(entityGenerations == 2 && entityReviews == 2 && namedComparison.Single().Title == "Graphics and HW open concentration"
+                && namedComparison.Single().Summary == "Graphics has 12 of 20 open records, ahead of HW with 7.",
+                "Missing names or elaborate descriptions survived review, or headings were rewritten without fresh generation/review.");
+        }
+        foreach (var crispCase in new[] {
+            new { Subject = "HW", Section = "PendingAssessments", Measure = "CMF Pending", Count = 2m, Denominator = 5m, OtherCount = 1m,
+                Others = new[] { "memory", "PnP", "TBT" }, Title = "HW leads pending assessments",
+                Summary = "HW has 2 of 5 CMF pending assessments.", Tail = ", while memory, PnP and TBT each have 1." },
+            new { Subject = "HW", Section = "PendingAssessments", Measure = "CMF Pending", Count = 2m, Denominator = 5m, OtherCount = 1m,
+                Others = new[] { "memory", "PnP", "TBT" }, Title = "HW leads pending assessments",
+                Summary = "HW has 2 of 5 CMF pending assessments.", Tail = " across all its iDST rows." },
+            new { Subject = "dell_nvl_trinity", Section = "DesignSummary", Measure = "Open", Count = 3m, Denominator = 4m, OtherCount = 1m,
+                Others = new[] { "Vendor_X-Board.2" }, Title = "dell_nvl_trinity highest open records",
+                Summary = "dell_nvl_trinity has 3 of 4 open design-table records.", Tail = ", and no other design has more than 1." },
+            new { Subject = "Sensor_module", Section = "ComponentSummary", Measure = "Open", Count = 1m, Denominator = 1m, OtherCount = 0m,
+                Others = new[] { "Controller" }, Title = "Sensor_module open standout",
+                Summary = "Sensor_module has 1 of 1 open component-table records.", Tail = ", while Controller has 0." } })
+        {
+            var crispEvidence = new[] { crispCase.Subject }.Concat(crispCase.Others).Select((subject, index) =>
+                new CmfPlatformBriefingEvidence { Id = "crisp-" + index, Section = crispCase.Section, Subject = subject, Kind = "distribution",
+                    Context = index == 0 && crispCase.Measure == "CMF Pending"
+                        ? new Dictionary<string, string> { { "Aggregation basis", "All iDST rows for this ingredient; not additive with those rows or proof of aged/unassigned overlap." } }
+                        : new Dictionary<string, string>(), Measurements = new List<CmfFactMeasurement> {
+                        new CmfFactMeasurement { Name = crispCase.Measure, Current = index == 0 ? crispCase.Count : crispCase.OtherCount,
+                            Denominator = crispCase.Denominator, Unit = "records", CurrentDate = source.CapturedAt } } }).ToList();
+            var crispSource = new CmfPlatformBriefingSource { Platform = source.Platform, Scope = source.Scope,
+                Hash = "crisp-" + crispCase.Subject, CapturedAt = source.CapturedAt, Evidence = crispEvidence };
+            int crispGenerations = 0, crispReviews = 0;
+            var crispFindings = CmfPlatformBriefingService.Generate(crispSource, prompt => {
+                crispGenerations++;
+                return serializer.Serialize(new { findings = new[] { new { title = crispCase.Title,
+                    summary = crispGenerations == 1 ? crispCase.Summary.TrimEnd('.') + crispCase.Tail : crispCase.Summary,
+                    kind = "pattern", tone = "attention", section = "focus", evidenceIds = crispEvidence.Select(item => item.Id),
+                    support = crispEvidence.Select((item, index) => new { evidenceId = item.Id, measurementNames = new[] { crispCase.Measure },
+                        explanation = index == 0 ? "This count establishes the largest contributor in the same population."
+                            : "This lower count supports the leading comparison; minor detail belongs in Source." }) } } });
+            }, prompt => {
+                crispReviews++;
+                Check(prompt.Contains("Reject minor tails, low-count lists"), "Crisp correction lost its independent review rule.");
+                Check(prompt.Contains("Do not reject a standout solely for small counts, near balance or a one-record lead"),
+                    "A factual leader or lone standout still requires dominant concentration.");
+                Check(prompt.Contains("Reject iDST-row aggregation in visible sentences with significance=false"),
+                    "Pending correction does not review unwanted aggregation narration.");
+                var crispPacket = (Dictionary<string, object>)serializer.DeserializeObject(prompt.Substring(prompt.IndexOf('\n') + 1));
+                var crispProposed = (Dictionary<string, object>)((object[])crispPacket["Findings"])[0];
+                bool hasMinorTail = ((string)crispProposed["Summary"]).Contains(crispCase.Tail);
+                var crispSkeleton = (Dictionary<string, object>)crispPacket["ResponseSkeleton"];
+                crispSkeleton["complete"] = true;
+                var crispCheck = (Dictionary<string, object>)((object[])crispSkeleton["checks"])[0];
+                foreach (string flag in new[] { "supported", "numbers", "scope", "comparisons" }) crispCheck[flag] = true;
+                crispCheck["significance"] = !hasMinorTail;
+                crispCheck["reason"] = hasMinorTail ? "Regenerate with only the leading count; keep this minor comparison in Source." : "";
+                return serializer.Serialize(crispSkeleton);
+            }, prompt => { throw new Exception("A single crisp finding requested ranking."); });
+            Check(crispGenerations == 2 && crispReviews == 2 && crispFindings.Single().Summary == crispCase.Summary
+                && crispFindings.Single().Title == crispCase.Title && crispFindings.Single().Kind == "pattern"
+                && crispFindings.Single().Evidence.Count == crispEvidence.Count
+                && (crispCase.Measure != "CMF Pending" || crispFindings.Single().Evidence[0].Text.Contains("Aggregation basis: All iDST rows")),
+                "Minor tails survived review, Source detail was lost, or approved prose was edited without fresh generation/review.");
+        }
         Check(writingPrompt.Contains("SPECIFIC SOURCES") && writingPrompt.Contains("exact supplied measurement Names")
             && sectionPrompt.Contains("Review Support and the rendered backing Evidence")
             && sectionPrompt.Contains("Approval hashes bind the exact source selections"), "Specific source selections and explanations bypass independent review.");
@@ -1119,7 +1308,8 @@ public static class DashboardInsightsTests
             && writingPrompt.Contains("optional language examples, NEVER required findings or evidence")
             && writingPrompt.Contains("NOT its sample numbers, percentages, customer names, symptoms or judgments"), "Sample language style is not separated from source facts.");
         Check(writingPrompt.Contains("INTERPRETIVE SUBHEADINGS") && writingPrompt.Contains("modifier + topic")
-            && writingPrompt.Contains("Joint-leading") && writingPrompt.Contains("NEVER force them from an absolute count or duration")
+            && writingPrompt.Contains("joint-leading require same-population rankings")
+            && writingPrompt.Contains("Entity labels use supplied names") && writingPrompt.Contains("NEVER force them from an absolute count or duration")
             && writingPrompt.Contains("When no modifier is supported, use a factual topic label instead"),
             "Subheadings do not convey an evidence-backed hint while retaining judgment safeguards.");
         Check(writingPrompt.Contains("Keep title and sentence population-equivalent")
@@ -1148,20 +1338,37 @@ public static class DashboardInsightsTests
                 new CmfFactMeasurement { Name = "Oldest pending age", Current = 17, Unit = "days", CurrentDate = "2026-11-19" } } };
         source.Evidence.Add(pendingEvidence);
         Func<string, string[], string> queueFinding = (summary, names) => serializer.Serialize(new {
-            title = names.Contains("Aged pending") ? "Pending assessment backlog" : "Pending assignments",
+            title = names.Contains("Aged pending") ? "Aged CMF pending" : "Pending assignments",
             summary, kind = "pattern", tone = "attention", section = "focus", evidenceIds = new[] { "pending" },
             support = new[] { new { evidenceId = "pending", measurementNames = names,
                 explanation = "The selected fields describe concerns in this pending queue without identifying overlap between assessments." } } });
-        string agedQueue = queueFinding("4 of 6 pending assessments exceed the 2-day threshold.",
+        string agedQueue = queueFinding("4 of 6 CMF pending assessments are stale (> 2 days).",
             new[] { "Aged pending", "Pending age threshold" });
         string assignments = queueFinding("2 of 6 pending assessments have no iDST assigned.", new[] { "Pending without iDST" });
         var overallQueueSource = new CmfPlatformBriefingSource { Platform = CmfPlatformCatalog.OverallPlatformTableName, Scope = source.Scope,
             Hash = source.Hash, CapturedAt = source.CapturedAt, Evidence = source.Evidence };
         var splitQueue = CmfPlatformBriefingService.Validate(overallQueueSource, "{\"findings\":[" + agedQueue + "," + assignments + "]}");
         Check(splitQueue.Count == 2 && splitQueue[0].Evidence[0].Text.Contains("Field Aged pending: 4 records")
+            && splitQueue[0].Title == "Aged CMF pending"
+            && splitQueue[0].Summary == "4 of 6 CMF pending assessments are stale (> 2 days)."
             && splitQueue[1].Evidence[0].Text.Contains("Field Pending without iDST: 2 records")
             && !splitQueue[0].Evidence[0].Text.Contains("Field Pending without iDST"),
             "Distinct aging/assignment observations were merged or lost their exact Sources.");
+        foreach (var queueSource in new[] { source, overallQueueSource })
+        {
+            var staleFinding = CmfPlatformBriefingService.Validate(queueSource, "{\"findings\":[" + agedQueue + "]}");
+            foreach (string prompt in new[] { CmfPlatformBriefingService.AnalysisPrompt(queueSource),
+                CmfPlatformBriefingService.VerificationPrompt(queueSource, staleFinding) })
+                Check(prompt.Contains("exact title 'Aged CMF pending'") && prompt.Contains("no extra words")
+                    && prompt.Contains("N of D CMF pending assessments are stale (> T days)")
+                    && prompt.Contains("Aged pending, its denominator and Pending age threshold"),
+                    "Pending aging wording lost its requested title, strict threshold or evidence-bound figures.");
+        }
+        bool wrongStaleThresholdRejected = false;
+        try { CmfPlatformBriefingService.Validate(source, "{\"findings\":[" + queueFinding(
+            "4 of 6 CMF pending assessments are stale (> 3 days).", new[] { "Aged pending", "Pending age threshold" }) + "]}"); }
+        catch (InvalidOperationException exception) { wrongStaleThresholdRejected = exception.Data["RejectedNumber"] is decimal; }
+        Check(wrongStaleThresholdRejected, "An unsupported stale-pending threshold was accepted.");
         bool combinedQueueRejected = false;
         try { CmfPlatformBriefingService.Validate(source, "{\"findings\":[" + queueFinding(
             "4 of 6 pending assessments exceed the 2-day threshold, and 2 have no iDST assigned.",
@@ -1182,11 +1389,13 @@ public static class DashboardInsightsTests
         var tptEvidence = new CmfPlatformBriefingEvidence { Id = "e2", Section = "TPT", Subject = "CMF Overall TPT", Kind = "current",
             Context = new Dictionary<string, string>(), Measurements = new List<CmfFactMeasurement> {
                 new CmfFactMeasurement { Name = "CMF Overall TPT", Current = 38, Unit = "days", CurrentDate = "2026-11-19" },
-                new CmfFactMeasurement { Name = "TPT target", Current = 21, Unit = "days", CurrentDate = "2026-11-19" } } };
+                new CmfFactMeasurement { Name = "TPT target", Current = 21, Unit = "days", CurrentDate = "2026-11-19" },
+                new CmfFactMeasurement { Name = "Difference from TPT target", Current = 17, Unit = "days", CurrentDate = "2026-11-19" } } };
         source.Evidence.Add(tptEvidence);
-        string tptOutput = serializer.Serialize(new { findings = new[] { new { title = "Slow overall turnaround", summary = "Overall CMF turnaround is slower than expected.",
+        const string tptSummary = "Overall CMF turnaround exceeds target by 17 days.";
+        string tptOutput = serializer.Serialize(new { findings = new[] { new { title = "Slow overall turnaround", summary = tptSummary,
             kind = "pattern", tone = "attention", section = "focus", evidenceIds = new[] { "e2" },
-            support = new[] { new { evidenceId = "e2", measurementNames = new[] { "CMF Overall TPT", "TPT target" },
+            support = new[] { new { evidenceId = "e2", measurementNames = new[] { "CMF Overall TPT", "TPT target", "Difference from TPT target" },
                 explanation = "The overall average is materially above its own turnaround reference, establishing an adverse threshold comparison rather than a historical change." } } } } });
         var tptFindings = CmfPlatformBriefingService.Validate(source, tptOutput);
         Check(tptFindings.Count == 1 && tptFindings[0].Evidence[0].Text.Contains("Field CMF Overall TPT: 38 days")
@@ -1195,10 +1404,12 @@ public static class DashboardInsightsTests
         var resolution = new CmfPlatformBriefingEvidence { Id = "e3", Section = "TPT", Subject = "CMF Resolution TPT", Kind = "current",
             Context = new Dictionary<string, string>(), Measurements = new List<CmfFactMeasurement> {
                 new CmfFactMeasurement { Name = "CMF Resolution TPT", Current = 25, Unit = "days", CurrentDate = "2026-11-19" },
-                new CmfFactMeasurement { Name = "TPT target", Current = 18, Unit = "days", CurrentDate = "2026-11-19" } } };
+                new CmfFactMeasurement { Name = "TPT target", Current = 18, Unit = "days", CurrentDate = "2026-11-19" },
+                new CmfFactMeasurement { Name = "Difference from TPT target", Current = 7, Unit = "days", CurrentDate = "2026-11-19" } } };
         source.Evidence.Add(resolution);
         string resolutionOutput = tptOutput.Replace("\"e2\"", "\"e3\"").Replace("CMF Overall TPT", "CMF Resolution TPT")
             .Replace("Slow overall turnaround", "Slow resolution turnaround").Replace("Overall CMF turnaround", "Resolution CMF turnaround")
+            .Replace("exceeds target by 17 days", "exceeds target by 7 days")
             .Replace("overall average", "resolution average");
         var overallPacket = (Dictionary<string, object>)serializer.DeserializeObject(tptOutput);
         var resolutionPacket = (Dictionary<string, object>)serializer.DeserializeObject(resolutionOutput);
@@ -1212,8 +1423,8 @@ public static class DashboardInsightsTests
                 new { evidenceId = "e3", measurementNames = new[] { "CMF Resolution TPT", "TPT target" }, explanation = "Resolution exceeds its own reference." } } } } });
         bool combinedTptRejected = false;
         try { CmfPlatformBriefingService.Validate(source, combinedTpt); }
-        catch (InvalidOperationException exception) { combinedTptRejected = exception.Data["RejectedCheck"] as string == "summary-single-item"; }
-        Check(combinedTptRejected && writingPrompt.Contains("one separate assessment per qualifying measure")
+        catch (InvalidOperationException exception) { combinedTptRejected = exception.Data["RejectedCheck"] as string == "tpt-gap"; }
+        Check(combinedTptRejected && writingPrompt.Contains("One assessment per qualifying measure")
             && !writingPrompt.Contains("grouping only compatible good/bad directions"), "Independent TPT observations still share one Summary bullet.");
         source.Evidence.Remove(resolution);
         string tptReview = CmfPlatformBriefingService.VerificationPrompt(source, tptFindings);
@@ -1231,16 +1442,17 @@ public static class DashboardInsightsTests
         catch (InvalidOperationException) { duplicateTptRejected = true; }
         Check(duplicateTptRejected, "Requested coverage bypassed independent rejection of duplicate TPT findings.");
         Check(writingPrompt.Contains("EXCLUDED MILESTONE SHARES") && sectionPrompt.Contains("Omission of those points does not fail completeness")
-            && writingPrompt.Contains("TPT title and summary must be qualitative only")
-            && tptReview.Contains("exact comparison values belong in Source"), "Qualitative TPT or excluded milestone-share rules are missing from generation/review.");
-        foreach (string numericSummary in new[] { "CMF Overall TPT averages 38 days against its 21-day target.",
-            "Overall turnaround is seventeen days above its target.",
-            "Overall CMF turnaround for accepted CMF records, including duplicates, is slower than expected against its dashboard reference." })
+            && writingPrompt.Contains("TPT title must be qualitative")
+            && tptReview.Contains("exact Difference from TPT target in days"), "Exact-gap TPT or excluded milestone-share rules are missing from generation/review.");
+        foreach (var invalidTpt in new[] {
+            new { Summary = "CMF Overall TPT averages 38 days against its 21-day target.", Reason = "tpt-gap" },
+            new { Summary = "Overall turnaround is seventeen days above its target.", Reason = "tpt-gap" },
+            new { Summary = "Overall CMF turnaround for accepted CMF records, including duplicates, exceeds target by 17 days.", Reason = "tpt-wording" } })
         {
             bool numericRejected = false;
-            try { CmfPlatformBriefingService.Validate(source, tptOutput.Replace("Overall CMF turnaround is slower than expected.", numericSummary)); }
-            catch (InvalidOperationException exception) { numericRejected = exception.Data["RejectedCheck"] as string == "tpt-wording"; }
-            Check(numericRejected, "A numeric or verbose TPT sentence bypassed the short qualitative-only gate.");
+            try { CmfPlatformBriefingService.Validate(source, tptOutput.Replace(tptSummary, invalidTpt.Summary)); }
+            catch (InvalidOperationException exception) { numericRejected = exception.Data["RejectedCheck"] as string == invalidTpt.Reason; }
+            Check(numericRejected, "An unsupported numeric or verbose TPT sentence bypassed the exact-gap and length gates.");
         }
         evidence.Section = "MilestoneSummary";
         evidence.Measurements[0].Name = "Unique CMFs";
@@ -1281,12 +1493,13 @@ public static class DashboardInsightsTests
             Check(rejected, "A raw TPT recap or adverse assessment in Highlights bypassed the threshold gate.");
         }
         tptEvidence.Measurements[0].Current = 21;
+        tptEvidence.Measurements[2].Current = 0;
         bool nearTargetRejected = false;
         try { CmfPlatformBriefingService.Validate(source, tptOutput); }
         catch (InvalidOperationException exception) { nearTargetRejected = exception.Data["RejectedCheck"] as string == "tpt-target"; }
         Check(nearTargetRejected, "An at-target TPT point was incorrectly accepted as adverse.");
         string atTarget = tptOutput.Replace("Slow overall turnaround", "On-target overall turnaround")
-            .Replace("Overall CMF turnaround is slower than expected.", "Overall CMF turnaround meets its target.")
+            .Replace(tptSummary, "Overall CMF turnaround meets its target.")
             .Replace("The overall average is materially above its own turnaround reference, establishing an adverse threshold comparison rather than a historical change.",
                 "The positive overall average equals its own current target without establishing historical stability.")
             .Replace("\"attention\"", "\"neutral\"").Replace("\"focus\"", "\"highlights\"");
@@ -1296,9 +1509,10 @@ public static class DashboardInsightsTests
         tptEvidence.Measurements[0].Name = "CMF Disposition TPT";
         tptEvidence.Measurements[0].Current = 1;
         tptEvidence.Measurements[1].Current = 2;
+        tptEvidence.Measurements[2].Current = 1;
         string favorable = tptOutput.Replace("Slow overall turnaround", "Faster disposition turnaround")
             .Replace("CMF Overall TPT", "CMF Disposition TPT")
-            .Replace("Overall CMF turnaround is slower than expected.", "CMF disposition is faster than expected.")
+            .Replace(tptSummary, "CMF disposition is faster than expected.")
             .Replace("The overall average is materially above its own turnaround reference, establishing an adverse threshold comparison rather than a historical change.",
                 "The disposition average is materially below its own reference, establishing a favorable threshold comparison rather than a historical change.")
             .Replace("\"attention\"", "\"progress\"").Replace("\"focus\"", "\"highlights\"");
@@ -1467,11 +1681,60 @@ public static class DashboardInsightsTests
         catch (InvalidOperationException) { changedSourceRejected = true; }
         Check(changedSourceRejected, "A changed source explanation reused an earlier approval.");
         validated[0].Support[0].Explanation = originalExplanation;
-        int rejectedGenerations = 0;
+        foreach (string badReview in new[] { "not JSON", "{\"complete\":true,\"checks\":[]}",
+            boundApproval.Replace("\"supported\":true", "\"supported\":null"),
+            boundApproval.Replace("\"hash\":\"", "\"hash\":\"wrong-") })
+        {
+            int formatGenerations = 0, formatReviews = 0;
+            string originalFindingsPacket = null;
+            var formatRecovered = CmfPlatformBriefingService.Generate(source, prompt => { formatGenerations++; return output; }, prompt => {
+                formatReviews++;
+                var packet = (Dictionary<string, object>)serializer.DeserializeObject(prompt.Substring(prompt.IndexOf('\n') + 1));
+                string findingsPacket = serializer.Serialize(packet["Findings"]);
+                if (formatReviews == 1) { originalFindingsPacket = findingsPacket; return badReview; }
+                Check(prompt.Contains("UNCHANGED draft") && prompt.Contains("Controlled error data")
+                    && originalFindingsPacket == findingsPacket, "Review-only recovery changed findings, hashes or lost contract feedback.");
+                return approval(prompt);
+            }, prompt => "");
+            Check(formatGenerations == 1 && formatReviews == 2 && formatRecovered.Count == 17,
+                "Malformed review regenerated prose or bypassed complete independent approval.");
+        }
+        int coverageGenerations = 0, coverageReviews = 0;
+        const string missingCoverage = "Missing material CMF Overall TPT evidence; regenerate its supported assessment.";
+        var coverageRecovered = CmfPlatformBriefingService.Generate(source, prompt => {
+            coverageGenerations++;
+            if (coverageGenerations > 1) Check(prompt.Contains(missingCoverage) && prompt.Contains("PreviousDraft"),
+                "Missing coverage lost its actionable review reason or original draft.");
+            return output;
+        }, prompt => {
+            coverageReviews++;
+            if (coverageReviews > 1) return approval(prompt);
+            var coveragePacket = (Dictionary<string, object>)serializer.DeserializeObject(approval(prompt));
+            coveragePacket["complete"] = false;
+            coveragePacket["coverageReason"] = missingCoverage;
+            return serializer.Serialize(coveragePacket);
+        }, prompt => "");
+        Check(coverageGenerations == 2 && coverageReviews == 2 && coverageRecovered.Count == 17,
+            "A completeness rejection retried only the verifier or was accepted without fresh generation/review.");
+        int unexplainedGenerations = 0, unexplainedReviews = 0;
+        var explainedCoverage = CmfPlatformBriefingService.Generate(source, prompt => { unexplainedGenerations++; return output; }, prompt => {
+            unexplainedReviews++;
+            if (unexplainedReviews == 3) return approval(prompt);
+            var coveragePacket = (Dictionary<string, object>)serializer.DeserializeObject(approval(prompt));
+            coveragePacket["complete"] = false;
+            if (unexplainedReviews == 2) coveragePacket["coverageReason"] = missingCoverage;
+            return serializer.Serialize(coveragePacket);
+        }, prompt => "");
+        Check(unexplainedGenerations == 2 && unexplainedReviews == 3 && explainedCoverage.Count == 17,
+            "An unexplained completeness rejection was accepted or consumed the semantic correction budget.");
+        int rejectedGenerations = 0, rejectedReviews = 0;
         bool unsupported = false;
-        try { CmfPlatformBriefingService.Generate(source, prompt => { rejectedGenerations++; return output; }, prompt => "{\"complete\":false,\"checks\":[]}", prompt => ""); }
-        catch (InvalidOperationException) { unsupported = true; }
-        Check(unsupported && rejectedGenerations == 2, "Grounding rejection was not bounded or was published.");
+        try { CmfPlatformBriefingService.Generate(source, prompt => { rejectedGenerations++; return output; }, prompt => {
+            rejectedReviews++; return "{\"complete\":false,\"checks\":[]}";
+        }, prompt => ""); }
+        catch (InvalidOperationException exception) { unsupported = exception.Data["RejectedCheck"] as string == "review-count"
+            && (exception.Data["Reason"] as string).Contains("17 checks"); }
+        Check(unsupported && rejectedGenerations == 1 && rejectedReviews == 2, "Malformed review retries were unbounded or an unapproved draft was published.");
         evidence.Context["Fixture padding"] = new string('x', 24000);
         source.Evidence.Add(new CmfPlatformBriefingEvidence { Id = "e2", Section = "DesignSummary", Subject = "Design", Kind = "distribution",
             Context = new Dictionary<string, string>(evidence.Context), Measurements = evidence.Measurements });
@@ -2444,6 +2707,36 @@ public static class DashboardInsightsTests
         var execute = typeof(AiSummaryService).GetMethod("ExecuteDashboardAiRequest", flags);
         var delay = typeof(AiSummaryService).GetMethod("DashboardRetryDelay", flags);
         DateTime now = new DateTime(2026, 11, 8, 12, 0, 0, DateTimeKind.Utc);
+        var slots = (System.Threading.SemaphoreSlim)typeof(AiSummaryService).GetField("DashboardRequestSlots", flags).GetValue(null);
+        int acquired = 0;
+        try
+        {
+            for (; acquired < 3; acquired++) Check(slots.Wait(0), "Independent dashboard requests are still serialized.");
+            Check(!slots.Wait(0), "Dashboard request concurrency is unbounded.");
+        }
+        finally { if (acquired > 0) slots.Release(acquired); }
+        var nextStart = typeof(AiSummaryService).GetField("DashboardNextRequestUtc", flags);
+        var cooldown = typeof(AiSummaryService).GetField("DashboardCooldownUntilUtc", flags);
+        var startDelay = typeof(AiSummaryService).GetMethod("DashboardStartDelay", flags);
+        var extendCooldown = typeof(AiSummaryService).GetMethod("ExtendDashboardCooldown", flags);
+        object savedStart = nextStart.GetValue(null), savedCooldown = cooldown.GetValue(null);
+        try
+        {
+            nextStart.SetValue(null, DateTime.MinValue);
+            cooldown.SetValue(null, DateTime.MinValue);
+            Check((TimeSpan)startDelay.Invoke(null, new object[] { now }) == TimeSpan.Zero
+                && (TimeSpan)startDelay.Invoke(null, new object[] { now }) == TimeSpan.FromSeconds(3)
+                && (TimeSpan)startDelay.Invoke(null, new object[] { now.AddSeconds(3) }) == TimeSpan.Zero,
+                "Concurrent requests bypass global start pacing or wait for the previous response to finish.");
+            extendCooldown.Invoke(null, new object[] { now, TimeSpan.FromSeconds(45) });
+            extendCooldown.Invoke(null, new object[] { now, TimeSpan.FromSeconds(7) });
+            extendCooldown.Invoke(null, new object[] { now, TimeSpan.Zero });
+            Check((TimeSpan)startDelay.Invoke(null, new object[] { now.AddSeconds(6) }) == TimeSpan.FromSeconds(39)
+                && (TimeSpan)startDelay.Invoke(null, new object[] { now.AddSeconds(45) }) == TimeSpan.Zero
+                && (TimeSpan)startDelay.Invoke(null, new object[] { now.AddSeconds(45) }) == TimeSpan.FromSeconds(3),
+                "Provider cooldown was shortened by another response or resumed concurrent requests bypass pacing.");
+        }
+        finally { nextStart.SetValue(null, savedStart); cooldown.SetValue(null, savedCooldown); }
         Check((TimeSpan)delay.Invoke(null, new object[] { "45", 0, now }) == TimeSpan.FromSeconds(45), "Retry-After seconds were ignored.");
         Check((TimeSpan)delay.Invoke(null, new object[] { now.AddSeconds(90).ToString("r"), 0, now }) == TimeSpan.FromSeconds(90), "Retry-After HTTP date was ignored.");
         Check((TimeSpan)delay.Invoke(null, new object[] { "invalid", 1, now }) == TimeSpan.FromSeconds(30), "Missing Retry-After did not use exponential backoff.");
